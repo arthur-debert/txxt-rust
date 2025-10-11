@@ -16,77 +16,14 @@ impl DocumentParser {
     pub fn parse(&self, block: &TokenBlock) -> Document {
         let mut document = Document::new(self.source.clone());
 
-        // Parse the root block as a document
+        // Parse the root block as a document (which is a SessionContainer)
         let mut doc_root = AstNode::new("document".to_string());
 
-        // Parse root elements and connect them to child blocks
-        if !block.tokens.is_empty() {
-            let element_groups = self.split_tokens_into_elements(&block.tokens);
-            let mut root_elements = Vec::new();
+        // Use bottom-up parsing for proper session detection
+        let root_elements = self.parse_block_bottom_up(block, true);
 
-            for element_tokens in element_groups {
-                let token_refs: Vec<&Token> = element_tokens.to_vec();
-                if let Some(element) = self.parse_element_refs(&token_refs) {
-                    root_elements.push(element);
-                }
-            }
-
-            // Now connect child blocks to the appropriate elements based on line positions
-            for child_block in &block.children {
-                if let Some(child_start_line) = child_block.start_line {
-                    // Find the element that should own this child block
-                    // This is the element that ends just before the child block starts
-                    let mut target_element_index = None;
-                    for (i, element) in root_elements.iter().enumerate() {
-                        if let Some(element_end_line) = element.end_line {
-                            if element_end_line < child_start_line {
-                                target_element_index = Some(i);
-                            }
-                        }
-                    }
-
-                    // If we found a target element and it can have content containers
-                    if let Some(i) = target_element_index {
-                        if matches!(
-                            root_elements[i].node_type.as_str(),
-                            "definition" | "annotation" | "list_item"
-                        ) {
-                            let mut content_container =
-                                AstNode::new("content_container".to_string());
-
-                            // Parse all elements in the child block
-                            let child_elements = self.parse_block_contents(child_block);
-                            for child_element in child_elements {
-                                content_container.add_child(child_element);
-                            }
-
-                            root_elements[i].add_child(content_container);
-                        }
-                    }
-                }
-            }
-
-            // Group consecutive list items in root elements
-            let grouped_root = self.group_list_items(root_elements);
-            for element in grouped_root {
-                doc_root.add_child(element);
-            }
-
-            // All child blocks have been processed and attached to their parent elements
-            // No need to add standalone child blocks
-        } else {
-            // No root tokens, just add child blocks as elements
-            let mut child_elements = Vec::new();
-            for child_block in &block.children {
-                let child_ast = self.parse_block(child_block);
-                child_elements.push(child_ast);
-            }
-
-            // Group any consecutive list items
-            let grouped_children = self.group_list_items(child_elements);
-            for element in grouped_children {
-                doc_root.add_child(element);
-            }
+        for element in root_elements {
+            doc_root.add_child(element);
         }
 
         document.root = doc_root;
@@ -94,6 +31,7 @@ impl DocumentParser {
     }
 
     /// Parse the contents of a block into individual elements
+    #[allow(dead_code)]
     fn parse_block_contents(&self, block: &TokenBlock) -> Vec<AstNode> {
         let mut elements = Vec::new();
 
@@ -120,33 +58,16 @@ impl DocumentParser {
 
     /// Parse a single TokenBlock into an AstNode
     #[allow(clippy::only_used_in_recursion)]
+    #[allow(dead_code)]
     fn parse_block(&self, block: &TokenBlock) -> AstNode {
         // First try to parse the tokens as a specific element
         if let Some(element) = self.parse_element(&block.tokens) {
             // If this block has children, we need to handle them based on the element type
             if !block.children.is_empty() {
-                match element.node_type.as_str() {
-                    "definition" | "list_item" | "annotation" => {
-                        // These elements can have content containers
-                        let mut content_node = AstNode::new("content_container".to_string());
-                        for child_block in &block.children {
-                            let child_ast = self.parse_block(child_block);
-                            content_node.add_child(child_ast);
-                        }
-                        let mut result = element;
-                        result.add_child(content_node);
-                        result
-                    }
-                    _ => {
-                        // For other elements, just add children directly
-                        let mut result = element;
-                        for child_block in &block.children {
-                            let child_ast = self.parse_block(child_block);
-                            result.add_child(child_ast);
-                        }
-                        result
-                    }
-                }
+                let mut elements = vec![element];
+                // Use SessionContainer context for recursive block parsing (allows sessions)
+                self.connect_child_blocks_to_elements(&mut elements, &block.children, true);
+                elements.into_iter().next().unwrap()
             } else {
                 element
             }
@@ -174,6 +95,7 @@ impl DocumentParser {
     }
 
     /// Parse a list of tokens into a specific element type
+    #[allow(dead_code)]
     fn parse_element(&self, tokens: &[Token]) -> Option<AstNode> {
         let token_refs: Vec<&Token> = tokens.iter().collect();
         self.parse_element_internal(&token_refs)
@@ -769,6 +691,299 @@ impl DocumentParser {
         }
 
         result
+    }
+
+    /// Connect child blocks to their appropriate parent elements
+    /// is_session_container determines whether we create SessionContainers or ContentContainers
+    #[allow(dead_code)]
+    fn connect_child_blocks_to_elements(
+        &self,
+        elements: &mut [AstNode],
+        child_blocks: &[TokenBlock],
+        is_session_container: bool,
+    ) {
+        for child_block in child_blocks {
+            if let Some(child_start_line) = child_block.start_line {
+                // Find the element that should own this child block
+                // This is the most recent element that ends just before the child block starts
+                let mut target_element_index = None;
+                let mut best_end_line = 0;
+                for (i, element) in elements.iter().enumerate() {
+                    if let Some(element_end_line) = element.end_line {
+                        if element_end_line < child_start_line && element_end_line > best_end_line {
+                            target_element_index = Some(i);
+                            best_end_line = element_end_line;
+                        }
+                    }
+                }
+
+                // If we found a target element, check if it should be a session or content container
+                if let Some(i) = target_element_index {
+                    // Check if this might be a session (only in session containers)
+                    let should_be_session = if is_session_container {
+                        self.is_session_title(&elements[i], child_block)
+                    } else {
+                        false
+                    };
+
+                    if should_be_session {
+                        // Convert the element to a session and add a session container
+                        let mut session = AstNode::new("session".to_string());
+
+                        // Copy attributes from the original element (which becomes the session title)
+                        if let Some(content) = &elements[i].content {
+                            session.set_attribute("title".to_string(), content.clone());
+                        }
+
+                        // Set location from original element
+                        if let (Some(start), Some(end)) =
+                            (elements[i].start_line, elements[i].end_line)
+                        {
+                            session.set_location(start, end);
+                        }
+
+                        // Create session container for the content
+                        let mut session_container = AstNode::new("session_container".to_string());
+
+                        // Parse all elements in the child block
+                        let child_elements = self.parse_block_contents_as_session(child_block);
+                        for child_element in child_elements {
+                            session_container.add_child(child_element);
+                        }
+
+                        session.add_child(session_container);
+                        elements[i] = session;
+                    } else if matches!(
+                        elements[i].node_type.as_str(),
+                        "definition" | "annotation" | "list_item"
+                    ) {
+                        // Create a content container for non-session elements that can have children
+                        let mut content_container = AstNode::new("content_container".to_string());
+
+                        // Parse all elements in the child block (no sessions allowed in content containers)
+                        let child_elements = self.parse_block_contents(child_block);
+                        for child_element in child_elements {
+                            content_container.add_child(child_element);
+                        }
+
+                        elements[i].add_child(content_container);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Check if an element with the given child block should be considered a session
+    /// Sessions require: preceded by blank line, non-empty indented content
+    #[allow(dead_code)]
+    fn is_session_title(&self, element: &AstNode, child_block: &TokenBlock) -> bool {
+        // Sessions can only be paragraphs (not annotations, definitions, etc.)
+        if element.node_type != "paragraph" {
+            return false;
+        }
+
+        // Check if child block is non-empty (sessions cannot be empty)
+        if child_block.tokens.is_empty() && child_block.children.is_empty() {
+            return false;
+        }
+
+        // For now, assume any paragraph with indented content could be a session
+        // TODO: Add blank line checking once we have better context tracking
+        true
+    }
+
+    /// Parse block contents as a session container (can contain sessions)
+    #[allow(dead_code)]
+    fn parse_block_contents_as_session(&self, block: &TokenBlock) -> Vec<AstNode> {
+        let mut elements = Vec::new();
+
+        // First try to parse the block's own tokens as elements
+        if !block.tokens.is_empty() {
+            let element_groups = self.split_tokens_into_elements(&block.tokens);
+            for element_tokens in element_groups {
+                let token_refs: Vec<&Token> = element_tokens.to_vec();
+                if let Some(element) = self.parse_element_refs(&token_refs) {
+                    elements.push(element);
+                }
+            }
+        }
+
+        // Then process child blocks and check for sessions
+        self.connect_child_blocks_to_elements(&mut elements, &block.children, true);
+
+        // Group consecutive list items into lists
+        self.group_list_items(elements)
+    }
+
+    /// Parse a block using bottom-up approach for proper session detection
+    /// is_session_context: true if this context can contain sessions
+    fn parse_block_bottom_up(&self, block: &TokenBlock, is_session_context: bool) -> Vec<AstNode> {
+        let mut elements = Vec::new();
+
+        // First, parse any tokens in this block as individual elements
+        if !block.tokens.is_empty() {
+            let element_groups = self.split_tokens_into_elements(&block.tokens);
+            for element_tokens in element_groups {
+                let token_refs: Vec<&Token> = element_tokens.to_vec();
+                if let Some(element) = self.parse_element_refs(&token_refs) {
+                    elements.push(element);
+                }
+            }
+        }
+
+        // Parse all child blocks recursively first (bottom-up)
+        let mut parsed_child_blocks = Vec::new();
+        for child_block in &block.children {
+            // We need to determine the session context for each child block
+            // This will be refined when we associate with parent elements
+            let child_elements = self.parse_block_bottom_up(child_block, is_session_context);
+            parsed_child_blocks.push((child_block, child_elements));
+        }
+
+        // If this block has no tokens but has children, just return the flattened children
+        if block.tokens.is_empty() && !block.children.is_empty() {
+            for (_, child_elements) in parsed_child_blocks {
+                elements.extend(child_elements);
+            }
+            return self.group_list_items(elements);
+        }
+
+        // Now try to associate child blocks with parent elements
+        // and determine if any should be sessions
+        if is_session_context {
+            self.associate_children_and_detect_sessions(&mut elements, &parsed_child_blocks);
+        } else {
+            self.associate_children_as_content_containers(&mut elements, &parsed_child_blocks);
+        }
+
+        // Group consecutive list items into lists
+        self.group_list_items(elements)
+    }
+
+    /// Associate child blocks with elements and detect sessions (for SessionContainers)
+    fn associate_children_and_detect_sessions(
+        &self,
+        elements: &mut [AstNode],
+        parsed_child_blocks: &[(&TokenBlock, Vec<AstNode>)],
+    ) {
+        for (child_block, child_elements) in parsed_child_blocks {
+            if let Some(child_start_line) = child_block.start_line {
+                // Find the most recent element that could be the parent
+                let mut target_element_index = None;
+                let mut best_end_line = 0;
+                for (i, element) in elements.iter().enumerate() {
+                    if let Some(element_end_line) = element.end_line {
+                        if element_end_line < child_start_line && element_end_line > best_end_line {
+                            target_element_index = Some(i);
+                            best_end_line = element_end_line;
+                        }
+                    }
+                }
+
+                if let Some(i) = target_element_index {
+                    // Check if this should be a session
+                    let should_be_session = self.should_be_session(&elements[i], child_elements);
+
+                    if should_be_session {
+                        // Convert to session
+                        let mut session = AstNode::new("session".to_string());
+
+                        // Copy title from original element
+                        if let Some(content) = &elements[i].content {
+                            session.set_attribute("title".to_string(), content.clone());
+                        }
+
+                        // Set location from original element
+                        if let (Some(start), Some(end)) =
+                            (elements[i].start_line, elements[i].end_line)
+                        {
+                            session.set_location(start, end);
+                        }
+
+                        // Create session container
+                        let mut session_container = AstNode::new("session_container".to_string());
+                        for child_element in child_elements {
+                            session_container.add_child(child_element.clone());
+                        }
+
+                        session.add_child(session_container);
+                        elements[i] = session;
+                    } else if matches!(
+                        elements[i].node_type.as_str(),
+                        "definition" | "annotation" | "list_item"
+                    ) {
+                        // Create content container for non-session elements
+                        // Re-parse child block with is_session_context = false to ensure no sessions
+                        let content_child_elements = self.parse_block_bottom_up(child_block, false);
+                        let mut content_container = AstNode::new("content_container".to_string());
+                        for child_element in content_child_elements {
+                            content_container.add_child(child_element);
+                        }
+                        elements[i].add_child(content_container);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Associate child blocks with elements as ContentContainers (no sessions allowed)
+    fn associate_children_as_content_containers(
+        &self,
+        elements: &mut [AstNode],
+        parsed_child_blocks: &[(&TokenBlock, Vec<AstNode>)],
+    ) {
+        for (child_block, child_elements) in parsed_child_blocks {
+            if let Some(child_start_line) = child_block.start_line {
+                // Find the most recent element that could be the parent
+                let mut target_element_index = None;
+                let mut best_end_line = 0;
+                for (i, element) in elements.iter().enumerate() {
+                    if let Some(element_end_line) = element.end_line {
+                        if element_end_line < child_start_line && element_end_line > best_end_line {
+                            target_element_index = Some(i);
+                            best_end_line = element_end_line;
+                        }
+                    }
+                }
+
+                if let Some(i) = target_element_index {
+                    if matches!(
+                        elements[i].node_type.as_str(),
+                        "definition" | "annotation" | "list_item"
+                    ) {
+                        // Create content container (no sessions allowed)
+                        let mut content_container = AstNode::new("content_container".to_string());
+                        for child_element in child_elements {
+                            content_container.add_child(child_element.clone());
+                        }
+                        elements[i].add_child(content_container);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Determine if an element with given child content should be a session
+    fn should_be_session(&self, element: &AstNode, child_elements: &[AstNode]) -> bool {
+        // Only paragraphs can become sessions
+        if element.node_type != "paragraph" {
+            return false;
+        }
+
+        // Sessions cannot be empty - child elements must contain non-empty content
+        if child_elements.is_empty() {
+            return false;
+        }
+
+        // Check if child elements contain any actual content (not just blank lines)
+        let has_content = child_elements.iter().any(|child| {
+            match child.node_type.as_str() {
+                "blank_line" => false,
+                _ => true, // Any non-blank element counts as content
+            }
+        });
+
+        has_content
     }
 }
 

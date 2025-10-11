@@ -40,7 +40,15 @@ impl Lexer {
             return self.tokens.clone();
         }
 
-        // Pass 0: Scan for verbatim blocks
+        // CRITICAL STEP: Pre-scan for verbatim blocks before tokenizing
+        //
+        // Verbatim blocks contain arbitrary content that should NOT be parsed as TXXT.
+        // We must identify verbatim block boundaries BEFORE tokenization to ensure:
+        // 1. Content inside verbatim blocks is preserved exactly as written
+        // 2. No TXXT parsing (indentation, formatting, etc.) happens inside verbatim blocks
+        // 3. Only title, label, and parameters are parsed as normal TXXT
+        //
+        // The scanner returns line ranges like [[3,6], [10,15]] identifying verbatim blocks
         let scanner = VerbatimScanner::new();
         self.verbatim_blocks = scanner.scan(&self.text);
 
@@ -65,27 +73,38 @@ impl Lexer {
                 continue;
             }
 
-            // Handle indentation changes
-            if indentation > self.indent_stack[self.indent_stack.len() - 1] {
-                self.indent_stack.push(indentation);
-                self.add_token(TokenType::Indent, Some("".to_string()));
-            } else {
-                // Emit one DEDENT token for each level we're backing out
-                while indentation < self.indent_stack[self.indent_stack.len() - 1]
-                    && self.indent_stack.len() > 1
-                {
-                    self.indent_stack.pop();
-                    self.add_token(TokenType::Dedent, Some("".to_string()));
-                }
-            }
-
-            // Process line content
+            // CRITICAL: Check if this line is verbatim content BEFORE processing indentation
+            //
+            // This is the key architectural decision: verbatim content lines should be
+            // treated as opaque content, not as TXXT structure. This means:
+            //
+            // 1. NO indentation processing (no Indent/Dedent tokens)
+            // 2. NO TXXT parsing of any kind
+            // 3. Preserve the line exactly as written
+            //
+            // Only title lines (e.g., "code:") and label lines (e.g., "(python)")
+            // should be processed as normal TXXT.
             let scanner = VerbatimScanner::new();
             if scanner.is_verbatim_content(self.current_line, &self.verbatim_blocks) {
-                // It's verbatim content - emit the entire line as-is
+                // This line is inside a verbatim block - preserve it exactly
+                // DO NOT emit Indent/Dedent tokens or do any TXXT processing
                 self.add_token(TokenType::VerbatimContent, Some(expanded_line));
             } else {
-                // Normal processing
+                // Normal TXXT line - process indentation changes and content
+                if indentation > self.indent_stack[self.indent_stack.len() - 1] {
+                    self.indent_stack.push(indentation);
+                    self.add_token(TokenType::Indent, Some("".to_string()));
+                } else {
+                    // Emit one DEDENT token for each level we're backing out
+                    while indentation < self.indent_stack[self.indent_stack.len() - 1]
+                        && self.indent_stack.len() > 1
+                    {
+                        self.indent_stack.pop();
+                        self.add_token(TokenType::Dedent, Some("".to_string()));
+                    }
+                }
+
+                // Parse line content as normal TXXT
                 self.process_line_content(stripped_line, line, indentation);
             }
 

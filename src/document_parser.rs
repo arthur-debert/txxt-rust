@@ -19,21 +19,75 @@ impl DocumentParser {
         // Parse the root block as a document
         let mut doc_root = AstNode::new("document".to_string());
 
-        // If the root block has content, parse it as elements
+        // Parse root elements and connect them to child blocks
         if !block.tokens.is_empty() {
-            if let Some(element) = self.parse_element(&block.tokens) {
-                doc_root.add_child(element);
-            }
-        }
+            let element_groups = self.split_tokens_into_elements(&block.tokens);
+            let mut child_index = 0;
 
-        // Add child blocks as elements
-        for child_block in &block.children {
-            let child_ast = self.parse_block(child_block);
-            doc_root.add_child(child_ast);
+            for element_tokens in element_groups {
+                let token_refs: Vec<&Token> = element_tokens.to_vec();
+                if let Some(mut element) = self.parse_element_refs(&token_refs) {
+                    // Check if this element should have a content container
+                    if matches!(element.node_type.as_str(), "definition" | "annotation") {
+                        // Connect this element to the next child block if available
+                        if child_index < block.children.len() {
+                            let child_block = &block.children[child_index];
+                            let mut content_container =
+                                AstNode::new("content_container".to_string());
+
+                            // Parse all elements in the child block
+                            let child_elements = self.parse_block_contents(child_block);
+                            for child_element in child_elements {
+                                content_container.add_child(child_element);
+                            }
+
+                            element.add_child(content_container);
+                            child_index += 1;
+                        }
+                    }
+                    doc_root.add_child(element);
+                }
+            }
+
+            // Add any remaining child blocks as standalone elements
+            for i in child_index..block.children.len() {
+                let child_ast = self.parse_block(&block.children[i]);
+                doc_root.add_child(child_ast);
+            }
+        } else {
+            // No root tokens, just add child blocks as elements
+            for child_block in &block.children {
+                let child_ast = self.parse_block(child_block);
+                doc_root.add_child(child_ast);
+            }
         }
 
         document.root = doc_root;
         document
+    }
+
+    /// Parse the contents of a block into individual elements
+    fn parse_block_contents(&self, block: &TokenBlock) -> Vec<AstNode> {
+        let mut elements = Vec::new();
+
+        // First try to parse the block's own tokens as elements
+        if !block.tokens.is_empty() {
+            let element_groups = self.split_tokens_into_elements(&block.tokens);
+            for element_tokens in element_groups {
+                let token_refs: Vec<&Token> = element_tokens.to_vec();
+                if let Some(element) = self.parse_element_refs(&token_refs) {
+                    elements.push(element);
+                }
+            }
+        }
+
+        // Then add child blocks
+        for child_block in &block.children {
+            let child_ast = self.parse_block(child_block);
+            elements.push(child_ast);
+        }
+
+        elements
     }
 
     /// Parse a single TokenBlock into an AstNode
@@ -44,7 +98,7 @@ impl DocumentParser {
             // If this block has children, we need to handle them based on the element type
             if !block.children.is_empty() {
                 match element.node_type.as_str() {
-                    "definition" | "list_item" => {
+                    "definition" | "list_item" | "annotation" => {
                         // These elements can have content containers
                         let mut content_node = AstNode::new("content_container".to_string());
                         for child_block in &block.children {
@@ -86,8 +140,19 @@ impl DocumentParser {
         }
     }
 
+    /// Parse a list of token references into a specific element type
+    fn parse_element_refs(&self, tokens: &[&Token]) -> Option<AstNode> {
+        self.parse_element_internal(tokens)
+    }
+
     /// Parse a list of tokens into a specific element type
     fn parse_element(&self, tokens: &[Token]) -> Option<AstNode> {
+        let token_refs: Vec<&Token> = tokens.iter().collect();
+        self.parse_element_internal(&token_refs)
+    }
+
+    /// Internal implementation for parsing elements
+    fn parse_element_internal(&self, tokens: &[&Token]) -> Option<AstNode> {
         if tokens.is_empty() {
             return None;
         }
@@ -96,6 +161,7 @@ impl DocumentParser {
         let tokens: Vec<&Token> = tokens
             .iter()
             .filter(|t| t.token_type != TokenType::Eof)
+            .cloned()
             .collect();
         if tokens.is_empty() {
             return None;
@@ -136,7 +202,7 @@ impl DocumentParser {
 
     /// Parse annotation: :: label :: content
     fn parse_annotation(&self, tokens: &[&Token]) -> Option<AstNode> {
-        if tokens.len() < 3 {
+        if tokens.len() < 2 {
             return None;
         }
 
@@ -231,7 +297,12 @@ impl DocumentParser {
         if has_verbatim_start || has_verbatim_content || has_verbatim_end {
             let mut node = AstNode::new("verbatim".to_string());
 
-            // Extract content
+            // Extract title (text before VerbatimStart)
+            if let Some(title) = self.extract_verbatim_title(tokens) {
+                node.set_attribute("title".to_string(), title);
+            }
+
+            // Extract content (preserve exactly as tokenized - do NOT parse as TXXT)
             let content = self.extract_verbatim_content(tokens);
             if !content.is_empty() {
                 node.content = Some(content);
@@ -271,18 +342,43 @@ impl DocumentParser {
                 node.set_attribute("marker".to_string(), marker_value.clone());
             }
 
-            // Extract content (skip the marker)
-            let content_tokens = &tokens[1..];
+            // Extract content (skip the marker, but only until next list item or element boundary)
+            let mut content_tokens = Vec::new();
+            let mut i = 1; // Skip the marker
+            while i < tokens.len() {
+                let token = tokens[i];
+
+                // Stop if we encounter another list marker or element starter
+                if matches!(
+                    token.token_type,
+                    TokenType::Dash | TokenType::SequenceMarker
+                ) || token.token_type == TokenType::PragmaMarker
+                    || token.token_type == TokenType::VerbatimStart
+                    || token.token_type == TokenType::BlankLine
+                    || (token.token_type == TokenType::Text && {
+                        let remaining_tokens: Vec<Token> =
+                            tokens[i..].iter().map(|&t| t.clone()).collect();
+                        self.looks_like_definition_start(&remaining_tokens)
+                    })
+                {
+                    break;
+                }
+
+                content_tokens.push(token);
+                i += 1;
+            }
+
             let content = self
-                .extract_text_with_inlines(content_tokens)
+                .extract_text_with_inlines(&content_tokens)
                 .trim()
                 .to_string();
             if !content.is_empty() {
                 node.content = Some(content);
             }
 
-            // Set location
-            if let (Some(first), Some(last)) = (tokens.first(), tokens.last()) {
+            // Set location (from first token to last consumed token)
+            let last_token_index = if content_tokens.is_empty() { 0 } else { i - 1 };
+            if let (Some(first), Some(last)) = (tokens.first(), tokens.get(last_token_index)) {
                 node.set_location(first.line, last.line);
             }
 
@@ -373,6 +469,31 @@ impl DocumentParser {
             .join("\n")
     }
 
+    /// Extract verbatim title (text before VerbatimStart)
+    fn extract_verbatim_title(&self, tokens: &[&Token]) -> Option<String> {
+        let mut title_tokens = Vec::new();
+
+        for token in tokens {
+            if token.token_type == TokenType::VerbatimStart {
+                break;
+            }
+            if matches!(token.token_type, TokenType::Text | TokenType::Identifier) {
+                title_tokens.push(*token);
+            }
+        }
+
+        if title_tokens.is_empty() {
+            None
+        } else {
+            let title = self.extract_text(&title_tokens).trim().to_string();
+            if title.is_empty() {
+                None
+            } else {
+                Some(title)
+            }
+        }
+    }
+
     /// Extract verbatim label
     fn extract_verbatim_label(&self, tokens: &[&Token]) -> Option<String> {
         // Look for identifier between VerbatimEnd tokens
@@ -395,6 +516,188 @@ impl DocumentParser {
             }
         }
         None
+    }
+
+    /// Split a token sequence into separate element groups
+    fn split_tokens_into_elements<'a>(&self, tokens: &'a [Token]) -> Vec<Vec<&'a Token>> {
+        let mut result = Vec::new();
+        let mut current_group = Vec::new();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            let token = &tokens[i];
+
+            // Skip EOF tokens
+            if token.token_type == TokenType::Eof {
+                i += 1;
+                continue;
+            }
+
+            // Check if this token starts a new element
+            let starts_new_element = match token.token_type {
+                // Annotations start with ::
+                TokenType::PragmaMarker => {
+                    // Look ahead to see if this is an annotation pattern
+                    self.looks_like_annotation_start(&tokens[i..])
+                }
+                // Definitions have text followed by ::
+                // Verbatim blocks have text followed by :
+                TokenType::Text => {
+                    // Look ahead to see if this is a definition pattern or verbatim pattern
+                    // But don't start a new element if we're already inside a verbatim block
+                    if self.is_inside_verbatim_block(&current_group) {
+                        false
+                    } else {
+                        self.looks_like_definition_start(&tokens[i..])
+                            || self.looks_like_verbatim_start(&tokens[i..])
+                    }
+                }
+                // List items start with - or numbers
+                TokenType::Dash | TokenType::SequenceMarker => {
+                    // Don't start new element if inside verbatim
+                    !self.is_inside_verbatim_block(&current_group)
+                }
+                // Verbatim blocks (but only if not preceded by text on same line - that would be a title)
+                TokenType::VerbatimStart => {
+                    // Check if this VerbatimStart is preceded by text on the same line
+                    // If so, it's part of a verbatim title and shouldn't start a new element
+                    !self.verbatim_start_has_title(&tokens[..i + 1])
+                }
+                // Verbatim content should never start a new element
+                TokenType::VerbatimContent | TokenType::VerbatimEnd => false,
+                // Blank lines are individual elements (unless inside verbatim)
+                TokenType::BlankLine => !self.is_inside_verbatim_block(&current_group),
+                _ => false,
+            };
+
+            // If starting a new element and we have a current group, save it
+            if starts_new_element && !current_group.is_empty() {
+                result.push(current_group);
+                current_group = Vec::new();
+            }
+
+            current_group.push(token);
+            i += 1;
+        }
+
+        // Add the last group if it has content
+        if !current_group.is_empty() {
+            result.push(current_group);
+        }
+
+        result
+    }
+
+    /// Check if tokens look like an annotation start: :: label ::
+    fn looks_like_annotation_start(&self, tokens: &[Token]) -> bool {
+        if tokens.len() < 3 {
+            return false;
+        }
+
+        // Must start with ::
+        if tokens[0].token_type != TokenType::PragmaMarker {
+            return false;
+        }
+
+        // Look for pattern :: identifier/text ::
+        let mut pragma_count = 0;
+        for token in tokens {
+            if token.token_type == TokenType::PragmaMarker {
+                pragma_count += 1;
+                if pragma_count >= 2 {
+                    return true;
+                }
+            } else if matches!(token.token_type, TokenType::Identifier | TokenType::Text)
+                && pragma_count == 1
+            {
+                // Found content between pragmas, continue looking for second ::
+                continue;
+            } else if token.token_type == TokenType::Newline {
+                // Newline before second :: means this might be multiline
+                return pragma_count >= 2;
+            }
+        }
+
+        false
+    }
+
+    /// Check if tokens look like a definition start: term ::
+    fn looks_like_definition_start(&self, tokens: &[Token]) -> bool {
+        if tokens.len() < 2 {
+            return false;
+        }
+
+        // Look for :: somewhere in the tokens
+        for token in tokens {
+            if token.token_type == TokenType::DefinitionMarker {
+                return true;
+            }
+            // Stop looking if we hit a newline without finding ::
+            if token.token_type == TokenType::Newline {
+                break;
+            }
+        }
+
+        false
+    }
+
+    /// Check if tokens look like a verbatim start: title :
+    fn looks_like_verbatim_start(&self, tokens: &[Token]) -> bool {
+        if tokens.len() < 2 {
+            return false;
+        }
+
+        // Look for VerbatimStart (:) after text
+        for token in tokens {
+            if token.token_type == TokenType::VerbatimStart {
+                return true;
+            }
+            // Stop looking if we hit a newline without finding :
+            if token.token_type == TokenType::Newline {
+                break;
+            }
+        }
+
+        false
+    }
+
+    /// Check if a VerbatimStart token has a title (text preceding it on the same line)
+    fn verbatim_start_has_title(&self, tokens_up_to_start: &[Token]) -> bool {
+        if tokens_up_to_start.is_empty() {
+            return false;
+        }
+
+        // Look backward from the VerbatimStart to see if there's text without a newline
+        for token in tokens_up_to_start.iter().rev() {
+            if token.token_type == TokenType::VerbatimStart {
+                continue; // Skip the VerbatimStart itself
+            }
+            if matches!(token.token_type, TokenType::Text | TokenType::Identifier) {
+                return true; // Found text before the VerbatimStart
+            }
+            if token.token_type == TokenType::Newline {
+                return false; // Hit a newline, so no title on the same line
+            }
+        }
+
+        false
+    }
+
+    /// Check if we're currently inside a verbatim block (started but not finished)
+    fn is_inside_verbatim_block(&self, current_group: &[&Token]) -> bool {
+        let mut verbatim_start_count = 0;
+        let mut verbatim_end_count = 0;
+
+        for token in current_group {
+            if token.token_type == TokenType::VerbatimStart {
+                verbatim_start_count += 1;
+            } else if token.token_type == TokenType::VerbatimEnd {
+                verbatim_end_count += 1;
+            }
+        }
+
+        // We're inside a verbatim block if we've seen a start but not completed the end pair
+        verbatim_start_count > 0 && verbatim_end_count < 2
     }
 }
 

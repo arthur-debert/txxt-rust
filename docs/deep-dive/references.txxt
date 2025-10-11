@@ -24,15 +24,17 @@ References in Txxt use the [] notation to link to other documents, sections, or 
         - [../other-dir/file.txxt]
         - [/absolute/path/file.txxt]
     
-    b. Section References
-        - [local-section]
-        - [#3] - notest
-    
-    c. URL References
+    b. URL References
         - [example.com]
         - [https://example.com]
         - [user@domain.com]
 
+    c. Section References
+        - [local-section]
+        - [#3] - notest
+
+    d. 
+    
 4. Special Meanings
 
     a. Naked Numerical References (Footnote-style)

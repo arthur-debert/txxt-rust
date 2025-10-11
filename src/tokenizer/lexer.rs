@@ -49,7 +49,11 @@ impl Lexer {
                 break;
             }
 
-            if let Some(token) = self.read_text() {
+            if let Some(token) = self.read_annotation_marker() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_text() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_identifier() {
                 tokens.push(token);
             } else {
                 // Skip unrecognized character for now
@@ -241,6 +245,87 @@ impl Lexer {
         }
 
         None
+    }
+
+    /// Read an annotation marker token (::)
+    fn read_annotation_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        // Check for "::"
+        if self.peek() == Some(':') {
+            let saved_position = self.position;
+            let saved_row = self.row;
+            let saved_column = self.column;
+
+            self.advance(); // First ':'
+
+            if self.peek() == Some(':') {
+                self.advance(); // Second ':'
+
+                // Check that this is not part of a longer sequence like ":::"
+                // Annotation markers should be exactly "::"
+                if let Some(next_ch) = self.peek() {
+                    if next_ch == ':' {
+                        // This is ":::" or longer, not a valid annotation marker
+                        self.position = saved_position;
+                        self.row = saved_row;
+                        self.column = saved_column;
+                        return None;
+                    }
+                }
+
+                return Some(Token::AnnotationMarker {
+                    content: "::".to_string(),
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            } else {
+                // Not an annotation marker, backtrack
+                self.position = saved_position;
+                self.row = saved_row;
+                self.column = saved_column;
+            }
+        }
+
+        None
+    }
+
+    /// Read an identifier token (alphanumeric starting with letter or underscore)
+    fn read_identifier(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+        let mut content = String::new();
+
+        // Must start with letter or underscore
+        if let Some(ch) = self.peek() {
+            if ch.is_ascii_alphabetic() || ch == '_' {
+                content.push(ch);
+                self.advance();
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        }
+
+        // Continue with alphanumeric or underscore
+        while let Some(ch) = self.peek() {
+            if ch.is_alphanumeric() || ch == '_' {
+                content.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        Some(Token::Identifier {
+            content,
+            span: SourceSpan {
+                start: start_pos,
+                end: self.current_position(),
+            },
+        })
     }
 
     /// Check if the current position matches a given string

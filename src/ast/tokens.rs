@@ -64,8 +64,8 @@ pub enum Token {
     /// List/sequence markers (1., -, a), etc.)
     SequenceMarker { content: String, span: SourceSpan },
 
-    /// Pragma annotations (:: label ::)
-    PragmaMarker { content: String, span: SourceSpan },
+    /// Annotation markers (:: label ::)
+    AnnotationMarker { content: String, span: SourceSpan },
 
     /// Dash character (-)
     Dash { span: SourceSpan },
@@ -99,7 +99,7 @@ impl Token {
             Token::Indent { span } => span,
             Token::Dedent { span } => span,
             Token::SequenceMarker { span, .. } => span,
-            Token::PragmaMarker { span, .. } => span,
+            Token::AnnotationMarker { span, .. } => span,
             Token::Dash { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
@@ -115,7 +115,7 @@ impl Token {
         match self {
             Token::Text { content, .. } => content,
             Token::SequenceMarker { content, .. } => content,
-            Token::PragmaMarker { content, .. } => content,
+            Token::AnnotationMarker { content, .. } => content,
             Token::Identifier { content, .. } => content,
             Token::RefMarker { content, .. } => content,
             Token::FootnoteNumber { content, .. } => content,

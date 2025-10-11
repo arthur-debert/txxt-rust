@@ -3,7 +3,7 @@ use regex::Regex;
 /// Represents a verbatim block identified during pre-scanning
 ///
 /// Verbatim blocks have the structure:
-/// ```
+/// ```text
 /// title:
 ///     content line 1
 ///     content line 2

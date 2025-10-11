@@ -80,9 +80,8 @@ fn test_nested_list_with_definition() {
 
     let content_container = &definition.children[0];
 
-    // Content container should have paragraph, blank_line, list, blank_line, paragraph
-    // (Note: blank lines are currently parsed as separate elements)
-    assert_eq!(content_container.children.len(), 5);
+    // Content container should have paragraph, blank_line, list, paragraph
+    assert_eq!(content_container.children.len(), 4);
 
     assert_eq!(content_container.children[0].node_type, "paragraph");
     assert_eq!(
@@ -94,16 +93,14 @@ fn test_nested_list_with_definition() {
 
     assert_eq!(content_container.children[2].node_type, "list");
     let list = &content_container.children[2];
-    // TODO: This should have 2 items but currently has 1 due to list grouping issue
-    // assert_eq!(list.children.len(), 2);
-    assert_eq!(list.children.len(), 1);
+    // List now properly has 2 items
+    assert_eq!(list.children.len(), 2);
     assert_eq!(list.children[0].content.as_ref().unwrap(), "List item one");
+    assert_eq!(list.children[1].content.as_ref().unwrap(), "List item two");
 
-    assert_eq!(content_container.children[3].node_type, "blank_line");
-
-    assert_eq!(content_container.children[4].node_type, "paragraph");
+    assert_eq!(content_container.children[3].node_type, "paragraph");
     assert_eq!(
-        content_container.children[4].content.as_ref().unwrap(),
+        content_container.children[3].content.as_ref().unwrap(),
         "Final paragraph."
     );
 }

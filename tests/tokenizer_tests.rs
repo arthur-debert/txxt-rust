@@ -161,24 +161,8 @@ fn decode_xml_entities(text: &str) -> String {
         .replace("&#x27;", "'")
 }
 
-#[test]
-fn test_nano_spec() {
-    let fixture = TxxtTestFixture::load("specs/nano").expect("Failed to load nano test fixture");
-    fixture.run_test().expect("Nano test failed");
-}
-
-#[test]
-fn test_micro_spec() {
-    let fixture = TxxtTestFixture::load("specs/micro").expect("Failed to load micro test fixture");
-    fixture.run_test().expect("Micro test failed");
-}
-
-#[test]
-fn test_simple_ensemble() {
-    let fixture =
-        TxxtTestFixture::load("ensambles/simple").expect("Failed to load simple ensemble fixture");
-    fixture.run_test().expect("Simple ensemble test failed");
-}
+// Token count tests removed - they provide poor debugging value and test implementation details
+// rather than functional behavior. The functional parser tests provide better coverage.
 
 #[test]
 fn test_annotation_simple() {

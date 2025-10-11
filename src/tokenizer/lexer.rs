@@ -118,6 +118,8 @@ impl Lexer {
             self.add_token(TokenType::Dedent, None);
         }
 
+        // EOF should be positioned after the last character or newline
+        self.current_col += 1;
         self.add_token(TokenType::Eof, Some("".to_string()));
         self.tokens.clone()
     }

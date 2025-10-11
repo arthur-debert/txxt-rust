@@ -9,6 +9,11 @@ use txxt::block_grouping::{build_block_tree, TokenBlock};
 use txxt::parser::parse_document;
 use txxt::tokenizer::{tokenize, Token, TokenType};
 
+#[cfg(feature = "new-ast")]
+use txxt::adapters::convert_document;
+#[cfg(feature = "new-ast")]
+use txxt::ast_debug::AstTreeVisualizer;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -35,14 +40,27 @@ fn main() {
             handle_block(&args[2]);
         }
         "parse" => {
-            if args.len() != 3 {
+            if args.len() < 3 || args.len() > 4 {
                 eprintln!(
-                    "Usage: {} parse <input.txxt|input.tokens.xml|input.blocks.xml>",
+                    "Usage: {} parse [--new-ast] <input.txxt|input.tokens.xml|input.blocks.xml>",
                     args[0]
                 );
                 std::process::exit(1);
             }
-            handle_parse(&args[2]);
+
+            let (use_new_ast, input_path) = if args.len() == 4 && args[2] == "--new-ast" {
+                (true, &args[3])
+            } else if args.len() == 3 {
+                (false, &args[2])
+            } else {
+                eprintln!(
+                    "Usage: {} parse [--new-ast] <input.txxt|input.tokens.xml|input.blocks.xml>",
+                    args[0]
+                );
+                std::process::exit(1);
+            };
+
+            handle_parse(input_path, use_new_ast);
         }
         _ => {
             eprintln!("Unknown command: {}", command);
@@ -61,7 +79,7 @@ fn print_usage(program_name: &str) {
         "  block <input.txxt|input.tokens.xml>       Group tokens into blocks and output XML"
     );
     eprintln!(
-        "  parse <input.txxt|input.tokens.xml|input.blocks.xml> Parse into AST and output XML"
+        "  parse [--new-ast] <input.txxt|input.tokens.xml|input.blocks.xml> Parse into AST and output XML or tree"
     );
 }
 
@@ -107,29 +125,34 @@ fn handle_block(input_path: &str) {
     }
 }
 
-fn handle_parse(input_path: &str) {
+fn handle_parse(input_path: &str, use_new_ast: bool) {
     let result = if input_path == "-" {
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer).unwrap();
         let tokens = tokenize(&buffer);
         let block_tree = build_block_tree(tokens);
         let document = parse_document("stdin".to_string(), &block_tree);
-        format_ast_as_xml(&document)
+
+        if use_new_ast {
+            format_new_ast_as_tree(&document)
+        } else {
+            format_ast_as_xml(&document)
+        }
     } else if input_path.ends_with(".txxt") {
         // TXXT file - tokenize, block group, then parse
-        process_txxt_file_for_parse(input_path)
+        process_txxt_file_for_parse(input_path, use_new_ast)
     } else if input_path.ends_with(".tokens.xml") {
         // XML tokens file - parse tokens, block group, then parse
-        process_tokens_xml_file_for_parse(input_path)
+        process_tokens_xml_file_for_parse(input_path, use_new_ast)
     } else if input_path.ends_with(".blocks.xml") {
         // XML blocks file - parse blocks then parse to AST
-        process_blocks_xml_file_for_parse(input_path)
+        process_blocks_xml_file_for_parse(input_path, use_new_ast)
     } else {
         Err("Input file must be .txxt, .tokens.xml, or .blocks.xml".into())
     };
 
     match result {
-        Ok(xml) => println!("{}", xml),
+        Ok(output) => println!("{}", output),
         Err(e) => {
             eprintln!("Error: {}", e);
             std::process::exit(1);
@@ -404,26 +427,63 @@ fn decode_xml_entities(text: &str) -> String {
 }
 
 // Parse command helper functions
-fn process_txxt_file_for_parse(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn process_txxt_file_for_parse(
+    path: &str,
+    use_new_ast: bool,
+) -> Result<String, Box<dyn std::error::Error>> {
     let content = fs::read_to_string(path)?;
     let tokens = tokenize(&content);
     let block_tree = build_block_tree(tokens);
     let document = parse_document(path.to_string(), &block_tree);
-    format_ast_as_xml(&document)
+
+    if use_new_ast {
+        format_new_ast_as_tree(&document)
+    } else {
+        format_ast_as_xml(&document)
+    }
 }
 
-fn process_tokens_xml_file_for_parse(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn process_tokens_xml_file_for_parse(
+    path: &str,
+    use_new_ast: bool,
+) -> Result<String, Box<dyn std::error::Error>> {
     let xml_content = fs::read_to_string(path)?;
     let tokens = parse_tokens_from_xml(&xml_content)?;
     let block_tree = build_block_tree(tokens);
     let document = parse_document(path.to_string(), &block_tree);
-    format_ast_as_xml(&document)
+
+    if use_new_ast {
+        format_new_ast_as_tree(&document)
+    } else {
+        format_ast_as_xml(&document)
+    }
 }
 
-fn process_blocks_xml_file_for_parse(_path: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn process_blocks_xml_file_for_parse(
+    _path: &str,
+    _use_new_ast: bool,
+) -> Result<String, Box<dyn std::error::Error>> {
     // TODO: Parse blocks XML format
     // For now, just return an error since we haven't implemented blocks XML parsing yet
     Err("Parsing from .blocks.xml not yet implemented".into())
+}
+
+/// Format document using new AST adapter and tree visualizer
+fn format_new_ast_as_tree(document: &Document) -> Result<String, Box<dyn std::error::Error>> {
+    #[cfg(feature = "new-ast")]
+    {
+        let new_doc = convert_document(document);
+        let visualizer = AstTreeVisualizer::new();
+        Ok(visualizer.visualize_document(&new_doc))
+    }
+
+    #[cfg(not(feature = "new-ast"))]
+    {
+        Err(
+            "New AST feature is not enabled. Compile with --features new-ast to use this option."
+                .into(),
+        )
+    }
 }
 
 fn format_ast_as_xml(document: &Document) -> Result<String, Box<dyn std::error::Error>> {

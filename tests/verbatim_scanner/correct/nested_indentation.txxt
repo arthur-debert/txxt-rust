@@ -1,0 +1,10 @@
+Expected: [[6,10,"normal"]]
+1. Session with verbatim
+
+    Some session content.
+
+    Code example:
+        def hello():
+            print("Hello")
+            return 42
+    (python)

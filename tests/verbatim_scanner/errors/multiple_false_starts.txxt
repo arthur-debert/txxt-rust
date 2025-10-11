@@ -1,0 +1,10 @@
+Expected: [[8,10,"normal"]]
+first false start:
+    content without terminator
+
+second false start:
+    more content without terminator
+
+finally a real one:
+    actual verbatim content
+(label)

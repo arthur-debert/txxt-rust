@@ -72,20 +72,20 @@ impl AstTreeVisualizer {
     pub fn visualize_document(&self, doc: &Document) -> String {
         let mut output = String::new();
 
-        writeln!(output, "📄 Document").unwrap();
+        writeln!(output, "Document").unwrap();
 
         // Show document metadata
         if !self.config.compact {
             if let Some(ref title) = doc.meta.title {
-                writeln!(output, "├─ 📝 Title: {:?}", title).unwrap();
+                writeln!(output, "├─ Title: {:?}", title).unwrap();
             }
             if !doc.meta.authors.is_empty() {
-                writeln!(output, "├─ 👥 Authors: {} items", doc.meta.authors.len()).unwrap();
+                writeln!(output, "├─ Authors: {} items", doc.meta.authors.len()).unwrap();
             }
             if !doc.meta.custom.is_empty() {
                 writeln!(
                     output,
-                    "├─ 🏷️ Custom metadata: {} items",
+                    "├─ Custom metadata: {} items",
                     doc.meta.custom.len()
                 )
                 .unwrap();
@@ -94,14 +94,14 @@ impl AstTreeVisualizer {
 
         // Show assembly info
         if !self.config.compact {
-            writeln!(output, "├─ 🔧 Parser: {}", doc.assembly_info.parser_version).unwrap();
+            writeln!(output, "├─ Parser: {}", doc.assembly_info.parser_version).unwrap();
             if let Some(ref path) = doc.assembly_info.source_path {
-                writeln!(output, "├─ 📁 Source: {}", path).unwrap();
+                writeln!(output, "├─ Source: {}", path).unwrap();
             }
         }
 
         // Show document blocks
-        writeln!(output, "├─ 📦 Blocks: {} items", doc.blocks.len()).unwrap();
+        writeln!(output, "├─ Blocks: {} items", doc.blocks.len()).unwrap();
 
         for (i, block) in doc.blocks.iter().enumerate() {
             let is_last = i == doc.blocks.len() - 1;
@@ -132,7 +132,7 @@ impl AstTreeVisualizer {
 
         match block {
             Block::Paragraph(para) => {
-                writeln!(output, "{} 📝 Paragraph", prefix).unwrap();
+                writeln!(output, "{} Paragraph", prefix).unwrap();
                 if !self.config.compact {
                     let text_content = self.extract_text_from_inlines(&para.content);
                     let preview = if text_content.len() > 50 {
@@ -140,13 +140,13 @@ impl AstTreeVisualizer {
                     } else {
                         text_content
                     };
-                    writeln!(output, "{}   └─ 💭 \"{preview}\"", indent).unwrap();
+                    writeln!(output, "{}   └─ \"{preview}\"", indent).unwrap();
                 }
 
                 if self.config.show_annotations && !para.annotations.is_empty() {
                     writeln!(
                         output,
-                        "{}   └─ 🏷️ Annotations: {}",
+                        "{}   └─ Annotations: {}",
                         indent,
                         para.annotations.len()
                     )
@@ -157,7 +157,7 @@ impl AstTreeVisualizer {
             Block::List(list) => {
                 writeln!(
                     output,
-                    "{} 📋 List ({:?}, {} items)",
+                    "{} List ({:?}, {} items)",
                     prefix,
                     list.decoration_type.style,
                     list.items.len()
@@ -206,7 +206,7 @@ impl AstTreeVisualizer {
 
                 writeln!(
                     output,
-                    "{} 📚 Session{}: \"{}\"",
+                    "{} Session{}: \"{}\"",
                     prefix, numbering_info, title_text
                 )
                 .unwrap();
@@ -219,7 +219,7 @@ impl AstTreeVisualizer {
             Block::Container(container) => {
                 writeln!(
                     output,
-                    "{} 📦 Container ({} blocks)",
+                    "{} Container ({} blocks)",
                     prefix,
                     container.content.len()
                 )
@@ -234,22 +234,17 @@ impl AstTreeVisualizer {
                     .map(|f| format!(" ({})", f))
                     .unwrap_or_default();
 
-                writeln!(output, "{} 💻 Verbatim{}", prefix, format_info).unwrap();
+                writeln!(output, "{} Verbatim{}", prefix, format_info).unwrap();
 
                 if !self.config.compact {
                     let lines = verbatim.raw.lines().count();
                     let chars = verbatim.raw.len();
-                    writeln!(
-                        output,
-                        "{}   └─ 📊 {} lines, {} chars",
-                        indent, lines, chars
-                    )
-                    .unwrap();
+                    writeln!(output, "{}   └─ {} lines, {} chars", indent, lines, chars).unwrap();
 
                     if self.config.show_parameters && !verbatim.parameters.map.is_empty() {
                         writeln!(
                             output,
-                            "{}   └─ ⚙️ Parameters: {}",
+                            "{}   └─ Parameters: {}",
                             indent,
                             verbatim.parameters.map.len()
                         )
@@ -260,7 +255,7 @@ impl AstTreeVisualizer {
 
             Block::Definition(def) => {
                 let term_text = self.extract_text_from_inlines(&def.term.content);
-                writeln!(output, "{} 📖 Definition: \"{}\"", prefix, term_text).unwrap();
+                writeln!(output, "{} Definition: \"{}\"", prefix, term_text).unwrap();
 
                 if !def.content.content.is_empty() {
                     self.visualize_container(&def.content, output, indent, depth);
@@ -269,7 +264,7 @@ impl AstTreeVisualizer {
                 if self.config.show_parameters && !def.parameters.map.is_empty() {
                     writeln!(
                         output,
-                        "{}   └─ ⚙️ Parameters: {}",
+                        "{}   └─ Parameters: {}",
                         indent,
                         def.parameters.map.len()
                     )
@@ -279,7 +274,7 @@ impl AstTreeVisualizer {
 
             Block::BlankLine(_) => {
                 if !self.config.compact {
-                    writeln!(output, "{} ⬜ Blank Line", prefix).unwrap();
+                    writeln!(output, "{} Blank Line", prefix).unwrap();
                 }
             }
         }
@@ -535,14 +530,14 @@ impl AstStatistics {
 #[cfg(feature = "new-ast")]
 impl std::fmt::Display for AstStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "📊 AST Statistics:")?;
-        writeln!(f, "├─ 📝 Paragraphs: {}", self.paragraph_count)?;
-        writeln!(f, "├─ 📋 Lists: {}", self.list_count)?;
-        writeln!(f, "├─ 📚 Sessions: {}", self.session_count)?;
-        writeln!(f, "├─ 💻 Verbatim blocks: {}", self.verbatim_count)?;
-        writeln!(f, "├─ 📖 Definitions: {}", self.definition_count)?;
-        writeln!(f, "├─ 🔢 Max nesting depth: {}", self.max_nesting_depth)?;
-        writeln!(f, "└─ 🔤 Total characters: {}", self.total_characters)?;
+        writeln!(f, "AST Statistics:")?;
+        writeln!(f, "├─ Paragraphs: {}", self.paragraph_count)?;
+        writeln!(f, "├─ Lists: {}", self.list_count)?;
+        writeln!(f, "├─ Sessions: {}", self.session_count)?;
+        writeln!(f, "├─ Verbatim blocks: {}", self.verbatim_count)?;
+        writeln!(f, "├─ Definitions: {}", self.definition_count)?;
+        writeln!(f, "├─ Max nesting depth: {}", self.max_nesting_depth)?;
+        writeln!(f, "└─ Total characters: {}", self.total_characters)?;
         Ok(())
     }
 }

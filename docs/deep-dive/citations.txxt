@@ -59,7 +59,9 @@ This document proposes a system for handling academic citations that integrates 
 
         1. Introduction
 
-            The simplicity of plain text formats is a topic of great interest [@smith2023].
+            The simplicity of plain text formats is a topic of great interest [@smith2023]. This approach has been explored extensively by multiple researchers [@john,smith] and validated through empirical studies [@jones2024, p.45-67]. 
+
+            Session [#3.2] provides additional context on implementation details, while the foundational concepts can be found on [p.12-15] of the referenced manual.
 
         References
 
@@ -68,9 +70,16 @@ This document proposes a system for handling academic citations that integrates 
         When an author compiles their document, the publishing tool performs the following steps:
         1. Reads `paper.txxt`.
         2. Sees the `:: bibliography :: references.bib` annotation and loads the `.bib` file.
-        3. Scans the document for `[@key]` citations.
+        3. Scans the document for citation markers:
+           - `[@key]` citations for bibliographic references
+           - `[#session]` for session references
+           - `[p.X]` and variants for page references
         4. Uses a standard citation engine (like a CSL processor) to look up the keys in the `.bib` file.
-        5. Replaces the `[@key]` markers with correctly styled in-text citations (e.g., "(Smith, 2023)").
+        5. Replaces citation markers with correctly styled citations:
+           - `[@smith2023]` → "(Smith, 2023)"
+           - `[@john, p.45]` → "(John, p. 45)"
+           - `[#3.2]` → "Section 3.2"
+           - `[p.43,44]` → "pages 43-44"
         6. Automatically generates a fully formatted bibliography under the "References" session.
 
 4. Conclusion: The `txxt` Way

@@ -19,24 +19,57 @@ References in Txxt use the [] notation to link to other documents, sections, or 
 
 3. Reference Types
 
-    a. File References: start with a dot or forward slash
-        - [./filename.txxt]
-        - [../other-dir/file.txxt]
-        - [/absolute/path/file.txxt]
-    
-    b. URL References
+   The parser should make an effort to validate the reference type, but nor error or warn. To be a vlalid reference all it's needed is at least one alpha numberical character. And it should not do further validation such as validate paths or even sessions or footnotes in this same document. 
+
+   The processing should match against these, in order. 
+
+    a. URL References
         - [example.com]
         - [https://example.com]
         - [user@domain.com]
 
-    c. Section References
+    b. Section References
+        Folowwed by a pound
         - [local-section]
         - [#3] - notest
 
-    d. FootNotes Reference
+    c. FootNotes Reference
     
+       This is a numerical , integer ref , but not precceded by a # sign.
+        - [3] 
+
+    d. Citation Reference
+
+        Academic citations use the @ prefix for bibliographic references:
+        - [@author] - Single author citation
+        - [@author1,author2] - Multiple authors
+        - [@author, p.45] - Author with page number
+        - [@author, p.45,46] - Author with multiple pages
+        - [@author, p.45-203] - Author with page range
+
+        Standalone page references:
+        - [p.43] - Single page
+        - [p.43,44] or [p.43-100] - Multiple pages or ranges
+        - [pp.43] or [pp 44] - Alternative page formats
+
+    See the citations [docs/deep-dive/citations.txxt] doc for more details.
+
+    e. Too Come (TK) Reference
+
+        This is a a marking of a placeholder, that some new content will come and fill.
+        - [TK] - naked too come (no further especifice)
+        - [TK-(id)] an TK identifier any lowercoase alphanumrical, letters only, can start with numbers (ex: TK-1, TK-343, TK-a3, TK-someword), max 20 chars
+        This is the TK (to come)[TK] reference , and it signals some content will be inserted (lowecase should be valid too)
+
+    f. File References: start with a dot or forward slash
         
-        - [3] - notest
+        - [./filename.txxt]
+        - [../other-dir/file.txxt]
+        - [/absolute/path/file.txxt]
+    
+    g) Not Sure Refernce
+
+        If the parser can't distinguis the ref type, it should not error, but instead set the target to not sure. This should be the default type, that gets changed in case we have an assertive tar
 
 4. Special Meanings
 

@@ -220,19 +220,11 @@ impl Document {
 // NEW AST SYSTEM (disabled by default, enable with --features new-ast)
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 pub mod annotations;
-#[cfg(feature = "new-ast")]
 pub mod base;
-#[cfg(feature = "new-ast")]
 pub mod blocks;
-#[cfg(feature = "new-ast")]
 pub mod inlines;
-#[cfg(feature = "new-ast")]
 pub mod parameters;
-#[cfg(feature = "new-ast")]
 pub mod reference_types;
-#[cfg(feature = "new-ast")]
 pub mod structure;
-#[cfg(feature = "new-ast")]
 pub mod tokens;

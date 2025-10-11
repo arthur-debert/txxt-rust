@@ -5,6 +5,18 @@
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
+use regex::Regex;
+
+/// Pattern type for :: tokens on the current line
+#[derive(Debug, Clone, PartialEq)]
+enum ColonPattern {
+    /// :: label :: pattern (annotation)
+    Annotation,
+    /// term :: pattern (definition)
+    Definition,
+    /// standalone :: pattern
+    Standalone,
+}
 
 /// Main tokenizer that produces new AST Token enum variants
 pub struct Lexer {
@@ -12,6 +24,9 @@ pub struct Lexer {
     position: usize,
     row: usize,
     column: usize,
+    // Regex patterns for :: detection
+    annotation_pattern: Regex,
+    definition_pattern: Regex,
 }
 
 impl Lexer {
@@ -22,6 +37,10 @@ impl Lexer {
             position: 0,
             row: 0,
             column: 0,
+            // Regex for :: label :: pattern (annotation) - flexible spacing
+            annotation_pattern: Regex::new(r"::\s*\w+.*?\s*::").unwrap(),
+            // Regex for content :: pattern (definition) - ensure :: is exactly at end
+            definition_pattern: Regex::new(r"\w+.*?::\s*$").unwrap(),
         }
     }
 
@@ -86,7 +105,9 @@ impl Lexer {
                 break;
             }
 
-            if let Some(token) = self.read_annotation_marker() {
+            if let Some(token) = self.read_definition_marker() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_annotation_marker() {
                 tokens.push(token);
             } else if let Some(token) = self.read_ref_marker() {
                 tokens.push(token);
@@ -312,6 +333,196 @@ impl Lexer {
         None
     }
 
+    /// Read a definition marker token (term ::)
+    fn read_definition_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        // Check for "::"
+        if self.peek() == Some(':') {
+            let saved_position = self.position;
+            let saved_row = self.row;
+            let saved_column = self.column;
+
+            self.advance(); // First ':'
+
+            if self.peek() == Some(':') {
+                self.advance(); // Second ':'
+
+                // Immediately check if this :: is part of an invalid sequence
+                if let Some(next_ch) = self.peek() {
+                    if next_ch == ':' {
+                        // This is ":::" or longer, not a valid definition marker
+                        self.position = saved_position;
+                        self.row = saved_row;
+                        self.column = saved_column;
+                        return None;
+                    }
+                }
+
+                // Also check if this :: is preceded by a colon (making it part of ":::...")
+                if start_pos.column > 0 {
+                    let line = self.get_current_line();
+                    let col_idx = start_pos.column;
+                    if col_idx > 0 {
+                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
+                            if prev_char == ':' {
+                                // This :: is preceded by ':', making it part of ":::" sequence
+                                self.position = saved_position;
+                                self.row = saved_row;
+                                self.column = saved_column;
+                                return None;
+                            }
+                        }
+                    }
+                }
+
+                // Use regex-based pattern detection to determine context
+                let pattern = self.detect_colon_pattern();
+
+                match pattern {
+                    ColonPattern::Definition => {
+                        // This is definitely a definition marker
+                        return Some(Token::DefinitionMarker {
+                            content: "::".to_string(),
+                            span: SourceSpan {
+                                start: start_pos,
+                                end: self.current_position(),
+                            },
+                        });
+                    }
+                    ColonPattern::Annotation => {
+                        // This line contains annotation pattern, so this :: is not definition
+                        self.position = saved_position;
+                        self.row = saved_row;
+                        self.column = saved_column;
+                        return None;
+                    }
+                    ColonPattern::Standalone => {
+                        // Check if followed by whitespace/end (could be definition at end of line)
+                        if let Some(next_ch) = self.peek() {
+                            if next_ch == '\n'
+                                || next_ch == '\r'
+                                || next_ch == ' '
+                                || next_ch == '\t'
+                            {
+                                // Check if there's content before this :: (making it a definition)
+                                if !self.is_start_of_annotation_pattern(start_pos) {
+                                    return Some(Token::DefinitionMarker {
+                                        content: "::".to_string(),
+                                        span: SourceSpan {
+                                            start: start_pos,
+                                            end: self.current_position(),
+                                        },
+                                    });
+                                }
+                            }
+                        } else if self.is_at_end() {
+                            // At end of input, check if there's content before
+                            if !self.is_start_of_annotation_pattern(start_pos) {
+                                return Some(Token::DefinitionMarker {
+                                    content: "::".to_string(),
+                                    span: SourceSpan {
+                                        start: start_pos,
+                                        end: self.current_position(),
+                                    },
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Not a definition marker, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
+        }
+
+        None
+    }
+
+    /// Check if this :: is at the start of an annotation pattern by looking backwards
+    fn is_start_of_annotation_pattern(&self, _start_pos: Position) -> bool {
+        // Definition pattern: "term ::" - has non-whitespace before ::
+        // Annotation pattern: ":: label ::" - has only whitespace before first ::
+
+        // Check if we're at the beginning of the line or only whitespace precedes
+        let start_absolute = self.position - 2; // We advanced past the ::, so go back
+
+        // Look backwards from the start of :: to see what came before on this line
+        let mut pos = start_absolute;
+        while pos > 0 {
+            pos -= 1;
+            if let Some(&ch) = self.input.get(pos) {
+                if ch == '\n' || ch == '\r' {
+                    // Hit newline, everything before :: was whitespace - this is annotation start
+                    return true;
+                } else if ch != ' ' && ch != '\t' {
+                    // Found non-whitespace content before ::, this is NOT annotation start
+                    return false;
+                }
+            }
+        }
+
+        // Reached start of input with only whitespace - this is annotation start
+        true
+    }
+
+    /// Get the current line from the input
+    fn get_current_line(&self) -> String {
+        let mut line_start = self.position;
+        let mut line_end = self.position;
+
+        // Find start of current line
+        while line_start > 0 {
+            if let Some(&ch) = self.input.get(line_start - 1) {
+                if ch == '\n' || ch == '\r' {
+                    break;
+                }
+                line_start -= 1;
+            } else {
+                break;
+            }
+        }
+
+        // Find end of current line
+        while line_end < self.input.len() {
+            if let Some(&ch) = self.input.get(line_end) {
+                if ch == '\n' || ch == '\r' {
+                    break;
+                }
+                line_end += 1;
+            } else {
+                break;
+            }
+        }
+
+        self.input[line_start..line_end].iter().collect()
+    }
+
+    /// Detect what type of :: pattern this line contains
+    fn detect_colon_pattern(&self) -> ColonPattern {
+        let line = self.get_current_line();
+
+        // First check for invalid sequences (:::, ::::, etc.)
+        if line.contains(":::") {
+            return ColonPattern::Standalone; // Treat invalid sequences as standalone (will be rejected)
+        }
+
+        // Check for annotation pattern first (:: label ::)
+        if self.annotation_pattern.is_match(&line) {
+            return ColonPattern::Annotation;
+        }
+
+        // Check for definition pattern (term ::)
+        if self.definition_pattern.is_match(&line) {
+            return ColonPattern::Definition;
+        }
+
+        // Default to standalone
+        ColonPattern::Standalone
+    }
+
     /// Read an annotation marker token (::)
     fn read_annotation_marker(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
@@ -336,6 +547,23 @@ impl Lexer {
                         self.row = saved_row;
                         self.column = saved_column;
                         return None;
+                    }
+                }
+
+                // Also check if this :: is preceded by a colon (making it part of ":::...")
+                if start_pos.column > 0 {
+                    let line = self.get_current_line();
+                    let col_idx = start_pos.column;
+                    if col_idx > 0 {
+                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
+                            if prev_char == ':' {
+                                // This :: is preceded by ':', making it part of ":::" sequence
+                                self.position = saved_position;
+                                self.row = saved_row;
+                                self.column = saved_column;
+                                return None;
+                            }
+                        }
                     }
                 }
 

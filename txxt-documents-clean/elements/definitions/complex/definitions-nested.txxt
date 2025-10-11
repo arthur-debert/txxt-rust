@@ -1,0 +1,15 @@
+Outer Term ::
+    
+    Definitions has at least one line of content.
+
+    But can have more.
+
+    Including other types: 
+
+    - Annotations
+    - Lists
+        - Which can have children
+    - Definitions
+    
+    Nested Term ::
+        This is a nested definition inside the outer definition

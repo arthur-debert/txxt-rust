@@ -1,0 +1,67 @@
+<root>
+  <source>txxt-documents-clean/elements/lists/commplex/lists-very-long-lines.txxt</source>
+  <token_count>10</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>Testing very long single-line items for wrapping behavior</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>58</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>2</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>3</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>3</column>
+      <value>This is an extremely long list item that continues for a very significant length to test how the parser handles line wrapping and whether it maintains the list structure when dealing with content that would typically wrap in most text editors or displays, continuing on and on with more text to ensure we exceed typical line length limits.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>342</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>4</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>4</line>
+      <column>3</column>
+      <value>Second item is shorter</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>4</line>
+      <column>25</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>4</line>
+      <column>26</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

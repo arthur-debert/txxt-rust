@@ -1,0 +1,210 @@
+<root>
+  <source>txxt-documents-clean/elements/paragraph/complex/paragraph-dialog-escape-period.txxt</source>
+  <token_count>33</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>We allow an escape hatch, a way to represent dialogs without them being interpreted as lists. This is done by adding a period after the first line&#x27;s end-punctuation mark This file has several such cases, they all should be parsed as pargraphs. and that each one is a pargraph</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>276</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>2</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>3</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>3</column>
+      <value>This is actually a dialog, hence, paragraph, not a list.. </value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>61</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>4</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>4</line>
+      <column>3</column>
+      <value>Because it ended in a period after the end-punctuation mark {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>4</line>
+      <column>76</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>5</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>6</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>6</line>
+      <column>3</column>
+      <value>This is actually a dialog, hence, paragraph, not a list!.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>6</line>
+      <column>60</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>7</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>7</line>
+      <column>3</column>
+      <value>Because it ended in a period after the end-punctuation mark {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>7</line>
+      <column>76</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>8</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>9</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>9</line>
+      <column>3</column>
+      <value>This is actually a dialog, hence, paragraph, not a list?!!!.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>9</line>
+      <column>63</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>10</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>10</line>
+      <column>3</column>
+      <value>Because it ended in a period after the end-punctuation mark {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>10</line>
+      <column>76</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>11</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>12</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>12</line>
+      <column>3</column>
+      <value>This is actually a dialog, hence, paragraph, not a list!...</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>12</line>
+      <column>62</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>13</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>13</line>
+      <column>3</column>
+      <value>Because it ended in a period after the end-punctuation mark {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>13</line>
+      <column>76</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>14</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>15</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>15</line>
+      <column>2</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

@@ -1,0 +1,7 @@
+Ambiguous Cases
+
+:: math:E=mc^2 :: Could be confused with math equation
+
+:: url:link=https://example.com :: URL as parameter value
+
+:: time:stamp=2025-09-27T10:30:00Z :: ISO timestamp

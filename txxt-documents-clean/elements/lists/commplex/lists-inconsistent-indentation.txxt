@@ -1,0 +1,7 @@
+Testing inconsistent indentation error recovery
+
+- First level item
+  - Two space indent
+   - Three space indent
+    - Four space indent
+     - Five space indent

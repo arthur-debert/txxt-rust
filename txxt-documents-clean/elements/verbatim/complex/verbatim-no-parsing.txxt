@@ -1,0 +1,9 @@
+:: title :: Test Verbatim No Inline Parsing
+:: description :: Verify that inline formatting markers are not parsed inside verbatim blocks
+
+Verbatim with formatting:
+  This has *asterisks* and _underscores_
+  But they are `not` parsed as #formatting#
+()
+
+The above verbatim block should preserve all formatting markers literally.

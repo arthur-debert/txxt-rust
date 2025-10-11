@@ -1,0 +1,48 @@
+:: title :: ContentContainer Examples with AST Annotations
+:: description :: Examples annotated with expected AST structure for auto-validation
+
+1. Definition with ContentContainer (listItem)
+
+    Basic Definition ::
+        A definition uses ContentContainer to hold its content.
+        This allows for consistent structure across all indented content.
+
+    Definition with List ::
+        Definitions can contain multiple block types:
+        - Paragraphs (listItem)
+        - Lists like this one (listItem)
+        - Even nested definitions (listItem)
+        
+        All wrapped in a ContentContainer.
+
+2. Multiline Annotations with ContentContainer (listItem)
+
+    :: note ::
+        This is a multiline annotation.
+        It uses ContentContainer for its content.
+        
+        Just like definitions, it can have multiple paragraphs.
+
+    :: warning:severity=high ::
+        Critical warning with parameters.
+        The ContentContainer holds all the content.
+
+3. Nested Structures (listItem)
+
+    Complex Definition ::
+        This definition contains nested structures.
+        
+        Inner Definition ::
+            Nested definitions work as expected.
+            Each has its own ContentContainer.
+        
+        Back to the outer definition content.
+
+4. Empty and Edge Cases (session, title="4. Empty and Edge Cases")
+
+    Empty Definition ::
+    
+    :: empty ::
+    
+    Minimal Definition ::
+        Single line content.

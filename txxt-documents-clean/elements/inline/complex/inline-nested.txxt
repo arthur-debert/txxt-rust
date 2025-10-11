@@ -1,0 +1,3 @@
+This has *bold with _nested italic {{emphasis}}_{{strong}}* text.
+
+Paragraph with *emphasis {{paragraph.strong}}*.

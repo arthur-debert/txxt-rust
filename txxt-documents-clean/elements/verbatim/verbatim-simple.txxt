@@ -1,0 +1,46 @@
+1. Bogus session 
+
+    in order to test a streched verbatim, we will include all the content in a session.
+
+    Basic verbatim examples (paragraph)
+
+    Simple verbatim with title and label:
+        print("Hello World")
+        return 42
+    (python)
+
+    Anonymous verbatim (no title or label)
+
+    :
+        Some plain text
+        In verbatim block
+    ()
+
+    Title only:
+        def example():
+            pass
+    ()
+
+    Label only. 
+    :
+        SELECT * FROM users
+    (sql)
+
+    :
+    ()
+
+
+    First block:
+        first content
+    ()
+
+    Second block:
+        second content
+    ()
+
+    Strecthed verbatim:
+In this block, the content is not +1 indented, but the first column, absolute
+Many lines
+
+Even blank lines
+    ()

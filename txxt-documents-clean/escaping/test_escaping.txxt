@@ -1,0 +1,99 @@
+:: title :: Comprehensive Escaping Test Document
+:: author :: txxt Test Suite
+
+This document tests all escape sequences in txxt.
+
+1. Inline Formatting Escapes
+
+    Testing escaped inline markers:
+    - Literal asterisks: \*not bold\*
+    - Literal underscores: \_not italic\_
+    - Literal backticks: \`not code\`
+    - Mixed: \*asterisk\* and _real italic_ and \`backtick\`
+    
+    Edge cases:
+    - Escaping at start: \*word
+    - Escaping at end: word\*
+    - Double escape: \\*this should show backslash and asterisk*
+    - Triple: \\\*this should show backslash and literal asterisk\*
+
+2. Reference Escapes
+
+    Not a reference: \[not a link\]
+    Mixed: \[escaped\] but [real reference]
+    Partial escapes: \[open only and close only\]
+    
+3. Block Marker Escapes
+
+    3.1 Colon at End of Line
+    
+        This line does not start a verbatim block\:
+        This one does:
+            verbatim content here
+        (python)
+        
+    3.2 Annotation Escapes
+    
+        \:: not a annotation ::
+        \:: also not :: a annotation
+        :: real_annotation :: This is a real annotation
+        
+    3.3 List Marker Escapes
+    
+        \- This is not a list item
+        \- Neither is this
+        But these are real list items:
+        - Real item 1
+        - Real item 2
+        
+        Numbered lists:
+        \1. Not a numbered list
+        1. But this is
+
+4. Verbatim Parameter Escapes
+
+    Testing comma in parameters:
+    media:src=[image.jpg],alt="A wide shot\, with clouds":
+    
+    Testing equals in parameters:
+    code:lang=python,equation="a\=b+c":
+        def calculate(a, b, c):
+            return a == b + c
+    (python)
+
+5. Backslash Itself
+
+    Literal backslash: \\
+    Multiple: \\\\ (should show two backslashes)
+    Before normal char: \a (should show just 'a')
+    Windows path: C:\\Users\\Documents\\file.txt
+    
+6. Complex Combinations
+
+    Code with escapes:
+    (python: highlight="1\,3\,5", style="dark")
+        # This is line 1
+        x = 42  # Line 2
+        # Line 3 has a comment with \*emphasis\*
+        y = x * 2  # Line 4
+        # Line 5: print(f"Result\: {y}")
+    (python)
+    
+    Dialog with escaped ending\:
+    - Speaker said\.
+    - Another line\..
+    
+7. Unknown Escapes
+
+    These should just remove the backslash:
+    - \q becomes q
+    - \7 becomes 7
+    - \@ becomes @
+
+8. Unicode and Special Cases
+
+    Escaped Unicode: \u00A9 (should show u00A9, not ©)
+    Tab normalization still works:	This has a real tab
+    But escaped tab: \t (should show 't')
+
+:: test_note :: This document comprehensively tests escape functionality

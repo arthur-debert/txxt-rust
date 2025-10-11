@@ -1,0 +1,5 @@
+Testing parameter assertions in annotations
+
+:: author:name="John Doe",role="Writer" :: The author {{annotation, label="author", params={"name": "John Doe", "role": "Writer"}}}
+
+:: config:debug=true,level=3 :: Configuration {{annotation, label="config", params={"debug": "true", "level": "3"}}}

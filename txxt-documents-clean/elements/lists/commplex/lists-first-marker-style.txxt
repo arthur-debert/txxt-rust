@@ -1,0 +1,6 @@
+Testing spec 6.1: first marker determines list style
+
+- This dash determines the style
+1. Even though this is numbered
+a) And this is lettered
+[1] And this is bracketed

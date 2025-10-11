@@ -1,0 +1,55 @@
+Basic list examples (paragraph)
+
+Simple unordered list:
+
+- First item (list-item)
+- Second item (list-item)
+- Third item (list-item)
+
+Simple ordered list:
+
+1. First numbered item (list-item)
+2. Second numbered item (list-item)
+3. Third numbered item (list-item)
+
+Alphabetic list:
+
+a. First alpha item (list-item)
+b. Second alpha item (list-item)
+c. Third alpha item (list-item)
+
+List with nested items:
+
+- Outer item (list-item)
+    - Nested item one (list-item)
+    - Nested item two (list-item)
+- Back to outer level (list-item)
+
+Mixed depth list:
+
+1. First level (list-item)
+    a. Second level (list-item)
+        - Third level (list-item)
+    b. Back to second (list-item)
+2. Back to first (list-item)
+
+Lists in sessions (session)
+
+    - Item in session (list-item)
+    - Another item (list-item)
+    
+    Deeply nested (session)
+    
+        1. Numbered in deep session (list-item)
+        2. Second numbered (list-item)
+
+Multi-line list items:
+
+- This is a longer list item
+    that spans multiple lines
+    but is still one item (list-item)
+- This is the next item (list-item)
+
+List immediately after paragraph:
+- No blank line before (list-item)
+- Still a list (list-item)

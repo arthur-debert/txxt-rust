@@ -1,0 +1,75 @@
+:: title :: txxt Deep Dive: Annotation Details
+:: author :: Arthur Debert (Original), Gemini (Refactor)
+:: pub_date :: 2025-09-23
+
+This document covers specific rules and edge cases related to annotations.
+
+1. Annotation Block Boundaries
+
+    A annotation block must be surrounded by blank lines. This is a key requirement for the parser to correctly identify the start and end of a block of annotations before associating it with another element.
+
+2. Non-Unique Labels
+
+    Annotation labels do not need to be unique, even within the same annotation block. The parser treats the annotations associated with an element as an ordered list.
+
+    Example:
+        :: author :: Jane Doe
+        :: author :: John Smith
+        
+        This paragraph has two authors.
+
+3. Empty Label Edge Case
+
+    A line that appears to be a annotation but has an empty label and no content is not treated as a annotation. It is parsed as a standard paragraph.
+
+    :: -- 
+    
+    The line above, containing `:: --`, will be rendered as a paragraph containing that text. This prevents lines used for stylistic separation from being incorrectly parsed as annotations.
+
+4. Annotation Parameters
+
+    Annotations support parameters using the same syntax as verbatim blocks. Parameters are key-value pairs that provide structured metadata.
+
+    4.1. Parameter Syntax
+
+        Parameters follow the label, separated by a colon:
+        :: label:key=value,key2=value2 :: content
+
+        Examples:
+        :: warning:severity=high,category=security :: Critical security issue
+        :: meta:version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
+
+    4.2. Quoted Values
+
+        Parameter values containing spaces, commas, or special characters must be quoted:
+        :: config:path="/home/user/documents",mode="read only" :: Configuration
+
+        Within quotes, use backslash to escape quotes:
+        :: quote:author="She said, \"Hello!\"" :: Nested quotes example
+
+    4.3. Namespaced Labels
+
+        Labels can use dots to create namespaces:
+        :: org.example.status:approved=true,reviewer=alice :: Approved by Alice
+        :: txxt.internal:parser-version=2.0 :: Internal txxt metadata
+
+        The txxt. namespace is reserved for official use.
+
+    4.4. Parameters with Multiline Annotations
+
+        Parameters work identically with multiline annotations:
+        :: description:lang=en,format=plain ::
+            This is a longer description
+            that spans multiple lines
+            with parameters on the first line
+
+    4.5. Edge Cases
+
+        Empty parameters are valid:
+        :: label: :: No parameters, just a colon
+
+        Labels without values but with parameters:
+        :: status:complete=true ::
+
+        Multiple dots in namespaces:
+        :: com.example.app.config:debug=true :: Deep namespace

@@ -1,0 +1,119 @@
+This is a paragraph:
+This documenent is the micro spec, showing all elemetns, but not covering their full variations.
+This will not cover all permutations, but cover all variations.  Aside from parsing ambiguities this does excercises the full synstax swath
+
+1. Annotations
+    :: title :: A Tour of txxt. Annotations are not content , but notes on the document itself, hence will be stripped when publishing.
+
+    :: status ::  status-style=RFC :: 
+        Proposal. 
+
+        Annotations can be multi-line for longer notes, and also support, live verbatim, parameters.
+        They support the whole txxt lang , excetp new sessions of course. And this goodie is not unique to annotations.
+        - Annotations, Definitions and Lists Items, all of them can host these, paragraphs and verbim blocks.
+        - This is a core consequence of txxt structural, nested nature. Where non leafs are equally capable and parsing is recursive. 
+
+
+2. Session And titles
+    
+    2. Core Elements {{session}}
+
+        Which should have at least one item.
+    
+    Titles don't require ordering {{session}}
+
+        But every session has to have something in it
+
+3. Lists
+    
+    - You can create unordered lists. {{list-item}}
+    - They have two have at lest two ltems
+    - Aferter all, you don't list one thing, you state it.
+
+    1. The list style can be dashed or ordered
+    2. And this is a list that contains a child
+        a) Like this. {{list-item}}
+        And list items can have paragraphs, and other elements.
+
+        Inner List::
+
+            A list who is part of a list litem, it's parent's.
+
+        b) This child has other styling
+            i. The grand-chidlren can pick yet another
+            ii. Any level can use any style, it's up to you. 
+
+
+4. Verbatim: 
+
+    Code with version info: label ::
+            print("Hello, txxt!");
+   (python: version=3.11)
+    
+    The treatest quot of all times:
+        The universe words towards maximum irrony, don't push it
+    (folk-wisdom)
+
+    Labels are optional: 
+        But are sad, it's always useful to declare the type of content on the block.
+    ()
+
+    And this is verbati streched mode:
+| Name | Age | 
+|---------|----|
+| Jen | 24 |
+| Bob | 20 |
+    (markdown table)
+
+5. Media
+        
+        A beautiful landscape:
+            Not mandatory, but the block content is taken to represent the media, could be used as alt.
+        (image: src=/images/landscape.jpg,  wrap=full-width)
+        
+        The Greattes:
+        (video src=https://www.youtube.com/watch?v=ShRwMpfHlqw)
+
+    6. Definitions
+    
+        Foo ::
+            The explanation or definition of the term goes here. It can span 
+            multiple lines and contain any txxt content.
+
+        
+7. Inlines
+    
+    Inlines are formats whiting a body of text:  asterisks for *bold* ,  underscores for _italic_ ,  backticks for `monospace` , Math is supported: #E = mc^2# , citations: [@smith2023] or with pages [@doe2024, p. 42] 
+
+8. References
+    - You can link to external sites [https://example.com]. {{list-item}}
+    - Or other documents [./spec/03-inline.txxt]. {{list-item}}
+    - It also supports footnotes[1]. {{list-item}}
+    - In sessions [#2.1] no the same doc {{list-item}}
+    - In terms[#foo], verbatim[#code-with-version-info] or sessions by they name[#references]
+    - Academic citations [@smith2023; @jones2024] with bibliography support {{list-item}}
+    - Foot notes are [1]
+
+9. Paragraphs
+
+    Can be single lined. {{paragraph}}
+
+    Can be single line but. Multi sentence. {{paragraph}}
+
+    Can be multiline. 
+    Like this, many times the result of hard wrapping editors {{pargraph}}
+
+    Dialog could look exactly like a list. To force the parser to treat this as a dialog, add and aditional period after the firts's line end-punctuation, as in: 
+    - Ma, this is not alist , but a dialog!.
+    - Yup kiddo, I see it. Because the first line added a "." after the end-punctuation {{!}}
+    - That's right Ma and this is true for  any end-punctuatio ( ?., !., !!., ??., ....)
+    - Well said, son, oh, and you only need to mark the first line. {{paragraph}}
+
+
+Footnotes
+
+    1. This is that first footnote.
+
+    You can reference sessions by their numbers, and session 0 is taken to be the last one in the document.
+    If you don't use a # for the number, it's taken to mean 0, hence the last one.
+    Then in this case, this item is [0.1]. Since zero is identity, we can short form this to [1], but 

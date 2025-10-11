@@ -1,0 +1,26 @@
+:: title :: Complex Definition Tests
+
+List Definition {{definition}} ::
+    A definition containing a list:
+    - First item
+    - Second item  
+    - Third item
+
+Multi-Paragraph {{definition}} ::
+    First paragraph of content.
+    
+    Second paragraph in the same definition.
+    
+    Third paragraph still in definition.
+
+Code Example {{definition}} ::
+    Here is some code:
+    
+        def hello():
+            print("Hello")
+    python:
+    
+    After the code block.
+
+Formatted {{definition}} ::
+    Definition with *bold text* and _italic_ content.

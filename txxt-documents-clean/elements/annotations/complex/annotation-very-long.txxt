@@ -1,0 +1,25 @@
+Namespaced annotation:
+:: txxt.internal:id=123 :: Internal marker (annotation, label="txxt.internal", value="Internal marker")
+
+Multi-line annotation:
+:: note ::
+    This is a longer annotation
+    that spans multiple lines
+    with indented content
+Expected: annotation with label="note", value="This is a longer annotation\nthat spans multiple lines\nwith indented content"
+
+Annotations in sessions (session)
+
+    :: section.meta :: Introduction (annotation, label="section.meta", value="Introduction", _path="document/session/annotation")
+    
+    Content in the session (paragraph)
+
+Attached annotations (paragraph)
+
+:: comment :: Fix this paragraph (annotation, label="comment", value="Fix this paragraph")
+
+This paragraph has an annotation attached to it. (paragraph)
+
+Document-level annotations at end:
+
+:: footer :: End of document (annotation, label="footer", value="End of document")

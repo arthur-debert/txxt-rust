@@ -1,0 +1,6 @@
+lib.rs Main library entry point
+parser.rs txxt parsing logic  
+validator.rs Validation and error checking
+commands.rs CLI command implementations
+tree.rs Tree display functionality
+bin/ CLI binary executables

@@ -1,0 +1,7 @@
+Special characters in labels:
+:: label-with-hyphens :: Hyphenated (annotation, label="label-with-hyphens", value="Hyphenated")
+:: label_with_underscores :: Underscored (annotation, label="label_with_underscores", value="Underscored") 
+:: label.with.dots :: Dotted namespace (annotation, label="label.with.dots", value="Dotted namespace")
+:: UPPERCASE :: All caps (annotation, label="UPPERCASE", value="All caps")
+:: mixedCase123 :: Mixed with numbers (annotation, label="mixedCase123", value="Mixed with numbers")
+

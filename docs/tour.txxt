@@ -1,0 +1,109 @@
+:: title :: A Tour of txxt
+:: author :: Gemini
+:: pub_date :: 2025-09-23
+:: doc.meta:version=1.2,format=tutorial :: Document metadata with parameters
+
+Welcome to txxt! (session)
+
+This document is a brief tour of the txxt format, designed to get you started quickly. For a deeper dive, please refer to the detailed specification documents. (paragraph)
+
+:: note:importance=high :: This is an annotation with parameters. It's metadata, not content. (annotation)
+
+1. The Basics (session)
+
+
+    txxt is structured around sessions (like sections) and indentation. (paragraph)
+
+    This is a session title (session)
+
+        And this is its content, indented one level. (paragraph)
+
+2. Core Elements (session)
+
+    2.1. Lists (session)
+
+
+        - You can create unordered lists. (list-item)
+        1. Or ordered lists, which can be nested. (list-item)
+            1. Like this. (list-item)
+
+    2.2. Verbatim Blocks (session)
+
+        For code or other pre-formatted text. (paragraph)
+
+        A simple code block:
+            console.log("Hello, world!");
+        (javascript)
+
+        But you can go wild: 
+            The universe tend towards maxium irony,  don't push it.
+        (jwz)
+
+        Using it for citations, notes and other needs. The general form is: (paragraph)
+
+        <optional title>:
+            content (+1 indented)
+        (<optoinal lang label>)
+
+    2.3. Media (session)
+
+        You can also reference images, videos, or audio. (paragraph)
+
+        A beautiful landscape:
+        (image: src=[/images/landscape.jpg], alt="Mountain vista")
+
+        Code with version info:
+            print("Hello, txxt!")
+        (python: version=3.11)
+
+        This uses verbatim blocks with parameters. Both annotations and verbatim blocks support the same parameter syntax. (paragraph)
+
+    2.4. Definitions (session)
+
+        Define terms clearly with the definition syntax. (paragraph)
+
+        Term ::
+            The explanation or definition of the term goes here. It can span 
+            multiple lines and contain any txxt content.
+
+        Parser ::
+            A program that analyzes text according to formal grammar rules to 
+            create a structured representation like an Abstract Syntax Tree.
+
+        The double colon (::) marks a definition, distinguishing it from 
+        verbatim blocks which use a single colon. (paragraph)
+
+3. Inline Formatting (session)
+
+    You can format text *within* a line. (paragraph)
+
+    - Use asterisks for *bold* text. (list-item)
+    - Underscores for _italic_ text. (list-item)
+    - Backticks for `monospace` text. (list-item)
+    - Math is supported: #E = mc^2# (list-item)
+    - Academic citations: [@smith2023] or with pages [@doe2024, p. 42] (list-item)
+
+4. References, Citations, and Footnotes (session)
+
+    `txxt` has powerful linking and citation capabilities.
+
+    - You can link to external sites [https://example.com]. (list-item)
+    - Or other documents [./spec/03-inline.txxt]. (list-item)
+    - It also supports footnotes[1]. (list-item)
+    - In sessions [#2.3] no the same doc (list-item)
+    - Academic citations [@smith2023; @jones2024] with bibliography support (list-item)
+
+    The reference is anchored to the word preceeding it.
+
+    For academic documents, declare your bibliography:
+
+    :: bibliography :: references.bib
+
+    Then cite works throughout your text [@doe2024, pp. 10-15].
+
+5. Where to Next? (session)
+
+    This tour has only scratched the surface. To learn more, please see the full specification, starting with [./spec/01-general.txxt].
+
+Notes (session)
+    1. Footnotes are created by adding a numbered list in the document's final session.

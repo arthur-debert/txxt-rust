@@ -1,0 +1,6 @@
+src/ Source code directory
+Cargo.toml Package configuration  
+README.md Project documentation and setup guide
+.envrc Development environment configuration
+justfile Task automation with just
+scripts/pre-commit Git pre-commit hook for quality checks

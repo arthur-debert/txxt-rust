@@ -1,0 +1,153 @@
+<root>
+  <source>txxt-documents-clean/elements/lists/commplex/lists-blank-line-separation.txxt</source>
+  <token_count>24</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>Testing list separation rules with blank lines, and that we should 3 different lists</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>85</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>2</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>3</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>3</column>
+      <value>First list item</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>18</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>4</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>4</line>
+      <column>3</column>
+      <value>Second list item {{listItem}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>4</line>
+      <column>32</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>5</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>6</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>6</line>
+      <column>3</column>
+      <value>This should be a new list</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>6</line>
+      <column>28</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>7</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>7</line>
+      <column>3</column>
+      <value>Because of the blank line {{listItem}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>7</line>
+      <column>41</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>8</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>9</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>9</line>
+      <column>3</column>
+      <value>Another new list starts here {{listItem}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>9</line>
+      <column>44</column>
+      <value></value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>10</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>10</line>
+      <column>3</column>
+      <value>With multiple items {{listItem}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>10</line>
+      <column>35</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>10</line>
+      <column>36</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

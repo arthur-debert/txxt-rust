@@ -1,0 +1,79 @@
+<root>
+  <source>txxt-documents-clean/elements/lists/commplex/lists-custom-bullets.txxt</source>
+  <token_count>12</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>Testing custom bullet markers, which should not workt, we want to ensure that the next element is one paragraph (not a list) not many paragraphs.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>146</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>2</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>1</column>
+      <value>➤ Arrow bullet item </value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>21</column>
+      <value></value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>4</line>
+      <column>1</column>
+      <value>➤ Another arrow item </value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>4</line>
+      <column>22</column>
+      <value></value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>5</line>
+      <column>1</column>
+      <value>* Asterisk bullet item </value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>5</line>
+      <column>24</column>
+      <value></value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>6</line>
+      <column>1</column>
+      <value>* Another asterisk item  {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>6</line>
+      <column>39</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>6</line>
+      <column>40</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

@@ -1,0 +1,48 @@
+<root>
+  <source>txxt-documents-clean/elements/paragraph/complex/paragraph-multi-line.txxt</source>
+  <token_count>7</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>This is a paragraph that has line breaks.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>42</column>
+      <value></value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>2</line>
+      <column>1</column>
+      <value>We want to ensure this document has only one paragraph</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>2</line>
+      <column>55</column>
+      <value></value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>1</column>
+      <value>This is the same paragraph {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>41</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>3</line>
+      <column>42</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

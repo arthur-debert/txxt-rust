@@ -1,0 +1,9 @@
+1. Section Title {{session}}
+
+    Content in section {{paragraph.textLine, _parent=paragraph}}
+    
+    Another paragraph {{paragraph, _parent=session}}
+
+And now we wil test the session wihtouth markers
+
+Session Another (session}})

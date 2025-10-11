@@ -1,0 +1,103 @@
+<root>
+  <source>txxt-documents-clean/elements/lists/commplex/lists-first-marker-style.txxt</source>
+  <token_count>16</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>Testing spec 6.1: first marker determines list style</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>53</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>2</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>DASH</type>
+      <line>3</line>
+      <column>1</column>
+      <value>- </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>3</column>
+      <value>This dash determines the style</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>33</column>
+      <value></value>
+    </item>
+    <item>
+      <type>SEQUENCE_MARKER</type>
+      <line>4</line>
+      <column>1</column>
+      <value>1. </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>4</line>
+      <column>4</column>
+      <value>Even though this is numbered</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>4</line>
+      <column>32</column>
+      <value></value>
+    </item>
+    <item>
+      <type>SEQUENCE_MARKER</type>
+      <line>5</line>
+      <column>1</column>
+      <value>a) </value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>5</line>
+      <column>4</column>
+      <value>And this is lettered</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>5</line>
+      <column>24</column>
+      <value></value>
+    </item>
+    <item>
+      <type>FOOTNOTE_NUMBER</type>
+      <line>6</line>
+      <column>1</column>
+      <value>[1]</value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>6</line>
+      <column>4</column>
+      <value> And this is bracketed</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>6</line>
+      <column>26</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>6</line>
+      <column>27</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

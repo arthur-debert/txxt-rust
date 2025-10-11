@@ -1,0 +1,13 @@
+:: doc-level :: This attaches to the paragraph
+
+First paragraph.
+
+:: section-level :: This attaches to the next element
+
+Second paragraph.
+
+We will not test thtat it attaches to a list-item correctly
+
+- Item 1
+:: list-item-2 :: This should only attach to list-item 2
+- Item 2

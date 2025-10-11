@@ -1,0 +1,6 @@
+Testing custom bullet markers, which should not workt, we want to ensure that the next element is one paragraph (not a list) not many paragraphs.
+
+➤ Arrow bullet item 
+➤ Another arrow item 
+* Asterisk bullet item 
+* Another asterisk item  {{paragraph}}

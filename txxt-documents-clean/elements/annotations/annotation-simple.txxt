@@ -1,0 +1,29 @@
+Basic annotation examples (paragraph)
+
+Single Annotatio:
+:: author :: John Doe
+
+Block:
+:: author :: John Doe
+:: title :: Test Document 
+
+Empty label annotation:
+::  :: Empty label (annotation, label="", value="Empty label")
+
+Empty value annotation:
+:: status :: (annotation, label="status", value="")
+
+Multi-word label:
+:: release notes :: Version 1.0 (annotation, label="release notes", value="Version 1.0")
+
+Annotation with parameters:
+:: meta:version=2.0 :: Document metadata (annotation, label="meta", value="Document metadata")
+
+Multiple parameters:
+:: config:mode=debug,level=verbose :: Configuration (annotation, label="config", value="Configuration")
+
+Quoted parameter values:
+:: author:name="Jane Smith",role="Editor" :: Author info (annotation, label="author", value="Author info")
+
+Annotation-like content that isn't annotation:
+This is not :: an annotation :: because it's mid-line (paragraph)

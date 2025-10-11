@@ -1,0 +1,11 @@
+This is only a preliminary tests for references , and each type should have it's own files.
+
+This is a url reference [http://example.com]
+
+This is a path reference [./path]
+
+This is a inner sesson reference [#3]
+
+This is a footnote reference (in which a session is 0, which is the last one) , this is the 3rd footnote [3]
+
+This is a citation [@john]

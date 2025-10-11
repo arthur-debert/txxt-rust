@@ -1,0 +1,7 @@
+
+Since lines can never be a single item, they should always be a pargraph. All elements in this file should be {{paragraph}}
+
+- John called {{paragraph}}
+
+1. John called {{paragraph}}
+

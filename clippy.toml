@@ -1,0 +1,2 @@
+# Adjust lint levels
+avoid-breaking-exported-api = false

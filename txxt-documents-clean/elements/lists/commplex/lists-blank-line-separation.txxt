@@ -1,0 +1,10 @@
+Testing list separation rules with blank lines, and that we should 3 different lists
+
+- First list item
+- Second list item {{listItem}}
+
+- This should be a new list
+- Because of the blank line {{listItem}}
+
+- Another new list starts here {{listItem}}
+- With multiple items {{listItem}}

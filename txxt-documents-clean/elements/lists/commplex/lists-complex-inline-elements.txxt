@@ -1,0 +1,6 @@
+Testing list items with complex inline elements
+
+- Item with *emphasis* and **strong** text
+- Item with `inline code` and {math: x^2 + y^2}
+- Item with [reference][1] and {cite: Smith2023}
+- Item ending with colon:

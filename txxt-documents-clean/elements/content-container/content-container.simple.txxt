@@ -1,0 +1,72 @@
+:: title :: Simple ContentContainer Examples
+:: description :: Basic examples demonstrating ContentContainer usage in definitions and multiline annotations
+
+1. Definition with ContentContainer
+
+    Basic Definition ::
+        A definition uses ContentContainer to hold its content.
+        This allows for consistent structure across all indented content.
+
+    Definition with List ::
+        Definitions can contain multiple block types:
+        - Paragraphs
+        - Lists like this one
+        - Even nested definitions
+        
+        All wrapped in a ContentContainer.
+
+    Definition with Multiple Paragraphs ::
+        First paragraph of the definition.
+        
+        Second paragraph, separated by a blank line.
+        
+        Third paragraph with emphasis on *structure*.
+
+2. Multiline Annotations with ContentContainer
+
+    :: note ::
+        This is a multiline annotation.
+        It uses ContentContainer for its content.
+        
+        Just like definitions, it can have multiple paragraphs.
+
+    :: warning:severity=high ::
+        Critical warning with parameters.
+        The ContentContainer holds all the content.
+        
+        - Can include lists
+        - Multiple items
+        
+    :: documentation:format=detailed ::
+        Multiline annotations support all block types:
+        
+        1. Ordered lists
+        2. Multiple paragraphs
+        3. Even code examples:
+            def example():
+                return "ContentContainer"
+        (python)
+
+3. Nested Structures
+
+    Complex Definition ::
+        This definition contains nested structures.
+        
+        :: metadata ::
+            Even annotations can appear inside.
+            They too can be multiline.
+        
+        Inner Definition ::
+            Nested definitions work as expected.
+            Each has its own ContentContainer.
+        
+        Back to the outer definition content.
+
+4. Empty and Edge Cases
+
+    Empty Definition ::
+    
+    :: empty ::
+    
+    Minimal Definition ::
+        Single line content.

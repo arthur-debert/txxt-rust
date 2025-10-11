@@ -1,0 +1,38 @@
+:: title :: txxt Deep Dive: Footnotes
+:: author :: Arthur Debert
+
+Reference Notes (Footnotes)
+
+    Txxt supports footnote-style references, which are common in academic and technical writing. This is achieved through a special reference syntax that links to items in the final section of a document.
+
+1. Syntax
+
+    A footnote-style reference is a "naked numerical reference"—an inline reference [../70-refs.txxt] that contains only a number.
+
+    `[<number>]`
+
+    The parser interprets this as a shorthand for `[#-1.<number>]`, which creates a link to the corresponding numbered item in the last section of the document. 
+
+2. Convention
+
+    By convention, the last section in a document serves as the container for notes, citations, or references. This section is often titled "Notes," "Footnotes," or "References", but txxt doesn't enforce it.
+
+3. Example
+
+    -- An example of reference notes
+        This is a statement that needs a citation[1]. Another point needs a different one[2].
+
+        Notes
+
+            1. This is the first citation, providing source details.
+            2. This is the second citation, expanding on the point.
+    -- txxt
+
+    In this example:
+    - `[1]` in the text creates a link using the reference syntax [../70-refs.txxt].
+    - It points to the item beginning with `1.` in the "Notes" section, because "Notes" is the last section in the document.
+    - This mechanism allows authors to create standard footnotes without introducing new syntax, relying instead on a clean and intuitive convention.
+
+The footnote items themselves are formatted as an ordered list [../30-lists.txxt], following standard list alignment rules [../02-alignment.txxt].
+
+This convention is demonstrated in practice in [../intro.txxt], which uses footnote references.

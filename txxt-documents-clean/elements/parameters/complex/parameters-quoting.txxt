@@ -1,0 +1,6 @@
+Complex Quoting Scenarios
+
+:: quote:text="She said, \"Hello!\"" :: Escaped quotes within quotes
+:: path:dir="C:\\Users\\Documents" :: Backslashes in quoted values
+:: mixed:a="quote\"inside",b=unquoted,c="another \"nested\" quote" :: Complex mix
+:: unterminated:text="Missing end quote :: Should handle gracefully

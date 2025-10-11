@@ -1,0 +1,24 @@
+<root>
+  <source>txxt-documents-clean/elements/paragraph/paragraph-basic.txxt</source>
+  <token_count>3</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>This is a simple paragraph {{paragraph}}</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>41</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>1</line>
+      <column>42</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

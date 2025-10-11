@@ -1,0 +1,17 @@
+:: title :: Simple Definition Tests
+
+Term {{definition}} ::
+    A simple definition on a single line.
+
+Parser {{definition}} ::
+    A program that analyzes text 
+    according to formal grammar rules.
+
+*Bold Term* {{definition}} ::
+    Definition with bold in the term.
+
+First {{definition}} ::
+    First definition content.
+
+Second {{definition}} ::  
+    Second definition content.

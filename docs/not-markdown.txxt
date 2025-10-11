@@ -1,0 +1,49 @@
+From Markdown to txxt formating in a nutshell.
+
+While txxt borrows from Markdown, it differs significantly from it. You should read the full specs [docs/spec/*], but this will act as quick checklist quitck guide.
+
+1. Sections
+
+    Should be number and surrounded by blank lines.
+    
+2. Documents are trees, not lists
+
+    txxt content is properly structured with nesting. This is true for both sections and lists. In both cases
+    parent > children relationship is encoded as a +1 indentation (4 spaces.)
+
+    2.1. Make Good Use Of It
+
+        As  here, we can see that we're in session 2.1 and indentation matches. This really aids in inteligibly for dcuments.
+
+3. Lists
+
+    - Unordered lists use dashes, not * for itmes.
+    - They can be nested
+        1. Styles can be different in each level.
+
+4. Fenced Blocks / Examples
+
+    These are called verbatim blocks in txxt, as in txxt itself won't process them. 
+    
+    Their general form:
+        <block line>1
+        <block line> 2
+        ....
+    (<label>?)
+
+    The above is a verbatim block with "Their general form" as the title and the label specified in parentheses.
+    Title and label are optional (but highly recommended). Content is +1 indented from the title line.
+    The closing marker uses parentheses: () for unlabeled blocks or (label) for labeled blocks.
+
+5. Inlines are links 
+
+    - *bold*: note one symbol, not 2
+    - _italic_: also one
+    - `code`: you get the drift
+    - [ref]: for links, paths, see bellow
+
+    Links are refernces 
+        - ther is no anchor and target, the anchor becomes the word before the target
+        - For example: See the documentation [http://example.com/documentation]
+        - Can be urls, file paths [docs/specs], other sections [#2.1] or footnotes [1]
+

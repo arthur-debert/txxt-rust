@@ -1,0 +1,9 @@
+Parameter Value Edge Cases
+
+:: symbols:chars=!@#$%^&*() :: Special characters unquoted
+
+:: unicode:emoji=🚀,text=café :: Unicode in values
+
+:: empty-values:a=,b="",c=value :: Empty and blank values
+
+:: numbers:int=123,float=3.14,neg=-42 :: Numeric values

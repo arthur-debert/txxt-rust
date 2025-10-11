@@ -1,0 +1,252 @@
+<root>
+  <source>txxt-documents-clean/elements/references/references-simple.txxt</source>
+  <token_count>40</token_count>
+  <tokens>
+    <item>
+      <type>TEXT</type>
+      <line>1</line>
+      <column>1</column>
+      <value>Each paragraph has a reference by type.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>1</line>
+      <column>40</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>2</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>1</column>
+      <value>This is the url </value>
+    </item>
+    <item>
+      <type>REF_MARKER</type>
+      <line>3</line>
+      <column>17</column>
+      <value>[http:://example.com/ref]</value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>3</line>
+      <column>42</column>
+      <value> reference, and the protocol is not required.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>3</line>
+      <column>87</column>
+      <value></value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>4</line>
+      <column>1</column>
+      <value>These are citactions references</value>
+    </item>
+    <item>
+      <type>VERBATIM_START</type>
+      <line>4</line>
+      <column>32</column>
+      <value>:</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>4</line>
+      <column>33</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>5</line>
+      <column>1</column>
+      <value>Author [@john]</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>5</line>
+      <column>15</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>6</line>
+      <column>1</column>
+      <value>Authors [@john,smith]</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>6</line>
+      <column>22</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>7</line>
+      <column>1</column>
+      <value>Author + Page [@john, p.45]</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>7</line>
+      <column>28</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>8</line>
+      <column>1</column>
+      <value>Author + Pages [@john, p.45,46]</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>8</line>
+      <column>32</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>9</line>
+      <column>1</column>
+      <value>Author + Page Interval [@john, p.45-203]</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>9</line>
+      <column>41</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>10</line>
+      <column>1</column>
+      <value>This is the session [#3.2] reference.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>10</line>
+      <column>38</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>11</line>
+      <column>1</column>
+      <value>This is the page referenct [p.43] and in various forms [p.43,44] including ranges [p.90=100].  All of these are valid: [p43,p44], and [p.43,p.44) and [pp.43] and [pp 44], in all combinations</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>11</line>
+      <column>191</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>12</line>
+      <column>1</column>
+      <value>This is the footnote [3] reference</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>12</line>
+      <column>35</column>
+      <value></value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>13</line>
+      <column>1</column>
+      <value>This is the path [/usr/var/etc] reference.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>13</line>
+      <column>43</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>14</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>15</line>
+      <column>1</column>
+      <value>This is the TK (to come)[TK] reference , and it signals some content will be inserted (lowecase should be valid too)</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>15</line>
+      <column>117</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>16</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>17</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>18</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>VERBATIM_CONTENT</type>
+      <line>19</line>
+      <column>1</column>
+      <value>The parser should make an effort to validate the reference type, but nor error or warn. To be a vlalid reference all it&#x27;s needed is at least one alpha numberical character. And it should not do further validation such as validate paths or even sessions or footnotes in this same document.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>19</line>
+      <column>289</column>
+      <value></value>
+    </item>
+    <item>
+      <type>BLANK_LINE</type>
+      <line>20</line>
+      <column>1</column>
+      <value>
+</value>
+    </item>
+    <item>
+      <type>TEXT</type>
+      <line>21</line>
+      <column>1</column>
+      <value>The precedence order is as it appears in this document,  and if none match, we use a defaut &quot;something&quot; (that is it&#x27;s name) reference.</value>
+    </item>
+    <item>
+      <type>NEWLINE</type>
+      <line>21</line>
+      <column>135</column>
+      <value></value>
+    </item>
+    <item>
+      <type>EOF</type>
+      <line>21</line>
+      <column>136</column>
+      <value></value>
+    </item>
+  </tokens>
+</root>

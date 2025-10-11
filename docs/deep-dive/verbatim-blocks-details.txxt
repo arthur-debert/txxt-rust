@@ -1,0 +1,55 @@
+:: title :: txxt Deep Dive: Verbatim Block Details
+:: author :: Arthur Debert (Original), Gemini (Refactor)
+:: pub_date :: 2025-09-23
+
+This document covers specific rules and design rationale for verbatim blocks.
+
+1. Annotation Disambiguation
+
+    A critical parsing rule is that lines containing the annotation marker `::` are *always* interpreted as annotations, never as part of a verbatim block's title or label. This ensures that annotations can be reliably identified and attached to verbatim blocks.
+
+2. Rationale for Unambiguous Markers
+
+    Verbatim blocks break the normal parsing rules of `txxt`. Their content is treated as a literal string and passed to other formatters. Because of this, the parser must identify and extract all verbatim blocks *before* it begins to parse the document's structure (sessions, lists, etc.).
+
+    If the start and end markers for verbatim blocks were context-dependent, this pre-processing step would be impossible. This is why the opening colon (`:`) and closing parentheses markers are mandatory and unambiguous.
+
+3. Labels and Colons
+
+    Labels are now placed within parentheses at the end of the verbatim block. The label itself *can* contain colons, making it easier to use descriptive labels without parsing ambiguity.
+
+    Example:
+        A label with a colon:
+            This is a valid verbatim block.
+        (Picture This: a life in colors)
+
+    In the example above, the label is `Picture This: a life in colors`.
+
+4. Parameter Syntax
+
+    Verbatim blocks support parameters as key-value pairs after the label. This syntax is now shared with annotations, providing consistent metadata capabilities across both constructs.
+
+    Syntax: `(label: key1=value1, key2=value2)`
+
+    Examples:
+        Code with metadata:
+            def calculate_pi():
+                return 3.14159
+        (python: version=3.11, author="Jane Doe")
+
+        Image with attributes:
+        (image: src=[diagram.png], width=600, alt="System Architecture")
+
+        SQL query:
+            SELECT * FROM users WHERE active = true;
+        (sql: dialect=postgresql, timeout=30)
+
+5. Shared Parameter System
+
+    The parameter syntax is identical between verbatim blocks and annotations:
+    - Both use colon after label to introduce parameters
+    - Both support quoted values for strings with spaces
+    - Both use comma separation between parameters
+    - Both follow the same escaping rules
+
+    This unified approach ensures consistency and reduces the learning curve for users who need to add structured metadata to their documents.

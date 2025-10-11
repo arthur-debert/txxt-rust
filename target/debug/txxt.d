@@ -1,0 +1,1 @@
+/Users/adebert/h/txxt-rust/target/debug/txxt: /Users/adebert/h/txxt-rust/src/bin/txxt.rs /Users/adebert/h/txxt-rust/src/commands.rs /Users/adebert/h/txxt-rust/src/lib.rs /Users/adebert/h/txxt-rust/src/parser.rs /Users/adebert/h/txxt-rust/src/tree.rs /Users/adebert/h/txxt-rust/src/validator.rs

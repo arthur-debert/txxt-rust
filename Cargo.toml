@@ -2,10 +2,10 @@
 name = "txxt"
 version = "0.1.0"
 edition = "2021"
-description = "A library for handling .info annotation files"
+description = "A parser and processor for the txxt markup language"
 license = "MIT OR Apache-2.0"
-keywords = ["filesystem", "annotation", "metadata"]
-categories = ["filesystem", "development-tools"]
+keywords = ["parser", "markup", "txxt", "text-processing"]
+categories = ["parser-implementations", "text-processing"]
 
 [dependencies]
 walkdir = "2.5"
@@ -19,5 +19,5 @@ atty = "0.2"
 tempfile = "3.10"
 
 [[bin]]
-name = "info"
-path = "src/bin/info.rs"
+name = "txxt"
+path = "src/bin/txxt.rs"

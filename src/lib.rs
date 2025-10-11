@@ -15,12 +15,12 @@ pub struct Annotation {
 
 pub type AnnotationMap = HashMap<PathBuf, Annotation>;
 
-pub struct txxt {
+pub struct Txxt {
     pub path: PathBuf,
     pub annotations: Vec<Annotation>,
 }
 
-impl txxt {
+impl Txxt {
     pub fn new(path: PathBuf) -> Self {
         Self {
             path,
@@ -52,7 +52,7 @@ pub fn collect_annotations<P: AsRef<Path>>(
     for entry in walkdir::WalkDir::new(root.as_ref()) {
         let entry = entry?;
         if entry.file_name() == ".info" {
-            let info_file = txxt::load(entry.path())?;
+            let info_file = Txxt::load(entry.path())?;
 
             for annotation in info_file.annotations {
                 let key = annotation.path.clone();
@@ -101,3 +101,4 @@ fn path_distance(from: &Path, to: &Path) -> usize {
 
     (from_components.len() - common_len) + (to_components.len() - common_len)
 }
+// test change

@@ -37,9 +37,25 @@ impl Lexer {
                 }
             }
 
-            // Handle whitespace and newlines
+            // Handle newlines first (they're significant tokens)
             if let Some(ch) = self.peek() {
-                if ch == ' ' || ch == '\t' || ch == '\n' {
+                if ch == '\n' {
+                    if let Some(token) = self.read_newline() {
+                        tokens.push(token);
+                        continue;
+                    }
+                } else if ch == '\r' {
+                    // Handle CRLF sequences
+                    if let Some(token) = self.read_newline() {
+                        tokens.push(token);
+                        continue;
+                    }
+                }
+            }
+
+            // Handle other whitespace (spaces and tabs)
+            if let Some(ch) = self.peek() {
+                if ch == ' ' || ch == '\t' {
                     self.advance();
                     continue;
                 }
@@ -370,6 +386,46 @@ impl Lexer {
         } else {
             None
         }
+    }
+
+    /// Read a newline token (\n or \r\n)
+    fn read_newline(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if let Some(ch) = self.peek() {
+            if ch == '\r' {
+                // Handle CRLF sequence
+                self.advance(); // Consume \r
+                if self.peek() == Some('\n') {
+                    self.advance(); // Consume \n
+                    return Some(Token::Newline {
+                        span: SourceSpan {
+                            start: start_pos,
+                            end: self.current_position(),
+                        },
+                    });
+                } else {
+                    // Just \r - treat as newline
+                    return Some(Token::Newline {
+                        span: SourceSpan {
+                            start: start_pos,
+                            end: self.current_position(),
+                        },
+                    });
+                }
+            } else if ch == '\n' {
+                // Handle LF
+                self.advance(); // Consume \n
+                return Some(Token::Newline {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            }
+        }
+
+        None
     }
 
     /// Check if we're at the end of input

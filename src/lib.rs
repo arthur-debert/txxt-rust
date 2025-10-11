@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+pub mod annotation_parser;
 pub mod ast;
 pub mod block_grouping;
 pub mod commands;
-pub mod document_parser;
 pub mod parser;
 pub mod tokenizer;
 pub mod tree;
@@ -37,14 +37,14 @@ impl Txxt {
         let mut info_file = Self::new(path.clone());
 
         if path.exists() {
-            info_file.annotations = parser::parse_file(&path)?;
+            info_file.annotations = annotation_parser::parse_file(&path)?;
         }
 
         Ok(info_file)
     }
 
     pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
-        parser::write_file(&self.path, &self.annotations)
+        annotation_parser::write_file(&self.path, &self.annotations)
     }
 }
 

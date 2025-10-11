@@ -1,5 +1,5 @@
 use txxt::block_grouping::build_block_tree;
-use txxt::document_parser::parse_document;
+use txxt::parser::parse_document;
 use txxt::tokenizer::tokenize;
 
 #[test]

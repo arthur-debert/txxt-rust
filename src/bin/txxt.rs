@@ -6,7 +6,7 @@ use std::io::Cursor;
 use std::io::{self, Read};
 use txxt::ast::Document;
 use txxt::block_grouping::{build_block_tree, TokenBlock};
-use txxt::document_parser::parse_document;
+use txxt::parser::parse_document;
 use txxt::tokenizer::{tokenize, Token, TokenType};
 
 fn main() {

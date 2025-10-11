@@ -1139,16 +1139,38 @@ impl Lexer {
             });
         }
 
-        // Skip the terminator line
+        // Parse the terminator line to extract label and parameters
+        let terminator_start_pos = self.current_position();
+        let mut terminator_content = String::new();
+
+        // Read the entire terminator line content
         while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                break;
+            }
+            terminator_content.push(ch);
+            self.advance();
+        }
+
+        // Create VerbatimEnd token with the full terminator content
+        if !terminator_content.trim().is_empty() {
+            tokens.push(Token::VerbatimEnd {
+                content: terminator_content,
+                span: SourceSpan {
+                    start: terminator_start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Advance past the newline at end of terminator
+        if let Some(ch) = self.peek() {
             if ch == '\n' || ch == '\r' {
                 self.advance();
                 if ch == '\r' && self.peek() == Some('\n') {
                     self.advance(); // Handle CRLF
                 }
-                break;
             }
-            self.advance();
         }
 
         tokens

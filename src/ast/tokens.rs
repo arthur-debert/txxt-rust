@@ -67,6 +67,9 @@ pub enum Token {
     /// Annotation markers (:: label ::)
     AnnotationMarker { content: String, span: SourceSpan },
 
+    /// Definition markers (term ::)
+    DefinitionMarker { content: String, span: SourceSpan },
+
     /// Dash character (-)
     Dash { span: SourceSpan },
 
@@ -84,6 +87,9 @@ pub enum Token {
 
     /// Verbatim block content (preserved exactly)
     VerbatimContent { content: String, span: SourceSpan },
+
+    /// Verbatim block end with label and parameters ((label: params))
+    VerbatimEnd { content: String, span: SourceSpan },
 
     /// Bold text delimiter (*)
     BoldDelimiter { span: SourceSpan },
@@ -112,12 +118,14 @@ impl Token {
             Token::Dedent { span } => span,
             Token::SequenceMarker { span, .. } => span,
             Token::AnnotationMarker { span, .. } => span,
+            Token::DefinitionMarker { span, .. } => span,
             Token::Dash { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
             Token::FootnoteNumber { span, .. } => span,
             Token::VerbatimStart { span, .. } => span,
             Token::VerbatimContent { span, .. } => span,
+            Token::VerbatimEnd { span, .. } => span,
             Token::BoldDelimiter { span } => span,
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
@@ -132,11 +140,13 @@ impl Token {
             Token::Text { content, .. } => content,
             Token::SequenceMarker { content, .. } => content,
             Token::AnnotationMarker { content, .. } => content,
+            Token::DefinitionMarker { content, .. } => content,
             Token::Identifier { content, .. } => content,
             Token::RefMarker { content, .. } => content,
             Token::FootnoteNumber { content, .. } => content,
             Token::VerbatimStart { content, .. } => content,
             Token::VerbatimContent { content, .. } => content,
+            Token::VerbatimEnd { content, .. } => content,
             Token::BoldDelimiter { .. } => "*",
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",

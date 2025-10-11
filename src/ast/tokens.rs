@@ -85,6 +85,18 @@ pub enum Token {
     /// Verbatim block content (preserved exactly)
     VerbatimContent { content: String, span: SourceSpan },
 
+    /// Bold text delimiter (*)
+    BoldDelimiter { span: SourceSpan },
+
+    /// Italic text delimiter (_)
+    ItalicDelimiter { span: SourceSpan },
+
+    /// Code text delimiter (`)
+    CodeDelimiter { span: SourceSpan },
+
+    /// Math text delimiter (#)
+    MathDelimiter { span: SourceSpan },
+
     /// End of file marker
     Eof { span: SourceSpan },
 }
@@ -106,6 +118,10 @@ impl Token {
             Token::FootnoteNumber { span, .. } => span,
             Token::VerbatimStart { span, .. } => span,
             Token::VerbatimContent { span, .. } => span,
+            Token::BoldDelimiter { span } => span,
+            Token::ItalicDelimiter { span } => span,
+            Token::CodeDelimiter { span } => span,
+            Token::MathDelimiter { span } => span,
             Token::Eof { span } => span,
         }
     }
@@ -121,6 +137,10 @@ impl Token {
             Token::FootnoteNumber { content, .. } => content,
             Token::VerbatimStart { content, .. } => content,
             Token::VerbatimContent { content, .. } => content,
+            Token::BoldDelimiter { .. } => "*",
+            Token::ItalicDelimiter { .. } => "_",
+            Token::CodeDelimiter { .. } => "`",
+            Token::MathDelimiter { .. } => "#",
             Token::Newline { .. } => "\n",
             Token::BlankLine { .. } => "\n",
             Token::Indent { .. } => "",

@@ -76,6 +76,10 @@ impl Lexer {
 
             if let Some(token) = self.read_annotation_marker() {
                 tokens.push(token);
+            } else if let Some(token) = self.read_ref_marker() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_inline_delimiter() {
+                tokens.push(token);
             } else if let Some(token) = self.read_text() {
                 tokens.push(token);
             } else if let Some(token) = self.read_identifier() {
@@ -99,15 +103,37 @@ impl Lexer {
         tokens
     }
 
-    /// Read a text token (alphanumeric and underscore characters)
+    /// Read a text token (alphanumeric characters and underscores that are part of words)
     fn read_text(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
         let mut content = String::new();
 
+        // Don't start text with delimiter characters
+        if let Some(ch) = self.peek() {
+            if ch == '*' || ch == '_' || ch == '`' || ch == '#' {
+                return None;
+            }
+        }
+
         while let Some(ch) = self.peek() {
-            if ch.is_alphanumeric() || ch == '_' {
+            if ch.is_alphanumeric() {
                 content.push(ch);
                 self.advance();
+            } else if ch == '_' {
+                // Only include underscore if it's followed by alphanumeric (not delimiter)
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    if next_ch.is_alphanumeric() {
+                        content.push(ch);
+                        self.advance();
+                    } else {
+                        // Next char is not alphanumeric, stop here to let delimiter handler take it
+                        break;
+                    }
+                } else {
+                    // At end of input, stop here
+                    break;
+                }
             } else {
                 break;
             }
@@ -317,16 +343,215 @@ impl Lexer {
         None
     }
 
+    /// Read reference markers ([target], [@citation], [#section], [1])
+    fn read_ref_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        // Must start with [
+        if self.peek() != Some('[') {
+            return None;
+        }
+
+        let saved_position = self.position;
+        let saved_row = self.row;
+        let saved_column = self.column;
+
+        self.advance(); // Consume [
+
+        let mut content = String::new();
+        let mut found_closing = false;
+
+        // Read content until ] or end of line
+        while let Some(ch) = self.peek() {
+            if ch == ']' {
+                self.advance(); // Consume ]
+                found_closing = true;
+                break;
+            } else if ch == '\n' || ch == '\r' {
+                // Reference markers cannot span lines
+                break;
+            } else {
+                content.push(ch);
+                self.advance();
+            }
+        }
+
+        if !found_closing || content.is_empty() {
+            // Not a valid reference marker, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
+            return None;
+        }
+
+        // Validate content patterns
+        if self.is_valid_ref_content(&content) {
+            Some(Token::RefMarker {
+                content,
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            })
+        } else {
+            // Invalid reference content, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
+            None
+        }
+    }
+
+    /// Check if reference content matches valid patterns
+    fn is_valid_ref_content(&self, content: &str) -> bool {
+        if content.is_empty() {
+            return false;
+        }
+
+        // Citation pattern: @identifier
+        if let Some(identifier) = content.strip_prefix('@') {
+            if content.len() <= 1 {
+                return false; // @ alone is not valid
+            }
+            return identifier
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == '-');
+        }
+
+        // Section pattern: #number or #number.number etc.
+        if let Some(section_ref) = content.strip_prefix('#') {
+            if content.len() <= 1 {
+                return false; // # alone is not valid
+            }
+            return self.is_valid_section_ref(section_ref);
+        }
+
+        // Footnote pattern: just numbers
+        if content.chars().all(|c| c.is_ascii_digit()) {
+            return true;
+        }
+
+        // URL pattern: contains :// or starts with www. or contains @
+        if content.contains("://") || content.starts_with("www.") || content.contains('@') {
+            return true;
+        }
+
+        // File path pattern: contains / or \ or ends with file extension
+        if content.contains('/') || content.contains('\\') || self.has_file_extension(content) {
+            return true;
+        }
+
+        // Plain text references (anchor names, etc.)
+        if content
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
+        {
+            return true;
+        }
+
+        false
+    }
+
+    /// Check if content is a valid section reference (numbers and dots)
+    fn is_valid_section_ref(&self, content: &str) -> bool {
+        if content.is_empty() {
+            return false;
+        }
+
+        // Split by dots and check each part is a number or -1
+        for part in content.split('.') {
+            if part.is_empty() {
+                return false;
+            }
+            if part == "-1" {
+                continue; // Allow negative indexing
+            }
+            if !part.chars().all(|c| c.is_ascii_digit()) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Check if content has a common file extension
+    fn has_file_extension(&self, content: &str) -> bool {
+        let extensions = [
+            ".txt", ".md", ".txxt", ".html", ".htm", ".pdf", ".doc", ".docx", ".png", ".jpg",
+            ".jpeg", ".gif", ".svg", ".mp4", ".mp3", ".wav", ".js", ".ts", ".py", ".rs", ".go",
+            ".java", ".cpp", ".c", ".h",
+        ];
+
+        extensions.iter().any(|ext| content.ends_with(ext))
+    }
+
+    /// Read inline formatting delimiters (*, _, `, #)
+    fn read_inline_delimiter(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        match self.peek()? {
+            '*' => {
+                self.advance();
+                Some(Token::BoldDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            '_' => {
+                self.advance();
+                Some(Token::ItalicDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            '`' => {
+                self.advance();
+                Some(Token::CodeDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            '#' => {
+                self.advance();
+                Some(Token::MathDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            _ => None,
+        }
+    }
+
     /// Read an identifier token (alphanumeric starting with letter or underscore)
     fn read_identifier(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
         let mut content = String::new();
 
-        // Must start with letter or underscore
+        // Must start with letter or underscore (but only if underscore is part of a longer identifier)
         if let Some(ch) = self.peek() {
-            if ch.is_ascii_alphabetic() || ch == '_' {
+            if ch.is_ascii_alphabetic() {
                 content.push(ch);
                 self.advance();
+            } else if ch == '_' {
+                // Only start with underscore if followed by alphanumeric (not standalone delimiter)
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    if next_ch.is_ascii_alphabetic() || next_ch.is_ascii_digit() || next_ch == '_' {
+                        content.push(ch);
+                        self.advance();
+                    } else {
+                        return None; // Standalone underscore should be handled as delimiter
+                    }
+                } else {
+                    return None; // Underscore at end of input should be delimiter
+                }
             } else {
                 return None;
             }

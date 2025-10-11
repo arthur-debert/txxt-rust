@@ -6,7 +6,7 @@
 use proptest::prelude::*;
 use rstest::rstest;
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::tokenizer::{patterns::TEXT_PATTERN, tokenize};
 
 // =============================================================================
 // TEXT Token - Isolated Tests (rstest)
@@ -139,7 +139,7 @@ fn test_text_token_with_whitespace_failing_edge_cases(
 
 proptest! {
     #[test]
-    fn test_text_token_properties(text in "[a-zA-Z0-9_]+") {
+    fn test_text_token_properties(text in TEXT_PATTERN) {
         // Only test valid text characters to ensure we get TEXT tokens
         prop_assume!(!text.is_empty());
 

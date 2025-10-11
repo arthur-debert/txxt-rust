@@ -6,7 +6,7 @@
 use proptest::prelude::*;
 use rstest::rstest;
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::tokenizer::{patterns::IDENTIFIER_PATTERN, tokenize};
 
 // =============================================================================
 // ANNOTATION_MARKER Token - Isolated Tests (rstest)
@@ -192,7 +192,7 @@ fn test_annotation_marker_incomplete_failing(#[case] input: &str) {
 
 proptest! {
     #[test]
-    fn test_annotation_marker_basic_properties(identifier in "[a-zA-Z][a-zA-Z0-9_]*") {
+    fn test_annotation_marker_basic_properties(identifier in IDENTIFIER_PATTERN) {
         // Test valid identifier patterns in annotation markers
         let input = format!(":: {} ::", identifier);
         let tokens = tokenize(&input);
@@ -239,7 +239,7 @@ proptest! {
 
     #[test]
     fn test_multiple_annotation_markers(
-        identifiers in prop::collection::vec("[a-zA-Z][a-zA-Z0-9_]*", 1..=3)
+        identifiers in prop::collection::vec(IDENTIFIER_PATTERN, 1..=3)
     ) {
         // Test multiple annotation markers in sequence
         let input = identifiers.iter()

@@ -15,6 +15,7 @@
 //! language server operations.
 
 pub mod lexer;
+pub mod patterns;
 pub mod verbatim_scanner;
 
 pub use lexer::Lexer;

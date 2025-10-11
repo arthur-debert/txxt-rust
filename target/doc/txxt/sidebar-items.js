@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":["collect_annotations"],"mod":["commands","parser","tree","validator"],"struct":["Annotation","Txxt"],"type":["AnnotationMap"]};

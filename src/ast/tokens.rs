@@ -104,6 +104,12 @@ pub struct TokenSequence {
     pub tokens: Vec<Token>,
 }
 
+impl Default for TokenSequence {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TokenSequence {
     /// Create a new empty token sequence
     pub fn new() -> Self {

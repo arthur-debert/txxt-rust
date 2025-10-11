@@ -26,7 +26,6 @@
 //! rich semantic structures with sophisticated styling and metadata support.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use super::{
     annotations::Annotation,
@@ -198,7 +197,7 @@ pub struct ListItem {
 /// Definition block - term and definition pairs
 ///
 /// Definitions follow the container indentation pattern:
-/// ```txxt
+/// ```text
 /// Term:               // DefinitionTerm (level 0)
 ///
 ///     Definition      // Container (level 1) -> definition content

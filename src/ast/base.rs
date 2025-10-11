@@ -50,7 +50,7 @@ pub struct Document {
 ///
 /// Follows Pandoc-style metadata structure for interoperability.
 /// Can be populated from document annotations or explicit frontmatter.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Meta {
     /// Document title (often from :: title :: annotation)
     pub title: Option<MetaValue>,
@@ -105,7 +105,7 @@ pub struct AssemblyInfo {
 }
 
 /// Statistics about the parsing and assembly process
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ProcessingStats {
     /// Total number of tokens processed
     pub token_count: usize,
@@ -120,13 +120,17 @@ pub struct ProcessingStats {
     pub max_depth: usize,
 }
 
-impl Default for Meta {
-    fn default() -> Self {
+impl Document {
+    /// Create a new document with minimal information (for compatibility)
+    pub fn new(source: String) -> Self {
         Self {
-            title: None,
-            authors: Vec::new(),
-            date: None,
-            custom: HashMap::new(),
+            meta: Meta::default(),
+            blocks: Vec::new(),
+            annotations: Vec::new(),
+            assembly_info: AssemblyInfo {
+                source_path: Some(source),
+                ..AssemblyInfo::default()
+            },
         }
     }
 }
@@ -138,17 +142,6 @@ impl Default for AssemblyInfo {
             source_path: None,
             processed_at: None,
             stats: ProcessingStats::default(),
-        }
-    }
-}
-
-impl Default for ProcessingStats {
-    fn default() -> Self {
-        Self {
-            token_count: 0,
-            annotation_count: 0,
-            block_count: 0,
-            max_depth: 0,
         }
     }
 }

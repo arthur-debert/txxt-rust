@@ -46,7 +46,7 @@ use super::{annotations::Annotation, inlines::Inline, tokens::TokenSequence};
 /// ```
 ///
 /// AST:
-/// ```
+/// ```text
 /// List
 /// ├── ListItem("Item 1")
 /// ├── ListItem("Item 2")

@@ -7,6 +7,10 @@ license = "MIT OR Apache-2.0"
 keywords = ["parser", "markup", "txxt", "text-processing"]
 categories = ["parser-implementations", "text-processing"]
 
+[features]
+# Enable new type-safe AST system (under development)
+new-ast = []
+
 [dependencies]
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"] }

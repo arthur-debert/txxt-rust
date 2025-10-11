@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 /// Unlike traditional AST source spans, we need both start and end positions
 /// because inline elements don't necessarily start at column 0, and we need
 /// precise boundaries for language server operations.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Position {
     /// Line number (0-indexed)
     pub row: usize,
@@ -41,30 +41,52 @@ pub struct SourceSpan {
 
 /// Individual token with precise source location
 ///
-/// Every piece of text in the AST is represented as tokens to enable:
-/// - Character-precise hover information
-/// - Exact autocomplete trigger points
-/// - Precise syntax highlighting
-/// - Accurate error underlining
+/// Type-safe token variants based on TXXT reference implementation.
+/// Each variant represents a specific syntactic element for precise
+/// language server support and type safety.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Token {
-    /// Regular text content (words, identifiers)
+    /// Regular text content (words, sentences, paragraphs)
     Text { content: String, span: SourceSpan },
 
-    /// Whitespace (spaces, tabs - after normalization)
-    Whitespace { content: String, span: SourceSpan },
+    /// Line break characters
+    Newline { span: SourceSpan },
 
-    /// Punctuation and special characters
-    Punctuation { content: String, span: SourceSpan },
+    /// Blank line (empty line with possible whitespace)
+    BlankLine { span: SourceSpan },
 
-    /// Numbers (for list items, session numbers)
-    Number { content: String, span: SourceSpan },
+    /// Indentation increase
+    Indent { span: SourceSpan },
 
-    /// Symbols and markers (*, -, ::, etc.)
-    Symbol { content: String, span: SourceSpan },
+    /// Indentation decrease  
+    Dedent { span: SourceSpan },
 
-    /// Line breaks (preserved for structural information)
-    LineBreak { span: SourceSpan },
+    /// List/sequence markers (1., -, a), etc.)
+    SequenceMarker { content: String, span: SourceSpan },
+
+    /// Pragma annotations (:: label ::)
+    PragmaMarker { content: String, span: SourceSpan },
+
+    /// Dash character (-)
+    Dash { span: SourceSpan },
+
+    /// Identifier (variable names, labels)
+    Identifier { content: String, span: SourceSpan },
+
+    /// Reference markers ([text], [@citation], [#section])
+    RefMarker { content: String, span: SourceSpan },
+
+    /// Footnote numbers ([1], [2])
+    FootnoteNumber { content: String, span: SourceSpan },
+
+    /// Verbatim block start (title:)
+    VerbatimStart { content: String, span: SourceSpan },
+
+    /// Verbatim block content (preserved exactly)
+    VerbatimContent { content: String, span: SourceSpan },
+
+    /// End of file marker
+    Eof { span: SourceSpan },
 }
 
 impl Token {
@@ -72,23 +94,39 @@ impl Token {
     pub fn span(&self) -> &SourceSpan {
         match self {
             Token::Text { span, .. } => span,
-            Token::Whitespace { span, .. } => span,
-            Token::Punctuation { span, .. } => span,
-            Token::Number { span, .. } => span,
-            Token::Symbol { span, .. } => span,
-            Token::LineBreak { span } => span,
+            Token::Newline { span } => span,
+            Token::BlankLine { span } => span,
+            Token::Indent { span } => span,
+            Token::Dedent { span } => span,
+            Token::SequenceMarker { span, .. } => span,
+            Token::PragmaMarker { span, .. } => span,
+            Token::Dash { span } => span,
+            Token::Identifier { span, .. } => span,
+            Token::RefMarker { span, .. } => span,
+            Token::FootnoteNumber { span, .. } => span,
+            Token::VerbatimStart { span, .. } => span,
+            Token::VerbatimContent { span, .. } => span,
+            Token::Eof { span } => span,
         }
     }
 
-    /// Get the text content of this token (empty for LineBreak)
+    /// Get the text content of this token (empty for structural tokens)
     pub fn content(&self) -> &str {
         match self {
             Token::Text { content, .. } => content,
-            Token::Whitespace { content, .. } => content,
-            Token::Punctuation { content, .. } => content,
-            Token::Number { content, .. } => content,
-            Token::Symbol { content, .. } => content,
-            Token::LineBreak { .. } => "",
+            Token::SequenceMarker { content, .. } => content,
+            Token::PragmaMarker { content, .. } => content,
+            Token::Identifier { content, .. } => content,
+            Token::RefMarker { content, .. } => content,
+            Token::FootnoteNumber { content, .. } => content,
+            Token::VerbatimStart { content, .. } => content,
+            Token::VerbatimContent { content, .. } => content,
+            Token::Newline { .. } => "\n",
+            Token::BlankLine { .. } => "\n",
+            Token::Indent { .. } => "",
+            Token::Dedent { .. } => "",
+            Token::Dash { .. } => "-",
+            Token::Eof { .. } => "",
         }
     }
 }
@@ -122,8 +160,8 @@ impl TokenSequence {
             return None;
         }
 
-        let start = self.tokens[0].span().start.clone();
-        let end = self.tokens.last().unwrap().span().end.clone();
+        let start = self.tokens[0].span().start;
+        let end = self.tokens.last().unwrap().span().end;
 
         Some(SourceSpan { start, end })
     }

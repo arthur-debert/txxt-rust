@@ -92,6 +92,8 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = self.read_inline_delimiter() {
                 tokens.push(token);
+            } else if let Some(token) = self.read_dash() {
+                tokens.push(token);
             } else if let Some(token) = self.read_text() {
                 tokens.push(token);
             } else if let Some(token) = self.read_identifier() {
@@ -120,9 +122,9 @@ impl Lexer {
         let start_pos = self.current_position();
         let mut content = String::new();
 
-        // Don't start text with delimiter characters
+        // Don't start text with delimiter characters or dash
         if let Some(ch) = self.peek() {
-            if ch == '*' || ch == '_' || ch == '`' || ch == '#' {
+            if ch == '*' || ch == '_' || ch == '`' || ch == '#' || ch == '-' {
                 return None;
             }
         }
@@ -494,6 +496,33 @@ impl Lexer {
         ];
 
         extensions.iter().any(|ext| content.ends_with(ext))
+    }
+
+    /// Read a dash token (standalone -)
+    fn read_dash(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('-') {
+            // Check if this is part of a sequence marker (already handled earlier)
+            // We only want standalone dashes, not "- " sequence markers
+            let next_pos = self.position + 1;
+            if let Some(&next_ch) = self.input.get(next_pos) {
+                if next_ch == ' ' {
+                    // This is a sequence marker, not a standalone dash
+                    return None;
+                }
+            }
+
+            self.advance();
+            return Some(Token::Dash {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
     }
 
     /// Read inline formatting delimiters (*, _, `, #)

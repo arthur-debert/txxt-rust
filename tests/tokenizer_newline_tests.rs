@@ -150,10 +150,9 @@ fn test_newline_isolated_failing(#[case] input: &str) {
 }
 
 #[rstest]
-#[case("text\n")] // Trailing newline
-#[case("\ntext")] // Leading newline
-#[case("\n\n")] // Multiple newlines
-fn test_newline_edge_cases(#[case] input: &str) {
+#[case("text\n", 1)] // Trailing newline
+#[case("\ntext", 1)] // Leading newline
+fn test_newline_edge_cases(#[case] input: &str, #[case] expected_newlines: usize) {
     let tokens = tokenize(input);
 
     // Should handle edge cases gracefully
@@ -162,14 +161,35 @@ fn test_newline_edge_cases(#[case] input: &str) {
         .filter(|token| matches!(token, Token::Newline { .. }))
         .collect();
 
-    // Count expected newlines in input
-    let expected_newlines = input.chars().filter(|&c| c == '\n').count();
     assert_eq!(
         newline_tokens.len(),
         expected_newlines,
         "Should produce {} newline tokens for input '{:?}'",
         expected_newlines,
         input
+    );
+}
+
+#[test]
+fn test_double_newline_produces_newline_and_blankline() {
+    // Special case: "\n\n" should produce 1 Newline + 1 BlankLine
+    let tokens = tokenize("\n\n");
+
+    let newline_tokens: Vec<_> = tokens
+        .iter()
+        .filter(|token| matches!(token, Token::Newline { .. }))
+        .collect();
+
+    let blankline_tokens: Vec<_> = tokens
+        .iter()
+        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .collect();
+
+    assert_eq!(newline_tokens.len(), 1, "Should produce 1 Newline token");
+    assert_eq!(
+        blankline_tokens.len(),
+        1,
+        "Should produce 1 BlankLine token"
     );
 }
 

@@ -37,15 +37,24 @@ impl Lexer {
                 }
             }
 
-            // Handle newlines first (they're significant tokens)
-            if let Some(ch) = self.peek() {
-                if ch == '\n' {
-                    if let Some(token) = self.read_newline() {
+            // Try to read blank lines when at column 0 (start of line)
+            if self.column == 0 {
+                if let Some(token) = self.read_blankline() {
+                    // Check if the last token was also a BlankLine and merge them
+                    if let Some(Token::BlankLine { span: last_span }) = tokens.last_mut() {
+                        // Extend the span of the existing BlankLine to include this new one
+                        last_span.end = token.span().end;
+                    } else {
+                        // This is the first BlankLine or follows a different token type
                         tokens.push(token);
-                        continue;
                     }
-                } else if ch == '\r' {
-                    // Handle CRLF sequences
+                    continue;
+                }
+            }
+
+            // Handle newlines (they're significant tokens)
+            if let Some(ch) = self.peek() {
+                if ch == '\n' || ch == '\r' {
                     if let Some(token) = self.read_newline() {
                         tokens.push(token);
                         continue;
@@ -367,11 +376,6 @@ impl Lexer {
         }
     }
 
-    /// Peek at the current character without advancing
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
     /// Advance to the next character and update position tracking
     fn advance(&mut self) -> Option<char> {
         if let Some(ch) = self.input.get(self.position).copied() {
@@ -398,24 +402,18 @@ impl Lexer {
                 self.advance(); // Consume \r
                 if self.peek() == Some('\n') {
                     self.advance(); // Consume \n
-                    return Some(Token::Newline {
-                        span: SourceSpan {
-                            start: start_pos,
-                            end: self.current_position(),
-                        },
-                    });
-                } else {
-                    // Just \r - treat as newline
-                    return Some(Token::Newline {
-                        span: SourceSpan {
-                            start: start_pos,
-                            end: self.current_position(),
-                        },
-                    });
                 }
+
+                return Some(Token::Newline {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
             } else if ch == '\n' {
                 // Handle LF
                 self.advance(); // Consume \n
+
                 return Some(Token::Newline {
                     span: SourceSpan {
                         start: start_pos,
@@ -428,8 +426,104 @@ impl Lexer {
         None
     }
 
+    /// Read a blank line token (line containing only whitespace, NOT including line break)  
+    fn read_blankline(&mut self) -> Option<Token> {
+        // Only try to read blank lines when we're at column 0 (start of line)
+        if self.column != 0 {
+            return None;
+        }
+
+        // Don't read blank lines at the very start of input - that should be a newline
+        if self.row == 0 {
+            return None;
+        }
+
+        let start_pos = self.current_position();
+        let saved_position = self.position;
+        let saved_row = self.row;
+        let saved_column = self.column;
+
+        // Collect any whitespace on this line
+        while let Some(ch) = self.peek() {
+            if ch == ' ' || ch == '\t' {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        // Check if this line ends with a newline (making it a blank line)
+        // Consume the newline as part of the BlankLine token
+        if let Some(ch) = self.peek() {
+            if ch == '\n' {
+                // This is a blank line - consume the newline
+                self.advance(); // Consume \n
+                return Some(Token::BlankLine {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            } else if ch == '\r' {
+                // Handle CRLF
+                self.advance(); // Consume \r
+                if self.peek() == Some('\n') {
+                    self.advance(); // Consume \n
+                }
+                return Some(Token::BlankLine {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            }
+        }
+
+        // Also handle end of file after whitespace-only content
+        if self.is_at_end() && self.position > saved_position {
+            return Some(Token::BlankLine {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Not a blank line, backtrack
+        self.position = saved_position;
+        self.row = saved_row;
+        self.column = saved_column;
+        None
+    }
+
     /// Check if we're at the end of input
-    fn is_at_end(&self) -> bool {
+    pub fn is_at_end(&self) -> bool {
         self.position >= self.input.len()
+    }
+
+    /// Peek at the current character without advancing
+    pub fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    // Debug methods (for testing)
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    pub fn row(&self) -> usize {
+        self.row
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
+    }
+
+    pub fn test_read_newline(&mut self) -> Option<Token> {
+        self.read_newline()
+    }
+
+    pub fn test_advance(&mut self) -> Option<char> {
+        self.advance()
     }
 }

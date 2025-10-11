@@ -33,8 +33,11 @@ References in Txxt use the [] notation to link to other documents, sections, or 
         - [local-section]
         - [#3] - notest
 
-    d. 
+    d. FootNotes Reference
     
+        
+        - [3] - notest
+
 4. Special Meanings
 
     a. Naked Numerical References (Footnote-style)

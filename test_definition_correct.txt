@@ -1,0 +1,2 @@
+Parser ::
+    A program that analyzes text according to formal grammar rules.

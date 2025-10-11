@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+pub mod ast;
 pub mod block_grouping;
 pub mod commands;
+pub mod document_parser;
 pub mod parser;
 pub mod tokenizer;
 pub mod tree;

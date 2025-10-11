@@ -4,7 +4,9 @@ use std::env;
 use std::fs;
 use std::io::Cursor;
 use std::io::{self, Read};
+use txxt::ast::Document;
 use txxt::block_grouping::{build_block_tree, TokenBlock};
+use txxt::document_parser::parse_document;
 use txxt::tokenizer::{tokenize, Token, TokenType};
 
 fn main() {
@@ -32,6 +34,16 @@ fn main() {
             }
             handle_block(&args[2]);
         }
+        "parse" => {
+            if args.len() != 3 {
+                eprintln!(
+                    "Usage: {} parse <input.txxt|input.tokens.xml|input.blocks.xml>",
+                    args[0]
+                );
+                std::process::exit(1);
+            }
+            handle_parse(&args[2]);
+        }
         _ => {
             eprintln!("Unknown command: {}", command);
             print_usage(&args[0]);
@@ -44,8 +56,13 @@ fn print_usage(program_name: &str) {
     eprintln!("Usage: {} <command> [args...]", program_name);
     eprintln!();
     eprintln!("Commands:");
-    eprintln!("  lex <input.txxt>                    Tokenize a TXXT file and output XML");
-    eprintln!("  block <input.txxt|input.tokens.xml> Group tokens into blocks and output XML");
+    eprintln!("  lex <input.txxt>                          Tokenize a TXXT file and output XML");
+    eprintln!(
+        "  block <input.txxt|input.tokens.xml>       Group tokens into blocks and output XML"
+    );
+    eprintln!(
+        "  parse <input.txxt|input.tokens.xml|input.blocks.xml> Parse into AST and output XML"
+    );
 }
 
 fn handle_lex(input_path: &str) {
@@ -79,6 +96,36 @@ fn handle_block(input_path: &str) {
         process_tokens_xml_file(input_path)
     } else {
         Err("Input file must be .txxt or .tokens.xml".into())
+    };
+
+    match result {
+        Ok(xml) => println!("{}", xml),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn handle_parse(input_path: &str) {
+    let result = if input_path == "-" {
+        let mut buffer = String::new();
+        io::stdin().read_to_string(&mut buffer).unwrap();
+        let tokens = tokenize(&buffer);
+        let block_tree = build_block_tree(tokens);
+        let document = parse_document("stdin".to_string(), &block_tree);
+        format_ast_as_xml(&document)
+    } else if input_path.ends_with(".txxt") {
+        // TXXT file - tokenize, block group, then parse
+        process_txxt_file_for_parse(input_path)
+    } else if input_path.ends_with(".tokens.xml") {
+        // XML tokens file - parse tokens, block group, then parse
+        process_tokens_xml_file_for_parse(input_path)
+    } else if input_path.ends_with(".blocks.xml") {
+        // XML blocks file - parse blocks then parse to AST
+        process_blocks_xml_file_for_parse(input_path)
+    } else {
+        Err("Input file must be .txxt, .tokens.xml, or .blocks.xml".into())
     };
 
     match result {
@@ -354,4 +401,111 @@ fn decode_xml_entities(text: &str) -> String {
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&#x27;", "'")
+}
+
+// Parse command helper functions
+fn process_txxt_file_for_parse(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(path)?;
+    let tokens = tokenize(&content);
+    let block_tree = build_block_tree(tokens);
+    let document = parse_document(path.to_string(), &block_tree);
+    format_ast_as_xml(&document)
+}
+
+fn process_tokens_xml_file_for_parse(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let xml_content = fs::read_to_string(path)?;
+    let tokens = parse_tokens_from_xml(&xml_content)?;
+    let block_tree = build_block_tree(tokens);
+    let document = parse_document(path.to_string(), &block_tree);
+    format_ast_as_xml(&document)
+}
+
+fn process_blocks_xml_file_for_parse(_path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // TODO: Parse blocks XML format
+    // For now, just return an error since we haven't implemented blocks XML parsing yet
+    Err("Parsing from .blocks.xml not yet implemented".into())
+}
+
+fn format_ast_as_xml(document: &Document) -> Result<String, Box<dyn std::error::Error>> {
+    let mut buffer = Vec::new();
+    let mut writer = Writer::new_with_indent(Cursor::new(&mut buffer), b' ', 2);
+
+    // Write XML declaration
+    writer.write_event(Event::Decl(quick_xml::events::BytesDecl::new(
+        "1.0",
+        Some("UTF-8"),
+        None,
+    )))?;
+
+    // Root element
+    let ast_elem = BytesStart::new("ast");
+    writer.write_event(Event::Start(ast_elem))?;
+
+    // Source element
+    let source_elem = BytesStart::new("source");
+    writer.write_event(Event::Start(source_elem))?;
+    writer.write_event(Event::Text(BytesText::new(&document.source)))?;
+    writer.write_event(Event::End(BytesEnd::new("source")))?;
+
+    // Write the AST structure
+    write_ast_node_recursive(&mut writer, &document.root)?;
+
+    writer.write_event(Event::End(BytesEnd::new("ast")))?;
+
+    Ok(String::from_utf8(buffer)?)
+}
+
+fn write_ast_node_recursive(
+    writer: &mut Writer<Cursor<&mut Vec<u8>>>,
+    node: &txxt::ast::AstNode,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut node_elem = BytesStart::new("node");
+    node_elem.push_attribute(("type", node.node_type.as_str()));
+
+    if let Some(start) = node.start_line {
+        node_elem.push_attribute(("start-line", start.to_string().as_str()));
+    }
+    if let Some(end) = node.end_line {
+        node_elem.push_attribute(("end-line", end.to_string().as_str()));
+    }
+
+    writer.write_event(Event::Start(node_elem))?;
+
+    // Write attributes
+    if !node.attributes.is_empty() {
+        let attrs_elem = BytesStart::new("attributes");
+        writer.write_event(Event::Start(attrs_elem))?;
+
+        for (key, value) in &node.attributes {
+            let mut attr_elem = BytesStart::new("attribute");
+            attr_elem.push_attribute(("key", key.as_str()));
+            attr_elem.push_attribute(("value", value.as_str()));
+            writer.write_event(Event::Empty(attr_elem))?;
+        }
+
+        writer.write_event(Event::End(BytesEnd::new("attributes")))?;
+    }
+
+    // Write content
+    if let Some(content) = &node.content {
+        let content_elem = BytesStart::new("content");
+        writer.write_event(Event::Start(content_elem))?;
+        writer.write_event(Event::Text(BytesText::new(content)))?;
+        writer.write_event(Event::End(BytesEnd::new("content")))?;
+    }
+
+    // Write children
+    if !node.children.is_empty() {
+        let children_elem = BytesStart::new("children");
+        writer.write_event(Event::Start(children_elem))?;
+
+        for child in &node.children {
+            write_ast_node_recursive(writer, child)?;
+        }
+
+        writer.write_event(Event::End(BytesEnd::new("children")))?;
+    }
+
+    writer.write_event(Event::End(BytesEnd::new("node")))?;
+    Ok(())
 }

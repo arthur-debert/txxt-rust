@@ -1060,15 +1060,14 @@ impl Lexer {
         // Create VerbatimStart token for the title line
         let title_start_pos = self.current_position();
 
-        // Advance through the title line to get its content
+        // Advance through the title line to get its content (excluding the trailing colon)
         let mut title_content = String::new();
         while let Some(ch) = self.peek() {
             if ch == '\n' || ch == '\r' {
                 break;
             }
             if ch == ':' {
-                // Include the colon in the title content
-                title_content.push(ch);
+                // Don't include the colon - it's a structural marker, not content
                 self.advance();
                 break;
             }

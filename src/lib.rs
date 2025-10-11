@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 pub mod adapters;
 pub mod annotation_parser;
 pub mod ast;
+pub mod ast_debug;
 pub mod block_grouping;
 pub mod commands;
 pub mod parser;

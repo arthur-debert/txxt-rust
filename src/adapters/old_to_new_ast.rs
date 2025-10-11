@@ -125,19 +125,29 @@ impl AstConverter {
             }
 
             "list" => {
-                vec![Block::List(self.convert_list(node))]
+                // Check if this is actually a session (numbered list items with content containers)
+                if self.is_session_list(node) {
+                    self.convert_list_as_sessions(node)
+                } else {
+                    vec![Block::List(self.convert_list(node))]
+                }
             }
 
             "session" => {
                 vec![Block::Session(self.convert_session(node))]
             }
 
-            "container" => {
+            "container" | "content_container" => {
                 vec![Block::Container(self.convert_container(node))]
             }
 
             "verbatim" => {
-                vec![Block::VerbatimBlock(self.convert_verbatim(node))]
+                // Check if this is actually a definition (verbatim with title)
+                if node.attributes.contains_key("title") {
+                    vec![Block::Definition(self.convert_verbatim_as_definition(node))]
+                } else {
+                    vec![Block::VerbatimBlock(self.convert_verbatim(node))]
+                }
             }
 
             "definition" => {
@@ -188,6 +198,12 @@ impl AstConverter {
             }
         }
 
+        // If no explicit style was set, infer from first item's marker
+        if decoration_type.style == NumberingStyle::Plain && !items.is_empty() {
+            decoration_type.style = self.infer_numbering_style(&items[0].marker);
+            decoration_type.form = self.infer_numbering_form(&items[0].marker);
+        }
+
         let tokens = self.synthesize_tokens_for_node(node);
 
         List {
@@ -198,13 +214,100 @@ impl AstConverter {
         }
     }
 
+    /// Check if a list should be treated as sessions
+    fn is_session_list(&self, node: &AstNode) -> bool {
+        // Heuristic: if any list item has a numbered marker and content_container children,
+        // treat the whole list as sessions
+        node.children.iter().any(|child| {
+            if child.node_type == "list_item" {
+                // Check if it has a numbered marker
+                let has_numbered_marker = child
+                    .attributes
+                    .get("marker")
+                    .map(|marker| marker.trim().chars().next().unwrap_or('-').is_ascii_digit())
+                    .unwrap_or(false);
+
+                // Check if it has content_container children (indicating nested content)
+                let has_content_container = child
+                    .children
+                    .iter()
+                    .any(|grandchild| grandchild.node_type == "content_container");
+
+                has_numbered_marker && has_content_container
+            } else {
+                false
+            }
+        })
+    }
+
+    /// Convert a list that should be treated as sessions
+    fn convert_list_as_sessions(&mut self, node: &AstNode) -> Vec<Block> {
+        let mut sessions = Vec::new();
+
+        for child in &node.children {
+            if child.node_type == "list_item" {
+                sessions.push(Block::Session(self.convert_list_item_as_session(child)));
+            }
+        }
+
+        sessions
+    }
+
+    /// Convert a list item as a session
+    fn convert_list_item_as_session(&mut self, node: &AstNode) -> Session {
+        // Extract title from the list item content
+        let title_text = node.content.as_ref().unwrap_or(&"".to_string()).clone();
+
+        let title_content = if !title_text.is_empty() {
+            vec![Inline::TextLine(TextTransform::Identity(Text::simple(
+                &title_text,
+            )))]
+        } else {
+            Vec::new()
+        };
+
+        // Extract numbering from marker
+        let numbering = node.attributes.get("marker").map(|marker| {
+            let trimmed_marker = marker.trim();
+            SessionNumbering {
+                marker: trimmed_marker.to_string(),
+                style: self.infer_numbering_style(trimmed_marker),
+                form: self.infer_numbering_form(trimmed_marker),
+            }
+        });
+
+        let title = SessionTitle {
+            content: title_content,
+            numbering,
+            tokens: self.synthesize_tokens_for_content(&title_text),
+        };
+
+        // Convert children (especially content_container) to session content
+        let mut content_blocks = Vec::new();
+        for child in &node.children {
+            content_blocks.extend(self.convert_node_to_blocks(child));
+        }
+
+        let content = Container {
+            content: content_blocks,
+            annotations: Vec::new(),
+        };
+
+        Session {
+            title,
+            content,
+            annotations: Vec::new(),
+        }
+    }
+
     /// Convert list item with marker preservation
     fn convert_list_item(&mut self, node: &AstNode) -> ListItem {
         let marker = node
             .attributes
             .get("marker")
             .unwrap_or(&"-".to_string())
-            .clone();
+            .trim() // Remove trailing spaces from marker
+            .to_string();
 
         let content = self.convert_inline_content(node);
         let tokens = self.synthesize_tokens_for_node(node);
@@ -321,6 +424,59 @@ impl AstConverter {
             raw,
             verbatim_type,
             format_hint,
+            parameters,
+            annotations: Vec::new(),
+            tokens,
+        }
+    }
+
+    /// Convert verbatim block that's actually a definition (has title attribute)
+    fn convert_verbatim_as_definition(&mut self, node: &AstNode) -> Definition {
+        let term_text = node
+            .attributes
+            .get("title")
+            .unwrap_or(&"".to_string())
+            .clone();
+
+        let term_content = if !term_text.is_empty() {
+            vec![Inline::TextLine(TextTransform::Identity(Text::simple(
+                &term_text,
+            )))]
+        } else {
+            Vec::new()
+        };
+
+        let term = DefinitionTerm {
+            content: term_content,
+            tokens: self.synthesize_tokens_for_content(&term_text),
+        };
+
+        // Convert verbatim content as definition content
+        let empty_string = String::new();
+        let raw_content = node.content.as_ref().unwrap_or(&empty_string);
+        let content_blocks = if !raw_content.is_empty() {
+            vec![Block::Paragraph(Paragraph {
+                content: vec![Inline::TextLine(TextTransform::Identity(Text::simple(
+                    raw_content,
+                )))],
+                annotations: Vec::new(),
+                tokens: self.synthesize_tokens_for_content(raw_content),
+            })]
+        } else {
+            Vec::new()
+        };
+
+        let content = Container {
+            content: content_blocks,
+            annotations: Vec::new(),
+        };
+
+        let parameters = self.extract_parameters(&node.attributes);
+        let tokens = self.synthesize_tokens_for_node(node);
+
+        Definition {
+            term,
+            content,
             parameters,
             annotations: Vec::new(),
             tokens,

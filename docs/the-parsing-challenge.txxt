@@ -14,14 +14,12 @@ The Parsing Challenge Explained
 
         1.1 First things first: Verbatim must be marked.
          
-        	txxt has verbatim blocks:  these contain content encoded in (likely) other formats. 
-        	The text-book example for this is code sample in various programing languages.
+        	txxt has verbatim blocks:  these contain content encoded in (likely) other formats.  The text-book example for this is code sample in various programing languages.
 
         	This has a clear implication: the very first thing you need to do is mark verbatim blocks content, because you can't parse them as txxt.
-        	It's not just that is would be wasteful, but wrong. For example txxt cares about indentation and blank lines, and the content in verbatim blocks 
-        	can be parsed as those. 
+        	It's not just that is would be wasteful, but wrong. For example txxt cares about indentation and blank lines, and the content in verbatim blocks can be parsed as those. 
 
-        	So the first pass is to mark the soure string's verbatim blocks . We should say this block starts at line x and end in line y, for each block.
+        	So the first pass is to mark the soure string's verbatim blocks . We identify these and generate a list of start,end lists for the verbatim content (remember the verbatim title, label are txxt and parsing them is fine)
 
         	This is also because, as verbatim blocks are stateful (once inside one, you ignore anything but the end marker for the block), parsing it separately has the benefit of removing all stateful parsing. Yay. 
 

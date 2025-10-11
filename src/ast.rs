@@ -1,83 +1,65 @@
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+//! AST module for TXXT format
+//!
+//! This module defines a comprehensive, type-safe AST structure for TXXT documents
+//! that serves multiple tooling needs including language servers, formatters, linters,
+//! and converters.
+//!  
+//!
+//! Core Design Principles
+//!
+//! - The same ast handles tokens and parsed structure to faciliate language server features,
+//!  source mapping, and round-tripping.
+//! - Clear separation between containers (indentation-based) and content (semantic elements).
+//! - From a type point of view we enforce a homogenous tree model. For example, any element node
+//!   can have params or annotations. In practice several combinatios never happen as the language does
+//!  not have a syntatical construct for them, but the type system is uniform.
+//!
+//!
+//!   Current Parsing Pipeline
+//!   Phase 1: Lexer
+//!   1.a. Verbatim Line Marking
+//!   - Stateful isolation: Perfect design - verbatim content is sacred and needs special handling
+//!   - Critical insight: This is the ONLY stateful part, keeping complexity contained
+//!   - AST alignment: Maps to VerbatimContent with exact preservation
+//!
+//!   1.b. Tokenization
+//!   - Token generation: Produces the character-precise tokens needed for language server
+//!   - AST alignment: Maps directly to Token enum with SourceSpan positioning
+//!
+//!   Phase 2: Parser
+//!
+//!   2.a. Block Grouping
+//!   - Indent/dedent processing: Creates the hierarchical structure using container pattern
+//!   - Tree of token lists: Perfect for the container indentation architecture
+//!   - AST alignment: Maps to Container nodes with proper nesting
+//!
+//!   2.b. Parsing
+//!   - Token list → AST nodes: Converts grouped tokens into semantic structure
+//!   - Recursive processing: Handles nested containers correctly
+//!   - AST alignment: Produces the rich type-safe AST we designed
 
-/// Simple AST node for the TXXT parser
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AstNode {
-    /// The type of this AST node
-    pub node_type: String,
+//!   Phase 3: Post-Processing
 
-    /// Child nodes
-    pub children: Vec<AstNode>,
+//!   3.a. Assembly (Not yet implemented)
+//!   - Document metadata: Parser version, file path, timestamps → AssemblyInfo
+//!   - Annotation attachment: Critical for the proximity-based annotation system
+//!   - Final document: Raw AST → fully assembled Document
 
-    /// Additional attributes/parameters for this node
-    pub attributes: HashMap<String, String>,
+pub mod annotations;
+pub mod base;
+pub mod blocks;
+pub mod inlines;
+pub mod parameters;
+pub mod reference_types;
+pub mod structure;
+pub mod tokens;
 
-    /// Text content for leaf nodes
-    pub content: Option<String>,
-
-    /// Source location information
-    pub start_line: Option<usize>,
-    pub end_line: Option<usize>,
-}
-
-impl AstNode {
-    /// Create a new AST node with the given type
-    pub fn new(node_type: String) -> Self {
-        Self {
-            node_type,
-            children: Vec::new(),
-            attributes: HashMap::new(),
-            content: None,
-            start_line: None,
-            end_line: None,
-        }
-    }
-
-    /// Create a new AST node with type and content
-    pub fn with_content(node_type: String, content: String) -> Self {
-        Self {
-            node_type,
-            children: Vec::new(),
-            attributes: HashMap::new(),
-            content: Some(content),
-            start_line: None,
-            end_line: None,
-        }
-    }
-
-    /// Add a child node
-    pub fn add_child(&mut self, child: AstNode) {
-        self.children.push(child);
-    }
-
-    /// Set an attribute
-    pub fn set_attribute(&mut self, key: String, value: String) {
-        self.attributes.insert(key, value);
-    }
-
-    /// Set source location
-    pub fn set_location(&mut self, start_line: usize, end_line: usize) {
-        self.start_line = Some(start_line);
-        self.end_line = Some(end_line);
-    }
-}
-
-/// Container for the entire parsed document
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Document {
-    /// Root AST node
-    pub root: AstNode,
-
-    /// Source file path
-    pub source: String,
-}
-
-impl Document {
-    pub fn new(source: String) -> Self {
-        Self {
-            root: AstNode::new("document".to_string()),
-            source,
-        }
-    }
-}
+// Re-export main types for convenience
+pub use annotations::*;
+pub use base::*;
+pub use blocks::*;
+pub use inlines::*;
+pub use parameters::*;
+pub use reference_types::*;
+pub use structure::*;
+pub use tokens::*;

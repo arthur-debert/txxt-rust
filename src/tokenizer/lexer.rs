@@ -4,6 +4,7 @@
 //! positioning for language server support.
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 
 /// Main tokenizer that produces new AST Token enum variants
 pub struct Lexer {
@@ -28,7 +29,18 @@ impl Lexer {
     pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
 
+        // First, pre-scan for verbatim blocks
+        let input_text: String = self.input.iter().collect();
+        let verbatim_scanner = VerbatimScanner::new();
+        let verbatim_blocks = verbatim_scanner.scan(&input_text);
+
         while !self.is_at_end() {
+            // Check if we're at the start of a verbatim block
+            if let Some(verbatim_tokens) = self.read_verbatim_block(&verbatim_blocks) {
+                tokens.extend(verbatim_tokens);
+                continue;
+            }
+
             // Try to read sequence marker only at column 0 (start of line)
             if self.column == 0 {
                 if let Some(token) = self.read_sequence_marker() {
@@ -750,5 +762,143 @@ impl Lexer {
 
     pub fn test_advance(&mut self) -> Option<char> {
         self.advance()
+    }
+
+    /// Read verbatim block if current position matches a verbatim block start
+    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<Token>> {
+        let current_line = self.row;
+        let current_char_pos = self.get_absolute_position();
+
+        // Find a verbatim block that starts at this position
+        for block in verbatim_blocks {
+            if self.is_at_verbatim_block_start(block, current_line, current_char_pos) {
+                return Some(self.tokenize_verbatim_block(block));
+            }
+        }
+
+        None
+    }
+
+    /// Check if current position is at the start of the given verbatim block
+    fn is_at_verbatim_block_start(
+        &self,
+        block: &VerbatimBlock,
+        current_line: usize,
+        _current_char_pos: usize,
+    ) -> bool {
+        // Check if we're at the correct line for block start (1-based to 0-based conversion)
+        (block.block_start - 1) == current_line && self.is_at_line_start_for_verbatim(block)
+    }
+
+    /// Check if we're at the start of a line that should be part of a verbatim block
+    fn is_at_line_start_for_verbatim(&self, _block: &VerbatimBlock) -> bool {
+        // For now, just check if we're at the start of a line
+        self.column == 0
+    }
+
+    /// Tokenize a verbatim block into VerbatimStart and VerbatimContent tokens
+    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        // Create VerbatimStart token for the title line
+        let title_start_pos = self.current_position();
+
+        // Advance through the title line to get its content
+        let mut title_content = String::new();
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                break;
+            }
+            if ch == ':' {
+                // Include the colon in the title content
+                title_content.push(ch);
+                self.advance();
+                break;
+            }
+            title_content.push(ch);
+            self.advance();
+        }
+
+        // Advance past the newline
+        if let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance();
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+            }
+        }
+
+        tokens.push(Token::VerbatimStart {
+            content: title_content,
+            span: SourceSpan {
+                start: title_start_pos,
+                end: self.current_position(),
+            },
+        });
+
+        // Create VerbatimContent token for the block content
+        let content_start_pos = self.current_position();
+        let mut content = String::new();
+
+        // Advance through all content lines until terminator
+        let mut current_line = self.row;
+        while current_line < (block.block_end - 1) {
+            // Convert 1-based to 0-based
+            // Read the entire line
+            while let Some(ch) = self.peek() {
+                if ch == '\n' || ch == '\r' {
+                    content.push(ch);
+                    self.advance();
+                    if ch == '\r' && self.peek() == Some('\n') {
+                        content.push('\n');
+                        self.advance(); // Handle CRLF
+                    }
+                    break;
+                } else {
+                    content.push(ch);
+                    self.advance();
+                }
+            }
+            current_line = self.row;
+        }
+
+        // Don't include the terminator line in content
+        // Remove trailing newline if it exists
+        if content.ends_with('\n') {
+            content.pop();
+            if content.ends_with('\r') {
+                content.pop();
+            }
+        }
+
+        if !content.is_empty() {
+            tokens.push(Token::VerbatimContent {
+                content,
+                span: SourceSpan {
+                    start: content_start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Skip the terminator line
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance();
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+                break;
+            }
+            self.advance();
+        }
+
+        tokens
+    }
+
+    /// Get absolute character position in input
+    fn get_absolute_position(&self) -> usize {
+        self.position
     }
 }

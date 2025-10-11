@@ -15,8 +15,8 @@ pub mod ref_patterns {
     /// Citation pattern: @followed by identifier
     pub const CITATION: &str = r"@[a-zA-Z0-9_-]+";
 
-    /// Section pattern: # followed by section numbers (e.g., #1.2.3)
-    pub const SECTION: &str = r"#[0-9]+(\.[0-9]+)*";
+    /// Section pattern: # followed by section numbers (e.g., #1.2.3, #-1.1 for negative indexing)
+    pub const SECTION: &str = r"#(-1|[0-9]+)(\.(-1|[0-9]+))*";
 
     /// Footnote pattern: just digits
     pub const FOOTNOTE: &str = r"[0-9]+";

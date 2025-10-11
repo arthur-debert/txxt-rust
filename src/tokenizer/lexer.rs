@@ -4,6 +4,7 @@
 //! positioning for language server support.
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::patterns::ref_patterns;
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
 
@@ -27,6 +28,13 @@ pub struct Lexer {
     // Regex patterns for :: detection
     annotation_pattern: Regex,
     definition_pattern: Regex,
+    // Regex patterns for reference validation
+    citation_pattern: Regex,
+    section_pattern: Regex,
+    footnote_pattern: Regex,
+    url_pattern: Regex,
+    file_path_pattern: Regex,
+    anchor_pattern: Regex,
 }
 
 impl Lexer {
@@ -41,6 +49,13 @@ impl Lexer {
             annotation_pattern: Regex::new(r"::\s*\w+.*?\s*::").unwrap(),
             // Regex for content :: pattern (definition) - ensure :: is exactly at end
             definition_pattern: Regex::new(r"\w+.*?::\s*$").unwrap(),
+            // Reference validation patterns from centralized definitions
+            citation_pattern: Regex::new(&format!("^{}$", ref_patterns::CITATION)).unwrap(),
+            section_pattern: Regex::new(&format!("^{}$", ref_patterns::SECTION)).unwrap(),
+            footnote_pattern: Regex::new(&format!("^{}$", ref_patterns::FOOTNOTE)).unwrap(),
+            url_pattern: Regex::new(&format!("^{}$", ref_patterns::URL_BASIC)).unwrap(),
+            file_path_pattern: Regex::new(&format!("^{}$", ref_patterns::FILE_PATH)).unwrap(),
+            anchor_pattern: Regex::new(&format!("^{}$", ref_patterns::ANCHOR)).unwrap(),
         }
     }
 
@@ -644,86 +659,19 @@ impl Lexer {
         }
     }
 
-    /// Check if reference content matches valid patterns
+    /// Check if reference content matches valid patterns using centralized regex patterns
     fn is_valid_ref_content(&self, content: &str) -> bool {
         if content.is_empty() {
             return false;
         }
 
-        // Citation pattern: @identifier
-        if let Some(identifier) = content.strip_prefix('@') {
-            if content.len() <= 1 {
-                return false; // @ alone is not valid
-            }
-            return identifier
-                .chars()
-                .all(|c| c.is_alphanumeric() || c == '_' || c == '-');
-        }
-
-        // Section pattern: #number or #number.number etc.
-        if let Some(section_ref) = content.strip_prefix('#') {
-            if content.len() <= 1 {
-                return false; // # alone is not valid
-            }
-            return self.is_valid_section_ref(section_ref);
-        }
-
-        // Footnote pattern: just numbers
-        if content.chars().all(|c| c.is_ascii_digit()) {
-            return true;
-        }
-
-        // URL pattern: contains :// or starts with www. or contains @
-        if content.contains("://") || content.starts_with("www.") || content.contains('@') {
-            return true;
-        }
-
-        // File path pattern: contains / or \ or ends with file extension
-        if content.contains('/') || content.contains('\\') || self.has_file_extension(content) {
-            return true;
-        }
-
-        // Plain text references (anchor names, etc.)
-        if content
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
-        {
-            return true;
-        }
-
-        false
-    }
-
-    /// Check if content is a valid section reference (numbers and dots)
-    fn is_valid_section_ref(&self, content: &str) -> bool {
-        if content.is_empty() {
-            return false;
-        }
-
-        // Split by dots and check each part is a number or -1
-        for part in content.split('.') {
-            if part.is_empty() {
-                return false;
-            }
-            if part == "-1" {
-                continue; // Allow negative indexing
-            }
-            if !part.chars().all(|c| c.is_ascii_digit()) {
-                return false;
-            }
-        }
-        true
-    }
-
-    /// Check if content has a common file extension
-    fn has_file_extension(&self, content: &str) -> bool {
-        let extensions = [
-            ".txt", ".md", ".txxt", ".html", ".htm", ".pdf", ".doc", ".docx", ".png", ".jpg",
-            ".jpeg", ".gif", ".svg", ".mp4", ".mp3", ".wav", ".js", ".ts", ".py", ".rs", ".go",
-            ".java", ".cpp", ".c", ".h",
-        ];
-
-        extensions.iter().any(|ext| content.ends_with(ext))
+        // Use centralized regex patterns for validation
+        self.citation_pattern.is_match(content)
+            || self.section_pattern.is_match(content)
+            || self.footnote_pattern.is_match(content)
+            || self.url_pattern.is_match(content)
+            || self.file_path_pattern.is_match(content)
+            || self.anchor_pattern.is_match(content)
     }
 
     /// Read a dash token (standalone -)

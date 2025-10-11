@@ -78,11 +78,15 @@ fn test_list_item_parsing() {
     let block_tree = build_block_tree(tokens);
     let document = parse_document("test".to_string(), &block_tree);
 
-    // Should have a document root with a list item child
+    // Should have a document root with a list child containing a list item
     assert_eq!(document.root.node_type, "document");
     assert_eq!(document.root.children.len(), 1);
 
-    let list_item = &document.root.children[0];
+    let list = &document.root.children[0];
+    assert_eq!(list.node_type, "list");
+    assert_eq!(list.children.len(), 1);
+
+    let list_item = &list.children[0];
     assert_eq!(list_item.node_type, "list_item");
     assert_eq!(list_item.attributes.get("marker"), Some(&"- ".to_string()));
     assert_eq!(list_item.content, Some("First item".to_string()));
@@ -125,9 +129,9 @@ fn test_mixed_elements() {
         .map(|child| &child.node_type)
         .collect();
 
-    // Should have annotation, paragraph, list_item, and definition
+    // Should have annotation, paragraph, list, and definition
     assert!(element_types.contains(&&"annotation".to_string()));
     assert!(element_types.contains(&&"paragraph".to_string()));
-    assert!(element_types.contains(&&"list_item".to_string()));
+    assert!(element_types.contains(&&"list".to_string()));
     assert!(element_types.contains(&&"definition".to_string()));
 }

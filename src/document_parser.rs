@@ -22,16 +22,35 @@ impl DocumentParser {
         // Parse root elements and connect them to child blocks
         if !block.tokens.is_empty() {
             let element_groups = self.split_tokens_into_elements(&block.tokens);
-            let mut child_index = 0;
+            let mut root_elements = Vec::new();
 
             for element_tokens in element_groups {
                 let token_refs: Vec<&Token> = element_tokens.to_vec();
-                if let Some(mut element) = self.parse_element_refs(&token_refs) {
-                    // Check if this element should have a content container
-                    if matches!(element.node_type.as_str(), "definition" | "annotation") {
-                        // Connect this element to the next child block if available
-                        if child_index < block.children.len() {
-                            let child_block = &block.children[child_index];
+                if let Some(element) = self.parse_element_refs(&token_refs) {
+                    root_elements.push(element);
+                }
+            }
+
+            // Now connect child blocks to the appropriate elements based on line positions
+            for child_block in &block.children {
+                if let Some(child_start_line) = child_block.start_line {
+                    // Find the element that should own this child block
+                    // This is the element that ends just before the child block starts
+                    let mut target_element_index = None;
+                    for (i, element) in root_elements.iter().enumerate() {
+                        if let Some(element_end_line) = element.end_line {
+                            if element_end_line < child_start_line {
+                                target_element_index = Some(i);
+                            }
+                        }
+                    }
+
+                    // If we found a target element and it can have content containers
+                    if let Some(i) = target_element_index {
+                        if matches!(
+                            root_elements[i].node_type.as_str(),
+                            "definition" | "annotation" | "list_item"
+                        ) {
                             let mut content_container =
                                 AstNode::new("content_container".to_string());
 
@@ -41,24 +60,32 @@ impl DocumentParser {
                                 content_container.add_child(child_element);
                             }
 
-                            element.add_child(content_container);
-                            child_index += 1;
+                            root_elements[i].add_child(content_container);
                         }
                     }
-                    doc_root.add_child(element);
                 }
             }
 
-            // Add any remaining child blocks as standalone elements
-            for i in child_index..block.children.len() {
-                let child_ast = self.parse_block(&block.children[i]);
-                doc_root.add_child(child_ast);
+            // Group consecutive list items in root elements
+            let grouped_root = self.group_list_items(root_elements);
+            for element in grouped_root {
+                doc_root.add_child(element);
             }
+
+            // All child blocks have been processed and attached to their parent elements
+            // No need to add standalone child blocks
         } else {
             // No root tokens, just add child blocks as elements
+            let mut child_elements = Vec::new();
             for child_block in &block.children {
                 let child_ast = self.parse_block(child_block);
-                doc_root.add_child(child_ast);
+                child_elements.push(child_ast);
+            }
+
+            // Group any consecutive list items
+            let grouped_children = self.group_list_items(child_elements);
+            for element in grouped_children {
+                doc_root.add_child(element);
             }
         }
 
@@ -87,7 +114,8 @@ impl DocumentParser {
             elements.push(child_ast);
         }
 
-        elements
+        // Group consecutive list items into lists
+        self.group_list_items(elements)
     }
 
     /// Parse a single TokenBlock into an AstNode
@@ -698,6 +726,49 @@ impl DocumentParser {
 
         // We're inside a verbatim block if we've seen a start but not completed the end pair
         verbatim_start_count > 0 && verbatim_end_count < 2
+    }
+
+    /// Group consecutive list items into list elements
+    ///
+    /// Takes a flat sequence of elements and groups consecutive list_item elements
+    /// into list containers. This implements flat list parsing.
+    fn group_list_items(&self, elements: Vec<AstNode>) -> Vec<AstNode> {
+        let mut result = Vec::new();
+        let mut current_list: Option<AstNode> = None;
+
+        for element in elements {
+            if element.node_type == "list_item" {
+                // This is a list item - add it to current list or start a new one
+                if let Some(ref mut list) = current_list {
+                    // Add to existing list
+                    list.add_child(element);
+                } else {
+                    // Start a new list
+                    let mut new_list = AstNode::new("list".to_string());
+
+                    // Set location based on first list item
+                    if let (Some(start), Some(end)) = (element.start_line, element.end_line) {
+                        new_list.set_location(start, end);
+                    }
+
+                    new_list.add_child(element);
+                    current_list = Some(new_list);
+                }
+            } else {
+                // Not a list item - finish current list if any, then add this element
+                if let Some(list) = current_list.take() {
+                    result.push(list);
+                }
+                result.push(element);
+            }
+        }
+
+        // Don't forget the final list if we ended with list items
+        if let Some(list) = current_list {
+            result.push(list);
+        }
+
+        result
     }
 }
 

@@ -54,8 +54,8 @@ impl BlockTreeBuilder {
         // Stage 1: Build basic indentation tree
         let token_tree = self.build_token_tree();
 
-        // Stage 2: Split by blank lines
-        self.split_by_blank_lines(token_tree)
+        // Stage 2: Split by blank lines (only at root level)
+        self.split_by_blank_lines_root_only(token_tree)
     }
 
     /// Build basic indentation tree from tokens
@@ -102,12 +102,29 @@ impl BlockTreeBuilder {
         block
     }
 
+    /// Split blocks by blank lines only at root level (not recursively)
+    fn split_by_blank_lines_root_only(&self, block: TokenBlock) -> TokenBlock {
+        self.split_by_blank_lines_internal(block, true)
+    }
+
     /// Split blocks by blank lines to create logical sections
     #[allow(clippy::only_used_in_recursion)]
     fn split_by_blank_lines(&self, mut block: TokenBlock) -> TokenBlock {
         // First, recursively process children
         for i in 0..block.children.len() {
             block.children[i] = self.split_by_blank_lines(block.children[i].clone());
+        }
+
+        self.split_by_blank_lines_internal(block, false)
+    }
+
+    /// Internal method for blank line splitting with optional recursion control
+    fn split_by_blank_lines_internal(&self, mut block: TokenBlock, is_root: bool) -> TokenBlock {
+        // Only recurse into children if not at root level (preserve content container structure)
+        if !is_root {
+            for i in 0..block.children.len() {
+                block.children[i] = self.split_by_blank_lines(block.children[i].clone());
+            }
         }
 
         // Check if this block has blank lines to split by

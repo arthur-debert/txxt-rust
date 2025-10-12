@@ -140,31 +140,33 @@ Complete specification for sessions - the hierarchical organizational units that
 
 6. Processing Rules
 
-    6.1. Session Recognition
+    Sessions follow the standard processing pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        Session detection algorithm:
+    6.1. Recognition Criteria
+
+        Session-specific detection algorithm:
         1. Check for preceding blank line (or document start)
         2. Parse potential title line
         3. Check for indented content following title
         4. If indented content exists → Session
-        5. If no indented content → Paragraph
+        5. If no indented content → Apply standard graceful degradation (paragraph)
 
     6.2. Numbering Processing
 
-        Number extraction and validation:
-        1. Parse sequence marker from title start
+        Session-specific numbering extraction and validation:
+        1. Parse sequence marker from title start using standard sequence marker patterns
         2. Determine NumberingStyle and NumberingForm
-        3. Extract and preserve exact marker text
+        3. Extract and preserve exact marker text for source reconstruction
         4. Store numbering information in SessionNumbering
-        5. Process remaining title as inline content
+        5. Process remaining title through standard inline parser
 
     6.3. Container Creation
 
-        Session container handling:
-        1. Create SessionContainer for indented content
-        2. Parse content recursively (including nested sessions)
+        Session-specific container handling:
+        1. Create Session Container for indented content (can contain sessions)
+        2. Apply standard recursive parsing (including nested sessions)
         3. Apply blank line separation rules for nested sessions
-        4. Validate content types (all blocks allowed)
+        4. Validate content types (all blocks allowed - Session Container rules)
 
 7. Use Cases
 
@@ -320,18 +322,20 @@ Complete specification for sessions - the hierarchical organizational units that
 
 9. Implementation Notes
 
-    9.1. Parser Requirements
+    Sessions follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        Session parsing needs:
-        - Blank line detection before titles
+    9.1. Session-Specific Parser Integration
+
+        Beyond standard parser integration, sessions require:
+        - Blank line detection before titles (boundary requirement)
         - Indentation level tracking after titles
-        - Sequence marker recognition and preservation
+        - Sequence marker recognition and preservation using patterns from [syntax.txxt]
         - Recursive content parsing including nested sessions
-        - Boundary validation for session containers
+        - Session Container boundary validation
 
-    9.2. Numbering Determination
+    9.2. Numbering Determination Implementation
 
-        SessionNumbering extraction:
+        Session-specific numbering extraction:
             
             Function to extract numbering from session title:
                 fn parse_session_numbering(title: &str) -> (Option<SessionNumbering>, &str) {
@@ -340,14 +344,17 @@ Complete specification for sessions - the hierarchical organizational units that
                 }
             :: rust
 
-    9.3. AST Construction
+    9.3. Error Handling Additions
 
-        Session creation process:
-        1. Recognition: Identify session candidates
-        2. Validation: Ensure indented content exists
-        3. Title parsing: Extract numbering and inline content
-        4. Container creation: Create SessionContainer
-        5. Content parsing: Recursively parse session content
+        Beyond standard error handling, sessions have:
+
+        Session-specific error scenarios:
+        - Missing indented content → Apply standard graceful degradation (paragraph fallback)
+        - Invalid session numbering → Parse title as plain text, preserve as session
+        - Missing blank line boundaries → Insert boundaries during processing
+        - Nested session boundary violations → Enforce blank line separation
+
+        Sessions follow standard graceful degradation principles.
 
 10. Relationship to Other Elements
 

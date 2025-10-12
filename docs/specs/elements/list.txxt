@@ -160,30 +160,32 @@ Complete specification for lists - ordered and unordered collections of items wi
 
 6. Processing Rules
 
-    6.1. List Recognition
+    Lists follow the standard processing pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        List detection requirements:
-        - Multiple items: Single items parsed as paragraphs
+    6.1. Recognition Criteria
+
+        List-specific detection requirements:
+        - Multiple items: Single items apply standard graceful degradation (parsed as paragraphs)
         - Consistent indentation: All items at same level
-        - Valid markers: Must match sequence marker patterns
+        - Valid markers: Must match sequence marker patterns defined in [syntax.txxt]
         - Content requirement: Each item must have content
 
     6.2. Style Processing
 
-        Style determination algorithm:
-        1. Parse first item marker
-        2. Determine NumberingStyle and NumberingForm
-        3. Apply style to entire list
-        4. Preserve all original markers exactly
-        5. Note but don't reject style inconsistencies
+        List-specific numbering style handling:
+        1. Parse first item marker using standard sequence marker patterns
+        2. Determine NumberingStyle and NumberingForm from first item
+        3. Apply style to entire list (first item determines style)
+        4. Preserve all original markers exactly for source reconstruction
+        5. Note but don't reject style inconsistencies (forgiving parsing)
 
     6.3. Nesting Processing
 
-        Nested content handling:
+        List-specific nested content handling:
         1. Detect indentation increase after list item
-        2. Create ContentContainer for nested content
-        3. Parse nested content recursively
-        4. Allow any content type except sessions
+        2. Create Content Container for nested content (standard container rules)
+        3. Apply standard recursive parsing to nested content
+        4. Allow any content type except sessions (standard Content Container restrictions)
 
 7. Use Cases
 
@@ -301,18 +303,19 @@ Complete specification for lists - ordered and unordered collections of items wi
 
 9. Implementation Notes
 
-    9.1. Parser Requirements
+    Lists follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        List parsing needs:
-        - Sequence marker recognition and validation
-        - Style determination from first item
-        - Marker preservation for source reconstruction
-        - Nesting level tracking
-        - Content Container creation for nested items
+    9.1. List-Specific Parser Integration
 
-    9.2. Style Processing
+        Beyond standard parser integration, lists require:
+        - Sequence marker recognition and validation using patterns from [syntax.txxt]
+        - Style determination from first item (first item determines entire list style)
+        - Exact marker preservation for source reconstruction
+        - Nesting level tracking for Content Container creation
 
-        ListDecorationType determination:
+    9.2. Style Processing Implementation
+
+        List-specific style determination:
             
             Function to determine list style from first marker:
                 fn determine_style(marker: &str) -> ListDecorationType {
@@ -321,13 +324,13 @@ Complete specification for lists - ordered and unordered collections of items wi
                 }
             :: rust
 
-    9.3. Source Reconstruction
+    9.3. Source Reconstruction Capabilities
 
-        Exact marker preservation enables:
-        - Faithful source reconstruction
-        - Style consistency analysis
-        - Automated renumbering tools
-        - Format conversion utilities
+        List-specific reconstruction features:
+        - Exact marker preservation enables faithful source reconstruction
+        - Style consistency analysis for validation tools
+        - Automated renumbering tools integration
+        - Format conversion utilities support
 
 10. Relationship to Other Elements
 

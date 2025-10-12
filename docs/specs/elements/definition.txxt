@@ -116,19 +116,21 @@ Complete specification for definitions - structured term-definition pairs that p
 
 5. Processing Rules
 
-    5.1. Recognition Priority
+    Definitions follow the standard processing pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        Definition recognition rules:
+    5.1. Recognition Criteria
+
+        Definition-specific recognition pattern:
         1. Line ending with txxt marker (`::`) → Potential definition
         2. Validate term content (cannot be empty)
         3. Check for indented content following term
         4. If indented content exists → Definition
-        5. If no indented content → Parse error (incomplete definition)
+        5. If no indented content → Parse error (incomplete definition - strict validation)
 
     5.2. Term Processing
 
-        Term content handling:
-        - Parse term line as inline content (supports formatting)
+        Definition-specific term handling:
+        - Parse term line through standard inline parser (supports formatting)
         - Remove trailing txxt marker before processing
         - Validate that term is not empty after marker removal
         - Store exact term tokens for source reconstruction
@@ -136,9 +138,9 @@ Complete specification for definitions - structured term-definition pairs that p
     5.3. Content Processing
 
         Definition content handling:
-        1. Create ContentContainer for indented content
-        2. Parse content recursively using standard block parsing
-        3. Apply ContentContainer rules (no sessions allowed)
+        1. Create Content Container for indented content (standard container rules)
+        2. Apply standard recursive parsing to nested content
+        3. Apply Content Container restrictions (no sessions allowed)
         4. Support rich content including nested definitions
 
 6. Use Cases
@@ -283,31 +285,36 @@ Complete specification for definitions - structured term-definition pairs that p
 
 8. Implementation Notes
 
-    8.1. Parser Requirements
+    Definitions follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        Definition parsing needs:
-        - Txxt marker recognition at end of line
+    8.1. Definition-Specific Parser Integration
+
+        Beyond standard parser integration, definitions require:
+        - Txxt marker recognition at end of line (unique position)
         - Term content validation (non-empty requirement)
         - Indented content validation (must exist)
-        - ContentContainer creation and management
-        - Integration with inline parsing for term content
+        - Content Container creation and management
 
-    8.2. Disambiguation
+    8.2. Disambiguation Requirements
 
-        Definition vs annotation disambiguation:
+        Definition marker disambiguation:
         - **Annotations**: txxt marker at start of line (`:: label ::`)
         - **Definitions**: txxt marker at end of line (`term ::`)
         - **Verbatim**: single colon at end of line (`title:`)
 
-        Context determines interpretation of txxt marker placement.
+        Marker position determines element type during recognition phase.
 
-    8.3. Error Handling
+    8.3. Error Handling Additions
 
-        Common definition errors:
-        - Empty term → Parse error
-        - Missing indented content → Parse error
+        Beyond standard error handling, definitions have:
+
+        Definition-specific error scenarios:
+        - Empty term → Parse error (strict validation required)
+        - Missing indented content → Parse error (strict validation required)
         - Invalid indentation → Parse error with recovery
-        - Malformed txxt marker → Fall back to paragraph parsing
+        - Malformed txxt marker → Apply standard graceful degradation (paragraph fallback)
+
+        Definitions require strict validation due to their semantic importance.
 
 9. Relationship to Other Elements
 

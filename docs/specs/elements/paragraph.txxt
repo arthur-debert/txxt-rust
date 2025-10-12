@@ -87,17 +87,19 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
 5. Processing Rules
 
-    5.1. Recognition Priority
+    Paragraphs follow the standard processing pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        Paragraph recognition rules:
-        1. Line does not match any other block element pattern
-        2. Line contains text content (not whitespace-only)
-        3. Line not at increased indentation from current level
-        4. Default element type when no other pattern matches
+    5.1. Recognition Criteria
+
+        Default recognition pattern (lowest priority):
+        - Line does not match any other block element pattern
+        - Line contains text content (not whitespace-only)
+        - Line not at increased indentation from current level
+        - Serves as default element type when no other pattern matches
 
     5.2. Line Grouping
 
-        Multi-line paragraph processing:
+        Paragraph-specific content collection:
         1. Collect consecutive lines at same indentation level
         2. Stop at blank line or indentation change
         3. Stop at line matching another block element pattern
@@ -105,11 +107,11 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
     5.3. Inline Processing
 
-        Paragraph content processing:
+        Paragraph text processing:
         1. Concatenate all paragraph lines with spaces
-        2. Parse resulting text through inline parser
-        3. Create inline element sequence
-        4. Merge adjacent text runs for efficiency
+        2. Apply standard whitespace normalization
+        3. Parse through standard inline parser for formatting
+        4. Merge adjacent text runs using standard efficiency rules
 
 6. Use Cases
 
@@ -195,9 +197,11 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
 8. Processing Details
 
+    Paragraphs use standard processing with these specific whitespace and normalization rules:
+
     8.1. Whitespace Handling
 
-        Paragraph whitespace rules:
+        Paragraph-specific whitespace rules:
         - Leading/trailing whitespace on lines is trimmed
         - Multiple spaces between words collapse to single space
         - Line breaks within paragraph become spaces
@@ -205,19 +209,11 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
     8.2. Text Normalization
 
-        Content processing steps:
+        Paragraph content processing steps:
         1. Trim leading/trailing whitespace from each line
         2. Join lines with single spaces
         3. Normalize multiple consecutive spaces to single space
         4. Parse inline elements respecting their whitespace rules
-
-    8.3. Error Recovery
-
-        Paragraph parsing error handling:
-        - Malformed inline elements → Include as literal text
-        - Inconsistent indentation → Parse as separate paragraphs
-        - Empty paragraphs → Skip and continue parsing
-        - Invalid characters → Include as-is with warning
 
 9. Relationship to Other Elements
 
@@ -248,29 +244,26 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
 10. Implementation Notes
 
-    10.1. Parser Integration
+    Paragraphs follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-        Paragraph parsing requirements:
-        - Default block element when no other pattern matches
+    10.1. Default Element Integration
+
+        Paragraph-specific parser requirements:
+        - Serves as default block element when no other pattern matches
         - Line-by-line collection until termination condition
-        - Integration with inline parser for content processing
-        - Efficient text merging and normalization
+        - Must integrate with all other element recognition patterns
 
-    10.2. Performance Considerations
+    10.2. Error Handling Additions
 
-        Optimization strategies:
-        - Merge adjacent text runs in AST
-        - Minimize allocations during line collection
-        - Cache inline parsing results where appropriate
-        - Batch whitespace normalization operations
+        Beyond standard error handling, paragraphs provide:
 
-    10.3. Memory Management
+        Paragraph-specific error recovery:
+        - Malformed inline elements → Include as literal text (standard graceful degradation)
+        - Inconsistent indentation → Parse as separate paragraphs
+        - Empty paragraphs → Skip and continue parsing
+        - Invalid characters → Include as-is with warning
 
-        Paragraph memory usage:
-        - Store processed inline content, not raw lines
-        - Share string data where possible
-        - Maintain source tokens for error reporting
-        - Balance memory usage with access patterns
+        Paragraphs serve as the ultimate fallback for all content preservation.
 
 11. Semantic Applications
 

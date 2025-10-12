@@ -193,8 +193,54 @@ Complete specification for the general reference system - the foundation for lin
         │   ├── NotSure(String)
         │   └── General(String)
 
-10. Implementation Notes
+7. Processing Rules
 
-    10.1. Parser Integration
+    7.1. Recognition Phase
 
-       The parser should make an effort to validate the reference type, but nor error or warn. To be a vlalid reference all it's needed is at least one alpha numberical character. And it should not do further validation such as validate paths or even sessions or footnotes in this same document 
+        Reference detection and parsing:
+        1. Scan text for bracket patterns `[...]`
+        2. Extract content between brackets
+        3. Validate content is non-empty
+        4. Classify reference type based on content patterns
+
+    7.2. Type Classification
+
+        Reference type determination order:
+        1. TK patterns (`TK` or `TK-identifier`)
+        2. Citation patterns (`@key`)
+        3. Footnote patterns (`^id`)
+        4. URL patterns (protocol or domain)
+        5. File patterns (starts with `.` or `/`)
+        6. Session patterns (`#number`)
+        7. Not Sure (default fallback)
+
+    7.3. Validation Rules
+
+        Parser validation requirements:
+        - Must contain at least one alphanumeric character
+        - No validation of actual target existence
+        - No error on unresolved references
+        - Preserve original content for display
+
+8. Implementation Notes
+
+    8.1. Parser Integration
+
+        The parser should make an effort to validate the reference type, but not error or warn. To be a valid reference all that's needed is at least one alphanumeric character. And it should not do further validation such as validate paths or even sessions or footnotes in this same document.
+
+    8.2. TK Reference Details
+
+        TK (To Come) reference specifications:
+        - Naked TK: `[TK]` (case insensitive)
+        - Identified TK: `[TK-identifier]`
+        - Identifier rules: lowercase alphanumeric, can start with numbers
+        - Maximum 20 characters for identifier
+        - Examples: `TK-1`, `TK-343`, `TK-a3`, `TK-someword`
+
+    8.3. Not Sure Fallback
+
+        Default reference type handling:
+        - Used when no other pattern matches
+        - Preserves original content exactly
+        - Allows for future resolution by external tools
+        - No parser errors for unknown reference types 

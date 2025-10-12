@@ -144,6 +144,10 @@ impl Lexer {
             }
         }
 
+        // Simple parameter integration - just detect and split label:params patterns
+        tokens = self.integrate_annotation_parameters(tokens);
+        tokens = self.integrate_definition_parameters(tokens);
+
         // Add EOF token
         tokens.push(Token::Eof {
             span: SourceSpan {
@@ -954,6 +958,242 @@ impl Lexer {
     /// Get absolute character position in input
     fn get_absolute_position(&self) -> usize {
         self.position
+    }
+
+    /// Simple annotation parameter integration - find :: label:params :: and split
+    fn integrate_annotation_parameters(&mut self, tokens: Vec<Token>) -> Vec<Token> {
+        let mut result = Vec::new();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            if let Some(Token::AnnotationMarker { .. }) = tokens.get(i) {
+                // Look for content between annotation markers
+                if let Some((start_idx, end_idx, content)) =
+                    self.find_annotation_content(&tokens, i)
+                {
+                    // Add opening marker
+                    result.push(tokens[start_idx].clone());
+
+                    // Split content at first colon for parameters
+                    if let Some(colon_pos) = content.find(':') {
+                        let label = &content[..colon_pos];
+                        let params_str = &content[colon_pos + 1..];
+
+                        // Add clean label token
+                        if let Some(first_token) = tokens.get(start_idx + 1) {
+                            result.push(Token::Text {
+                                content: label.to_string(),
+                                span: first_token.span().clone(),
+                            });
+                        }
+
+                        // Add parameter tokens using existing parse_parameters
+                        if !params_str.trim().is_empty() {
+                            let param_tokens = parse_parameters(self, params_str);
+                            result.extend(param_tokens);
+                        }
+                    } else {
+                        // No parameters, add original content tokens
+                        for token in tokens.iter().take(end_idx).skip(start_idx + 1) {
+                            result.push(token.clone());
+                        }
+                    }
+
+                    // Add closing marker
+                    result.push(tokens[end_idx].clone());
+                    i = end_idx + 1;
+                } else {
+                    result.push(tokens[i].clone());
+                    i += 1;
+                }
+            } else {
+                result.push(tokens[i].clone());
+                i += 1;
+            }
+        }
+
+        result
+    }
+
+    /// Simple definition parameter integration - find term:params :: and split
+    fn integrate_definition_parameters(&mut self, tokens: Vec<Token>) -> Vec<Token> {
+        let mut result = Vec::new();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            if let Some(Token::DefinitionMarker { .. }) = tokens.get(i) {
+                // Look for content before definition marker
+                if let Some((term_content, term_start)) = self.find_definition_content(&tokens, i) {
+                    // Split content at first colon for parameters
+                    if let Some(colon_pos) = term_content.find(':') {
+                        let term = &term_content[..colon_pos];
+                        let params_str = &term_content[colon_pos + 1..];
+
+                        // Add clean term token
+                        if let Some(first_token) = tokens.get(term_start) {
+                            result.push(Token::Text {
+                                content: term.to_string(),
+                                span: first_token.span().clone(),
+                            });
+                        }
+
+                        // Add parameter tokens using existing parse_parameters
+                        if !params_str.trim().is_empty() {
+                            let param_tokens = parse_parameters(self, params_str);
+                            result.extend(param_tokens);
+                        }
+                    } else {
+                        // No parameters, add original term tokens
+                        for token in tokens.iter().take(i).skip(term_start) {
+                            result.push(token.clone());
+                        }
+                    }
+
+                    // Add definition marker
+                    result.push(tokens[i].clone());
+                } else {
+                    result.push(tokens[i].clone());
+                }
+                i += 1;
+            } else {
+                result.push(tokens[i].clone());
+                i += 1;
+            }
+        }
+
+        result
+    }
+
+    /// Find annotation content between markers by extracting raw text
+    fn find_annotation_content(
+        &self,
+        tokens: &[Token],
+        start_idx: usize,
+    ) -> Option<(usize, usize, String)> {
+        let mut end_idx = None;
+
+        // Find the closing annotation marker
+        for (i, token) in tokens.iter().enumerate().skip(start_idx + 1) {
+            if matches!(token, Token::AnnotationMarker { .. }) {
+                end_idx = Some(i);
+                break;
+            }
+        }
+
+        if let Some(end) = end_idx {
+            // Get the raw text between the markers by extracting from source
+            if let (Some(start_token), Some(end_token)) = (tokens.get(start_idx), tokens.get(end)) {
+                let start_span = start_token.span();
+                let end_span = end_token.span();
+
+                // Extract raw content between markers from input source
+                let content = self.extract_raw_content_between_spans(start_span, end_span);
+                Some((start_idx, end, content))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Find definition content before marker by extracting raw text
+    fn find_definition_content(&self, tokens: &[Token], def_idx: usize) -> Option<(String, usize)> {
+        let mut term_start_idx = def_idx;
+
+        // Look backwards for the start of term content
+        for i in (0..def_idx).rev() {
+            match &tokens[i] {
+                Token::Text { .. } | Token::Identifier { .. } => {
+                    term_start_idx = i;
+                }
+                Token::Newline { .. } | Token::BlankLine { .. } => continue,
+                _ => break,
+            }
+        }
+
+        if term_start_idx < def_idx {
+            // Extract raw content from source between term start and definition marker
+            if let (Some(start_token), Some(def_token)) =
+                (tokens.get(term_start_idx), tokens.get(def_idx))
+            {
+                let start_span = start_token.span();
+                let def_span = def_token.span();
+
+                // Extract raw content from start of term to before the :: marker
+                let content = self.extract_raw_content_before_span(start_span, def_span);
+                Some((content, term_start_idx))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Extract raw content between two source spans
+    fn extract_raw_content_between_spans(
+        &self,
+        start_span: &crate::ast::tokens::SourceSpan,
+        end_span: &crate::ast::tokens::SourceSpan,
+    ) -> String {
+        // For annotation: extract content between :: markers
+        // Start after the first :: and end before the second ::
+
+        let start_pos = start_span.end; // After the opening ::
+        let end_pos = end_span.start; // Before the closing ::
+
+        // Extract from the original input
+        if start_pos.row == end_pos.row {
+            // Same line - extract substring
+            let input_string: String = self.input.iter().collect();
+            let lines: Vec<&str> = input_string.lines().collect();
+
+            if start_pos.row < lines.len() {
+                let line = lines[start_pos.row];
+                let start_col = start_pos.column.min(line.len());
+                let end_col = end_pos.column.min(line.len());
+
+                if start_col < end_col {
+                    return line[start_col..end_col].trim().to_string();
+                }
+            }
+        }
+
+        // Fallback for multi-line or edge cases
+        String::new()
+    }
+
+    /// Extract raw content before a span (for definition terms)
+    fn extract_raw_content_before_span(
+        &self,
+        start_span: &crate::ast::tokens::SourceSpan,
+        end_span: &crate::ast::tokens::SourceSpan,
+    ) -> String {
+        // Extract from start of term to before the :: marker
+
+        let start_pos = start_span.start; // Start of first term token
+        let end_pos = end_span.start; // Before the :: marker
+
+        // Extract from the original input
+        if start_pos.row == end_pos.row {
+            // Same line - extract substring
+            let input_string: String = self.input.iter().collect();
+            let lines: Vec<&str> = input_string.lines().collect();
+
+            if start_pos.row < lines.len() {
+                let line = lines[start_pos.row];
+                let start_col = start_pos.column.min(line.len());
+                let end_col = end_pos.column.min(line.len());
+
+                if start_col < end_col {
+                    return line[start_col..end_col].trim().to_string();
+                }
+            }
+        }
+
+        // Fallback for multi-line or edge cases
+        String::new()
     }
 }
 

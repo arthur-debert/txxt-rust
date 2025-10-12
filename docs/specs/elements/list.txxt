@@ -87,7 +87,7 @@ Complete specification for lists - ordered and unordered collections of items wi
             <list-item> = <sequence-marker> <list-item-content>
             <list-item-content> = <text-line>
         
-        Note: While the grammar allows for a single-item list, a disambiguation rule specifies that a single item at the top level is treated as a paragraph. Lists are typically formed by two or more items.
+        **Critical Rule**: Single items at the top level are parsed as paragraphs, not lists. Lists require multiple items at the root level to disambiguate from dialog and ensure clear intent. However, single items are allowed within nested contexts.
         :: grammar
 
 4. AST Structure
@@ -165,7 +165,8 @@ Complete specification for lists - ordered and unordered collections of items wi
     6.1. Recognition Criteria
 
         List-specific detection requirements:
-        - Multiple items: Single items apply standard graceful degradation (parsed as paragraphs)
+        - **Multiple items required**: Single items at top level are parsed as paragraphs (graceful degradation)
+        - **Nested single items allowed**: Single items are valid within nested containers
         - Consistent indentation: All items at same level
         - Valid markers: Must match sequence marker patterns defined in [syntax.txxt]
         - Content requirement: Each item must have content
@@ -189,13 +190,15 @@ Complete specification for lists - ordered and unordered collections of items wi
 
 7. Edge Cases
 
-    7.1. Single Item Lists
+    7.1. Single Item Lists at Top Level
 
-        Invalid (single item treated as paragraph):
+        **CRITICAL RULE**: Single items at the top level are never lists:
+        
+        Not a list (parsed as paragraph):
             - Call mom.
         (single-item)
 
-        This is parsed as a paragraph, not a list, to avoid ambiguity with dialog.
+        This is parsed as a paragraph, not a list, to avoid ambiguity with dialog and ensure clear authoring intent. Lists must have multiple items at the root level.
 
     7.2. Inconsistent Numbering
 
@@ -217,12 +220,17 @@ Complete specification for lists - ordered and unordered collections of items wi
 
         List officially has Numerical style based on first item.
 
-    7.4. Nested Single Items
+    7.4. Single Items in Nested Context
 
-        Valid (single items allowed in nested context):
-            - Main task
-                - Single subtask (valid in nested context)
+        **Exception**: Single items ARE allowed within nested containers:
+        
+        Valid nested single item:
+            - Main task (multiple items required at this level)
+            - Another task
+                - Single subtask (allowed because it's nested)
         (nested-single)
+
+        The outer level has multiple items (valid list), and the nested single item is allowed because it's within a container.
 
 8. Implementation Notes
 

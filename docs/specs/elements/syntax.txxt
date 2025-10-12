@@ -238,9 +238,11 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         <list-item-content> = <text-line>
         <list-item> = <sequence-marker> <list-item-content>
-        <list> = <list-item>+
+        <list> = <list-item>{2,}
         (grammar)
 
+        **Critical disambiguation rule**: Lists require multiple items at the top level. Single items with markers are parsed as paragraphs to avoid ambiguity with dialog. However, single items are permitted within nested containers.
+        
         Note: First item determines list style (plain, numerical, alphabetical, roman) and form (short, extended) for entire list.
 
     5.3. Session Blocks
@@ -332,6 +334,8 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
         (grammar)
 
+        Note: Within containers, single list items are allowed because they are nested, not at the top level.
+
         Ignore container (verbatim content only):
             <ignore-line> = <any-line>
             <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
@@ -356,9 +360,10 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         - Line followed by indented content = Session as long as child is not a session without content too
         - Line followed by blank line or same-level content = Paragraph
 
-        List vs Dialog:
-        - Multiple items with markers = List
-        - Single item with marker = Paragraph (unless nested)
+        List vs Dialog (Critical Rule):
+        - **Multiple items with markers = List** (at top level)
+        - **Single item with marker = Paragraph** (at top level, prevents dialog ambiguity)
+        - **Single items allowed in nested contexts** (within existing list containers)
 
         Annotation vs Text:
         - Valid annotation syntax = Annotation
@@ -422,9 +427,10 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         How context affects interpretation:
 
-        - Indentation level determines container type
+        - **List item count rule**: Top-level single items with markers become paragraphs; nested single items are allowed
+        - Indentation level determines container type  
         - First list item determines style and form for entire list
-        - Blank lines affect session vs paragraph resolution vs list 
+        - Blank lines affect session vs paragraph resolution vs list
         - Verbatim mode suspends all other parsing
 
 10. Error Handling

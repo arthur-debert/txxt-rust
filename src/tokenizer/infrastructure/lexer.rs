@@ -129,6 +129,8 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = self.read_right_paren() {
                 tokens.push(token);
+            } else if let Some(token) = self.read_colon() {
+                tokens.push(token);
             } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
@@ -372,6 +374,33 @@ impl Lexer {
         if self.peek() == Some(')') {
             self.advance();
             return Some(Token::RightParen {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a colon token (:)
+    /// Only tokenizes single colons, not double colons (::) which are handled by annotation/definition markers
+    fn read_colon(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(':') {
+            // Check if this is part of a double colon (::)
+            let next_pos = self.position + 1;
+            if let Some(&next_ch) = self.input.get(next_pos) {
+                if next_ch == ':' {
+                    // This is part of a double colon, don't tokenize as single colon
+                    return None;
+                }
+            }
+
+            self.advance();
+            return Some(Token::Colon {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

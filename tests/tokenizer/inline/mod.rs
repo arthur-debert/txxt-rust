@@ -3,4 +3,5 @@
 //! Tests for inline elements that mirror src/tokenizer/inline/ functionality
 
 mod formatting;
+mod math_span_integration;
 mod parameters;

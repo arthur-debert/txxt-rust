@@ -110,6 +110,9 @@ pub enum Token {
     /// Math text delimiter (#)
     MathDelimiter { span: SourceSpan },
 
+    /// Math expression span (#content#)
+    MathSpan { content: String, span: SourceSpan },
+
     /// End of file marker
     Eof { span: SourceSpan },
 }
@@ -138,6 +141,7 @@ impl Token {
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
             Token::MathDelimiter { span } => span,
+            Token::MathSpan { span, .. } => span,
             Token::Eof { span } => span,
         }
     }
@@ -160,6 +164,7 @@ impl Token {
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",
             Token::MathDelimiter { .. } => "#",
+            Token::MathSpan { content, .. } => content,
             Token::Newline { .. } => "\n",
             Token::BlankLine { .. } => "\n",
             Token::Indent { .. } => "",

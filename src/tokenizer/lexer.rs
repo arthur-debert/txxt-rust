@@ -5,6 +5,7 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::inline::{read_inline_delimiter, InlineDelimiterLexer};
 use crate::tokenizer::markers::{read_sequence_marker, SequenceMarkerLexer};
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
@@ -125,7 +126,7 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = self.read_ref_marker() {
                 tokens.push(token);
-            } else if let Some(token) = self.read_inline_delimiter() {
+            } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
                 tokens.push(token);
@@ -544,51 +545,6 @@ impl Lexer {
         }
 
         None
-    }
-
-    /// Read inline formatting delimiters (*, _, `, #)
-    fn read_inline_delimiter(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        match self.peek()? {
-            '*' => {
-                self.advance();
-                Some(Token::BoldDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            '_' => {
-                self.advance();
-                Some(Token::ItalicDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            '`' => {
-                self.advance();
-                Some(Token::CodeDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            '#' => {
-                self.advance();
-                Some(Token::MathDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            _ => None,
-        }
     }
 
     /// Read an identifier token (alphanumeric starting with letter or underscore)
@@ -1014,5 +970,33 @@ impl SequenceMarkerLexer for Lexer {
         self.position = state.position;
         self.row = state.row;
         self.column = state.column;
+    }
+}
+
+impl InlineDelimiterLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
     }
 }

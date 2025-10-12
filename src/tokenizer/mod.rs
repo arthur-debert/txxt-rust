@@ -28,6 +28,10 @@ pub mod verbatim_scanner;
 pub use lexer::Lexer;
 pub use verbatim_scanner::{VerbatimBlock, VerbatimScanner, VerbatimType};
 
+// Re-export marker and inline parsing functionality
+pub use inline::{read_inline_delimiter, InlineDelimiterLexer};
+pub use markers::{read_sequence_marker, SequenceMarkerLexer};
+
 // Re-export new AST token types
 pub use crate::ast::tokens::{Position, SourceSpan, Token, TokenSequence};
 

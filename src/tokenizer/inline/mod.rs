@@ -8,3 +8,4 @@ pub mod formatting;
 // pub mod parameters;
 
 // Re-export public interfaces
+pub use formatting::{read_inline_delimiter, InlineDelimiterLexer};

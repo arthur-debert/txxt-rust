@@ -48,7 +48,7 @@ Foundation specification for inline elements - the general token-based syntax pa
 
         Mathematical and scientific notation:
         - Math expressions using `#expression#`
-        - See [math.txxt] for complete specification
+        - See the main syntax reference for grammar details.
 
     3.3. Reference Elements
 
@@ -58,11 +58,21 @@ Foundation specification for inline elements - the general token-based syntax pa
 
 4. Universal Grammar
 
-    4.1. Token Structure
+    4.1. Span Structures
 
-        General inline pattern:
-            <inline-element> = <token-open> <content> <token-close>
-            <content> = <non-empty-text> | <nested-different-inline>*
+        While all inline elements share a token-based pattern, their specific grammars vary. The authoritative definitions from the syntax reference are:
+
+        Formatting Spans:
+            <bold-span> = <asterisk> <text-content> <asterisk>
+            <italic-span> = <underscore> <text-content> <underscore>
+            <code-span> = <backtick> <text-content> <backtick>
+            <math-span> = <hash> <text-content> <hash>
+
+        Reference Spans:
+            <reference-span> = <left-bracket> <reference-content> <right-bracket>
+            <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
+            <page-ref> = <left-bracket> <page-locator> <right-bracket>
+            <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
         :: grammar
 
     4.2. Content Rules
@@ -153,8 +163,6 @@ Foundation specification for inline elements - the general token-based syntax pa
 
         Token escaping rules:
         - Backslash escapes any token character: `\*not bold\*`
-        - Double tokens for literal use: `**literal asterisks**`
-        - Context-sensitive escaping based on element type
 
 9. Integration with Block Elements
 

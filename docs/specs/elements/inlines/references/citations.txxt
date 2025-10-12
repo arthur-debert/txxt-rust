@@ -44,29 +44,24 @@ Complete specification for citation references - academic and bibliographic cita
 
 3. Grammar
 
-    3.1. Citation Key Structure
+    3.1. Citation Grammar
 
-        Citation key pattern:
+        The authoritative grammar for citations is defined in the main syntax reference.
+
+        A citation span consists of one or more keys and an optional page locator.
+            <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
+
+        Citation keys are comma-separated identifiers:
             <citation-key> = <identifier>
             <citation-keys> = <citation-key> (, <citation-key>)*
-        :: citation-grammar
 
-    3.2. Page Locator Structure
-
-        Page number and range patterns:
+        The page locator specifies page numbers or ranges:
             <page-number> = <digit>+
             <page-range> = <page-number> (- <page-number>)?
             <page-list> = <page-range> (, <page-range>)*
-            <page-locator> = (p | pp) <period>? <whitespace>? <page-list>
-        :: page-grammar
-
-    3.3. Complete Citation Patterns
-
-        Full citation reference grammar:
-            <author-citation> = <left-bracket> <at-sign> <citation-keys> <right-bracket>
-            <author-page-citation> = <left-bracket> <at-sign> <citation-keys> , <whitespace>* <page-locator> <right-bracket>
-            <page-citation> = <left-bracket> <page-locator> <right-bracket>
-        :: full-grammar
+            <page-locator> = p <period>? <page-list> | pp <period>? <page-list>
+            <citation-locator> = , <whitespace>* <page-locator>
+        :: grammar
 
 4. AST Structure
 

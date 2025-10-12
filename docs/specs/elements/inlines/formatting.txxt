@@ -69,25 +69,21 @@ Complete specification for formatting inline elements - strong, emphasis, and co
 
 4. Grammar Specifics
 
-    4.1. Formatting Token Patterns
+    4.1. Formatting Grammar
 
-        Specific delimiter patterns:
-            <strong> = "*" <nestable-content> "*"
-            <emphasis> = "_" <nestable-content> "_"  
-            <code> = "`" <literal-content> "`"
-        :: formatting-grammar
+        The authoritative grammar for formatting elements is defined in the main syntax reference.
 
-        Where:
-        - `<nestable-content>` can contain other inline elements
-        - `<literal-content>` contains only text (no parsing)
+        Bold text:
+            <bold-span> = <asterisk> <text-content> <asterisk>
 
-    4.2. Content Type Definitions
+        Italic text:
+            <italic-span> = <underscore> <text-content> <underscore>
 
-        Formatting content rules:
-            <nestable-content> = <text> | <different-inline-element>*
-            <literal-content> = <raw-text-only>
-            <different-inline-element> = <code> | <math> | <reference> | <other-formatting>
-        :: content-rules
+        Code text:
+            <code-span> = <backtick> <text-content> <backtick>
+        
+        In each case, the `<text-content>` can contain other inline elements, though it is generally not recommended for `<code>` spans.
+        :: grammar
 
 5. Parsing Priority
 

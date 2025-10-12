@@ -144,30 +144,23 @@ Complete specification for the general reference system - the foundation for lin
 
 5. Grammar
 
-    5.1. Reference Structure
+    5.1. Reference Structures
 
-        General reference grammar:
-            <reference> = "[" <reference-content> "]"
-            <reference-content> = <url> | <file-path> | <citation> | <footnote> | <text>
+        The authoritative grammar for all reference types is defined in the main syntax reference.
+
+        General reference:
+            <reference-content> = (<text-char> - [[\]])+
+            <reference-span> = <left-bracket> <reference-content> <right-bracket>
+
+        Citation reference:
+            <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
+
+        Page reference:
+            <page-ref> = <left-bracket> <page-locator> <right-bracket>
+
+        Session reference:
+            <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
         :: grammar
-
-    5.2. Content Patterns
-
-        Pattern-based type detection:
-            <url> = <protocol> "://" <domain> <path>?
-            <file-path> = <relative-path> | <absolute-path>
-            <citation> = "@" <citation-key> <citation-details>?
-            <footnote> = "^" <footnote-id>
-            <session-ref> = "#" <session-number>
-        :: content-patterns
-
-    5.3. Validation Rules
-
-        Reference content validation:
-        - Cannot be empty
-        - Cannot span line breaks
-        - Must match at least one resolution pattern
-        - Special characters properly escaped
 
 6. AST Structure
 

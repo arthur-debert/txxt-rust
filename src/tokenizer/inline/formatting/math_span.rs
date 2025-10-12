@@ -85,7 +85,7 @@ pub fn read_math_span<L: MathSpanLexer>(lexer: &mut L) -> Option<Token> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tokenizer::lexer::Lexer;
+    use crate::tokenizer::infrastructure::lexer::Lexer;
 
     #[test]
     fn test_simple_math_span() {

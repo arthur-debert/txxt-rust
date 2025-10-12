@@ -1,7 +1,7 @@
-//! Tests for SEQUENCE_MARKER token tokenization using rstest and proptest
+//! Tests for list element tokenization using rstest and proptest
 //!
-//! Tests both successful parsing and failure cases for SEQUENCE_MARKER tokens
-//! based on the NumberingStyle enum from src/ast/structure.rs
+//! Tests both successful parsing and failure cases for list sequence markers
+//! as defined in docs/specs/elements/list.txxt
 
 use proptest::prelude::*;
 use rstest::rstest;

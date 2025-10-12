@@ -19,7 +19,8 @@
 //!   │   ├── mod.rs               # Inline element detection
 //!   │   ├── formatting.rs        # Bold, italic, code, math delimiters
 //!   │   └── parameters.rs        # Parameter parsing (key=value lists)
-//!   └── patterns.rs             k
+//!   └── patterns.rs             # Pattern matching and content extraction utilities
+//!
 //! ## Architecture
 //!
 //! - [`verbatim_scanner`] - Pre-tokenization verbatim block detection

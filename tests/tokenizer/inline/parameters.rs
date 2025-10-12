@@ -44,6 +44,10 @@ impl ParameterLexer for MockParameterLexer {
     fn is_at_end(&self) -> bool {
         false // Not used in current implementation
     }
+
+    fn get_input(&self) -> &[char] {
+        &[] // Mock implementation for testing
+    }
 }
 
 /// Extract parameter data from tokens for easier testing

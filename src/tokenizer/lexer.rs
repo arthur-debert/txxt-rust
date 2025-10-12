@@ -8,20 +8,14 @@ use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::inline::{
     parse_parameters, read_inline_delimiter, InlineDelimiterLexer, ParameterLexer,
 };
-use crate::tokenizer::markers::{read_sequence_marker, SequenceMarkerLexer};
+use crate::tokenizer::markers::{
+    detect_colon_pattern, integrate_annotation_parameters, integrate_definition_parameters,
+    is_start_of_annotation_pattern, read_annotation_marker, read_definition_marker,
+    read_sequence_marker, ColonPattern, SequenceMarkerLexer, TxxtMarkerLexer,
+};
+use crate::tokenizer::patterns::get_current_line;
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
-
-/// Pattern type for :: tokens on the current line
-#[derive(Debug, Clone, PartialEq)]
-enum ColonPattern {
-    /// :: label :: pattern (annotation)
-    Annotation,
-    /// term :: pattern (definition)
-    Definition,
-    /// standalone :: pattern
-    Standalone,
-}
 
 /// Saved lexer state for backtracking
 #[derive(Debug, Clone)]
@@ -37,9 +31,6 @@ pub struct Lexer {
     position: usize,
     row: usize,
     column: usize,
-    // Regex patterns for :: detection
-    annotation_pattern: Regex,
-    definition_pattern: Regex,
     // Reference classifier for basic validation
     ref_classifier: ReferenceClassifier,
 }
@@ -52,10 +43,6 @@ impl Lexer {
             position: 0,
             row: 0,
             column: 0,
-            // Regex for :: label :: pattern (annotation) - flexible spacing
-            annotation_pattern: Regex::new(r"::\s*\w+.*?\s*::").unwrap(),
-            // Regex for content :: pattern (definition) - ensure :: is exactly at end
-            definition_pattern: Regex::new(r"\w+.*?::\s*$").unwrap(),
             // Reference classifier for basic validation only
             ref_classifier: ReferenceClassifier::new(),
         }
@@ -122,9 +109,9 @@ impl Lexer {
                 break;
             }
 
-            if let Some(token) = self.read_definition_marker() {
+            if let Some(token) = read_definition_marker(&mut *self) {
                 tokens.push(token);
-            } else if let Some(token) = self.read_annotation_marker() {
+            } else if let Some(token) = read_annotation_marker(&mut *self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_ref_marker() {
                 tokens.push(token);
@@ -145,8 +132,8 @@ impl Lexer {
         }
 
         // Simple parameter integration - just detect and split label:params patterns
-        tokens = self.integrate_annotation_parameters(tokens);
-        tokens = self.integrate_definition_parameters(tokens);
+        tokens = integrate_annotation_parameters(tokens, self);
+        tokens = integrate_definition_parameters(tokens, self);
 
         // Add EOF token
         tokens.push(Token::Eof {
@@ -206,258 +193,6 @@ impl Lexer {
                 },
             })
         }
-    }
-
-    /// Read a definition marker token (term ::)
-    fn read_definition_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        // Check for "::"
-        if self.peek() == Some(':') {
-            let saved_position = self.position;
-            let saved_row = self.row;
-            let saved_column = self.column;
-
-            self.advance(); // First ':'
-
-            if self.peek() == Some(':') {
-                self.advance(); // Second ':'
-
-                // Immediately check if this :: is part of an invalid sequence
-                if let Some(next_ch) = self.peek() {
-                    if next_ch == ':' {
-                        // This is ":::" or longer, not a valid definition marker
-                        self.position = saved_position;
-                        self.row = saved_row;
-                        self.column = saved_column;
-                        return None;
-                    }
-                }
-
-                // Also check if this :: is preceded by a colon (making it part of ":::...")
-                if start_pos.column > 0 {
-                    let line = self.get_current_line();
-                    let col_idx = start_pos.column;
-                    if col_idx > 0 {
-                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
-                            if prev_char == ':' {
-                                // This :: is preceded by ':', making it part of ":::" sequence
-                                self.position = saved_position;
-                                self.row = saved_row;
-                                self.column = saved_column;
-                                return None;
-                            }
-                        }
-                    }
-                }
-
-                // Use regex-based pattern detection to determine context
-                let pattern = self.detect_colon_pattern();
-
-                match pattern {
-                    ColonPattern::Definition => {
-                        // This is definitely a definition marker
-                        return Some(Token::DefinitionMarker {
-                            content: "::".to_string(),
-                            span: SourceSpan {
-                                start: start_pos,
-                                end: self.current_position(),
-                            },
-                        });
-                    }
-                    ColonPattern::Annotation => {
-                        // This line contains annotation pattern, so this :: is not definition
-                        self.position = saved_position;
-                        self.row = saved_row;
-                        self.column = saved_column;
-                        return None;
-                    }
-                    ColonPattern::Standalone => {
-                        // Check if followed by whitespace/end (could be definition at end of line)
-                        if let Some(next_ch) = self.peek() {
-                            if next_ch == '\n'
-                                || next_ch == '\r'
-                                || next_ch == ' '
-                                || next_ch == '\t'
-                            {
-                                // Check if there's content before this :: (making it a definition)
-                                if !self.is_start_of_annotation_pattern(start_pos) {
-                                    return Some(Token::DefinitionMarker {
-                                        content: "::".to_string(),
-                                        span: SourceSpan {
-                                            start: start_pos,
-                                            end: self.current_position(),
-                                        },
-                                    });
-                                }
-                            }
-                        } else if self.is_at_end() {
-                            // At end of input, check if there's content before
-                            if !self.is_start_of_annotation_pattern(start_pos) {
-                                return Some(Token::DefinitionMarker {
-                                    content: "::".to_string(),
-                                    span: SourceSpan {
-                                        start: start_pos,
-                                        end: self.current_position(),
-                                    },
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Not a definition marker, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-        }
-
-        None
-    }
-
-    /// Check if this :: is at the start of an annotation pattern by looking backwards
-    fn is_start_of_annotation_pattern(&self, _start_pos: Position) -> bool {
-        // Definition pattern: "term ::" - has non-whitespace before ::
-        // Annotation pattern: ":: label ::" - has only whitespace before first ::
-
-        // Check if we're at the beginning of the line or only whitespace precedes
-        let start_absolute = self.position - 2; // We advanced past the ::, so go back
-
-        // Look backwards from the start of :: to see what came before on this line
-        let mut pos = start_absolute;
-        while pos > 0 {
-            pos -= 1;
-            if let Some(&ch) = self.input.get(pos) {
-                if ch == '\n' || ch == '\r' {
-                    // Hit newline, everything before :: was whitespace - this is annotation start
-                    return true;
-                } else if ch != ' ' && ch != '\t' {
-                    // Found non-whitespace content before ::, this is NOT annotation start
-                    return false;
-                }
-            }
-        }
-
-        // Reached start of input with only whitespace - this is annotation start
-        true
-    }
-
-    /// Get the current line from the input
-    fn get_current_line(&self) -> String {
-        let mut line_start = self.position;
-        let mut line_end = self.position;
-
-        // Find start of current line
-        while line_start > 0 {
-            if let Some(&ch) = self.input.get(line_start - 1) {
-                if ch == '\n' || ch == '\r' {
-                    break;
-                }
-                line_start -= 1;
-            } else {
-                break;
-            }
-        }
-
-        // Find end of current line
-        while line_end < self.input.len() {
-            if let Some(&ch) = self.input.get(line_end) {
-                if ch == '\n' || ch == '\r' {
-                    break;
-                }
-                line_end += 1;
-            } else {
-                break;
-            }
-        }
-
-        self.input[line_start..line_end].iter().collect()
-    }
-
-    /// Detect what type of :: pattern this line contains
-    fn detect_colon_pattern(&self) -> ColonPattern {
-        let line = self.get_current_line();
-
-        // First check for invalid sequences (:::, ::::, etc.)
-        if line.contains(":::") {
-            return ColonPattern::Standalone; // Treat invalid sequences as standalone (will be rejected)
-        }
-
-        // Check for annotation pattern first (:: label ::)
-        if self.annotation_pattern.is_match(&line) {
-            return ColonPattern::Annotation;
-        }
-
-        // Check for definition pattern (term ::)
-        if self.definition_pattern.is_match(&line) {
-            return ColonPattern::Definition;
-        }
-
-        // Default to standalone
-        ColonPattern::Standalone
-    }
-
-    /// Read an annotation marker token (::)
-    fn read_annotation_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        // Check for "::"
-        if self.peek() == Some(':') {
-            let saved_position = self.position;
-            let saved_row = self.row;
-            let saved_column = self.column;
-
-            self.advance(); // First ':'
-
-            if self.peek() == Some(':') {
-                self.advance(); // Second ':'
-
-                // Check that this is not part of a longer sequence like ":::"
-                // Annotation markers should be exactly "::"
-                if let Some(next_ch) = self.peek() {
-                    if next_ch == ':' {
-                        // This is ":::" or longer, not a valid annotation marker
-                        self.position = saved_position;
-                        self.row = saved_row;
-                        self.column = saved_column;
-                        return None;
-                    }
-                }
-
-                // Also check if this :: is preceded by a colon (making it part of ":::...")
-                if start_pos.column > 0 {
-                    let line = self.get_current_line();
-                    let col_idx = start_pos.column;
-                    if col_idx > 0 {
-                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
-                            if prev_char == ':' {
-                                // This :: is preceded by ':', making it part of ":::" sequence
-                                self.position = saved_position;
-                                self.row = saved_row;
-                                self.column = saved_column;
-                                return None;
-                            }
-                        }
-                    }
-                }
-
-                return Some(Token::AnnotationMarker {
-                    content: "::".to_string(),
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                });
-            } else {
-                // Not an annotation marker, backtrack
-                self.position = saved_position;
-                self.row = saved_row;
-                self.column = saved_column;
-            }
-        }
-
-        None
     }
 
     /// Read reference markers ([target], [@citation], [#section], [1])
@@ -959,242 +694,6 @@ impl Lexer {
     fn get_absolute_position(&self) -> usize {
         self.position
     }
-
-    /// Simple annotation parameter integration - find :: label:params :: and split
-    fn integrate_annotation_parameters(&mut self, tokens: Vec<Token>) -> Vec<Token> {
-        let mut result = Vec::new();
-        let mut i = 0;
-
-        while i < tokens.len() {
-            if let Some(Token::AnnotationMarker { .. }) = tokens.get(i) {
-                // Look for content between annotation markers
-                if let Some((start_idx, end_idx, content)) =
-                    self.find_annotation_content(&tokens, i)
-                {
-                    // Add opening marker
-                    result.push(tokens[start_idx].clone());
-
-                    // Split content at first colon for parameters
-                    if let Some(colon_pos) = content.find(':') {
-                        let label = &content[..colon_pos];
-                        let params_str = &content[colon_pos + 1..];
-
-                        // Add clean label token
-                        if let Some(first_token) = tokens.get(start_idx + 1) {
-                            result.push(Token::Text {
-                                content: label.to_string(),
-                                span: first_token.span().clone(),
-                            });
-                        }
-
-                        // Add parameter tokens using existing parse_parameters
-                        if !params_str.trim().is_empty() {
-                            let param_tokens = parse_parameters(self, params_str);
-                            result.extend(param_tokens);
-                        }
-                    } else {
-                        // No parameters, add original content tokens
-                        for token in tokens.iter().take(end_idx).skip(start_idx + 1) {
-                            result.push(token.clone());
-                        }
-                    }
-
-                    // Add closing marker
-                    result.push(tokens[end_idx].clone());
-                    i = end_idx + 1;
-                } else {
-                    result.push(tokens[i].clone());
-                    i += 1;
-                }
-            } else {
-                result.push(tokens[i].clone());
-                i += 1;
-            }
-        }
-
-        result
-    }
-
-    /// Simple definition parameter integration - find term:params :: and split
-    fn integrate_definition_parameters(&mut self, tokens: Vec<Token>) -> Vec<Token> {
-        let mut result = Vec::new();
-        let mut i = 0;
-
-        while i < tokens.len() {
-            if let Some(Token::DefinitionMarker { .. }) = tokens.get(i) {
-                // Look for content before definition marker
-                if let Some((term_content, term_start)) = self.find_definition_content(&tokens, i) {
-                    // Split content at first colon for parameters
-                    if let Some(colon_pos) = term_content.find(':') {
-                        let term = &term_content[..colon_pos];
-                        let params_str = &term_content[colon_pos + 1..];
-
-                        // Add clean term token
-                        if let Some(first_token) = tokens.get(term_start) {
-                            result.push(Token::Text {
-                                content: term.to_string(),
-                                span: first_token.span().clone(),
-                            });
-                        }
-
-                        // Add parameter tokens using existing parse_parameters
-                        if !params_str.trim().is_empty() {
-                            let param_tokens = parse_parameters(self, params_str);
-                            result.extend(param_tokens);
-                        }
-                    } else {
-                        // No parameters, add original term tokens
-                        for token in tokens.iter().take(i).skip(term_start) {
-                            result.push(token.clone());
-                        }
-                    }
-
-                    // Add definition marker
-                    result.push(tokens[i].clone());
-                } else {
-                    result.push(tokens[i].clone());
-                }
-                i += 1;
-            } else {
-                result.push(tokens[i].clone());
-                i += 1;
-            }
-        }
-
-        result
-    }
-
-    /// Find annotation content between markers by extracting raw text
-    fn find_annotation_content(
-        &self,
-        tokens: &[Token],
-        start_idx: usize,
-    ) -> Option<(usize, usize, String)> {
-        let mut end_idx = None;
-
-        // Find the closing annotation marker
-        for (i, token) in tokens.iter().enumerate().skip(start_idx + 1) {
-            if matches!(token, Token::AnnotationMarker { .. }) {
-                end_idx = Some(i);
-                break;
-            }
-        }
-
-        if let Some(end) = end_idx {
-            // Get the raw text between the markers by extracting from source
-            if let (Some(start_token), Some(end_token)) = (tokens.get(start_idx), tokens.get(end)) {
-                let start_span = start_token.span();
-                let end_span = end_token.span();
-
-                // Extract raw content between markers from input source
-                let content = self.extract_raw_content_between_spans(start_span, end_span);
-                Some((start_idx, end, content))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Find definition content before marker by extracting raw text
-    fn find_definition_content(&self, tokens: &[Token], def_idx: usize) -> Option<(String, usize)> {
-        let mut term_start_idx = def_idx;
-
-        // Look backwards for the start of term content
-        for i in (0..def_idx).rev() {
-            match &tokens[i] {
-                Token::Text { .. } | Token::Identifier { .. } => {
-                    term_start_idx = i;
-                }
-                Token::Newline { .. } | Token::BlankLine { .. } => continue,
-                _ => break,
-            }
-        }
-
-        if term_start_idx < def_idx {
-            // Extract raw content from source between term start and definition marker
-            if let (Some(start_token), Some(def_token)) =
-                (tokens.get(term_start_idx), tokens.get(def_idx))
-            {
-                let start_span = start_token.span();
-                let def_span = def_token.span();
-
-                // Extract raw content from start of term to before the :: marker
-                let content = self.extract_raw_content_before_span(start_span, def_span);
-                Some((content, term_start_idx))
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Extract raw content between two source spans
-    fn extract_raw_content_between_spans(
-        &self,
-        start_span: &crate::ast::tokens::SourceSpan,
-        end_span: &crate::ast::tokens::SourceSpan,
-    ) -> String {
-        // For annotation: extract content between :: markers
-        // Start after the first :: and end before the second ::
-
-        let start_pos = start_span.end; // After the opening ::
-        let end_pos = end_span.start; // Before the closing ::
-
-        // Extract from the original input
-        if start_pos.row == end_pos.row {
-            // Same line - extract substring
-            let input_string: String = self.input.iter().collect();
-            let lines: Vec<&str> = input_string.lines().collect();
-
-            if start_pos.row < lines.len() {
-                let line = lines[start_pos.row];
-                let start_col = start_pos.column.min(line.len());
-                let end_col = end_pos.column.min(line.len());
-
-                if start_col < end_col {
-                    return line[start_col..end_col].trim().to_string();
-                }
-            }
-        }
-
-        // Fallback for multi-line or edge cases
-        String::new()
-    }
-
-    /// Extract raw content before a span (for definition terms)
-    fn extract_raw_content_before_span(
-        &self,
-        start_span: &crate::ast::tokens::SourceSpan,
-        end_span: &crate::ast::tokens::SourceSpan,
-    ) -> String {
-        // Extract from start of term to before the :: marker
-
-        let start_pos = start_span.start; // Start of first term token
-        let end_pos = end_span.start; // Before the :: marker
-
-        // Extract from the original input
-        if start_pos.row == end_pos.row {
-            // Same line - extract substring
-            let input_string: String = self.input.iter().collect();
-            let lines: Vec<&str> = input_string.lines().collect();
-
-            if start_pos.row < lines.len() {
-                let line = lines[start_pos.row];
-                let start_col = start_pos.column.min(line.len());
-                let end_col = end_pos.column.min(line.len());
-
-                if start_col < end_col {
-                    return line[start_col..end_col].trim().to_string();
-                }
-            }
-        }
-
-        // Fallback for multi-line or edge cases
-        String::new()
-    }
 }
 
 impl SequenceMarkerLexer for Lexer {
@@ -1312,5 +811,81 @@ impl ParameterLexer for Lexer {
 
     fn is_at_end(&self) -> bool {
         self.position >= self.input.len()
+    }
+
+    fn get_input(&self) -> &[char] {
+        &self.input
+    }
+}
+
+impl TxxtMarkerLexer for Lexer {
+    type State = LexerState;
+
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.position >= self.input.len()
+    }
+
+    fn get_current_line(&self) -> String {
+        get_current_line(&self.input, self.position, self.row, self.column)
+    }
+
+    fn detect_colon_pattern(&self) -> ColonPattern {
+        detect_colon_pattern(self)
+    }
+
+    fn is_start_of_annotation_pattern(&self, start_pos: Position) -> bool {
+        is_start_of_annotation_pattern(self, start_pos)
+    }
+
+    fn annotation_pattern(&self) -> &Regex {
+        // Create a static regex for annotation pattern
+        static ANNOTATION_PATTERN: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+        ANNOTATION_PATTERN.get_or_init(|| Regex::new(r"::\s*\w+.*?\s*::").unwrap())
+    }
+
+    fn definition_pattern(&self) -> &Regex {
+        // Create a static regex for definition pattern
+        static DEFINITION_PATTERN: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+        DEFINITION_PATTERN.get_or_init(|| Regex::new(r"\w+.*?::\s*$").unwrap())
+    }
+
+    fn save_state(&self) -> Self::State {
+        LexerState {
+            position: self.position,
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn restore_state(&mut self, state: Self::State) {
+        self.position = state.position;
+        self.row = state.row;
+        self.column = state.column;
     }
 }

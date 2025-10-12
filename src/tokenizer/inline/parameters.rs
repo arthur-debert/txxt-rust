@@ -20,6 +20,9 @@ pub trait ParameterLexer {
 
     /// Check if we're at end of input
     fn is_at_end(&self) -> bool;
+
+    /// Get the input as a char slice for content extraction
+    fn get_input(&self) -> &[char];
 }
 
 /// Parse a parameter string into individual Parameter tokens

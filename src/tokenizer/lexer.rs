@@ -7,11 +7,11 @@ use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::inline::{
     read_citation_ref, read_inline_delimiter, read_math_span, read_page_ref, read_session_ref,
-    CitationRefLexer, MathSpanLexer, PageRefLexer, SessionRefLexer,
+    CitationRefLexer, MathSpanLexer, PageRefLexer, ReferenceLexer, SessionRefLexer,
 };
 use crate::tokenizer::markers::{
     integrate_annotation_parameters, integrate_definition_parameters, read_annotation_marker,
-    read_definition_marker, read_sequence_marker, ReferenceLexer,
+    read_definition_marker, read_sequence_marker,
 };
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 

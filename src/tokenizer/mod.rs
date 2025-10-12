@@ -13,15 +13,19 @@
 //!   ├── markers/
 //!   │   ├── mod.rs               # Marker token detection
 //!   │   ├── sequence.rs          # List sequence markers
-//!   │   ├── txxt_marker.rs       # :: token detection and classification
-//!   │   └── reference.rs         # Reference bracket parsing
+//!   │   └── txxt_marker.rs       # :: token detection and classification
 //!   ├── inline/
 //!   │   ├── mod.rs               # Inline element detection
-//!   │   ├── formatting.rs        # Bold, italic, code, math delimiters
-//!   │   ├── math_span.rs         # Math expression spans (#content#)
-//!   │   ├── citation_ref.rs      # Citation references ([@key])
-//!   │   ├── page_ref.rs          # Page references ([p.123])
-//!   │   ├── session_ref.rs       # Session references ([#1.2])
+//!   │   ├── formatting/          # Formatting inline elements
+//!   │   │   ├── mod.rs           # Formatting module
+//!   │   │   ├── delimiters.rs    # Bold, italic, code delimiters
+//!   │   │   └── math_span.rs     # Math expression spans (#content#)
+//!   │   ├── references/          # Reference inline elements
+//!   │   │   ├── mod.rs           # Reference module
+//!   │   │   ├── citations.rs     # Citation references ([@key])
+//!   │   │   ├── general.rs       # Generic reference fallback
+//!   │   │   ├── page_ref.rs      # Page references ([p.123])
+//!   │   │   └── session_ref.rs   # Session references ([#1.2])
 //!   │   └── parameters.rs        # Parameter parsing (key=value lists)
 //!   └── patterns.rs             # Pattern matching and content extraction utilities
 //!

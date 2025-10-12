@@ -1,10 +1,8 @@
 //! Inline element tests
 //!
 //! Tests for inline elements that mirror src/tokenizer/inline/ functionality
+//! Organized by specification structure in docs/specs/elements/inlines/
 
-mod citation_ref_integration;
 mod formatting;
-mod math_span_integration;
-mod page_ref_integration;
 mod parameters;
-mod session_ref_integration;
+mod references;

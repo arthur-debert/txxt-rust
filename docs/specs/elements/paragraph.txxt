@@ -1,0 +1,322 @@
+:: title :: Paragraph Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for paragraphs - the fundamental text blocks that contain inline content and form the basic unit of readable text in txxt documents.
+
+1. Purpose
+
+    Paragraphs are the foundational building blocks for textual content in txxt. They contain inline text with formatting, create readable text flow, and serve as the default element type when no other block structure is detected. Paragraphs provide the semantic foundation for document content while supporting rich inline formatting including emphasis, code, references, and mathematical expressions.
+
+2. Syntax
+
+    2.1. Basic Paragraph Form
+
+        Simple paragraph:
+            This is a basic paragraph containing plain text. It flows naturally and can span multiple lines within the same paragraph block.
+        :: basic
+
+        Multiple paragraphs with blank line separation:
+            This is the first paragraph.
+            
+            This is the second paragraph, separated by a blank line.
+        :: multiple
+
+    2.2. Inline Formatting Support
+
+        Rich paragraph with inline elements:
+            This paragraph contains *bold text*, _italic text_, `inline code`, and #mathematical expressions#. It can also include [references] and other inline elements.
+        :: formatted
+
+    2.3. Multi-line Paragraphs
+
+        Paragraph spanning multiple lines:
+            This paragraph begins on one line
+            and continues on the next line.
+            All lines at the same indentation level
+            belong to the same paragraph.
+        :: multiline
+
+3. Grammar
+
+    3.1. Paragraph Structure
+
+        Basic paragraph pattern:
+            <paragraph> = <paragraph-line>+
+            <paragraph-line> = <inline-content> <line-break>
+            <inline-content> = <text> | <inline-element>*
+        :: grammar
+
+    3.2. Line Continuation Rules
+
+        Paragraph line rules:
+        - Lines at same indentation level continue the paragraph
+        - Blank line terminates the paragraph
+        - Indentation increase creates nested content (not part of paragraph)
+        - Indentation decrease ends paragraph and returns to parent level
+
+    3.3. Content Rules
+
+        Paragraph content constraints:
+        - Cannot contain block elements (lists, sessions, definitions)
+        - Can contain any inline elements (emphasis, code, math, references)
+        - Cannot be empty (must have at least some text content)
+        - Whitespace-only lines are treated as blank lines
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    Paragraph AST:
+        ├── Paragraph
+        │   ├── content: Vec<Inline>
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+    :: tree
+
+    Key structural properties:
+    - Content stored as sequence of inline elements
+    - Text runs merged for efficiency
+    - Formatting preserved through inline element types
+    - Source tokens maintained for reconstruction
+
+5. Processing Rules
+
+    5.1. Recognition Priority
+
+        Paragraph recognition rules:
+        1. Line does not match any other block element pattern
+        2. Line contains text content (not whitespace-only)
+        3. Line not at increased indentation from current level
+        4. Default element type when no other pattern matches
+
+    5.2. Line Grouping
+
+        Multi-line paragraph processing:
+        1. Collect consecutive lines at same indentation level
+        2. Stop at blank line or indentation change
+        3. Stop at line matching another block element pattern
+        4. Parse collected lines as single paragraph content
+
+    5.3. Inline Processing
+
+        Paragraph content processing:
+        1. Concatenate all paragraph lines with spaces
+        2. Parse resulting text through inline parser
+        3. Create inline element sequence
+        4. Merge adjacent text runs for efficiency
+
+6. Use Cases
+
+    6.1. Basic Text Content
+
+        Simple document content:
+            Introduction
+            
+            This document describes the basic concepts of txxt formatting. The format emphasizes readability and simplicity while providing powerful structural features.
+            
+            Each paragraph can contain multiple sentences and span several lines. Paragraphs are separated by blank lines to improve readability.
+        :: basic-content
+
+    6.2. Rich Formatted Text
+
+        Text with inline formatting:
+            Complex Concepts
+            
+            Understanding *txxt formatting* requires knowledge of both _inline elements_ and `block structures`. The format supports mathematical expressions like #E = mc^2# and references to other sections [#methodology].
+            
+            Code snippets can be included inline using `backticks` or in dedicated verbatim blocks for longer examples.
+        :: rich-content
+
+    6.3. Technical Documentation
+
+        Technical writing with mixed content:
+            API Reference
+            
+            The `parse()` function accepts a *string parameter* and returns a `Result<Document, ParseError>`. The function performs validation on the input and will return an error if the document structure is invalid.
+            
+            Example usage patterns are provided in the [examples section] of this documentation.
+        :: technical-content
+
+    6.4. Academic Writing
+
+        Scholarly text with citations:
+            Literature Review
+            
+            Previous research has established the importance of plain text formats in academic writing [@smith2023]. The approach taken by *txxt* builds upon these foundations while addressing specific limitations identified in earlier work [@jones2024, p. 45-67].
+            
+            The methodology section provides detailed analysis of these improvements.
+        :: academic-content
+
+7. Edge Cases
+
+    7.1. Empty Lines
+
+        Whitespace-only lines are treated as blank lines:
+            First paragraph here.
+                
+            Second paragraph after blank line.
+        :: whitespace-handling
+
+    7.2. Mixed Indentation
+
+        Paragraphs must maintain consistent indentation:
+        
+        Valid (consistent indentation):
+            This paragraph maintains
+            the same indentation level
+            throughout all lines.
+        :: valid-indent
+
+        Invalid (inconsistent indentation):
+            This paragraph starts here
+              but this line is over-indented
+            and this returns to original level.
+        :: invalid-indent
+
+    7.3. Inline Element Boundaries
+
+        Inline elements cannot span line breaks within paragraphs:
+        
+        Valid (complete inline elements):
+            This contains *complete bold text* and
+            _complete italic text_ across lines.
+        :: valid-inline
+
+        Invalid (broken inline elements):
+            This contains *bold text that
+            spans across lines without closing*.
+        :: invalid-inline
+
+8. Processing Details
+
+    8.1. Whitespace Handling
+
+        Paragraph whitespace rules:
+        - Leading/trailing whitespace on lines is trimmed
+        - Multiple spaces between words collapse to single space
+        - Line breaks within paragraph become spaces
+        - Preserve formatting-significant whitespace in inline elements
+
+    8.2. Text Normalization
+
+        Content processing steps:
+        1. Trim leading/trailing whitespace from each line
+        2. Join lines with single spaces
+        3. Normalize multiple consecutive spaces to single space
+        4. Parse inline elements respecting their whitespace rules
+
+    8.3. Error Recovery
+
+        Paragraph parsing error handling:
+        - Malformed inline elements → Include as literal text
+        - Inconsistent indentation → Parse as separate paragraphs
+        - Empty paragraphs → Skip and continue parsing
+        - Invalid characters → Include as-is with warning
+
+9. Relationship to Other Elements
+
+    9.1. Container Integration
+
+        Paragraphs in containers:
+        - Can appear in any container type that allows block content
+        - Follow container indentation rules
+        - Maintain their own inline content processing
+        - Can be annotated like other block elements
+
+    9.2. Inline Element Support
+
+        Supported inline elements within paragraphs:
+        - Emphasis (bold, italic, underline)
+        - Code spans and mathematical expressions
+        - References, citations, and links
+        - Custom inline annotations
+        - Line breaks and spacing control
+
+    9.3. Session and List Context
+
+        Paragraphs in structured content:
+        - Session content → Direct paragraphs in session container
+        - List items → Paragraphs as list item content
+        - Definition content → Paragraphs in definition container
+        - Annotation content → Paragraphs in annotation container
+
+10. Implementation Notes
+
+    10.1. Parser Integration
+
+        Paragraph parsing requirements:
+        - Default block element when no other pattern matches
+        - Line-by-line collection until termination condition
+        - Integration with inline parser for content processing
+        - Efficient text merging and normalization
+
+    10.2. Performance Considerations
+
+        Optimization strategies:
+        - Merge adjacent text runs in AST
+        - Minimize allocations during line collection
+        - Cache inline parsing results where appropriate
+        - Batch whitespace normalization operations
+
+    10.3. Memory Management
+
+        Paragraph memory usage:
+        - Store processed inline content, not raw lines
+        - Share string data where possible
+        - Maintain source tokens for error reporting
+        - Balance memory usage with access patterns
+
+11. Semantic Applications
+
+    11.1. Document Structure
+
+        Paragraphs in document organization:
+        - Primary content delivery mechanism
+        - Building blocks for readable flow
+        - Foundation for higher-level semantic analysis
+        - Support for automated content extraction
+
+    11.2. Text Analysis
+
+        Paragraph-level analysis capabilities:
+        - Readability scoring and analysis
+        - Keyword extraction and indexing
+        - Sentiment analysis and classification
+        - Content summarization and abstraction
+
+    11.3. Publishing Integration
+
+        Paragraph rendering and output:
+        - Direct mapping to HTML `<p>` elements
+        - Support for styling and presentation
+        - Integration with typography systems
+        - Responsive layout and formatting
+
+12. Best Practices
+
+    12.1. Content Organization
+
+        Effective paragraph usage:
+        - Keep paragraphs focused on single ideas
+        - Use appropriate length for readability
+        - Include topic sentences for clarity
+        - Maintain logical flow between paragraphs
+
+    12.2. Inline Formatting
+
+        Formatting guidelines:
+        - Use emphasis sparingly for maximum impact
+        - Prefer semantic formatting over visual formatting
+        - Maintain consistency in formatting choices
+        - Balance readability with formatting complexity
+
+    12.3. Structure Integration
+
+        Paragraph integration with document structure:
+        - Use paragraphs as building blocks for larger structures
+        - Separate distinct ideas with blank lines
+        - Consider paragraph flow within sessions and lists
+        - Maintain appropriate indentation levels
+
+:: note :: Paragraphs are the foundational text elements in txxt, providing the primary mechanism for readable content delivery while supporting rich inline formatting and seamless integration with the document's hierarchical structure.

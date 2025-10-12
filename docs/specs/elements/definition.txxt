@@ -1,0 +1,417 @@
+:: title :: Definition Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for definitions - structured term-definition pairs that provide semantic explanations and glossary content.
+
+1. Purpose
+
+    Definitions provide a structured way to explain terms, concepts, and terminology within txxt documents. They create semantic associations between terms and their explanations, supporting glossary generation, term indexing, and knowledge base construction. Definitions use the txxt marker to distinguish them from verbatim blocks while maintaining the familiar colon syntax.
+
+2. Syntax
+
+    2.1. Basic Definition Form
+
+        Simple term definition:
+            Parser ::
+                A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
+        :: basic
+
+        Complex term with inline formatting:
+            *Important Concept* ::
+                This term uses inline formatting in the term itself.
+                The definition can span multiple paragraphs and include rich content.
+        :: formatted-term
+
+    2.2. Syntax Rules
+
+        Definition recognition:
+        - Term line ends with txxt marker (`::`)
+        - Definition content must be indented +1 from term
+        - Term can contain inline formatting
+        - Content follows through ContentContainer
+
+        Essential pattern:
+            <term-content> ::
+                <indented-definition-content>
+        :: pattern
+
+    2.3. Content Structure
+
+        Rich definition content:
+            Recursion ::
+                A programming technique where a function calls itself.
+                
+                Key characteristics:
+                - Base case to stop recursion
+                - Recursive case that calls itself
+                - Gradual progress toward base case
+                
+                Example implementation:
+                    def factorial(n):
+                        if n <= 1:
+                            return 1
+                        return n * factorial(n - 1)
+                :: python
+        :: rich-content
+
+3. Grammar
+
+    3.1. Definition Structure
+
+        Complete definition pattern:
+            <definition> = <definition-term> <content-container>
+            <definition-term> = <inline-content> <txxt-marker> <line-break>
+            <content-container> = <indent-increase> <definition-content>+
+        :: grammar
+
+    3.2. Term Rules
+
+        Definition term constraints:
+        - Must be single line (cannot span multiple lines)
+        - Can contain any inline elements (bold, italic, code, references)
+        - Must end with txxt marker (`::`)
+        - Cannot be empty (must have term content)
+
+        Valid term examples:
+            API ::
+            *Machine Learning* ::
+            `async/await` ::
+            HTTP Response Code ::
+        :: valid-terms
+
+    3.3. Content Rules
+
+        Definition content structure:
+        - Must be indented exactly +1 from term level
+        - Can contain any block elements except sessions
+        - Follows ContentContainer rules
+        - Can include paragraphs, lists, verbatim blocks, nested definitions
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    Definition AST:
+        ├── Definition
+        │   ├── term: DefinitionTerm
+        │   │   ├── content: Vec<Inline>
+        │   │   └── tokens: TokenSequence
+        │   ├── content: ContentContainer
+        │   │   └── blocks: Vec<Block>
+        │   ├── parameters: Parameters (future extension)
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+    :: tree
+
+    Key structural properties:
+    - Term stored as inline content (supports formatting)
+    - Content stored in ContentContainer (consistent with architecture)
+    - Parameters support planned for future extensions
+    - Annotations can be attached to definitions
+
+5. Processing Rules
+
+    5.1. Recognition Priority
+
+        Definition recognition rules:
+        1. Line ending with txxt marker (`::`) → Potential definition
+        2. Validate term content (cannot be empty)
+        3. Check for indented content following term
+        4. If indented content exists → Definition
+        5. If no indented content → Parse error (incomplete definition)
+
+    5.2. Term Processing
+
+        Term content handling:
+        - Parse term line as inline content (supports formatting)
+        - Remove trailing txxt marker before processing
+        - Validate that term is not empty after marker removal
+        - Store exact term tokens for source reconstruction
+
+    5.3. Content Processing
+
+        Definition content handling:
+        1. Create ContentContainer for indented content
+        2. Parse content recursively using standard block parsing
+        3. Apply ContentContainer rules (no sessions allowed)
+        4. Support rich content including nested definitions
+
+6. Use Cases
+
+    6.1. Technical Glossaries
+
+        Software development terms:
+            API ::
+                Application Programming Interface - a set of protocols and tools for building software applications.
+
+            REST ::
+                Representational State Transfer - an architectural style for designing networked applications that rely on stateless communication.
+
+            Microservice ::
+                An architectural approach where applications are built as a collection of loosely coupled, independently deployable services.
+        :: technical-glossary
+
+    6.2. Academic Definitions
+
+        Research terminology:
+            Hypothesis ::
+                A proposed explanation for a phenomenon that can be tested through experimentation or observation.
+                
+                Characteristics of good hypotheses:
+                - Testable and falsifiable
+                - Based on existing knowledge
+                - Specific and measurable
+                - Logically sound
+
+            Peer Review ::
+                The evaluation of scholarly work by experts in the same field before publication.
+                
+                The peer review process typically involves:
+                1. Submission to journal or conference
+                2. Initial editorial screening
+                3. Review by 2-3 domain experts
+                4. Revision based on feedback
+                5. Final acceptance or rejection
+        :: academic-definitions
+
+    6.3. Complex Nested Definitions
+
+        Hierarchical concept explanation:
+            Machine Learning ::
+                A subset of artificial intelligence that enables computers to learn and improve from experience without explicit programming.
+                
+                Key approaches:
+                
+                Supervised Learning ::
+                    Learning with labeled training data to make predictions on new data.
+                    
+                    Examples:
+                    - Classification (predicting categories)
+                    - Regression (predicting continuous values)
+                
+                Unsupervised Learning ::
+                    Finding patterns in data without labeled examples.
+                    
+                    Common techniques:
+                    - Clustering (grouping similar data)
+                    - Dimensionality reduction
+                    - Association rule learning
+                
+                Reinforcement Learning ::
+                    Learning through interaction with an environment using rewards and penalties.
+        :: nested-definitions
+
+    6.4. Code Documentation
+
+        Programming concept definitions:
+            Closure ::
+                A function that captures and retains access to variables from its outer scope.
+                
+                Example in JavaScript:
+                    function outerFunction(x) {
+                        return function(y) {
+                            return x + y; // 'x' is captured from outer scope
+                        };
+                    }
+                    
+                    const addFive = outerFunction(5);
+                    console.log(addFive(3)); // Output: 8
+                :: javascript
+
+            `async/await` ::
+                Modern JavaScript syntax for handling asynchronous operations more readably than callbacks or raw promises.
+                
+                Basic pattern:
+                    async function fetchData() {
+                        try {
+                            const response = await fetch('/api/data');
+                            const data = await response.json();
+                            return data;
+                        } catch (error) {
+                            console.error('Fetch failed:', error);
+                        }
+                    }
+                :: javascript
+        :: code-documentation
+
+7. Edge Cases
+
+    7.1. Empty Terms
+
+        Invalid (empty term):
+            ::
+                This definition has no term.
+        :: invalid-empty
+
+        This is parsed as an annotation, not a definition.
+
+    7.2. Missing Content
+
+        Invalid (no indented content):
+            Term with no definition ::
+            
+            Next paragraph here.
+        :: invalid-incomplete
+
+        This should cause a parse error as definitions require content.
+
+    7.3. Inline-Only Definitions
+
+        Invalid (definition content must be indented):
+            Inline Term :: Definition content on same line
+        :: invalid-inline
+
+        Definitions require indented content; inline content is not supported.
+
+    7.4. Nested Same-Level Definitions
+
+        Valid (definitions can contain other definitions):
+            Programming ::
+                The process of creating computer programs.
+                
+                Algorithm ::
+                    A step-by-step procedure for solving a problem.
+                
+                Data Structure ::
+                    A way of organizing and storing data efficiently.
+        :: nested-valid
+
+8. Implementation Notes
+
+    8.1. Parser Requirements
+
+        Definition parsing needs:
+        - Txxt marker recognition at end of line
+        - Term content validation (non-empty requirement)
+        - Indented content validation (must exist)
+        - ContentContainer creation and management
+        - Integration with inline parsing for term content
+
+    8.2. Disambiguation
+
+        Definition vs annotation disambiguation:
+        - **Annotations**: txxt marker at start of line (`:: label ::`)
+        - **Definitions**: txxt marker at end of line (`term ::`)
+        - **Verbatim**: single colon at end of line (`title:`)
+
+        Context determines interpretation of txxt marker placement.
+
+    8.3. Error Handling
+
+        Common definition errors:
+        - Empty term → Parse error
+        - Missing indented content → Parse error
+        - Invalid indentation → Parse error with recovery
+        - Malformed txxt marker → Fall back to paragraph parsing
+
+9. Relationship to Other Elements
+
+    9.1. Container Integration
+
+        Definition content through ContentContainer:
+        - Follows standard container architecture
+        - Can contain paragraphs, lists, verbatim blocks, annotations
+        - Cannot contain sessions (ContentContainer restriction)
+        - Supports nested definitions
+
+    9.2. Inline Content Support
+
+        Definition terms support inline formatting:
+        - Bold, italic, code, math formatting
+        - References and citations
+        - Cannot span multiple lines
+        - Rich term markup for semantic clarity
+
+    9.3. Cross-Referencing
+
+        Definitions as reference targets:
+        - Can be referenced by term name
+        - Support named anchors via annotations
+        - Enable glossary generation
+        - Support semantic indexing
+
+10. Semantic Applications
+
+    10.1. Glossary Generation
+
+        Automated glossary creation:
+        - Extract all definitions from document
+        - Sort alphabetically by term
+        - Generate cross-references
+        - Support multiple definition formats
+
+    10.2. Knowledge Base Construction
+
+        Semantic document structure:
+        - Terms become knowledge entities
+        - Definitions provide semantic content
+        - Cross-references create knowledge graph
+        - Support automated reasoning
+
+    10.3. Documentation Integration
+
+        Technical documentation enhancement:
+        - Inline term explanation
+        - Context-sensitive help
+        - API documentation
+        - Concept mapping
+
+11. Future Extensions
+
+    11.1. Parameterized Definitions
+
+        Planned parameter support:
+            Term:category=technical,complexity=beginner ::
+                Definition content with metadata.
+        :: future-parameters
+
+        Parameters could support:
+        - Categorization (technical, business, academic)
+        - Complexity levels (beginner, intermediate, advanced)
+        - Source attribution (author, reference)
+        - Language or domain specification
+
+    11.2. Cross-Reference Enhancement
+
+        Enhanced referencing capabilities:
+        - Automatic term detection in content
+        - Bidirectional reference mapping
+        - Term usage tracking
+        - Definition quality metrics
+
+    11.3. Multi-Language Support
+
+        International definition support:
+        - Multiple definitions per term
+        - Language-specific content
+        - Translation management
+        - Cultural context handling
+
+12. Best Practices
+
+    12.1. Term Clarity
+
+        Effective term definition:
+        - Use clear, concise terms
+        - Avoid overly technical language in terms
+        - Use consistent terminology throughout document
+        - Include context when terms are ambiguous
+
+    12.2. Definition Quality
+
+        Well-structured definitions:
+        - Start with clear, direct explanation
+        - Provide context and background
+        - Include examples when helpful
+        - Use consistent formatting and style
+
+    12.3. Organization
+
+        Definition organization strategies:
+        - Group related definitions together
+        - Use hierarchical structure for complex concepts
+        - Cross-reference related terms
+        - Maintain logical information flow
+
+:: note :: Definitions leverage the txxt marker at end-of-line to create unambiguous term-explanation pairs. Their integration with the container architecture enables rich, structured content while maintaining clear semantic boundaries.

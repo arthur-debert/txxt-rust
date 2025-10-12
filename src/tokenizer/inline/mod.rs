@@ -7,7 +7,7 @@ pub mod formatting;
 pub mod references;
 
 // Re-export public interfaces
-pub use formatting::{read_inline_delimiter, read_math_span, InlineDelimiterLexer, MathSpanLexer};
+pub use formatting::{read_inline_delimiter, InlineDelimiterLexer};
 pub use references::{
     read_citation_ref, read_page_ref, read_session_ref, CitationRefLexer, PageRefLexer,
     ReferenceLexer, SessionRefLexer,

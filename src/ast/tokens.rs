@@ -131,9 +131,6 @@ pub enum Token {
     /// Math text delimiter (#)
     MathDelimiter { span: SourceSpan },
 
-    /// Math expression span (#content#)
-    MathSpan { content: String, span: SourceSpan },
-
     /// Citation reference ([@key])
     CitationRef { content: String, span: SourceSpan },
 
@@ -178,7 +175,6 @@ impl Token {
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
             Token::MathDelimiter { span } => span,
-            Token::MathSpan { span, .. } => span,
             Token::CitationRef { span, .. } => span,
             Token::PageRef { span, .. } => span,
             Token::SessionRef { span, .. } => span,
@@ -204,7 +200,6 @@ impl Token {
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",
             Token::MathDelimiter { .. } => "#",
-            Token::MathSpan { content, .. } => content,
             Token::CitationRef { content, .. } => content,
             Token::PageRef { content, .. } => content,
             Token::SessionRef { content, .. } => content,

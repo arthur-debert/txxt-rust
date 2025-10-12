@@ -72,6 +72,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         Usage contexts:
         - Annotations: `:: label :: content`
         - Definitions: `Term ::`
+        - Verbatim labels: `:: label`
         - Parameters: `label:key=value:` (single colon + txxt marker)
 
 2. Span Elements
@@ -190,11 +191,12 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
     4.3. Verbatim Markers
 
-        Single colon markers for preserved content:
+        Markers for preserved content blocks:
 
         <verbatim-start> = <colon> <whitespace>* <line-break>
-        <verbatim-end> = <left-paren> <identifier>? <right-paren>
-        <verbatim-param-end> = <left-paren> <identifier> <colon> <parameter-list> <right-paren>
+        <verbatim-label-line> = <txxt-marker> <identifier> <line-break>
+        <verbatim-param-label-line> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
+        <verbatim-end> = <verbatim-label-line> | <verbatim-param-label-line>
         (grammar)
 
     4.4. Definition Markers
@@ -258,6 +260,12 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         - First non-blank content line at title-level + 4 spaces → In-flow
         - First non-blank content line at column 1 → Stretched
         - Empty content blocks default to in-flow
+
+        Label recognition:
+        - Verbatim label must be at same indentation as verbatim title
+        - Uses txxt marker syntax: `:: label` or `:: label:params`
+        - Leverages existing annotation parsing infrastructure
+        - Mandatory label improves documentation quality
 
     5.5. Definition Blocks
 
@@ -364,7 +372,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         (grammar)
 
         Parameterized verbatim:
-            <param-verbatim-end> = <left-paren> <identifier> <colon> <parameter-list> <right-paren>
+            <param-verbatim-end> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
         (grammar)
 
 9. Precedence and Disambiguation

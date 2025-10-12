@@ -94,17 +94,17 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
         Basic syntax:
             console.log("Hello, txxt!");
             alert("This content is preserved exactly");
-        (javascript)
+        :: javascript
 
         Verbatim blocks have three parts:
         - Title: Optional description (can be empty with just `:`)
         - Content: Indented lines preserved exactly
-        - Label: Language hint in parentheses (optional)
+        - Label: Format hint using txxt marker (mandatory)
 
         Advanced example with parameters:
             def fibonacci(n):
                 return n if n <= 1 else fibonacci(n-1) + fibonacci(n-2)
-        (python:version=3.11,style=functional)
+        :: python:version=3.11,style=functional
 
     3.5. Definitions
 
@@ -216,7 +216,7 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
 
                 Detailed discussion with examples:
                     code_example();
-                (language)
+                :: language
 
         3. Conclusion
 
@@ -261,7 +261,7 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
         For immediate use, remember these patterns:
         - Sessions: `Title` followed by indented content
         - Lists: `- Item` or `1. Item` with possible nesting
-        - Code: `Title:` + indented content + `(label)`
+        - Code: `Title:` + indented content + `:: label`
         - Definitions: `Term ::` + indented explanation
         - References: `[target]` for links, `[@key]` for citations
 

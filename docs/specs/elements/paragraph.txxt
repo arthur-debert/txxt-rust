@@ -41,10 +41,15 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
     3.1. Paragraph Structure
 
-        Basic paragraph pattern:
-            <paragraph> = <paragraph-line>+
-            <paragraph-line> = <inline-content> <line-break>
-            <inline-content> = <text> | <inline-element>*
+        A paragraph consists of one or more consecutive text lines, optionally terminated by a blank line.
+
+            <paragraph> = <text-line>+ <blank-line>?
+
+        A text line contains span elements and ends with a line break.
+
+            <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
+        
+        For a full definition of `<span-element>`, see the main syntax reference.
         :: grammar
 
     3.2. Line Continuation Rules

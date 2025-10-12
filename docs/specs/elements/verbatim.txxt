@@ -65,51 +65,47 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
         Stretched mode (content at absolute column 2):
             Wide table example:
- | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
- |----------|----------|----------|----------|----------|
- | Data     | Data     | Data     | Data     | Data     |
+             | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+             |----------|----------|----------|----------|----------|
+             | Data     | Data     | Data     | Data     | Data     |
             :: markdown
 
         Mode determination is automatic:
         - First non-blank content line at title+4 spaces → In-flow
-        - First non-blank content line at column 2 → Stretched
+        - First non-blank content line at absolute column 2 → Stretched
         - Empty blocks default to in-flow
 
 3. Grammar
 
-    3.1. Token Patterns
+    3.1. Verbatim Structure
 
-        Title recognition:
-            <verbatim-title> = <text-content>? <colon> <line-break>
-        (grammar)
+        A verbatim block is composed of a title, a content block, and a mandatory end label.
 
-        Content lines:
-            <verbatim-content-line> = <any-char>* <line-break>
-        (grammar)
-
-        Label recognition:
-            <verbatim-label> = <txxt-marker> <identifier> <line-break>
-            <verbatim-param-label> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
-            <verbatim-end> = <verbatim-label> | <verbatim-param-label>
-        (grammar)
-
-    3.2. Complete Grammar
-
-        In-flow verbatim:
-            <inflow-content-wall> = <title-indentation> <indent>
-            <inflow-content> = (<inflow-content-wall> <verbatim-content-line>)*
-            <inflow-verbatim> = <verbatim-title> <inflow-content> <verbatim-end>
-        (grammar)
-
-        Stretched verbatim:
-            <stretched-content-wall> = ^
-            <stretched-content> = (<stretched-content-wall> <verbatim-content-line>)*
-            <stretched-verbatim> = <verbatim-title> <stretched-content> <verbatim-end>
-        (grammar)
-
-        Complete verbatim block:
             <verbatim-block> = <inflow-verbatim> | <stretched-verbatim>
-        (grammar)
+
+        The title is a text line ending with the verbatim start marker (a colon):
+            <verbatim-title> = <text-line> <verbatim-start>
+            <verbatim-start> = <colon> <whitespace>* <line-break>
+
+        The end label can be simple or parameterized:
+            <verbatim-end> = <verbatim-label-line> | <verbatim-param-label-line>
+            <verbatim-label-line> = <txxt-marker> <label> <line-break>
+            <verbatim-param-label-line> = <txxt-marker> <label> <colon> <parameter-list> <line-break>
+
+    3.2. Content Modes
+
+        The content within the block can be in one of two modes, determined by its indentation.
+
+        In-flow verbatim (content indented relative to title):
+            <inflow-verbatim> = <verbatim-title> <inflow-content> <verbatim-end>
+            <inflow-content> = (<indentation-level> <indent> <verbatim-content-line>)*
+
+        Stretched verbatim (content at absolute column 2):
+            <stretched-verbatim> = <verbatim-title> <stretched-content> <verbatim-end>
+            <stretched-content> = <verbatim-content-line>*
+        
+        The parsing rule is that for stretched blocks, each content line must start at absolute column 2 (i.e., be prefixed with a space), which is stripped.
+        :: grammar
 
 4. AST Structure
 

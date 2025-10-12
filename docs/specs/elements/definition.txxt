@@ -59,10 +59,14 @@ Complete specification for definitions - structured term-definition pairs that p
 
     3.1. Definition Structure
 
-        Complete definition pattern:
-            <definition> = <definition-term> <content-container>
-            <definition-term> = <inline-content> <txxt-marker> <line-break>
-            <content-container> = <indent-increase> <definition-content>+
+        A definition consists of a term line followed by an indented content container.
+
+            <definition> = <definition-term> <definition-content>
+            <definition-term> = <text-line> <definition-marker>
+            <definition-content> = <content-container>
+
+        The term marker allows for optional whitespace around the double colon:
+            <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
         :: grammar
 
     3.2. Term Rules

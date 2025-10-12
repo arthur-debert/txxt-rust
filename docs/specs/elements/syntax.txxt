@@ -207,9 +207,10 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Markers for preserved content blocks:
 
+        <label> = <identifier> (<period> <identifier>)*
         <verbatim-start> = <colon> <whitespace>* <line-break>
-        <verbatim-label-line> = <txxt-marker> <identifier> <line-break>
-        <verbatim-param-label-line> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
+        <verbatim-label-line> = <txxt-marker> <label> <line-break>
+        <verbatim-param-label-line> = <txxt-marker> <label> <colon> <parameter-list> <line-break>
         <verbatim-end> = <verbatim-label-line> | <verbatim-param-label-line>
         (grammar)
 
@@ -248,7 +249,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         <session-numbering> = <sequence-marker>
         <session-title> = <session-numbering>? <text-line>
-        <session> = <blank-line>? <session-title> <container>
+        <session> = <blank-line> <session-title> <blank-line> <session-container>
         (grammar)
 
     5.4. Verbatim Blocks
@@ -263,9 +264,8 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <inflow-content> = <inflow-content-wall> <verbatim-content-line>*
         <inflow-verbatim> = <verbatim-title> <inflow-content> <verbatim-end>
         
-        Stretched verbatim (content at absolute column 1):
-        <stretched-content-wall> = ^
-        <stretched-content> = <stretched-content-wall> <verbatim-content-line>*
+        Stretched verbatim (content at absolute column 2):
+        <stretched-content> = <verbatim-content-line>*
         <stretched-verbatim> = <verbatim-title> <stretched-content> <verbatim-end>
         
         Complete verbatim block:
@@ -274,7 +274,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Mode determination:
         - First non-blank content line at title-level + 4 spaces → In-flow
-        - First non-blank content line at column 1 → Stretched
+        - First non-blank content line at absolute column 2 → Stretched
         - Empty content blocks default to in-flow
 
         Label recognition:
@@ -298,8 +298,8 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Inline annotation:
             <annotation-content> = <text-content>
-            <annotation-label> = <identifier>
-            <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>
+            <annotation-label> = <label>
+            <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>?
         (grammar)
 
         Block annotation:

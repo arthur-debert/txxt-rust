@@ -40,39 +40,22 @@ Complete specification for the txxt parameter system used across annotations, ve
 
 3. Grammar
 
-    3.1. Parameter Structure
+    3.1. Parameter Syntax
 
-        Complete parameter list:
-            <parameter-list> = <parameter-pair> (<comma> <whitespace>* <parameter-pair>)*
-            <parameter-pair> = <parameter-key> <equals> <parameter-value>
+        The syntax for a parameter list is a comma-separated list of key-value pairs.
+
+            <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
+            <parameter-pair> = <parameter-key> = <parameter-value>
+
+        Keys can be simple or namespaced identifiers:
             <parameter-key> = <identifier> (<period> <identifier>)*
-            <parameter-value> = <unquoted-value> | <quoted-value>
-        (grammar)
 
-    3.2. Key Rules
-
-        Valid parameter keys:
-            <identifier> = <letter> (<alphanumeric> | [._-])*
-            <namespaced-key> = <identifier> (<period> <identifier>)*
-        (grammar)
-
-        Key examples:
-            version, debug, style, author
-            org.example.custom, txxt.internal.parser
-        (examples)
-
-    3.3. Value Rules
-
-        Unquoted values (simple cases):
-            <unquoted-value> = <alphanumeric> (<alphanumeric> | [._-])*
-        (grammar)
-
-        Quoted values (complex cases):
-            <quoted-value> = <double-quote> <quoted-content> <double-quote>
-            <quoted-content> = (<quoted-char> | <escaped-char>)*
-            <quoted-char> = <any-char> - ["\]
-            <escaped-char> = <backslash> <any-char>
-        (grammar)
+        Values can be unquoted text content or a quoted string:
+            <parameter-value> = <text-content> | <quoted-string>
+            <quoted-string> = " (<text-char> | <escaped-char>)* "
+        
+        For the full definition of base tokens like `<identifier>` and `<text-content>`, see the main syntax reference.
+        :: grammar
 
 4. Value Types and Quoting
 

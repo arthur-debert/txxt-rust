@@ -62,32 +62,23 @@ Complete specification for sessions - the hierarchical organizational units that
 
     3.1. Session Structure
 
-        Complete session pattern:
-            <session> = <blank-line>? <session-title> <session-container>
-            <session-title> = <session-numbering>? <inline-content> <line-break>
-            <session-container> = <indent-increase> <session-content>+
-        (grammar)
+        A session requires a blank line, followed by a title line, another blank line, and finally an indented session container. This enforces clear structural separation.
 
-        Session numbering (optional):
+            <session> = <blank-line> <session-title> <blank-line> <session-container>
+            <session-title> = <session-numbering>? <text-line>
+        
+        The title can be optionally prefixed with a sequence marker for numbering:
             <session-numbering> = <sequence-marker>
-        (grammar)
-
-        Uses the same sequence markers as lists for consistency.
-
-    3.2. Content Rules
-
-        Session container content:
-            <session-content> = <paragraph> | <list> | <definition> | <verbatim-block> | <annotation> | <session> | <blank-line>
-        (grammar)
-
-        Key distinction: Sessions can contain other sessions (unlike content containers).
+        
+        The session's content is held in a session container, which is the only container type that can hold other sessions. For the full grammar of a session container, see the container specification.
+        :: grammar
 
     3.3. Boundary Rules
 
         Session boundary requirements:
-        - Blank line before: Sessions must be preceded by blank line (except document start)
-        - Blank line separation: When sessions contain nested sessions, blank line separation required
-        - Indented content: Must have at least one indented child element
+        - Blank line before title: Sessions must be preceded by a blank line (except at document start).
+        - Blank line after title: A blank line must separate the title from the indented content container.
+        - Indented content: Must have at least one indented child element.
 
 4. AST Structure
 

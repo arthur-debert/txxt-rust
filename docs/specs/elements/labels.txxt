@@ -43,14 +43,13 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
     3.1. Label Structure
 
-        Basic label:
-            <label> = <identifier>
-            <identifier> = <letter> (<alphanumeric> | [._-])*
-        (grammar)
+        A label is a simple or namespaced identifier used to mark elements.
 
-        Namespaced label:
-            <namespaced-label> = <identifier> (<period> <identifier>)*
-        (grammar)
+            <label> = <identifier> (<period> <identifier>)*
+        
+        The fundamental building block is the identifier:
+            <identifier> = <letter> (<alphanumeric> | [._-])*
+        :: grammar
 
     3.2. Character Rules
 

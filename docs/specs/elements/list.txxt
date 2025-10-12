@@ -75,40 +75,42 @@ Complete specification for lists - ordered and unordered collections of items wi
 
     3.1. List Markers
 
-        Sequence marker patterns:
+        List markers, or sequence markers, are categorized by style. The full definition from the syntax reference is:
+
+        Plain style marker:
             <plain-marker> = <dash> <whitespace>
-            <numerical-marker> = <digit>+ <period> <whitespace>
-            <numerical-paren-marker> = <digit>+ <right-paren> <whitespace>
-            <alpha-marker> = [a-zA-Z] <period> <whitespace>
-            <alpha-paren-marker> = [a-zA-Z] <right-paren> <whitespace>
-            <roman-marker> = <roman-numeral> <period> <whitespace>
-            <roman-paren-marker> = <roman-numeral> <right-paren> <whitespace>
-        (grammar)
+
+        Numerical style markers:
+            <number> = <digit>+
+            <numerical-marker> = <number> <period> <whitespace>
+            <numerical-paren-marker> = <number> <right-paren> <whitespace>
+
+        Alphabetical style markers:
+            <letter-lower> = [a-z]
+            <letter-upper> = [A-Z]
+            <alphabetical-marker> = (<letter-lower> | <letter-upper>) <period> <whitespace>
+            <alphabetical-paren-marker> = (<letter-lower> | <letter-upper>) <right-paren> <whitespace>
+
+        Roman style markers:
+            <roman-lower> = i | ii | iii | iv | v | vi | vii | viii | ix | x
+            <roman-upper> = I | II | III | IV | V | VI | VII | VIII | IX | X
+            <roman-marker> = (<roman-lower> | <roman-upper>) <period> <whitespace>
+            <roman-paren-marker> = (<roman-lower> | <roman-upper>) <right-paren> <whitespace>
 
         Complete sequence marker:
-            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alpha-marker> | <alpha-paren-marker> | <roman-marker> | <roman-paren-marker>
-        (grammar)
+            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alphabetical-marker> | <alphabetical-paren-marker> | <roman-marker> | <roman-paren-marker>
+        :: grammar
 
     3.2. List Structure
 
-        List item structure:
-            <list-item-content> = <inline-content>
-            <list-item> = <sequence-marker> <list-item-content> <line-break> <content-container>?
-        (grammar)
+        A list is a collection of one or more list items. Nested content is handled by a following container, not as part of the list item itself.
 
-        Complete list:
-            <list> = <list-item>{2,*}
-        (grammar)
-
-        Note: Single-item "lists" are parsed as paragraphs to avoid ambiguity with dialog.
-
-    3.3. Nesting Rules
-
-        Nested list structure:
-            <nested-content> = <content-container>
-            <nested-list> = <list>
-            <nested-content> = <nested-list> | <paragraph> | <verbatim-block> | <definition>
-        (grammar)
+            <list> = <list-item>+
+            <list-item> = <sequence-marker> <list-item-content>
+            <list-item-content> = <text-line>
+        
+        Note: While the grammar allows for a single-item list, a disambiguation rule specifies that a single item at the top level is treated as a paragraph. Lists are typically formed by two or more items.
+        :: grammar
 
 4. AST Structure
 

@@ -117,19 +117,17 @@ Complete specification for containers - the foundational structural elements tha
 
     5.1. Container Structure
 
-        Content Container:
-            <content-container> = <indent-increase> <content-block>+
-            <content-block> = <paragraph> | <list> | <definition> | <verbatim-block> | <annotation> | <blank-line> | <content-container>
+        Content Container (cannot contain sessions):
+            <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
         (grammar)
 
-        Session Container:
-            <session-container> = <indent-increase> <session-block>+
-            <session-block> = <content-block> | <session>
+        Session Container (can contain sessions):
+            <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
         (grammar)
 
-        Ignore Container:
-            <ignore-container> = <indent-increase> <ignore-content>*
-            <ignore-content> = <ignore-line> | <blank-line>
+        Ignore Container (verbatim content only):
+            <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
+            <ignore-line> = <any-line>
         (grammar)
 
     5.2. Indentation Detection

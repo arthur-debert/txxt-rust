@@ -57,22 +57,22 @@ Complete specification for annotations - metadata elements that attach informati
 
 3. Grammar
 
-    3.1. Token Patterns
+    3.1. Grammar
 
-        Basic annotation structure:
-            <annotation-start> = <txxt-marker> <whitespace>* <annotation-label> <whitespace>* <txxt-marker>
-            <annotation-content> = <text-content>
-            <annotation-inline> = <annotation-start> <annotation-content>? <line-break>
-        (grammar)
+        The grammar for annotations distinguishes between inline, block, and parameterized forms.
 
-        Block annotation structure:
-            <annotation-block> = <annotation-start> <line-break> <container>?
-        (grammar)
+        Inline annotation (content is optional):
+            <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>?
+        
+        Block annotation:
+            <annotation-block> = <txxt-marker> <annotation-label> <txxt-marker> <line-break> <container>?
 
-        Parameterized annotation:
-            <param-annotation-start> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker>
-            <param-annotation> = <param-annotation-start> <annotation-content>? <line-break>
-        (grammar)
+        Parameterized annotation (can be inline or block):
+            <param-annotation> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker> <annotation-content>?
+        
+        The annotation label can be a simple or namespaced identifier:
+            <annotation-label> = <label>
+        :: grammar
 
         For complete parameter syntax, quoting rules, and examples, see [../parameters.txxt].
 

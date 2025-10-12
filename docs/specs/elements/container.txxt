@@ -30,14 +30,14 @@ Complete specification for containers - the foundational structural elements tha
 
         This architecture provides:
         - Uniform parsing: All indented content follows same rules
-        - **Predictable structure: Clear parent-child relationships  
+        - Predictable structure: Clear parent-child relationships  
         - Eliminates special cases: No element-specific indentation rules
         - Recursive composition: Containers can contain other containers
 
 3. Container Types
 
     Containers are quite uniform as txxt strives to be expressive and flexible. While the verbatim lines container is all about ignoring lines (everything about verbatims is one of a kind) , the base container allows one to hold any block elements but sessions while session containers augment the former by hosting session elememnts.
-    
+
     3.1. Content Container
 
         Holds any block elements except sessions:
@@ -179,9 +179,9 @@ Complete specification for containers - the foundational structural elements tha
     7.2. Type Determination
 
         Container type selection:
-        - **Session context** → Session Container
-        - **List item, Definition, Annotation context** → Content Container  
-        - **Verbatim block context** → Ignore Container
+        - Session context → Session Container
+        - List item, Definition, Annotation context → Content Container  
+        - Verbatim block context → Ignore Container
 
     7.3. Content Validation
 
@@ -314,10 +314,10 @@ Complete specification for containers - the foundational structural elements tha
     10.2. AST Construction
 
         Container creation during parsing:
-        1. **Block Grouping Phase**: Identify indentation boundaries
-        2. **Type Resolution Phase**: Determine container types
-        3. **Content Parsing Phase**: Recursively parse container contents
-        4. **Validation Phase**: Ensure content type restrictions
+        1. Block Grouping Phase: Identify indentation boundaries
+        2. Type Resolution Phase: Determine container types
+        3. Content Parsing Phase: Recursively parse container contents
+        4. Validation Phase: Ensure content type restrictions
 
     10.3. Error Handling
 
@@ -332,18 +332,18 @@ Complete specification for containers - the foundational structural elements tha
     11.1. Parent Elements
 
         Elements that create containers:
-        - **Sessions**: Always create Session Container for content
-        - **List Items**: Create Content Container when nested content exists
-        - **Definitions**: Always create Content Container for definition content
-        - **Annotations**: Create Content Container for multi-line content
-        - **Verbatim Blocks**: Always create Ignore Container for preserved content
+        - Sessions: Always create Session Container for content
+        - List Items: Create Content Container when nested content exists
+        - Definitions: Always create Content Container for definition content
+        - Annotations: Create Content Container for multi-line content
+        - Verbatim Blocks: Always create Ignore Container for preserved content
 
     11.2. Child Elements
 
         Container content restrictions:
-        - **Content Container**: All blocks except sessions
-        - **Session Container**: All block types including sessions
-        - **Ignore Container**: Only ignore-lines and blank-lines
+        - Content Container: All blocks except sessions
+        - Session Container: All block types including sessions
+        - Ignore Container: Only ignore-lines and blank-lines
 
     11.3. Document Root
 

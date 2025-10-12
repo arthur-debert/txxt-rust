@@ -85,7 +85,7 @@ Verbatim blocks contain non txxt-formated content, such as code in a programming
             | This is the content wall
 
             | Blank lines are ok
-            | The content **starts** at the wall
+            | The content starts at the wall
  .     (text)
 
         The verbatim line is not "<bunch os spaces> -> Verbatim lines start here -<" , rather it's just "->Verbatim lines start here-<". that is , the spaces up to the +1 indented wall are not part of it, they are how txxt can tell where the content it. 

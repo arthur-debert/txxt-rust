@@ -39,13 +39,13 @@ Markers that introduce list items. Must appear at column 0 and be followed by a 
     - Example: `i) Parenthetical roman item`
 
 ### Edge Cases and Gotchas
-- **Position requirement**: Must be at column 0 (start of line)
-- **Space requirement**: Must be followed by exactly one space
-- **Invalid patterns**: 
+- Position requirement: Must be at column 0 (start of line)
+- Space requirement: Must be followed by exactly one space
+- Invalid patterns: 
     - `1)` for numbers (should use `.` not `)`)
     - `aa.` for multi-letter alphabetical
     - `iiii.` for invalid roman numerals
-- **Style consistency**: First marker determines style for that list level
+- Style consistency: First marker determines style for that list level
 
 ## Annotation Markers
 
@@ -72,10 +72,10 @@ Double colons `::` used for metadata and document annotations.
     ```
 
 ### Edge Cases
-- **Not verbatim content**: `::` is always parsed as annotation, never verbatim
-- **Triple colon ambiguity**: `:::` could be `:` + `::` but current implementation rejects
-- **Empty patterns**: `:: ::` (just spaces) creates empty annotation
-- **Nested not supported**: Cannot have `::` inside annotation content
+- Not verbatim content: `::` is always parsed as annotation, never verbatim
+- Triple colon ambiguity: `:::` could be `:` + `::` but current implementation rejects
+- Empty patterns: `:: ::` (just spaces) creates empty annotation
+- Nested not supported: Cannot have `::` inside annotation content
 
 ## Reference Markers
 
@@ -98,8 +98,8 @@ Square bracket notation `[target]` for links and references.
 
 ### Footnote-Style References
 - Naked numbers: `[1]`, `[2]`, `[42]`
-- **Auto-conversion**: `[3]` becomes `[#-1.3]` (3rd subsection of last section)
-- **Gotcha**: These are section references, not traditional footnotes
+- Auto-conversion: `[3]` becomes `[#-1.3]` (3rd subsection of last section)
+- Gotcha: These are section references, not traditional footnotes
 
 ### Citation References
 - Academic style: `[@smith2023]`, `[@doe2024]`
@@ -108,9 +108,9 @@ Square bracket notation `[target]` for links and references.
 - Requires `:: bibliography :: file.bib` annotation
 
 ### Edge Cases
-- **No nesting**: Cannot contain other formatting inside references
-- **No anchor text**: Relies on preceding word convention
-- **Resolution deferred**: Parser doesn't validate targets exist
+- No nesting: Cannot contain other formatting inside references
+- No anchor text: Relies on preceding word convention
+- Resolution deferred: Parser doesn't validate targets exist
 
 ## Text Content Tokens
 
@@ -118,13 +118,13 @@ Regular alphanumeric content and words.
 
 ### Basic Text
 - Alphanumeric sequences: `hello`, `world123`, `file_name`
-- **Precedence**: Text tokens tried before Identifier tokens
-- **Whitespace handling**: Spaces separate text tokens
+- Precedence: Text tokens tried before Identifier tokens
+- Whitespace handling: Spaces separate text tokens
 
 ### Identifier vs Text Distinction
-- **Text**: General content words, list item content
-- **Identifier**: Variable names, labels (tried after Text)
-- **Implementation note**: Order matters in tokenizer
+- Text: General content words, list item content
+- Identifier: Variable names, labels (tried after Text)
+- Implementation note: Order matters in tokenizer
 
 ## Inline Formatting Tokens
 
@@ -133,27 +133,27 @@ Markers for text styling within content.
 ### Bold Text
 - Syntax: `*text*` (asterisks around content)
 - Example: `This is *bold* text`
-- **No spaces**: Must be `*word*` not `* word *`
+- No spaces: Must be `*word*` not `* word *`
 
 ### Italic Text  
 - Syntax: `_text_` (underscores around content)
 - Example: `This is _italic_ text`
-- **No spaces**: Must be `_word_` not `_ word _`
+- No spaces: Must be `_word_` not `_ word _`
 
 ### Code Text
 - Syntax: `` `text` `` (backticks around content)
 - Example: ``This is `code` text``
-- **No spaces**: Must be `` `code` `` not `` ` code ` ``
+- No spaces: Must be `` `code` `` not `` ` code ` ``
 
 ### Math Text
 - Syntax: `#formula#` (hash/pound signs around content)
 - Example: `This is #E=mc^2# math`
-- **No spaces**: Must be `#x=y#` not `# x=y #`
+- No spaces: Must be `#x=y#` not `# x=y #`
 
 ### Nesting and Limitations
-- **Nesting allowed**: `*bold with _italic_ inside*`
-- **No line spanning**: Cannot cross line boundaries
-- **Unclosed pairs**: Treated as literal text
+- Nesting allowed: `*bold with _italic_ inside*`
+- No line spanning: Cannot cross line boundaries
+- Unclosed pairs: Treated as literal text
 
 ## Verbatim Block Tokens
 
@@ -162,11 +162,11 @@ Markers for code blocks and preserved content.
 ### Start Markers
 - Title with colon: `Code example:` (followed by indented content)
 - Just colon: `:` (anonymous verbatim block)
-- **Distinction**: Single `:` for verbatim, `::` for definitions
+- Distinction: Single `:` for verbatim, `::` for definitions
 
 ### Content Tokens
-- **VerbatimContent**: Exact preservation of whitespace and formatting
-- **No parsing**: Content inside verbatim blocks bypasses normal token parsing
+- VerbatimContent: Exact preservation of whitespace and formatting
+- No parsing: Content inside verbatim blocks bypasses normal token parsing
 
 ### End Markers (Labels)
 - Simple label: `(python)`, `(javascript)`, `(text)`
@@ -174,8 +174,8 @@ Markers for code blocks and preserved content.
 - Anonymous: `()` (no label)
 
 ### Verbatim Styles
-- **In-flow**: Content indented +1 from current level
-- **Stretched**: Content starts at column 0 for maximum width
+- In-flow: Content indented +1 from current level
+- Stretched: Content starts at column 0 for maximum width
 
 ## Definition Markers
 
@@ -183,7 +183,7 @@ Special syntax for term definitions.
 
 ### Definition Syntax
 - Pattern: `term ::` (double colon at end of line)
-- **Distinction**: End-of-line `::` for definitions vs inline `::` for annotations
+- Distinction: End-of-line `::` for definitions vs inline `::` for annotations
 - Content indented +1 level
 
 ### Examples
@@ -195,15 +195,15 @@ Special syntax for term definitions.
 Tokens for document structure and whitespace.
 
 ### Line Structure
-- **Newline**: `\n` characters (line breaks)
-- **BlankLine**: Empty lines (multiple collapsed to single)
-- **Indent**: Increased indentation level
-- **Dedent**: Decreased indentation level
+- Newline: `\n` characters (line breaks)
+- BlankLine: Empty lines (multiple collapsed to single)
+- Indent: Increased indentation level
+- Dedent: Decreased indentation level
 
 ### Special Tokens
-- **Dash**: Standalone `-` character (not in sequence marker context)
-- **FootnoteNumber**: Numeric references like `[1]`, `[2]`
-- **Eof**: End of file marker
+- Dash: Standalone `-` character (not in sequence marker context)
+- FootnoteNumber: Numeric references like `[1]`, `[2]`
+- Eof: End of file marker
 
 ## Parameter System
 
@@ -215,53 +215,53 @@ Shared syntax for annotations and verbatim blocks.
 - Namespaced keys: `org.example.config=value`
 
 ### Quoting and Escaping
-- **When to quote**: Values with spaces, commas, special characters
-- **Escape sequences**: Backslash `\` within quoted strings
-- **Example**: `key="value with \"quotes\" and \\backslashes"`
+- When to quote: Values with spaces, commas, special characters
+- Escape sequences: Backslash `\` within quoted strings
+- Example: `key="value with \"quotes\" and \\backslashes"`
 
 ### Edge Cases
-- **Empty values**: `key=,key2=value` (empty first value)
-- **Boolean shorthand**: Just `key` implies `key=true`
-- **Complex nesting**: Parameters can contain annotation-like syntax
+- Empty values: `key=,key2=value` (empty first value)
+- Boolean shorthand: Just `key` implies `key=true`
+- Complex nesting: Parameters can contain annotation-like syntax
 
 ## Character-Level Tokens and Escaping
 
 Low-level syntax elements.
 
 ### Escape Sequences
-- **Backslash escaping**: `\` removes special meaning from next character
-- **Common escapes**: `\*not bold\*`, `\- not list`, `\\` for literal backslash
-- **Line breaks**: Cannot escape newlines to continue lines
+- Backslash escaping: `\` removes special meaning from next character
+- Common escapes: `\*not bold\*`, `\- not list`, `\\` for literal backslash
+- Line breaks: Cannot escape newlines to continue lines
 
 ### Unicode and Encoding
-- **UTF-8 required**: All text must be valid UTF-8
-- **Line endings**: Unix LF preferred, CRLF accepted
-- **Tab handling**: Tabs converted to 4 spaces
-- **BOM**: Byte order mark stripped if present
+- UTF-8 required: All text must be valid UTF-8
+- Line endings: Unix LF preferred, CRLF accepted
+- Tab handling: Tabs converted to 4 spaces
+- BOM: Byte order mark stripped if present
 
 ## Implementation Gotchas
 
 Critical parsing behaviors and edge cases.
 
 ### Precedence Issues
-- **Order matters**: Text tried before Identifier in tokenizer
-- **Context sensitivity**: `::` behavior depends on position
-- **Greedy matching**: Longest valid token wins
+- Order matters: Text tried before Identifier in tokenizer
+- Context sensitivity: `::` behavior depends on position
+- Greedy matching: Longest valid token wins
 
 ### Ambiguous Cases
-- **Triple colons**: `:::` handling varies by implementation
-- **Nested markers**: `*bold with [reference] inside*` - reference wins
-- **Incomplete patterns**: `:: title` without closing `::` - graceful degradation
+- Triple colons: `:::` handling varies by implementation
+- Nested markers: `*bold with [reference] inside*` - reference wins
+- Incomplete patterns: `:: title` without closing `::` - graceful degradation
 
 ### Whitespace Sensitivity
-- **Significant spaces**: List markers must have trailing space
-- **Indentation rules**: Exact column positioning matters
-- **Line boundaries**: Most tokens cannot span lines
+- Significant spaces: List markers must have trailing space
+- Indentation rules: Exact column positioning matters
+- Line boundaries: Most tokens cannot span lines
 
 ### Error Recovery
-- **Graceful degradation**: Invalid syntax becomes plain text
-- **No exceptions**: Parser never fails, produces best-effort tokens
-- **Consistent behavior**: Same input always produces same tokens
+- Graceful degradation: Invalid syntax becomes plain text
+- No exceptions: Parser never fails, produces best-effort tokens
+- Consistent behavior: Same input always produces same tokens
 
 ## Current Implementation Status
 
@@ -289,9 +289,9 @@ Critical parsing behaviors and edge cases.
 - Citation parsing ([@reference] syntax)
 
 ### 🔧 Implementation Notes
-- **Token precedence**: Text before Identifier (recently fixed)
-- **Whitespace handling**: Basic space skipping implemented
-- **Position tracking**: Full SourceSpan support for language server
-- **Backtracking**: Proper failed token recovery implemented
+- Token precedence: Text before Identifier (recently fixed)
+- Whitespace handling: Basic space skipping implemented
+- Position tracking: Full SourceSpan support for language server
+- Backtracking: Proper failed token recovery implemented
 
 The tokenizer provides a solid foundation with sequence markers and annotation markers fully working. The next phase should focus on reference markers and inline formatting tokens.

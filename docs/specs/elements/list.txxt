@@ -143,10 +143,10 @@ Complete specification for lists - ordered and unordered collections of items wi
     5.1. Style Determination
 
         List style rules:
-        - **First item determines style**: Style of first list item sets style for entire list
-        - **Marker preservation**: Original markers preserved exactly for source reconstruction
-        - **No validation**: Mixed or incorrect numbering accepted without error
-        - **Forgiving parsing**: Content preserved, inconsistencies noted but not rejected
+        - First item determines style: Style of first list item sets style for entire list
+        - Marker preservation: Original markers preserved exactly for source reconstruction
+        - No validation: Mixed or incorrect numbering accepted without error
+        - Forgiving parsing: Content preserved, inconsistencies noted but not rejected
 
     5.2. List Forms
 
@@ -183,10 +183,10 @@ Complete specification for lists - ordered and unordered collections of items wi
     6.1. List Recognition
 
         List detection requirements:
-        - **Multiple items**: Single items parsed as paragraphs
-        - **Consistent indentation**: All items at same level
-        - **Valid markers**: Must match sequence marker patterns
-        - **Content requirement**: Each item must have content
+        - Multiple items: Single items parsed as paragraphs
+        - Consistent indentation: All items at same level
+        - Valid markers: Must match sequence marker patterns
+        - Content requirement: Each item must have content
 
     6.2. Style Processing
 
@@ -352,9 +352,9 @@ Complete specification for lists - ordered and unordered collections of items wi
     10.1. Container Integration
 
         List nesting through containers:
-        - **Flat lists**: No containers needed
-        - **Nested lists**: Create ContentContainer for nested content
-        - **Mixed content**: ContentContainer can hold any blocks except sessions
+        - Flat lists: No containers needed
+        - Nested lists: Create ContentContainer for nested content
+        - Mixed content: ContentContainer can hold any blocks except sessions
 
     10.2. Inline Content
 
@@ -366,9 +366,9 @@ Complete specification for lists - ordered and unordered collections of items wi
     10.3. Annotation Support
 
         Lists support annotations:
-        - **List-level annotations**: Attached to entire list
-        - **Item-level annotations**: Attached to specific items
-        - **Content annotations**: Within nested content
+        - List-level annotations: Attached to entire list
+        - Item-level annotations: Attached to specific items
+        - Content annotations: Within nested content
 
 11. Authoring Patterns
 

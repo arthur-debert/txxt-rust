@@ -9,9 +9,9 @@ This document proposes a system for handling academic citations that integrates 
     For `txxt` to handle citations effectively, it must "integrate well" with the tools and workflows that researchers already use. This means `txxt` should *not* become a citation manager or a citation stylist. Instead, it should provide the simplest possible hooks to connect a document to an external, standard-format citation database.
 
     The core principles are:
-    - **`txxt` does not manage citation data.** The data must live in standard, external files (e.g., BibTeX `.bib`) that are managed by tools like Zotero, Mendeley, etc.
-    - **`txxt` does not format citation style.** The choice of style (APA, MLA, Chicago, etc.) is a presentational concern that belongs to the publishing tool at compile time, not the source document.
-    - **The syntax must be minimal, unambiguous, and human-readable.**
+    - `txxt` does not manage citation data. The data must live in standard, external files (e.g., BibTeX `.bib`) that are managed by tools like Zotero, Mendeley, etc.
+    - `txxt` does not format citation style. The choice of style (APA, MLA, Chicago, etc.) is a presentational concern that belongs to the publishing tool at compile time, not the source document.
+    - The syntax must be minimal, unambiguous, and human-readable.
 
 2. The Proposed Solution
 
@@ -30,9 +30,9 @@ This document proposes a system for handling academic citations that integrates 
         ...as Smith demonstrated in his seminal work on the topic [@smith2023].
 
         This syntax is ideal because:
-        - **Unambiguous:** The `[@...]` syntax is distinct from a standard link `[...]` or a footnote `[1]`.
-        - **Human-Readable:** `[@smith2023]` is easy for an author to type and immediately understand.
-        - **Extensible:** It follows a well-established convention that supports advanced use cases like multiple citations `[@doe2024; @jones2025]` and page numbers `[@smith2023, p. 45]`.
+        - Unambiguous: The `[@...]` syntax is distinct from a standard link `[...]` or a footnote `[1]`.
+        - Human-Readable: `[@smith2023]` is easy for an author to type and immediately understand.
+        - Extensible: It follows a well-established convention that supports advanced use cases like multiple citations `[@doe2024; @jones2025]` and page numbers `[@smith2023, p. 45]`.
 
 3. A Complete Workflow Example
 
@@ -86,7 +86,7 @@ This document proposes a system for handling academic citations that integrates 
 
     This approach is ideal for `txxt` because it avoids getting buried in specifics.
     - The `txxt` parser only needs to recognize the `bibliography` annotation and the `[@key]` syntax. It requires no knowledge of BibTeX or citation styles.
-    - It **delegates** the complex, domain-specific work to the mature, existing ecosystem of citation tools.
-    - It keeps the author's source file **semantically pure**, containing a timeless link to a piece of data, not a transient, style-dependent piece of presentation.
+    - It delegates the complex, domain-specific work to the mature, existing ecosystem of citation tools.
+    - It keeps the author's source file semantically pure, containing a timeless link to a piece of data, not a transient, style-dependent piece of presentation.
 
     This is the definition of "integrating well."

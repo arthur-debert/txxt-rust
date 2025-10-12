@@ -31,9 +31,9 @@ This is the spec for the definition element in txxt.
 
         The proposed `Term ::` syntax (with optional space before `::`) is unambiguous and safe for the following reasons:
 
-        - **No Conflict with Pass 1 (Verbatim Extraction):** The verbatim parser specifically looks for lines ending in a single, non-escaped colon. A line ending in `::` will not match this rule and will be correctly ignored by this pass.
+        - No Conflict with Pass 1 (Verbatim Extraction): The verbatim parser specifically looks for lines ending in a single, non-escaped colon. A line ending in `::` will not match this rule and will be correctly ignored by this pass.
 
-        - **No Conflict with Pass 2 (Annotation Extraction):** The annotation parser (`annotation_extract.py`) uses a regular expression that matches the `::` marker at the *beginning* of a line (following any indentation). The proposed syntax places the `::` at the end of the term, so it will not be incorrectly identified as a annotation.
+        - No Conflict with Pass 2 (Annotation Extraction): The annotation parser (`annotation_extract.py`) uses a regular expression that matches the `::` marker at the *beginning* of a line (following any indentation). The proposed syntax places the `::` at the end of the term, so it will not be incorrectly identified as a annotation.
 
 4.  The AST
 

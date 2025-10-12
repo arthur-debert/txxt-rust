@@ -43,9 +43,9 @@ Complete specification for sessions - the hierarchical organizational units that
     2.2. Recognition Rules
 
         Session identification requirements:
-        - **Preceded by blank line** (or start of document)
-        - **Followed by indented content** (+1 indentation level)
-        - **Without indented content** → Parsed as paragraph
+        - Preceded by blank line (or start of document)
+        - Followed by indented content (+1 indentation level)
+        - Without indented content → Parsed as paragraph
 
         Session vs paragraph distinction:
             Valid session (has indented content):
@@ -85,9 +85,9 @@ Complete specification for sessions - the hierarchical organizational units that
     3.3. Boundary Rules
 
         Session boundary requirements:
-        - **Blank line before**: Sessions must be preceded by blank line (except document start)
-        - **Blank line separation**: When sessions contain nested sessions, blank line separation required
-        - **Indented content**: Must have at least one indented child element
+        - Blank line before: Sessions must be preceded by blank line (except document start)
+        - Blank line separation: When sessions contain nested sessions, blank line separation required
+        - Indented content: Must have at least one indented child element
 
 4. AST Structure
 
@@ -116,10 +116,10 @@ Complete specification for sessions - the hierarchical organizational units that
     5.1. Numbering Styles
 
         Sessions support all list numbering styles:
-        - **Plain**: No numbering marker
-        - **Numerical**: 1., 2., 3.
-        - **Alphabetical**: a., b., c. or A., B., C.
-        - **Roman**: i., ii., iii. or I., II., III.
+        - Plain: No numbering marker
+        - Numerical: 1., 2., 3.
+        - Alphabetical: a., b., c. or A., B., C.
+        - Roman: i., ii., iii. or I., II., III.
 
     5.2. Hierarchical Numbering
 
@@ -357,21 +357,21 @@ Complete specification for sessions - the hierarchical organizational units that
     9.3. AST Construction
 
         Session creation process:
-        1. **Recognition**: Identify session candidates
-        2. **Validation**: Ensure indented content exists
-        3. **Title parsing**: Extract numbering and inline content
-        4. **Container creation**: Create SessionContainer
-        5. **Content parsing**: Recursively parse session content
+        1. Recognition: Identify session candidates
+        2. Validation: Ensure indented content exists
+        3. Title parsing: Extract numbering and inline content
+        4. Container creation: Create SessionContainer
+        5. Content parsing: Recursively parse session content
 
 10. Relationship to Other Elements
 
     10.1. Container Integration
 
         Session container characteristics:
-        - **SessionContainer type**: Can hold any block including sessions
-        - **Blank line requirements**: Around nested sessions
-        - **Recursive structure**: Sessions within sessions
-        - **Document root**: Document itself is conceptually a SessionContainer
+        - SessionContainer type: Can hold any block including sessions
+        - Blank line requirements: Around nested sessions
+        - Recursive structure: Sessions within sessions
+        - Document root: Document itself is conceptually a SessionContainer
 
     10.2. Numbering Consistency
 
@@ -426,24 +426,24 @@ Complete specification for sessions - the hierarchical organizational units that
     12.1. Numbering Best Practices
 
         Recommended numbering approaches:
-        - **Consistent style**: Use same style within hierarchy level
-        - **Logical progression**: Follow natural numbering sequence
-        - **Meaningful titles**: Descriptive rather than generic titles
-        - **Appropriate depth**: Avoid excessive nesting (3-4 levels max)
+        - Consistent style: Use same style within hierarchy level
+        - Logical progression: Follow natural numbering sequence
+        - Meaningful titles: Descriptive rather than generic titles
+        - Appropriate depth: Avoid excessive nesting (3-4 levels max)
 
     12.2. Content Organization
 
         Effective session structure:
-        - **Logical flow**: Organize content in logical progression
-        - **Balanced depth**: Similar amounts of content at same levels
-        - **Clear boundaries**: Use blank lines appropriately
-        - **Meaningful hierarchy**: Reflect actual content relationships
+        - Logical flow: Organize content in logical progression
+        - Balanced depth: Similar amounts of content at same levels
+        - Clear boundaries: Use blank lines appropriately
+        - Meaningful hierarchy: Reflect actual content relationships
 
     12.3. Cross-Referencing
 
         Reference strategies:
-        - **Numerical references**: Use section numbers for formal documents
-        - **Named anchors**: Use meaningful names for frequently referenced sections
-        - **Relative references**: Use negative indexing for appendices
+        - Numerical references: Use section numbers for formal documents
+        - Named anchors: Use meaningful names for frequently referenced sections
+        - Relative references: Use negative indexing for appendices
 
 :: note :: Sessions provide the hierarchical backbone of txxt documents. Their recognition rules and container architecture enable flexible document organization while maintaining clear structural boundaries.

@@ -49,12 +49,32 @@ mod verbatim_label_tests {
             .expect("Should find VerbatimLabel token");
 
         if let Token::VerbatimLabel { content, .. } = label_token {
-            // This test SHOULD FAIL initially - no parameter parsing
+            // UPDATED: VerbatimLabel now contains ONLY the label, not parameters
             assert_eq!(
-                content, "python:version=3.9,syntax=true",
-                "VerbatimLabel should contain label and parameters without :: prefix"
+                content, "python",
+                "VerbatimLabel should contain ONLY the label without parameters"
             );
         }
+
+        // UPDATED: Check that parameters were extracted as separate tokens
+        let param_tokens: Vec<_> = tokens
+            .iter()
+            .filter_map(|token| {
+                if let Token::Parameter { key, value, .. } = token {
+                    Some((key.clone(), value.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(
+            param_tokens.len(),
+            2,
+            "Should have extracted 2 parameter tokens"
+        );
+        assert!(param_tokens.contains(&("version".to_string(), "3.9".to_string())));
+        assert!(param_tokens.contains(&("syntax".to_string(), "true".to_string())));
     }
 
     #[test]
@@ -71,17 +91,37 @@ mod verbatim_label_tests {
             .expect("Should find VerbatimLabel token");
 
         if let Token::VerbatimLabel { content, .. } = label_token {
-            // For now, we expect the full label:params string (without ::)
+            // UPDATED: VerbatimLabel now contains ONLY the label
             assert_eq!(
-                content, "mylabel:key1=value1,key2=value2",
-                "VerbatimLabel should contain full label:params without :: prefix"
+                content, "mylabel",
+                "VerbatimLabel should contain ONLY the label without parameters"
             );
-
-            // The content should be parseable into label and parameters
-            assert!(content.contains("mylabel"), "Should contain the label part");
-            assert!(content.contains("key1=value1"), "Should contain parameters");
+            assert!(
+                !content.contains(":"),
+                "Label should not contain colon separator"
+            );
             assert!(!content.starts_with("::"), "Should not start with ::");
         }
+
+        // UPDATED: Check that parameters were extracted as separate tokens
+        let param_tokens: Vec<_> = tokens
+            .iter()
+            .filter_map(|token| {
+                if let Token::Parameter { key, value, .. } = token {
+                    Some((key.clone(), value.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(
+            param_tokens.len(),
+            2,
+            "Should have extracted 2 parameter tokens"
+        );
+        assert!(param_tokens.contains(&("key1".to_string(), "value1".to_string())));
+        assert!(param_tokens.contains(&("key2".to_string(), "value2".to_string())));
     }
 
     #[test]
@@ -100,8 +140,9 @@ mod verbatim_label_tests {
             let label_token = tokens
                 .iter()
                 .find(|token| matches!(token, Token::VerbatimLabel { .. }))
-                .unwrap_or_else(|| panic!("Should find VerbatimLabel token for: {}",
-                    terminator_line));
+                .unwrap_or_else(|| {
+                    panic!("Should find VerbatimLabel token for: {}", terminator_line)
+                });
 
             if let Token::VerbatimLabel { content, .. } = label_token {
                 assert_eq!(

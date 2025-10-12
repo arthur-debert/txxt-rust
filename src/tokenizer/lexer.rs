@@ -6,7 +6,7 @@
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::inline::{
-    read_inline_delimiter, InlineDelimiterLexer, ParameterLexer,
+    parse_parameters, read_inline_delimiter, InlineDelimiterLexer, ParameterLexer,
 };
 use crate::tokenizer::markers::{read_sequence_marker, SequenceMarkerLexer};
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
@@ -895,13 +895,36 @@ impl Lexer {
 
             if let Some(captures) = verbatim_end_re.captures(&terminator_content) {
                 if let Some(label_and_params) = captures.get(1) {
-                    tokens.push(Token::VerbatimLabel {
-                        content: label_and_params.as_str().to_string(),
-                        span: SourceSpan {
-                            start: terminator_start_pos,
-                            end: self.current_position(),
-                        },
-                    });
+                    let label_and_params_str = label_and_params.as_str();
+
+                    // Split label from parameters at the first colon
+                    if let Some(colon_pos) = label_and_params_str.find(':') {
+                        // There are parameters - split them
+                        let label = &label_and_params_str[..colon_pos];
+                        let params_str = &label_and_params_str[colon_pos + 1..];
+
+                        // Add the clean verbatim label
+                        tokens.push(Token::VerbatimLabel {
+                            content: label.to_string(),
+                            span: SourceSpan {
+                                start: terminator_start_pos,
+                                end: self.current_position(),
+                            },
+                        });
+
+                        // Parse and add individual parameter tokens
+                        let mut param_tokens = parse_parameters(self, params_str);
+                        tokens.append(&mut param_tokens);
+                    } else {
+                        // No parameters - just the label
+                        tokens.push(Token::VerbatimLabel {
+                            content: label_and_params_str.to_string(),
+                            span: SourceSpan {
+                                start: terminator_start_pos,
+                                end: self.current_position(),
+                            },
+                        });
+                    }
                 }
             } else {
                 // Fallback: if regex doesn't match, use the full content (shouldn't happen)

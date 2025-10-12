@@ -61,20 +61,50 @@ mod tests {
         );
 
         if let Token::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
-            assert!(
-                content.contains("python"),
-                "VerbatimLabel should contain label 'python'"
+            assert_eq!(
+                content, "python",
+                "VerbatimLabel should contain ONLY the label 'python'"
             );
             assert!(
-                content.contains("version=3.9"),
-                "VerbatimLabel should contain parameter 'version=3.9'"
+                !content.contains("version=3.9"),
+                "VerbatimLabel should NOT contain parameters (now separate tokens)"
             );
             assert!(
-                content.contains("syntax_highlight=true"),
-                "VerbatimLabel should contain parameter 'syntax_highlight=true'"
+                !content.contains("syntax_highlight=true"),
+                "VerbatimLabel should NOT contain parameters (now separate tokens)"
             );
             println!("\n✅ VerbatimLabel token correctly captured: {}", content);
         }
+
+        // UPDATED: Check that parameters were extracted as separate Parameter tokens
+        let param_tokens: Vec<_> = tokens
+            .iter()
+            .filter_map(|token| {
+                if let Token::Parameter { key, value, .. } = token {
+                    Some((key.clone(), value.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        assert_eq!(
+            param_tokens.len(),
+            2,
+            "Should have extracted 2 Parameter tokens"
+        );
+        assert!(
+            param_tokens.contains(&("version".to_string(), "3.9".to_string())),
+            "Should have version=3.9 parameter"
+        );
+        assert!(
+            param_tokens.contains(&("syntax_highlight".to_string(), "true".to_string())),
+            "Should have syntax_highlight=true parameter"
+        );
+        println!(
+            "✅ Parameter tokens correctly extracted: {:?}",
+            param_tokens
+        );
     }
 
     #[test]

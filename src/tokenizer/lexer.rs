@@ -5,7 +5,9 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::inline::{read_inline_delimiter, InlineDelimiterLexer};
+use crate::tokenizer::inline::{
+    read_inline_delimiter, InlineDelimiterLexer, ParameterLexer,
+};
 use crate::tokenizer::markers::{read_sequence_marker, SequenceMarkerLexer};
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
@@ -1015,5 +1017,37 @@ impl InlineDelimiterLexer for Lexer {
         } else {
             None
         }
+    }
+}
+
+impl ParameterLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.position >= self.input.len()
     }
 }

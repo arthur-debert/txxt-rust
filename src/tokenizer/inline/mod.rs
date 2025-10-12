@@ -4,8 +4,8 @@
 //! formatting delimiters and parameter parsing.
 
 pub mod formatting;
-// TODO: Implement these modules in subsequent commits
-// pub mod parameters;
+pub mod parameters;
 
 // Re-export public interfaces
 pub use formatting::{read_inline_delimiter, InlineDelimiterLexer};
+pub use parameters::{parse_parameters, ParameterLexer};

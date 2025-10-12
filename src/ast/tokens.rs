@@ -91,6 +91,13 @@ pub enum Token {
     /// Verbatim block label (:: label syntax)
     VerbatimLabel { content: String, span: SourceSpan },
 
+    /// Parameter key-value pair (key=value)
+    Parameter {
+        key: String,
+        value: String,
+        span: SourceSpan,
+    },
+
     /// Bold text delimiter (*)
     BoldDelimiter { span: SourceSpan },
 
@@ -126,6 +133,7 @@ impl Token {
             Token::VerbatimTitle { span, .. } => span,
             Token::VerbatimContent { span, .. } => span,
             Token::VerbatimLabel { span, .. } => span,
+            Token::Parameter { span, .. } => span,
             Token::BoldDelimiter { span } => span,
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
@@ -147,6 +155,7 @@ impl Token {
             Token::VerbatimTitle { content, .. } => content,
             Token::VerbatimContent { content, .. } => content,
             Token::VerbatimLabel { content, .. } => content,
+            Token::Parameter { key, .. } => key, // Return key for content (value accessible separately)
             Token::BoldDelimiter { .. } => "*",
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",
@@ -157,6 +166,14 @@ impl Token {
             Token::Dedent { .. } => "",
             Token::Dash { .. } => "-",
             Token::Eof { .. } => "",
+        }
+    }
+
+    /// Get the parameter value (only valid for Parameter tokens)
+    pub fn parameter_value(&self) -> Option<&str> {
+        match self {
+            Token::Parameter { value, .. } => Some(value),
+            _ => None,
         }
     }
 }

@@ -110,6 +110,18 @@ pub enum Token {
     /// Math text delimiter (#)
     MathDelimiter { span: SourceSpan },
 
+    /// Math expression span (#content#)
+    MathSpan { content: String, span: SourceSpan },
+
+    /// Citation reference ([@key])
+    CitationRef { content: String, span: SourceSpan },
+
+    /// Page reference ([p.123] or [p.123-125])
+    PageRef { content: String, span: SourceSpan },
+
+    /// Session reference ([#1.2] or [#section])
+    SessionRef { content: String, span: SourceSpan },
+
     /// End of file marker
     Eof { span: SourceSpan },
 }
@@ -138,6 +150,10 @@ impl Token {
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
             Token::MathDelimiter { span } => span,
+            Token::MathSpan { span, .. } => span,
+            Token::CitationRef { span, .. } => span,
+            Token::PageRef { span, .. } => span,
+            Token::SessionRef { span, .. } => span,
             Token::Eof { span } => span,
         }
     }
@@ -160,6 +176,10 @@ impl Token {
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",
             Token::MathDelimiter { .. } => "#",
+            Token::MathSpan { content, .. } => content,
+            Token::CitationRef { content, .. } => content,
+            Token::PageRef { content, .. } => content,
+            Token::SessionRef { content, .. } => content,
             Token::Newline { .. } => "\n",
             Token::BlankLine { .. } => "\n",
             Token::Indent { .. } => "",

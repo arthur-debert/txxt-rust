@@ -72,7 +72,6 @@ fn test_inline_delimiter_isolated_passing(#[case] input: &str) {
 #[case("*bold*", "*", "bold", "*")]
 #[case("_italic_", "_", "italic", "_")]
 #[case("`code`", "`", "code", "`")]
-#[case("#math#", "#", "math", "#")]
 fn test_inline_delimiter_with_content_passing(
     #[case] input: &str,
     #[case] start_delim: &str,
@@ -89,7 +88,6 @@ fn test_inline_delimiter_with_content_passing(
         "*" => "BoldDelimiter",
         "_" => "ItalicDelimiter",
         "`" => "CodeDelimiter",
-        "#" => "MathDelimiter",
         _ => panic!("Unexpected delimiter: {}", start_delim),
     };
 
@@ -105,11 +103,6 @@ fn test_inline_delimiter_with_content_passing(
             assert_eq!(span.end.column, 1);
         }
         Token::CodeDelimiter { span } if start_delim == "`" => {
-            assert_eq!(span.start.row, 0);
-            assert_eq!(span.start.column, 0);
-            assert_eq!(span.end.column, 1);
-        }
-        Token::MathDelimiter { span } if start_delim == "#" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 1);
@@ -164,7 +157,6 @@ fn test_inline_delimiter_with_content_passing(
 #[case("text *bold* more", "text", "*", "bold", "*", "more")]
 #[case("start _italic_ end", "start", "_", "italic", "_", "end")]
 #[case("before `code` after", "before", "`", "code", "`", "after")]
-#[case("prefix #math# suffix", "prefix", "#", "math", "#", "suffix")]
 fn test_inline_delimiter_mixed_content(
     #[case] input: &str,
     #[case] prefix_text: &str,
@@ -236,6 +228,41 @@ fn test_inline_delimiter_mixed_content(
     assert_eq!(delimiter_tokens.len(), 2, "Should have 2 delimiter tokens");
 }
 
+#[test]
+fn test_math_span_integration() {
+    let tokens = tokenize("#math#");
+
+    // Should have: MathSpan, Eof (not delimiters)
+    assert_eq!(tokens.len(), 2);
+
+    match &tokens[0] {
+        Token::MathSpan { content, .. } => {
+            assert_eq!(content, "math");
+        }
+        _ => panic!("Expected MathSpan token, got {:?}", tokens[0]),
+    }
+}
+
+#[test]
+fn test_math_span_mixed_content() {
+    let tokens = tokenize("prefix #math# suffix");
+
+    // Should have: Text("prefix"), MathSpan("math"), Text("suffix"), Eof
+    assert!(tokens.len() >= 4);
+
+    let math_span = tokens
+        .iter()
+        .find(|token| matches!(token, Token::MathSpan { .. }))
+        .expect("Should find MathSpan token");
+
+    match math_span {
+        Token::MathSpan { content, .. } => {
+            assert_eq!(content, "math");
+        }
+        _ => unreachable!(),
+    }
+}
+
 // =============================================================================
 // Inline Delimiter Tokens - Edge Cases
 // =============================================================================
@@ -244,7 +271,6 @@ fn test_inline_delimiter_mixed_content(
 #[case("**")] // Double bold delimiters
 #[case("__")] // Double italic delimiters
 #[case("``")] // Double code delimiters
-#[case("##")] // Double math delimiters
 fn test_inline_delimiter_double_delimiters(#[case] input: &str) {
     let tokens = tokenize(input);
 
@@ -259,7 +285,6 @@ fn test_inline_delimiter_double_delimiters(#[case] input: &str) {
                 Token::BoldDelimiter { .. }
                     | Token::ItalicDelimiter { .. }
                     | Token::CodeDelimiter { .. }
-                    | Token::MathDelimiter { .. }
             )
         })
         .collect();
@@ -278,12 +303,43 @@ fn test_inline_delimiter_double_delimiters(#[case] input: &str) {
     assert_eq!(second.span().end.column, 2);
 }
 
+#[test]
+fn test_double_math_delimiters() {
+    let tokens = tokenize("##");
+
+    // Should produce 2 separate MathDelimiter tokens + EOF (not a MathSpan because empty)
+    assert_eq!(tokens.len(), 3);
+
+    let math_delimiters: Vec<_> = tokens
+        .iter()
+        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .collect();
+
+    assert_eq!(
+        math_delimiters.len(),
+        2,
+        "Should produce 2 MathDelimiter tokens"
+    );
+
+    // Should not have any MathSpan tokens
+    let math_spans: Vec<_> = tokens
+        .iter()
+        .filter(|token| matches!(token, Token::MathSpan { .. }))
+        .collect();
+
+    assert_eq!(
+        math_spans.len(),
+        0,
+        "Should not produce any MathSpan tokens"
+    );
+}
+
 #[rstest]
 #[case("*_`#")] // All delimiters in sequence
 fn test_inline_delimiter_mixed_sequence(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should have: BOLD, ITALIC, CODE, MATH, EOF
+    // Should have: BOLD, ITALIC, CODE, MATH_DELIMITER (standalone #), EOF
     assert_eq!(tokens.len(), 5);
 
     match (&tokens[0], &tokens[1], &tokens[2], &tokens[3]) {
@@ -382,7 +438,7 @@ proptest! {
     #[test]
     fn test_inline_delimiter_with_text_properties(
         text in "[a-zA-Z0-9]+",
-        delimiter in r"[*_`#]"
+        delimiter in r"[*_`]" // Exclude # since it now creates MathSpan tokens
     ) {
         let input = format!("{}{}{}", delimiter, text, delimiter);
         let tokens = tokenize(&input);
@@ -395,8 +451,7 @@ proptest! {
             .filter(|token| matches!(token,
                 Token::BoldDelimiter { .. } |
                 Token::ItalicDelimiter { .. } |
-                Token::CodeDelimiter { .. } |
-                Token::MathDelimiter { .. }
+                Token::CodeDelimiter { .. }
             ))
             .count();
 
@@ -411,6 +466,34 @@ proptest! {
             .collect();
 
         prop_assert_eq!(text_tokens.len(), 1, "Should find exactly 1 text token with expected content");
+    }
+
+    #[test]
+    fn test_math_span_properties(
+        content in "[a-zA-Z0-9]+",
+    ) {
+        let input = format!("#{content}#");
+        let tokens = tokenize(&input);
+
+        // Should have: MathSpan, EOF
+        prop_assert_eq!(tokens.len(), 2, "Math span should produce exactly 2 tokens (MathSpan + EOF)");
+
+        // Should find exactly 1 math span token
+        let math_spans: Vec<_> = tokens.iter()
+            .filter_map(|token| match token {
+                Token::MathSpan { content: span_content, .. } if span_content == &content => Some(span_content),
+                _ => None,
+            })
+            .collect();
+
+        prop_assert_eq!(math_spans.len(), 1, "Should find exactly 1 MathSpan token with expected content");
+
+        // Should not find any delimiter tokens
+        let delimiter_count = tokens.iter()
+            .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+            .count();
+
+        prop_assert_eq!(delimiter_count, 0, "Math spans should not produce MathDelimiter tokens");
     }
 }
 

@@ -50,74 +50,202 @@ mod tests {
 
             let tokens = tokenize(input);
 
-            // Find RefMarker tokens
-            let ref_markers: Vec<_> = tokens
-                .iter()
-                .filter(|token| matches!(token, Token::RefMarker { .. }))
-                .collect();
+            // Check for appropriate token type based on pattern
+            if description.contains("citation") {
+                // Citation patterns should produce CitationRef tokens
+                let citation_refs: Vec<_> = tokens
+                    .iter()
+                    .filter(|token| matches!(token, Token::CitationRef { .. }))
+                    .collect();
 
-            if should_be_valid {
-                assert_eq!(
-                    ref_markers.len(),
-                    1,
-                    "Expected 1 RefMarker for valid {}, but got {}: {:?}",
-                    description,
-                    ref_markers.len(),
-                    ref_markers
-                );
-
-                if let Token::RefMarker { content, .. } = &ref_markers[0] {
-                    // Remove brackets for content comparison
-                    let expected_content = &input[1..input.len() - 1];
+                if should_be_valid {
                     assert_eq!(
-                        content, expected_content,
-                        "Content mismatch for {}",
-                        description
+                        citation_refs.len(),
+                        1,
+                        "Expected 1 CitationRef for valid {}, but got {}: {:?}",
+                        description,
+                        citation_refs.len(),
+                        citation_refs
                     );
-                    println!("  ✅ Valid: {}", content);
+
+                    if let Token::CitationRef { content, .. } = &citation_refs[0] {
+                        // Remove brackets and @ for content comparison
+                        let expected_content = &input[2..input.len() - 1]; // Skip [@ and ]
+                        assert_eq!(
+                            content, expected_content,
+                            "Content mismatch for {}",
+                            description
+                        );
+                        println!("  ✅ Valid CitationRef: {}", content);
+                    }
+                } else {
+                    assert_eq!(
+                        citation_refs.len(),
+                        0,
+                        "Expected 0 CitationRefs for invalid {}, but got {}: {:?}",
+                        description,
+                        citation_refs.len(),
+                        citation_refs
+                    );
+                    println!("  ✅ Correctly rejected");
                 }
             } else {
-                assert_eq!(
-                    ref_markers.len(),
-                    0,
-                    "Expected 0 RefMarkers for invalid {}, but got {}: {:?}",
-                    description,
-                    ref_markers.len(),
-                    ref_markers
-                );
-                println!("  ✅ Correctly rejected");
+                // Non-citation patterns should produce appropriate reference tokens
+                // Check if this is a session reference pattern
+                if input.starts_with("[#")
+                    && input
+                        .chars()
+                        .nth(2)
+                        .is_some_and(|c| c.is_ascii_digit() || c == '-')
+                {
+                    // Session reference - should produce SessionRef token
+                    let session_refs: Vec<_> = tokens
+                        .iter()
+                        .filter(|token| matches!(token, Token::SessionRef { .. }))
+                        .collect();
+
+                    if should_be_valid {
+                        assert_eq!(
+                            session_refs.len(),
+                            1,
+                            "Expected 1 SessionRef for valid {}, but got {}: {:?}",
+                            description,
+                            session_refs.len(),
+                            session_refs
+                        );
+
+                        if let Token::SessionRef { content, .. } = &session_refs[0] {
+                            // Remove brackets and # for content comparison
+                            let expected_content = &input[2..input.len() - 1];
+                            assert_eq!(
+                                content, expected_content,
+                                "Content mismatch for {}",
+                                description
+                            );
+                            println!("  ✅ Valid SessionRef: {}", content);
+                        }
+                    } else {
+                        assert_eq!(
+                            session_refs.len(),
+                            0,
+                            "Expected no SessionRef for invalid {}, but got {}: {:?}",
+                            description,
+                            session_refs.len(),
+                            session_refs
+                        );
+                        println!("  ✅ Correctly rejected");
+                    }
+                } else {
+                    // Other patterns should produce RefMarker tokens
+                    let ref_markers: Vec<_> = tokens
+                        .iter()
+                        .filter(|token| matches!(token, Token::RefMarker { .. }))
+                        .collect();
+
+                    if should_be_valid {
+                        assert_eq!(
+                            ref_markers.len(),
+                            1,
+                            "Expected 1 RefMarker for valid {}, but got {}: {:?}",
+                            description,
+                            ref_markers.len(),
+                            ref_markers
+                        );
+
+                        if let Token::RefMarker { content, .. } = &ref_markers[0] {
+                            // Remove brackets for content comparison
+                            let expected_content = &input[1..input.len() - 1];
+                            assert_eq!(
+                                content, expected_content,
+                                "Content mismatch for {}",
+                                description
+                            );
+                            println!("  ✅ Valid RefMarker: {}", content);
+                        }
+                    } else {
+                        assert_eq!(
+                            ref_markers.len(),
+                            0,
+                            "Expected 0 RefMarkers for invalid {}, but got {}: {:?}",
+                            description,
+                            ref_markers.len(),
+                            ref_markers
+                        );
+                        println!("  ✅ Correctly rejected");
+                    }
+                }
             }
         }
     }
 
     #[test]
     fn debug_regex_consistency() {
-        // Test that patterns work the same as before centralization
+        // Test that patterns work consistently - citations should produce CitationRef, others RefMarker
         let inputs = vec![
-            "[@smith2023]",
-            "[#1.2.3]",
-            "[#-1.1]",
-            "[42]",
-            "[https://example.com]",
-            "[document.pdf]",
-            "[my-anchor]",
+            ("[@smith2023]", "citation"),
+            ("[#1.2.3]", "section"),
+            ("[#-1.1]", "section"),
+            ("[42]", "footnote"),
+            ("[https://example.com]", "url"),
+            ("[document.pdf]", "file"),
+            ("[my-anchor]", "anchor"),
         ];
 
-        for input in inputs {
+        for (input, ref_type) in inputs {
             println!("Testing consistency for: {}", input);
 
             let tokens = tokenize(input);
-            let ref_tokens: Vec<_> = tokens
-                .iter()
-                .filter(|token| matches!(token, Token::RefMarker { .. }))
-                .collect();
 
-            assert_eq!(
-                ref_tokens.len(),
-                1,
-                "Should find exactly 1 RefMarker for {}",
-                input
-            );
+            if ref_type == "citation" {
+                // Citation should produce CitationRef token
+                let citation_tokens: Vec<_> = tokens
+                    .iter()
+                    .filter(|token| matches!(token, Token::CitationRef { .. }))
+                    .collect();
+
+                assert_eq!(
+                    citation_tokens.len(),
+                    1,
+                    "Should find exactly 1 CitationRef for {}",
+                    input
+                );
+            } else {
+                // Other references should produce appropriate reference tokens
+                // Check if this is a session reference pattern
+                if input.starts_with("[#")
+                    && input
+                        .chars()
+                        .nth(2)
+                        .is_some_and(|c| c.is_ascii_digit() || c == '-')
+                {
+                    // Session reference - should produce SessionRef token
+                    let session_tokens: Vec<_> = tokens
+                        .iter()
+                        .filter(|token| matches!(token, Token::SessionRef { .. }))
+                        .collect();
+
+                    assert_eq!(
+                        session_tokens.len(),
+                        1,
+                        "Should find exactly 1 SessionRef for {}",
+                        input
+                    );
+                } else {
+                    // Other references should produce RefMarker tokens
+                    let ref_tokens: Vec<_> = tokens
+                        .iter()
+                        .filter(|token| matches!(token, Token::RefMarker { .. }))
+                        .collect();
+
+                    assert_eq!(
+                        ref_tokens.len(),
+                        1,
+                        "Should find exactly 1 RefMarker for {}",
+                        input
+                    );
+                }
+            }
+
             println!("  ✅ Consistent behavior maintained");
         }
     }

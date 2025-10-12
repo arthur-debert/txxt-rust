@@ -43,8 +43,9 @@
 
 - This is the repo for a plain text format, txxt, so documentation and text
   must be in txxt format. No markdown.
-- The tour [docs/tour.txxt] and vs markdown [docs/not-markdown.txxt] are quick
+- The tour [docs/walkthrough.txxt] and vs markdown [docs/not-markdown.txxt] are quick
 a howtos for txxt, specially how not to use markdown.
+- No emojis. Regular unicode symbols (no colors, consistent accross systems) are great, we just don't want a bunch of badly designed graphics grabbing attention and breaking monocromacity
 
 ### txxt format is finally in final draft + fully detailed syntax
 
@@ -57,3 +58,10 @@ Now, we have systematically design the full syntax, with the grammar and tokens,
 - The core reusable blocks (docs/specs/elements/container.txxt docs/specs/elements/labels.txxt docs/specs/elements/parameters.txxt)
 - Then docs/specs/elements/ `<elements> for the work you'll be doing
 - This is the authorative information on txxt, and these will win every other source
+
+### File and Code organization
+
+- A big part of the challenge is to make sure the specs are well aligned with the implementation. Which make it essential to mirror specs, tokenizer and parser code structure.
+- The structures in docs/specs should be mirrored as much as possible under src/tokernizer and src/parser
+- This holds true for tests too, i.e. tests/tokenizer/ and tests/parser/
+- Sometimes, things do not map perfectly, and minor adjustments are needed. But the goal is to keep things as aligned as possible.

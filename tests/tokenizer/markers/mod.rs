@@ -4,5 +4,4 @@
 
 mod annotation;
 mod definition;
-mod ref_marker;
 mod sequence;

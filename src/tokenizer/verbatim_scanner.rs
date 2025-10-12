@@ -103,7 +103,7 @@
 //! 5. **Terminator indent must match title indent exactly**
 
 use crate::ast::tokens::{SourceSpan, Token};
-use crate::tokenizer::inline::{parse_parameters, ParameterLexer};
+use crate::tokenizer::parameters::{parse_parameters, ParameterLexer};
 use regex::Regex;
 
 /// Standard indentation level in spaces

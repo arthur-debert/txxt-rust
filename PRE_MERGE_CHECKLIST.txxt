@@ -1,0 +1,108 @@
+:: title :: Pre-Merge Checklist
+
+If you answer "No" to any question below, address the issue before merging.
+
+Required Reading
+
+    Before starting the review, ensure you've read:
+
+    - [ ] Codebase guidelines: `CLAUDE.md`
+    - [ ] Relevant syntax documentation: `docs/specs/core/syntax.txxt`
+    - [ ] Element-specific documentation: `docs/specs/elements/<element>` (if applicable)
+
+Code Review Criteria
+
+    Completeness
+
+        - [ ] All intended features from the original request are implemented
+        - [ ] No missing functionality or incomplete implementations
+        - [ ] All acceptance criteria are met
+
+    Correctness
+
+        - [ ] Code works as intended without bugs or errors
+        - [ ] Edge cases are properly handled
+        - [ ] Error handling is robust and appropriate
+        - [ ] No regressions in existing functionality
+
+    Code Quality
+
+        Readability & Maintainability
+
+            - [ ] Code is easy to read and understand
+            - [ ] Functions and variables have clear, descriptive names
+            - [ ] Code is modular and follows established patterns
+            - [ ] No unnecessary complexity or over-engineering
+
+        Best Practices
+
+            - [ ] No hard-coded values that should be configurable
+            - [ ] Existing functionality is reused rather than re-implemented
+            - [ ] Code follows Rust idioms and conventions
+            - [ ] Proper error propagation using `Result<T, E>`
+
+        Documentation
+
+            - [ ] Public APIs have clear documentation
+            - [ ] Complex logic includes explanatory comments
+            - [ ] Module documentation follows codebase patterns
+
+    Architecture & Layout
+
+        - [ ] Code is placed in appropriate `tokens/` or `nodes/` files (not shoved into general files)
+        - [ ] Module structure follows existing patterns
+        - [ ] The `mod.rs` for the domain has clear layout documentation (see `src/tokenizer/mod.rs`)
+        - [ ] Function calls and interfaces are consistent with the rest of the codebase
+
+    Testing
+
+        Coverage & Quality
+
+            - [ ] Sufficient tests cover new code paths
+            - [ ] Tests exercise a significant input space, not just happy paths
+            - [ ] All existing tests still pass
+            - [ ] Tests assert against expected output (not just "no panics")
+
+        Test Structure
+
+            - [ ] Test files and paths closely match the code being tested
+            - [ ] Multiple related test cases use `rstest` with named cases
+            - [ ] Property-based testing with `proptest` is used where appropriate
+            - [ ] Tests avoid long repetitive setups (use helper functions/fixtures)
+            - [ ] Tests assert high-level behavior rather than implementation details
+
+Review Findings
+
+    Group your findings by severity:
+
+    High Priority (Must Fix Before Merge)
+
+        - Significant parts of the request are not implemented
+        - Expected functionality is broken or doesn't work as intended
+        - Security vulnerabilities or data corruption risks
+
+    Medium Priority (Must Fix Before Merge)
+
+        - Code is hard to read or understand
+        - Important edge cases are not handled
+        - Insufficient test coverage for new code
+        - Does not respect codebase layout and structure
+        - Poor modularity or deviation from best practices
+
+    Low Priority (Should Fix Before Merge)
+
+        - Minor readability improvements
+        - Style inconsistencies
+        - Documentation gaps for internal functions
+        - Minor performance optimizations
+
+Final Check
+
+    - [ ] All High and Medium priority issues have been addressed
+    - [ ] Code builds successfully (`cargo build`)
+    - [ ] All tests pass (`cargo test`)
+    - [ ] Code is properly formatted (`cargo fmt --check`)
+    - [ ] No clippy warnings (`cargo clippy`)
+    - [ ] No Emojis
+
+Only merge when all checklist items are complete and no High/Medium priority issues remain.

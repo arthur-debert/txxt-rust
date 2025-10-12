@@ -25,6 +25,7 @@
 //! intentionally left to higher-level tools, following the principle that
 //! the parser doesn't validate external resources.
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -44,6 +45,7 @@ use super::tokens::TokenSequence;
 /// - Citation references: [@smith2023], [@doe2024; @jones2025]
 /// - Named anchor references: [#hello-world], [#security-note]
 /// - Naked numerical references: [1], [2] (shorthand for [#-1.1], [#-1.2])
+/// - TK (placehoolder references): [TK], [TK-1], [TK-someword], TK(?-id)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ReferenceTarget {
     /// File reference to local or absolute paths
@@ -390,5 +392,194 @@ impl SectionIdentifier {
             SectionIdentifier::Mixed { negative_index, .. } => *negative_index,
             _ => false,
         }
+    }
+}
+
+/// Simple reference type classification for tokenizer phase
+///
+/// This enum provides basic classification of reference content during parsing.
+/// It follows the spec precedence order and maps to the more detailed ReferenceTarget
+/// enum during later parsing phases.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SimpleReferenceType {
+    /// URL references (example.com, https://example.com, user@domain.com)
+    Url,
+    /// Section references (#3, #1.2.3, #-1.1)
+    Section,
+    /// Footnote references (3, 42)
+    Footnote,
+    /// Citation references (@author, @author,p.45, p.43)
+    Citation,
+    /// To Come (TK) references (TK, TK-1, TK-someword)
+    ToComeTK,
+    /// File references (./file.txt, ../dir/file.txt, /absolute/path)
+    File,
+    /// Anchor/other references that don't match specific patterns
+    NotSure,
+}
+
+/// Reference classifier that determines the type of a reference based on its content
+///
+/// This classifier implements the TXXT spec precedence order for reference type detection.
+/// It operates during the parsing phase to classify RefMarker token content.
+pub struct ReferenceClassifier {
+    // URL patterns
+    url_protocol_regex: Regex,
+    url_domain_regex: Regex,
+    url_email_regex: Regex,
+
+    // Section patterns
+    section_regex: Regex,
+
+    // Footnote patterns
+    footnote_regex: Regex,
+
+    // Citation patterns
+    citation_author_regex: Regex,
+    citation_page_regex: Regex,
+
+    // TK patterns
+    tk_naked_regex: Regex,
+
+    // File patterns
+    file_relative_regex: Regex,
+    file_absolute_regex: Regex,
+}
+
+impl ReferenceClassifier {
+    /// Create a new reference classifier with compiled regex patterns
+    pub fn new() -> Self {
+        Self {
+            // URL patterns
+            url_protocol_regex: Regex::new(r"^(https?|ftp)://\S+").unwrap(),
+            url_domain_regex: Regex::new(r"(?i)^(www\.[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,}|[a-zA-Z0-9][a-zA-Z0-9-]*(\.[a-zA-Z0-9-]+)*\.(com|org|net|edu|gov|mil|int|info|biz|name|pro|museum|coop|aero|co\.uk|[a-zA-Z]{2}))(/.*)?$")
+                .unwrap(),
+            url_email_regex: Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+                .unwrap(),
+
+            // Section patterns - must start with #
+            section_regex: Regex::new(r"^#(-1|[0-9]+)(\.(-1|[0-9]+))*$").unwrap(),
+
+            // Footnote patterns - pure numbers only
+            footnote_regex: Regex::new(r"^[0-9]+$").unwrap(),
+
+            // Citation patterns
+            citation_author_regex: Regex::new(
+                r"^@[a-zA-Z0-9_-]+(,[a-zA-Z0-9_-]+)*([,\s]+p\.[0-9,\s-]+)?$",
+            )
+            .unwrap(),
+            citation_page_regex: Regex::new(r"^pp?\.[0-9,\s-]+$").unwrap(),
+
+            // TK patterns - case insensitive naked TK
+            tk_naked_regex: Regex::new(r"^(?i)TK$").unwrap(),
+
+            // File patterns
+            file_relative_regex: Regex::new(r"^\.").unwrap(),
+            file_absolute_regex: Regex::new(r"^/").unwrap(),
+        }
+    }
+
+    /// Classify a reference content string according to TXXT spec precedence order
+    pub fn classify(&self, content: &str) -> SimpleReferenceType {
+        if content.trim().is_empty() {
+            return SimpleReferenceType::NotSure;
+        }
+
+        let content = content.trim();
+
+        // Check in spec order (precedence matters)
+
+        // a. URL References
+        if self.is_url(content) {
+            return SimpleReferenceType::Url;
+        }
+
+        // b. Section References (followed by a pound)
+        if self.is_section(content) {
+            return SimpleReferenceType::Section;
+        }
+
+        // c. FootNotes Reference (numerical, integer ref, not preceded by #)
+        // Note: This operates on trimmed content, so " 1 " becomes "1"
+        if self.is_footnote(content) {
+            return SimpleReferenceType::Footnote;
+        }
+
+        // d. Citation Reference
+        if self.is_citation(content) {
+            return SimpleReferenceType::Citation;
+        }
+
+        // e. Too Come (TK) Reference
+        if self.is_tk(content) {
+            return SimpleReferenceType::ToComeTK;
+        }
+
+        // f. File References (start with a dot or forward slash)
+        if self.is_file(content) {
+            return SimpleReferenceType::File;
+        }
+
+        // g. Not Sure Reference (default)
+        SimpleReferenceType::NotSure
+    }
+
+    /// Check if content is a URL reference
+    fn is_url(&self, content: &str) -> bool {
+        self.url_protocol_regex.is_match(content)
+            || self.url_domain_regex.is_match(content)
+            || self.url_email_regex.is_match(content)
+    }
+
+    /// Check if content is a section reference
+    fn is_section(&self, content: &str) -> bool {
+        self.section_regex.is_match(content)
+    }
+
+    /// Check if content is a footnote reference
+    fn is_footnote(&self, content: &str) -> bool {
+        self.footnote_regex.is_match(content)
+    }
+
+    /// Check if content is a citation reference
+    fn is_citation(&self, content: &str) -> bool {
+        self.citation_author_regex.is_match(content) || self.citation_page_regex.is_match(content)
+    }
+
+    /// Check if content is a TK reference
+    fn is_tk(&self, content: &str) -> bool {
+        if self.tk_naked_regex.is_match(content) {
+            return true;
+        }
+
+        // For TK-id, handle case insensitive matching but lowercase-only ID
+        if content.to_lowercase().starts_with("tk-") && content.len() >= 4 {
+            let id_part = &content[3..]; // Skip "TK-" part
+            if id_part.len() <= 20
+                && id_part
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+            {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Check if content is a file reference
+    fn is_file(&self, content: &str) -> bool {
+        self.file_relative_regex.is_match(content) || self.file_absolute_regex.is_match(content)
+    }
+
+    /// Basic validation - at least one alphanumeric character
+    pub fn is_valid_reference_content(&self, content: &str) -> bool {
+        content.chars().any(|c| c.is_alphanumeric())
+    }
+}
+
+impl Default for ReferenceClassifier {
+    fn default() -> Self {
+        Self::new()
     }
 }

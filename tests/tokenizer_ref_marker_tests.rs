@@ -235,11 +235,12 @@ fn test_ref_marker_in_context_passing(
 #[case("[")] // Unclosed bracket
 #[case("]")] // No opening bracket
 #[case("[]")] // Empty content
-#[case("[  ]")] // Only whitespace
-#[case("[invalid content with spaces]")] // Spaces not allowed in most ref types
+#[case("[  ]")]
+// Only whitespace
+// #[case("[invalid content with spaces]")] // Now accepted by tokenizer, classified during parsing
 #[case("[@]")] // Citation without identifier
 #[case("[#]")] // Section without number
-#[case("[#abc]")] // Section with letters
+               // #[case("[#abc]")] // Now accepted by tokenizer, classified during parsing
 fn test_ref_marker_isolated_failing(#[case] input: &str) {
     let tokens = tokenize(input);
 

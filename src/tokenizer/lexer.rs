@@ -3,8 +3,8 @@
 //! Converts TXXT source text into Token enum variants with precise SourceSpan
 //! positioning for language server support.
 
+use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::patterns::ref_patterns;
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
 
@@ -28,13 +28,8 @@ pub struct Lexer {
     // Regex patterns for :: detection
     annotation_pattern: Regex,
     definition_pattern: Regex,
-    // Regex patterns for reference validation
-    citation_pattern: Regex,
-    section_pattern: Regex,
-    footnote_pattern: Regex,
-    url_pattern: Regex,
-    file_path_pattern: Regex,
-    anchor_pattern: Regex,
+    // Reference classifier for basic validation
+    ref_classifier: ReferenceClassifier,
 }
 
 impl Lexer {
@@ -49,13 +44,8 @@ impl Lexer {
             annotation_pattern: Regex::new(r"::\s*\w+.*?\s*::").unwrap(),
             // Regex for content :: pattern (definition) - ensure :: is exactly at end
             definition_pattern: Regex::new(r"\w+.*?::\s*$").unwrap(),
-            // Reference validation patterns from centralized definitions
-            citation_pattern: Regex::new(&format!("^{}$", ref_patterns::CITATION)).unwrap(),
-            section_pattern: Regex::new(&format!("^{}$", ref_patterns::SECTION)).unwrap(),
-            footnote_pattern: Regex::new(&format!("^{}$", ref_patterns::FOOTNOTE)).unwrap(),
-            url_pattern: Regex::new(&format!("^{}$", ref_patterns::URL_BASIC)).unwrap(),
-            file_path_pattern: Regex::new(&format!("^{}$", ref_patterns::FILE_PATH)).unwrap(),
-            anchor_pattern: Regex::new(&format!("^{}$", ref_patterns::ANCHOR)).unwrap(),
+            // Reference classifier for basic validation only
+            ref_classifier: ReferenceClassifier::new(),
         }
     }
 
@@ -659,19 +649,11 @@ impl Lexer {
         }
     }
 
-    /// Check if reference content matches valid patterns using centralized regex patterns
+    /// Check if reference content is valid (basic alphanumeric validation only)
     fn is_valid_ref_content(&self, content: &str) -> bool {
-        if content.is_empty() {
-            return false;
-        }
-
-        // Use centralized regex patterns for validation
-        self.citation_pattern.is_match(content)
-            || self.section_pattern.is_match(content)
-            || self.footnote_pattern.is_match(content)
-            || self.url_pattern.is_match(content)
-            || self.file_path_pattern.is_match(content)
-            || self.anchor_pattern.is_match(content)
+        // Only basic validation - at least one alphanumeric character
+        // Detailed type classification happens during parsing phase
+        self.ref_classifier.is_valid_reference_content(content)
     }
 
     /// Read a dash token (standalone -)

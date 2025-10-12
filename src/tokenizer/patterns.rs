@@ -10,25 +10,14 @@ pub const IDENTIFIER_PATTERN: &str = r"[a-zA-Z][a-zA-Z0-9]*(_[a-zA-Z0-9]+)*";
 /// Pattern for text tokens: alphanumeric content that may include underscores within words
 pub const TEXT_PATTERN: &str = r"[a-zA-Z0-9]+(_[a-zA-Z0-9]+)*";
 
-/// Pattern for reference marker content validation patterns
+/// Pattern for reference marker basic validation
+///
+/// Note: Detailed reference type classification has been moved to
+/// ast::reference_types::ReferenceClassifier for better separation of concerns.
+/// These patterns are kept for any remaining basic validation needs.
 pub mod ref_patterns {
-    /// Citation pattern: @followed by identifier
-    pub const CITATION: &str = r"@[a-zA-Z0-9_-]+";
-
-    /// Section pattern: # followed by section numbers (e.g., #1.2.3, #-1.1 for negative indexing)
-    pub const SECTION: &str = r"#(-1|[0-9]+)(\.(-1|[0-9]+))*";
-
-    /// Footnote pattern: just digits
-    pub const FOOTNOTE: &str = r"[0-9]+";
-
-    /// URL pattern: contains protocol or www
-    pub const URL_BASIC: &str = r".*://.*|www\..*";
-
-    /// File path pattern: contains path separators or file extensions
-    pub const FILE_PATH: &str = r".*[/\\].*|\.[a-zA-Z0-9]+$";
-
-    /// Plain anchor pattern: alphanumeric with limited punctuation
-    pub const ANCHOR: &str = r"[a-zA-Z0-9_.-]+";
+    /// Basic validation: content must have at least one alphanumeric character
+    pub const BASIC_CONTENT: &str = r".*[a-zA-Z0-9].*";
 }
 
 /// Pattern for annotation marker validation

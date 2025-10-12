@@ -5,6 +5,7 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::markers::{read_sequence_marker, SequenceMarkerLexer};
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
 
@@ -17,6 +18,14 @@ enum ColonPattern {
     Definition,
     /// standalone :: pattern
     Standalone,
+}
+
+/// Saved lexer state for backtracking
+#[derive(Debug, Clone)]
+pub struct LexerState {
+    position: usize,
+    row: usize,
+    column: usize,
 }
 
 /// Main tokenizer that produces new AST Token enum variants
@@ -67,7 +76,7 @@ impl Lexer {
 
             // Try to read sequence marker only at column 0 (start of line)
             if self.column == 0 {
-                if let Some(token) = self.read_sequence_marker() {
+                if let Some(token) = read_sequence_marker(self) {
                     tokens.push(token);
                     continue;
                 }
@@ -190,152 +199,6 @@ impl Lexer {
                 },
             })
         }
-    }
-
-    /// Read a sequence marker token (list markers like "1. ", "a) ", "- ")
-    fn read_sequence_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-        let saved_position = self.position;
-        let saved_row = self.row;
-        let saved_column = self.column;
-
-        // Try to match sequence marker patterns
-
-        // 1. Plain dash marker: "- "
-        if self.peek() == Some('-') {
-            self.advance();
-            if self.peek() == Some(' ') {
-                self.advance();
-                return Some(Token::SequenceMarker {
-                    content: "-".to_string(),
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: Position {
-                            row: start_pos.row,
-                            column: start_pos.column + 1,
-                        },
-                    },
-                });
-            } else {
-                // Not a valid marker, backtrack
-                self.position = saved_position;
-                self.row = saved_row;
-                self.column = saved_column;
-                return None;
-            }
-        }
-
-        // 2. Numbered markers: "1. ", "42. "
-        let mut number_str = String::new();
-        while let Some(ch) = self.peek() {
-            if ch.is_ascii_digit() {
-                number_str.push(ch);
-                self.advance();
-            } else {
-                break;
-            }
-        }
-
-        if !number_str.is_empty() {
-            if self.peek() == Some('.') {
-                self.advance();
-                if self.peek() == Some(' ') {
-                    self.advance();
-                    let marker = format!("{}.", number_str);
-                    return Some(Token::SequenceMarker {
-                        content: marker.clone(),
-                        span: SourceSpan {
-                            start: start_pos,
-                            end: Position {
-                                row: start_pos.row,
-                                column: start_pos.column + marker.len(),
-                            },
-                        },
-                    });
-                }
-            }
-            // Not a valid marker, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-            return None;
-        }
-
-        // 3. Alphabetical markers: "a. ", "b) ", "A. ", "Z) "
-        if let Some(ch) = self.peek() {
-            if ch.is_ascii_alphabetic() {
-                let letter = ch;
-                self.advance();
-
-                // Check for . or )
-                if let Some(punct) = self.peek() {
-                    if punct == '.' || punct == ')' {
-                        self.advance();
-                        if self.peek() == Some(' ') {
-                            self.advance();
-                            let marker = format!("{}{}", letter, punct);
-                            return Some(Token::SequenceMarker {
-                                content: marker.clone(),
-                                span: SourceSpan {
-                                    start: start_pos,
-                                    end: Position {
-                                        row: start_pos.row,
-                                        column: start_pos.column + marker.len(),
-                                    },
-                                },
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. Roman numeral markers: "i. ", "ii) ", "I. ", "III) "
-        self.position = saved_position;
-        self.row = saved_row;
-        self.column = saved_column;
-
-        let roman_patterns = [
-            "iii", "ii", "i", "iv", "v", "vi", "vii", "viii", "ix", "x", "III", "II", "I", "IV",
-            "V", "VI", "VII", "VIII", "IX", "X",
-        ];
-
-        for pattern in &roman_patterns {
-            if self.matches_string(pattern) {
-                // Advance past the roman numeral
-                for _ in 0..pattern.len() {
-                    self.advance();
-                }
-
-                // Check for . or )
-                if let Some(punct) = self.peek() {
-                    if punct == '.' || punct == ')' {
-                        self.advance();
-                        if self.peek() == Some(' ') {
-                            self.advance();
-                            let marker = format!("{}{}", pattern, punct);
-                            return Some(Token::SequenceMarker {
-                                content: marker.clone(),
-                                span: SourceSpan {
-                                    start: start_pos,
-                                    end: Position {
-                                        row: start_pos.row,
-                                        column: start_pos.column + marker.len(),
-                                    },
-                                },
-                            });
-                        }
-                    }
-                }
-
-                // Not a valid marker, backtrack and try next pattern
-                self.position = saved_position;
-                self.row = saved_row;
-                self.column = saved_column;
-            }
-        }
-
-        None
     }
 
     /// Read a definition marker token (term ::)
@@ -777,22 +640,7 @@ impl Lexer {
         })
     }
 
-    /// Check if the current position matches a given string
-    fn matches_string(&self, s: &str) -> bool {
-        let chars: Vec<char> = s.chars().collect();
-        for (i, &expected_char) in chars.iter().enumerate() {
-            if let Some(actual_char) = self.input.get(self.position + i) {
-                if *actual_char != expected_char {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        true
-    }
-
-    /// Get the current position in the input
+    /// Get the current position in the input (internal method)
     fn current_position(&self) -> Position {
         Position {
             row: self.row,
@@ -800,7 +648,7 @@ impl Lexer {
         }
     }
 
-    /// Advance to the next character and update position tracking
+    /// Advance to the next character and update position tracking (internal method)
     fn advance(&mut self) -> Option<char> {
         if let Some(ch) = self.input.get(self.position).copied() {
             self.position += 1;
@@ -1108,5 +956,63 @@ impl Lexer {
     /// Get absolute character position in input
     fn get_absolute_position(&self) -> usize {
         self.position
+    }
+}
+
+impl SequenceMarkerLexer for Lexer {
+    type State = LexerState;
+
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn matches_string(&self, s: &str) -> bool {
+        let chars: Vec<char> = s.chars().collect();
+        for (i, &expected_char) in chars.iter().enumerate() {
+            if let Some(actual_char) = self.input.get(self.position + i) {
+                if *actual_char != expected_char {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn save_state(&self) -> Self::State {
+        LexerState {
+            position: self.position,
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn restore_state(&mut self, state: Self::State) {
+        self.position = state.position;
+        self.row = state.row;
+        self.column = state.column;
     }
 }

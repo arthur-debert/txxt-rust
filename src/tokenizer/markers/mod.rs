@@ -10,3 +10,4 @@ pub mod sequence;
 // pub mod reference;
 
 // Re-export public interfaces
+pub use sequence::{read_sequence_marker, SequenceMarkerLexer};

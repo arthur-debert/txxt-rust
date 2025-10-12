@@ -1,43 +1,42 @@
-The Parsing Challenge Explained
+:: title :: The Parsing Challenge Explained
+:: author :: txxt Development Team  
+:: pub-date :: 2025-01-12
 
-        txxt is a plain text format that is very powerful and very easy to read and write.
-        That is made possible by using "invisible syntax" that is, leveraging human's 
+txxt is a plain text format that is very powerful and very easy to read and write. That is made possible by using "invisible syntax" - leveraging human capabilities:
 
-        - Spatial skills by encoding structure with indentation
-        - Long history of shared conventions that are engrrained and carry low cognitive load.
+- Spatial skills by encoding structure with indentation
+- Long history of shared conventions that are ingrained and carry low cognitive load
 
-        There is no free lunch, however, and all that good vibes come at the cost of pushing the complexity to the parser. This is why txxt, as being a dead simple format, with 4 syntax elements is actually pretty tricky to parse. txxx is indentation significant, recursive , look ahead intensive and some parts are statefull.
+There is no free lunch, however, and all that good vibes come at the cost of pushing the complexity to the parser. This is why txxt, as being a dead simple format, with 4 syntax elements is actually pretty tricky to parse. txxt is indentation significant, recursive, look ahead intensive and some parts are stateful.
 
-        While any of these are not particularly hard, the combination is not simple. For starters it precluded the project from using a library since there isn't one that can do all of these, that is, we build a custom parser, by hand. We will walk through the fundamentals, the reality and the things we want to fix.
+While any of these are not particularly hard, the combination is not simple. For starters it precluded the project from using a library since there isn't one that can do all of these, that is, we build a custom parser, by hand. We will walk through the fundamentals, the reality and the things we want to fix.
 
-1. From first Principles
+1. From First Principles
 
-        1.1 First things first: Verbatim must be marked.
-         
-        	txxt has verbatim blocks:  these contain content encoded in (likely) other formats.  The text-book example for this is code sample in various programing languages.
+    1.1. First things first: Verbatim must be marked
+     
+        txxt has verbatim blocks: these contain content encoded in (likely) other formats. The text-book example for this is code sample in various programming languages.
 
-        	This has a clear implication: the very first thing you need to do is mark verbatim blocks content, because you can't parse them as txxt.
-        	It's not just that is would be wasteful, but wrong. For example txxt cares about indentation and blank lines, and the content in verbatim blocks can be parsed as those. 
+        This has a clear implication: the very first thing you need to do is mark verbatim blocks content, because you can't parse them as txxt. It's not just that it would be wasteful, but wrong. For example txxt cares about indentation and blank lines, and the content in verbatim blocks can be parsed as those.
 
-        	So the first pass is to mark the soure string's verbatim blocks . We identify these and generate a list of start,end lists for the verbatim content (remember the verbatim title, label are txxt and parsing them is fine)
+        So the first pass is to mark the source string's verbatim blocks. We identify these and generate a list of start,end lists for the verbatim content (remember the verbatim title, label are txxt and parsing them is fine).
 
-        	This is also because, as verbatim blocks are stateful (once inside one, you ignore anything but the end marker for the block), parsing it separately has the benefit of removing all stateful parsing. Yay. 
+        This is also because, as verbatim blocks are stateful (once inside one, you ignore anything but the end marker for the block), parsing it separately has the benefit of removing all stateful parsing. Yay.
 
-        1.2. Understanding other elements  
+    1.2. Understanding other elements
 
-        	We need to custom write the parser leveraging everything that allows us to reduce complexities and isolating the hardest parts. 
-        	Let's take a look at what parsing related characterirstics sets the various elements a part.
+        We need to custom write the parser leveraging everything that allows us to reduce complexities and isolating the hardest parts. Let's take a look at what parsing related characteristics sets the various elements apart.
 
+        Element Types:
 
-        	1. Inlines
+        1. Inlines
 
-        		Inlines will happen in a raw text, in a pargragraph or list or section title.
-        		Parsing them is very straightforoward as they are not dependend on indentation, context or look ahead and have explicit start and end markers.
-        		Hence inline parsing can be isolated into a function that 
-        			- Though a custom simple state machine matches any start marker, set the state to be inside an inlie and pop the state when out.
-        			- Creates (if such elements are present) a contaner with processed text elements ("plain text" is treated as an inline element which allows is to be processed and treated like all).
-        		
-        		For this reason, inlines can be processed last thing, and given that they don't change document structure, they are very simple.
+            Inlines will happen in raw text, in a paragraph or list or section title. Parsing them is very straightforward as they are not dependent on indentation, context or look ahead and have explicit start and end markers. Hence inline parsing can be isolated into a function that:
+
+            - Through a custom simple state machine matches any start marker, set the state to be inside an inline and pop the state when out
+            - Creates (if such elements are present) a container with processed text elements ("plain text" is treated as an inline element which allows it to be processed and treated like all)
+
+            For this reason, inlines can be processed last thing, and given that they don't change document structure, they are very simple.
 
         	2. Annotations 
         		Annotations are still simple, although they have a few forms (single and multiline). The multinie is trickier because it does not require to be followed by a blank line (because annotations work much better next to the item they are annotating)

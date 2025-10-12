@@ -1,66 +1,65 @@
 :: title :: A Tour of txxt
 :: author :: Gemini
-:: pub_date :: 2025-09-23
+:: pub-date :: 2025-01-12
 :: doc.meta:version=1.2,format=tutorial :: Document metadata with parameters
 
-Welcome to txxt! (session)
+Welcome to txxt!
 
-This document is a brief tour of the txxt format, designed to get you started quickly. For a deeper dive, please refer to the detailed specification documents. (paragraph)
+This document is a brief tour of the txxt format, designed to get you started quickly. For a deeper dive, please refer to the detailed specification documents.
 
-:: note:importance=high :: This is an annotation with parameters. It's metadata, not content. (annotation)
+:: note:importance=high :: This is an annotation with parameters. It's metadata, not content.
 
-1. The Basics (session)
-
-
-    txxt is structured around sessions (like sections) and indentation. (paragraph)
-
-    This is a session title (session)
-
-        And this is its content, indented one level. (paragraph)
-
-2. Core Elements (session)
-
-    2.1. Lists (session)
+1. The Basics
 
 
-        - You can create unordered lists. (list-item)
-        1. Or ordered lists, which can be nested. (list-item)
-            1. Like this. (list-item)
+    txxt is structured around sessions (like sections) and indentation.
 
-    2.2. Verbatim Blocks (session)
+    This is a session title
 
-        For code or other pre-formatted text. (paragraph)
+        And this is its content, indented one level.
+
+2. Core Elements
+
+    2.1. Lists
+
+        - You can create unordered lists
+        1. Or ordered lists, which can be nested
+            1. Like this
+
+    2.2. Verbatim Blocks
+
+        For code or other pre-formatted text.
 
         A simple code block:
             console.log("Hello, world!");
-        (javascript)
+        :: javascript
 
-        But you can go wild: 
-            The universe tend towards maxium irony,  don't push it.
-        (jwz)
+        But you can go wild:
+            The universe tends towards maximum irony, don't push it.
+        :: quote
 
-        Using it for citations, notes and other needs. The general form is: (paragraph)
+        Using it for citations, notes and other needs. The general form is:
 
-        <optional title>:
+        Title:
             content (+1 indented)
-        (<optoinal lang label>)
+        :: label
 
-    2.3. Media (session)
+    2.3. Media
 
-        You can also reference images, videos, or audio. (paragraph)
+        You can also reference images, videos, or audio.
 
         A beautiful landscape:
-        (image: src=[/images/landscape.jpg], alt="Mountain vista")
+        :: image:src=/images/landscape.jpg,alt="Mountain vista"
 
         Code with version info:
             print("Hello, txxt!")
-        (python: version=3.11)
+        :: python:version=3.11
 
-        This uses verbatim blocks with parameters. Both annotations and verbatim blocks support the same parameter syntax. (paragraph)
+        This uses verbatim blocks with parameters. Both annotations and verbatim blocks support the same parameter syntax.
 
-    2.4. Definitions (session)
+    2.4. Definitions
 
-        Define terms clearly with the definition syntax. (paragraph)
+        Define terms clearly with the definition syntax.
 
         Term ::
             The explanation or definition of the term goes here. It can span 
@@ -70,30 +69,29 @@ This document is a brief tour of the txxt format, designed to get you started qu
             A program that analyzes text according to formal grammar rules to 
             create a structured representation like an Abstract Syntax Tree.
 
-        The double colon (::) marks a definition, distinguishing it from 
-        verbatim blocks which use a single colon. (paragraph)
+        The double colon (::) marks a definition, distinguishing it from verbatim blocks which use a single colon.
 
-3. Inline Formatting (session)
+3. Inline Formatting
 
-    You can format text *within* a line. (paragraph)
+    You can format text *within* a line.
 
-    - Use asterisks for *bold* text. (list-item)
-    - Underscores for _italic_ text. (list-item)
-    - Backticks for `monospace` text. (list-item)
-    - Math is supported: #E = mc^2# (list-item)
-    - Academic citations: [@smith2023] or with pages [@doe2024, p. 42] (list-item)
+    - Use asterisks for *bold* text
+    - Underscores for _italic_ text
+    - Backticks for `monospace` text
+    - Math is supported: #E = mc^2#
+    - Academic citations: [@smith2023] or with pages [@doe2024, p. 42]
 
-4. References, Citations, and Footnotes (session)
+4. References, Citations, and Footnotes
 
     `txxt` has powerful linking and citation capabilities.
 
-    - You can link to external sites [https://example.com]. (list-item)
-    - Or other documents [./intro/03-inline.txxt]. (list-item)
-    - It also supports footnotes[1]. (list-item)
-    - In sessions [#2.3] no the same doc (list-item)
-    - Academic citations [@smith2023; @jones2024] with bibliography support (list-item)
+    - You can link to external sites [https://example.com]
+    - Or other documents [./intro/03-inline.txxt]
+    - It also supports footnotes[1]
+    - In sessions [#2.3] on the same doc
+    - Academic citations [@smith2023; @jones2024] with bibliography support
 
-    The reference is anchored to the word preceeding it.
+    The reference is anchored to the word preceding it.
 
     For academic documents, declare your bibliography:
 
@@ -101,9 +99,10 @@ This document is a brief tour of the txxt format, designed to get you started qu
 
     Then cite works throughout your text [@doe2024, pp. 10-15].
 
-5. Where to Next? (session)
+5. Where to Next?
 
     This tour has only scratched the surface. To learn more, please see the full specification, starting with [./intro/01-general.txxt].
 
-Notes (session)
+Notes
+
     1. Footnotes are created by adding a numbered list in the document's final session.

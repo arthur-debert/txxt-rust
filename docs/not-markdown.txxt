@@ -1,49 +1,51 @@
-From Markdown to txxt formating in a nutshell.
+:: title :: From Markdown to txxt Formatting
+:: author :: txxt Documentation Team
+:: pub-date :: 2025-01-12
 
-While txxt borrows from Markdown, it differs significantly from it. You should read the full specs [docs/intro/*], but this will act as quick checklist quitck guide.
+Quick guide to txxt syntax differences from Markdown. While txxt borrows from Markdown, it differs significantly. You should read the full specs [docs/specs/], but this acts as a quick reference guide.
 
 1. Sections
 
-    Should be number and surrounded by blank lines.
+    Should be numbered and surrounded by blank lines.
     
 2. Documents are trees, not lists
 
-    txxt content is properly structured with nesting. This is true for both sections and lists. In both cases
-    parent > children relationship is encoded as a +1 indentation (4 spaces.)
+    txxt content is properly structured with nesting. This is true for both sections and lists. In both cases, the parent-child relationship is encoded as +1 indentation (4 spaces).
 
     2.1. Make Good Use Of It
 
-        As  here, we can see that we're in session 2.1 and indentation matches. This really aids in inteligibly for dcuments.
+        As here, we can see that we're in session 2.1 and indentation matches. This really aids in intelligibility for documents.
 
 3. Lists
 
-    - Unordered lists use dashes, not * for itmes.
+    - Unordered lists use dashes, not * for items
     - They can be nested
-        1. Styles can be different in each level.
+        1. Styles can be different in each level
 
-4. Fenced Blocks / Examples
+4. Verbatim Blocks
 
-    These are called verbatim blocks in txxt, as in txxt itself won't process them. 
+    These are called verbatim blocks in txxt, as txxt itself won't process them.
     
     Their general form:
-        <block line>1
-        <block line> 2
-        ....
-    (<label>?)
+        Title line:
+            content line 1
+            content line 2
+            ....
+        :: label
 
-    The above is a verbatim block with "Their general form" as the title and the label specified in parentheses.
-    Title and label are optional (but highly recommended). Content is +1 indented from the title line.
-    The closing marker uses parentheses: () for unlabeled blocks or (label) for labeled blocks.
+    The above is a verbatim block with "Title line" as the title and the label specified with txxt markers (::). 
+    Title and label are mandatory. Content is +1 indented from the title line.
+    The closing marker uses txxt markers: :: label for labeled blocks.
 
-5. Inlines are links 
+5. Inline Formatting and Links
 
     - *bold*: note one symbol, not 2
-    - _italic_: also one
+    - _italic_: also one  
     - `code`: you get the drift
-    - [ref]: for links, paths, see bellow
+    - [ref]: for links, paths, see below
 
-    Links are refernces 
-        - ther is no anchor and target, the anchor becomes the word before the target
+    Links are references:
+        - There is no anchor and target; the anchor becomes the word before the target
         - For example: See the documentation [http://example.com/documentation]
         - Can be urls, file paths [docs/specs], other sections [#2.1] or footnotes [1]
 

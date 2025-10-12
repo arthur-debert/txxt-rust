@@ -280,9 +280,12 @@ pub fn integrate_annotation_parameters<L: ParameterLexer>(
                         result.extend(param_tokens);
                     }
                 } else {
-                    // No parameters, add original content tokens
-                    for token in tokens.iter().take(end_idx).skip(start_idx + 1) {
-                        result.push(token.clone());
+                    // No parameters, create a clean TEXT token with the raw content
+                    if let Some(first_token) = tokens.get(start_idx + 1) {
+                        result.push(Token::Text {
+                            content: content.clone(),
+                            span: first_token.span().clone(),
+                        });
                     }
                 }
 

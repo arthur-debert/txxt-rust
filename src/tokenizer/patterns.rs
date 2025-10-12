@@ -6,10 +6,12 @@
 use crate::ast::tokens::SourceSpan;
 
 /// Pattern for valid text content (used in property tests)
-pub const TEXT_PATTERN: &str = r"[a-zA-Z0-9_]+";
+/// Note: Text cannot start with formatting delimiters like _ * ` # -
+pub const TEXT_PATTERN: &str = r"[a-zA-Z0-9][a-zA-Z0-9_]*";
 
 /// Pattern for valid identifiers (used in property tests for annotations)
-pub const IDENTIFIER_PATTERN: &str = r"[a-zA-Z_][a-zA-Z0-9_]*";
+/// Note: Identifiers starting with _ must be followed by alphanumeric chars
+pub const IDENTIFIER_PATTERN: &str = r"[a-zA-Z][a-zA-Z0-9_]*|_[a-zA-Z0-9][a-zA-Z0-9_]*";
 
 /// Extract raw content between two source spans (for annotation content)
 pub fn extract_raw_content_between_spans(

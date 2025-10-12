@@ -8,6 +8,7 @@
 //! - Roman numeral markers: "i. ", "III) "
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::lexer::{Lexer, LexerState};
 
 /// Read a sequence marker token (list markers like "1. ", "a) ", "- ")
 ///
@@ -177,4 +178,62 @@ pub trait SequenceMarkerLexer {
 
     /// Restore a previously saved lexer state
     fn restore_state(&mut self, state: Self::State);
+}
+
+impl SequenceMarkerLexer for Lexer {
+    type State = LexerState;
+
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn matches_string(&self, s: &str) -> bool {
+        let chars: Vec<char> = s.chars().collect();
+        for (i, &expected_char) in chars.iter().enumerate() {
+            if let Some(actual_char) = self.input.get(self.position + i) {
+                if *actual_char != expected_char {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn save_state(&self) -> Self::State {
+        LexerState {
+            position: self.position,
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn restore_state(&mut self, state: Self::State) {
+        self.position = state.position;
+        self.row = state.row;
+        self.column = state.column;
+    }
 }

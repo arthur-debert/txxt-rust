@@ -7,8 +7,9 @@
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::inline::{parse_parameters, ParameterLexer};
+use crate::tokenizer::lexer::{Lexer, LexerState};
 use crate::tokenizer::patterns::{
-    extract_raw_content_before_span, extract_raw_content_between_spans,
+    extract_raw_content_before_span, extract_raw_content_between_spans, get_current_line,
 };
 use regex::Regex;
 
@@ -423,5 +424,77 @@ fn find_definition_content<L: ParameterLexer>(
         }
     } else {
         None
+    }
+}
+
+impl TxxtMarkerLexer for Lexer {
+    type State = LexerState;
+
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.position >= self.input.len()
+    }
+
+    fn get_current_line(&self) -> String {
+        get_current_line(&self.input, self.position, self.row, self.column)
+    }
+
+    fn detect_colon_pattern(&self) -> ColonPattern {
+        detect_colon_pattern(self)
+    }
+
+    fn is_start_of_annotation_pattern(&self, start_pos: Position) -> bool {
+        is_start_of_annotation_pattern(self, start_pos)
+    }
+
+    fn annotation_pattern(&self) -> &Regex {
+        // Create a static regex for annotation pattern
+        static ANNOTATION_PATTERN: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+        ANNOTATION_PATTERN.get_or_init(|| Regex::new(r"::\s*\w+.*?\s*::").unwrap())
+    }
+
+    fn definition_pattern(&self) -> &Regex {
+        // Create a static regex for definition pattern
+        static DEFINITION_PATTERN: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+        DEFINITION_PATTERN.get_or_init(|| Regex::new(r"\w+.*?::\s*$").unwrap())
+    }
+
+    fn save_state(&self) -> Self::State {
+        LexerState {
+            position: self.position,
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn restore_state(&mut self, state: Self::State) {
+        self.position = state.position;
+        self.row = state.row;
+        self.column = state.column;
     }
 }

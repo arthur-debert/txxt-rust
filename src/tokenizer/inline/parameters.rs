@@ -6,6 +6,7 @@
 //! - Namespaced keys (org.example.metadata)
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::lexer::Lexer;
 
 /// Trait for parameter parsing
 pub trait ParameterLexer {
@@ -214,6 +215,42 @@ fn parse_unquoted_value(chars: &[char], pos: &mut usize) -> Option<String> {
     }
 
     Some(chars[start..end].iter().collect())
+}
+
+impl ParameterLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.position >= self.input.len()
+    }
+
+    fn get_input(&self) -> &[char] {
+        &self.input
+    }
 }
 
 #[cfg(test)]

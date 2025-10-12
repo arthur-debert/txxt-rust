@@ -5,32 +5,28 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::inline::{
-    parse_parameters, read_inline_delimiter, InlineDelimiterLexer, ParameterLexer,
-};
+use crate::tokenizer::inline::{parse_parameters, read_inline_delimiter};
 use crate::tokenizer::markers::{
-    detect_colon_pattern, integrate_annotation_parameters, integrate_definition_parameters,
-    is_start_of_annotation_pattern, read_annotation_marker, read_definition_marker,
-    read_sequence_marker, ColonPattern, SequenceMarkerLexer, TxxtMarkerLexer,
+    integrate_annotation_parameters, integrate_definition_parameters, read_annotation_marker,
+    read_definition_marker, read_sequence_marker,
 };
-use crate::tokenizer::patterns::get_current_line;
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
 
 /// Saved lexer state for backtracking
 #[derive(Debug, Clone)]
 pub struct LexerState {
-    position: usize,
-    row: usize,
-    column: usize,
+    pub(crate) position: usize,
+    pub(crate) row: usize,
+    pub(crate) column: usize,
 }
 
 /// Main tokenizer that produces new AST Token enum variants
 pub struct Lexer {
-    input: Vec<char>,
-    position: usize,
-    row: usize,
-    column: usize,
+    pub(crate) input: Vec<char>,
+    pub(crate) position: usize,
+    pub(crate) row: usize,
+    pub(crate) column: usize,
     // Reference classifier for basic validation
     ref_classifier: ReferenceClassifier,
 }
@@ -693,199 +689,5 @@ impl Lexer {
     /// Get absolute character position in input
     fn get_absolute_position(&self) -> usize {
         self.position
-    }
-}
-
-impl SequenceMarkerLexer for Lexer {
-    type State = LexerState;
-
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn matches_string(&self, s: &str) -> bool {
-        let chars: Vec<char> = s.chars().collect();
-        for (i, &expected_char) in chars.iter().enumerate() {
-            if let Some(actual_char) = self.input.get(self.position + i) {
-                if *actual_char != expected_char {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn save_state(&self) -> Self::State {
-        LexerState {
-            position: self.position,
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn restore_state(&mut self, state: Self::State) {
-        self.position = state.position;
-        self.row = state.row;
-        self.column = state.column;
-    }
-}
-
-impl InlineDelimiterLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-}
-
-impl ParameterLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn is_at_end(&self) -> bool {
-        self.position >= self.input.len()
-    }
-
-    fn get_input(&self) -> &[char] {
-        &self.input
-    }
-}
-
-impl TxxtMarkerLexer for Lexer {
-    type State = LexerState;
-
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn is_at_end(&self) -> bool {
-        self.position >= self.input.len()
-    }
-
-    fn get_current_line(&self) -> String {
-        get_current_line(&self.input, self.position, self.row, self.column)
-    }
-
-    fn detect_colon_pattern(&self) -> ColonPattern {
-        detect_colon_pattern(self)
-    }
-
-    fn is_start_of_annotation_pattern(&self, start_pos: Position) -> bool {
-        is_start_of_annotation_pattern(self, start_pos)
-    }
-
-    fn annotation_pattern(&self) -> &Regex {
-        // Create a static regex for annotation pattern
-        static ANNOTATION_PATTERN: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
-        ANNOTATION_PATTERN.get_or_init(|| Regex::new(r"::\s*\w+.*?\s*::").unwrap())
-    }
-
-    fn definition_pattern(&self) -> &Regex {
-        // Create a static regex for definition pattern
-        static DEFINITION_PATTERN: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
-        DEFINITION_PATTERN.get_or_init(|| Regex::new(r"\w+.*?::\s*$").unwrap())
-    }
-
-    fn save_state(&self) -> Self::State {
-        LexerState {
-            position: self.position,
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn restore_state(&mut self, state: Self::State) {
-        self.position = state.position;
-        self.row = state.row;
-        self.column = state.column;
     }
 }

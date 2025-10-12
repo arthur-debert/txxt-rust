@@ -8,6 +8,7 @@
 //! - Math delimiters: #
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::lexer::Lexer;
 
 /// Trait for lexer state that can parse inline delimiters
 pub trait InlineDelimiterLexer {
@@ -63,5 +64,33 @@ pub fn read_inline_delimiter<L: InlineDelimiterLexer>(lexer: &mut L) -> Option<T
             })
         }
         _ => None,
+    }
+}
+
+impl InlineDelimiterLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
     }
 }

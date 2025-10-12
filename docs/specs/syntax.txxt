@@ -1,0 +1,428 @@
+:: title :: txxt Syntax and Grammar Reference
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+This document defines the complete syntax and grammar of the txxt format, building from atomic tokens to complex document structures.
+
+1. Token Hierarchy
+
+    txxt syntax is built from small, composable tokens that combine into increasingly complex structures. The hierarchy follows this pattern:
+
+    Characters → Tokens → Lines → Blocks → Documents
+
+    1.1. Character Level
+
+        Basic character classes and escaping rules form the foundation:
+
+        Character classes:
+            <whitespace> = [ \t\s]
+            <letter> = [a-zA-Z]
+            <digit> = [0-9]
+            <alphanumeric> = <letter> | <digit>
+            <line-break> = \n
+            <any-char> = .
+        (grammar)
+
+        Escaping:
+            <escaped-char> = \ <any-char>
+            <literal-char> = <any-char> - [*_`#\[\]@:]
+        (grammar)
+
+        The backslash removes special meaning from any following character.
+
+    1.2. Basic Tokens
+
+        Atomic tokens that cannot be decomposed further:
+
+        Text tokens:
+            <text-char> = <literal-char> | <escaped-char>
+            <text-span> = <text-char>+
+            <identifier> = <letter> (<alphanumeric> | [._-])*
+        (grammar)
+
+        Structural tokens:
+            <blank-line> = <whitespace>* <line-break>
+            <indent> = <whitespace>{4}
+            <line-break> = \n
+        (grammar)
+
+        Marker tokens:
+            <dash> = -
+            <period> = .
+            <colon> = :
+            <double-colon> = ::
+            <asterisk> = *
+            <underscore> = _
+            <backtick> = `
+            <hash> = #
+            <left-bracket> = [
+            <right-bracket> = ]
+            <left-paren> = (
+            <right-paren> = )
+            <at-sign> = @
+        (grammar)
+
+    1.3. txxt Marker
+
+        The double colon is the fundamental txxt marker used across multiple elements:
+
+        <txxt-marker> = <double-colon>
+        (grammar)
+
+        Usage contexts:
+        - Annotations: `:: label :: content`
+        - Definitions: `Term ::`
+        - Parameters: `label:key=value:` (single colon + txxt marker)
+
+2. Span Elements
+
+    Inline elements that format or reference text within lines:
+
+    2.1. Text Spans
+
+        Plain text content without special formatting:
+
+        <text-content> = <text-span> (<whitespace> <text-span>)*
+        (grammar)
+
+    2.2. Formatting Spans
+
+        Paired markers that apply formatting to enclosed text:
+
+        Bold text:
+            <bold-span> = <asterisk> <text-content> <asterisk>
+        (grammar)
+
+        Italic text:
+            <italic-span> = <underscore> <text-content> <underscore>
+        (grammar)
+
+        Code text:
+            <code-span> = <backtick> <text-content> <backtick>
+        (grammar)
+
+        Math text:
+            <math-span> = <hash> <text-content> <hash>
+        (grammar)
+
+        Constraints:
+        - No whitespace between markers and content
+        - Cannot span multiple lines
+        - Can be nested but not overlapped
+
+    2.3. Reference Spans
+
+        Links and citations using bracket notation:
+
+        Basic reference:
+            <reference-content> = (<text-char> - [[\]])+
+            <reference-span> = <left-bracket> <reference-content> <right-bracket>
+        (grammar)
+
+        Citation reference:
+            <citation-key> = <identifier>
+            <citation-locator> = , <whitespace>* <text-content>
+            <citation-span> = <left-bracket> <at-sign> <citation-key> <citation-locator>? <right-bracket>
+        (grammar)
+
+3. Line Elements
+
+    Complete lines that form the building blocks of document structure:
+
+    3.1. Text Lines
+
+        Lines containing span elements:
+
+        <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span>
+        <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
+        (grammar)
+
+    3.2. Structural Lines
+
+        Lines that define document structure:
+
+        Blank line:
+            <blank-line> = <whitespace>* <line-break>
+        (grammar)
+
+4. Block Markers
+
+    Tokens that identify specific block types:
+
+    4.1. List Markers
+
+        Sequence markers that start list items:
+
+        Plain marker:
+            <plain-marker> = <dash> <whitespace>
+        (grammar)
+
+        Numerical markers:
+            <number> = <digit>+
+            <numerical-marker> = <number> <period> <whitespace>
+            <numerical-paren-marker> = <number> <right-paren> <whitespace>
+        (grammar)
+
+        Alphabetical markers:
+            <letter-lower> = [a-z]
+            <letter-upper> = [A-Z]
+            <alpha-marker> = (<letter-lower> | <letter-upper>) <period> <whitespace>
+            <alpha-paren-marker> = (<letter-lower> | <letter-upper>) <right-paren> <whitespace>
+        (grammar)
+
+        Roman numeral markers:
+            <roman-lower> = i | ii | iii | iv | v | vi | vii | viii | ix | x
+            <roman-upper> = I | II | III | IV | V | VI | VII | VIII | IX | X
+            <roman-marker> = (<roman-lower> | <roman-upper>) <period> <whitespace>
+            <roman-paren-marker> = (<roman-lower> | <roman-upper>) <right-paren> <whitespace>
+        (grammar)
+
+        Complete sequence marker:
+            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alpha-marker> | <alpha-paren-marker> | <roman-marker> | <roman-paren-marker>
+        (grammar)
+
+    4.2. Annotation Markers
+
+        txxt markers for metadata:
+
+        <annotation-marker> = <txxt-marker>
+        (grammar)
+
+    4.3. Verbatim Markers
+
+        Single colon markers for preserved content:
+
+        <verbatim-start> = <colon> <whitespace>* <line-break>
+        <verbatim-end> = <left-paren> <identifier>? <right-paren>
+        <verbatim-param-end> = <left-paren> <identifier> <colon> <parameter-list> <right-paren>
+        (grammar)
+
+    4.4. Definition Markers
+
+        txxt markers at end of line:
+
+        <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
+        (grammar)
+
+5. Block Elements
+
+    Structural units that contain lines and other blocks:
+
+    5.1. Paragraph Blocks
+
+        One or more text lines terminated by blank line:
+
+        <paragraph> = <text-line>+ <blank-line>?
+        (grammar)
+
+    5.2. List Blocks
+
+        Collection of list items with consistent markers:
+
+        <list-item-content> = <text-line>
+        <list-item> = <sequence-marker> <list-item-content>
+        <list> = <list-item>+
+        (grammar)
+
+    5.3. Session Blocks
+
+        Hierarchical sections with titles and content:
+
+        <session-numbering> = <sequence-marker>
+        <session-title> = <session-numbering>? <text-line>
+        <session> = <blank-line>? <session-title> <container>
+        (grammar)
+
+    5.4. Verbatim Blocks
+
+        Preserved content that bypasses txxt parsing. Two modes based on content positioning:
+
+        <verbatim-title> = <text-line> <verbatim-start>
+        <verbatim-content-line> = <any-char>* <line-break>
+        
+        In-flow verbatim (content indented +1 from title):
+        <inflow-content-wall> = <indentation-level> <indent>
+        <inflow-content> = <inflow-content-wall> <verbatim-content-line>*
+        <inflow-verbatim> = <verbatim-title> <inflow-content> <verbatim-end>
+        
+        Stretched verbatim (content at absolute column 1):
+        <stretched-content-wall> = ^
+        <stretched-content> = <stretched-content-wall> <verbatim-content-line>*
+        <stretched-verbatim> = <verbatim-title> <stretched-content> <verbatim-end>
+        
+        Complete verbatim block:
+        <verbatim-block> = <inflow-verbatim> | <stretched-verbatim>
+        (grammar)
+
+        Mode determination:
+        - First non-blank content line at title-level + 4 spaces → In-flow
+        - First non-blank content line at column 1 → Stretched
+        - Empty content blocks default to in-flow
+
+    5.5. Definition Blocks
+
+        Term-definition pairs:
+
+        <definition-term> = <text-line> <definition-marker>
+        <definition-content> = <container>
+        <definition> = <definition-term> <definition-content>
+        (grammar)
+
+    5.6. Annotation Blocks
+
+        Metadata elements:
+
+        Inline annotation:
+            <annotation-content> = <text-content>
+            <annotation-label> = <identifier>
+            <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>
+        (grammar)
+
+        Block annotation:
+            <annotation-block> = <txxt-marker> <annotation-label> <txxt-marker> <line-break> <container>?
+        (grammar)
+
+6. Container Architecture
+
+    The indentation-based hierarchy that structures txxt documents:
+
+    6.1. Indentation Rules
+
+        Indentation levels and transitions:
+
+        <indentation-level> = <indent>*
+        <indent-increase> = <indentation-level>{n+1}
+        <indent-decrease> = <indentation-level>{n-k} (where k >= 1)
+        <indent-same> = <indentation-level>{n}
+        (grammar)
+
+    6.2. Container Types
+
+        Different container types with specific content rules:
+
+        Content container (cannot contain sessions):
+            <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
+        (grammar)
+
+        Session container (can contain sessions):
+            <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
+        (grammar)
+
+        Ignore container (verbatim content only):
+            <ignore-line> = <any-line>
+            <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
+        (grammar)
+
+7. Document Structure
+
+    Complete document grammar combining all elements:
+
+    7.1. Document Root
+
+        A document is a session container at the root level:
+
+        <document> = <annotation-block>* <session-container>
+        (grammar)
+
+    7.2. Element Resolution
+
+        Rules for resolving ambiguous structures:
+
+        Session vs Paragraph:
+        - Line followed by indented content = Session as long as child is not a session without content too
+        - Line followed by blank line or same-level content = Paragraph
+
+        List vs Dialog:
+        - Multiple items with markers = List
+        - Single item with marker = Paragraph (unless nested)
+
+        Annotation vs Text:
+        - Valid annotation syntax = Annotation
+        - Invalid or incomplete syntax = Paragraph
+
+8. Parameters
+
+    Key-value metadata syntax used in annotations and verbatim blocks:
+
+    8.1. Parameter Syntax
+
+        Basic parameter structure:
+
+        <parameter-key> = <identifier> (<period> <identifier>)*
+        <parameter-value> = <text-content> | <quoted-string>
+        <quoted-string> = " (<text-char> | <escaped-char>)* "
+        <parameter-pair> = <parameter-key> = <parameter-value>
+        <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
+        (grammar)
+
+    8.2. Parameter Integration
+
+        How parameters integrate with annotations and verbatim blocks:
+
+        Parameterized annotation:
+            <param-annotation> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker> <annotation-content>?
+        (grammar)
+
+        Parameterized verbatim:
+            <param-verbatim-end> = <left-paren> <identifier> <colon> <parameter-list> <right-paren>
+        (grammar)
+
+9. Precedence and Disambiguation
+
+    Rules for resolving conflicts when multiple interpretations are possible:
+
+    9.1. Token Precedence
+
+        Order of token recognition (first match wins):
+
+        1. Escaped characters (highest precedence)
+        2. Verbatim block boundaries
+        3. Annotation markers
+        4. Sequence markers
+        5. Reference spans
+        6. Formatting spans
+        7. Text spans (lowest precedence)
+
+    9.2. Block Precedence
+
+        Order of block type resolution (least to most ambiguous):
+
+        1. Verbatim blocks (pre-marked during lexing, most explicit)
+        2. Annotations (double colon markers, explicit syntax)
+        3. Definitions (term + double colon at end of line, unambiguous)
+        4. Lists (sequence markers + content, clear markers)
+        5. Sessions (title + indented content, context dependent)
+        6. Paragraphs (default for text content, most ambiguous)
+
+    9.3. Context Rules
+
+        How context affects interpretation:
+
+        - Indentation level determines container type
+        - First list item determines style for entire list
+        - Blank lines affect session vs paragraph resolution vs list 
+        - Verbatim mode suspends all other parsing
+
+10. Error Handling
+
+    How the parser handles malformed or ambiguous input:
+
+    10.1. Graceful Degradation
+
+        When syntax is malformed, fall back to simpler interpretation:
+
+        - Invalid annotation → Paragraph
+        - Incomplete formatting → Literal text
+        - Malformed list → Paragraph
+        - Unclosed verbatim → Paragraph
+
+    10.2. Recovery Strategies
+
+        Methods for continuing parsing after errors:
+
+        - Skip malformed tokens and continue
+        - Close incomplete structures at block boundaries
+        - Preserve all content as text when structure unclear
+        - Never fail completely - always produce output
+
+:: note :: This syntax reference defines the complete grammar for txxt. Implementations should follow these rules while maintaining the graceful degradation principles for robust parsing.

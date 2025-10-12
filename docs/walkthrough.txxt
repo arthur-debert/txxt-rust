@@ -10,14 +10,14 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
 
     The format is designed around four core principles:
 
-    - **Indentation-based structure**: Parent-child relationships are encoded through consistent 4-space indentation
-    - **Minimal visible syntax**: Leverages conventions humans already understand
-    - **Container architecture**: Clear separation between content and structure
-    - **Plain text foundation**: Readable and writable without special tools
+    - Indentation-based structure: Parent-child relationships are encoded through consistent 4-space indentation
+    - Minimal visible syntax: Leverages conventions humans already understand
+    - Container architecture: Clear separation between content and structure
+    - Plain text foundation: Readable and writable without special tools
 
 2. Basic Structure
 
-    txxt documents are organized around **sessions** (like sections) and **indentation**. Every element follows a simple rule: children are always +1 indented from their parent.
+    txxt documents are organized around sessions (like sections) and indentation. Every element follows a simple rule: children are always +1 indented from their parent.
 
     Example document structure:
         
@@ -97,9 +97,9 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
         (javascript)
 
         Verbatim blocks have three parts:
-        - **Title**: Optional description (can be empty with just `:`)
-        - **Content**: Indented lines preserved exactly
-        - **Label**: Language hint in parentheses (optional)
+        - Title: Optional description (can be empty with just `:`)
+        - Content: Indented lines preserved exactly
+        - Label: Language hint in parentheses (optional)
 
         Advanced example with parameters:
             def fibonacci(n):
@@ -125,7 +125,7 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
 
         The architectural foundation of txxt - containers hold indented child content. Most elements can host containers when they have nested content.
 
-        The key insight: **containers get indented, not their parent elements**.
+        The key insight: containers get indented, not their parent elements.
 
         This explains why:
         - Flat lists need no indentation
@@ -241,11 +241,11 @@ A comprehensive introduction to the txxt plain text format, designed for high ex
 
     9.1. Five-Phase Pipeline
 
-        1. **Verbatim Marking**: Identify and protect non-txxt content
-        2. **Tokenization**: Convert text to typed tokens with positions
-        3. **Block Grouping**: Create hierarchical structure from indentation
-        4. **Type Resolution**: Convert generic blocks to specific elements
-        5. **Inline Processing**: Parse formatting within text content
+        1. Verbatim Marking: Identify and protect non-txxt content
+        2. Tokenization: Convert text to typed tokens with positions
+        3. Block Grouping: Create hierarchical structure from indentation
+        4. Type Resolution: Convert generic blocks to specific elements
+        5. Inline Processing: Parse formatting within text content
 
     9.2. Container-Centric Design
 

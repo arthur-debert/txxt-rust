@@ -1,0 +1,209 @@
+:: title :: txxt Terminology Reference
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+This document defines the standardized terminology used throughout txxt specifications and implementation.
+
+1. Core Terminology Hierarchy
+
+    txxt uses a clear hierarchy of structural terms that align with both human intuition and parsing implementation:
+
+    **Span**: The smallest unit of text that does not include line breaks. A line can host multiple spans. Examples: a word, a phrase, inline formatting like *bold* or `code`.
+
+    **Line**: An element that encompasses a full line of text. It can host multiple spans and is composed of one or more spans followed by a line break.
+
+    **Block**: A larger structural unit that contains one or more lines. Blocks represent semantic document structures like paragraphs, lists, or sessions.
+
+    **Container**: Special block elements that hold child elements of different types. Containers are what get indented, not their parent elements.
+
+    **Element**: Any structural component in txxt - can be a span, line, block, or container. This is the most general term.
+
+2. Structural Elements
+
+    2.1. Span Elements
+
+        Spans are inline elements that format or reference text within a line:
+
+        - **Text Span**: Plain text content
+        - **Bold Span**: Text wrapped in asterisks (*text*)
+        - **Italic Span**: Text wrapped in underscores (_text_)
+        - **Code Span**: Text wrapped in backticks (`text`)
+        - **Math Span**: Mathematical expressions wrapped in hash signs (#formula#)
+        - **Reference Span**: Links wrapped in brackets ([target])
+        - **Citation Span**: Academic citations with @ prefix ([@key])
+        - **List Item Decoratin**: a dash or number . 
+
+    2.2. Line Elements
+
+        Lines represent complete lines of text content:
+
+        - **Text Line**: A line containing span elements, ended by a line break
+        - **Blank Line**: A line containing only whitespace and a line break
+
+    2.3. Block Elements
+
+        Blocks are the primary structural units of txxt documents:
+
+        **Leaf Blocks** (cannot contain other blocks):
+        - **Paragraph**: One or more text lines
+        - **Blank Line**: Structural separator
+
+        **Container Blocks** (can contain child elements):
+        - **Verbatim Block**: Preserved content that bypasses txxt parsing
+        - **List**: Collection of list items
+        - **Definition**: Term and definition pair
+        - **Session**: Hierarchical document section
+        - **Container**: Explicit container for indented content
+
+    2.4. Special Elements
+
+        - **List Item**: Individual entry in a list, with marker and content
+        - **Definition Term**: The term part of a definition
+        - **Session Title**: The title part of a session
+        - **Annotation**: Metadata attached to other elements
+
+3. Container Architecture
+
+    The key architectural insight of txxt is that **containers get indented, not their parent elements**. This explains why:
+
+    - Flat lists don't need indentation - only nested content requires a container
+    - Sessions have titles at base level, with content in +1 indented containers
+    - List items can have nested content in their own containers
+    - All indentation changes signify container boundaries
+
+    3.1. Container Types
+
+        **Content Container**: Can hold any block element except sessions. Used for list item content, definition content, annotation content.
+
+        **Session Container**: Can hold any block element including sessions. Must be surrounded by blank lines. Used for session content and document root.
+
+        **Ignore Container**: Can only hold ignore lines and blank lines. Used for verbatim block content that should not be parsed as txxt.
+
+4. Parsing vs. Semantic Terminology
+
+    4.1. Parsing Level
+
+        Terms used during tokenization and parsing phases:
+
+        - **Token**: Atomic lexical element (SequenceMarker, Text, AnnotationMarker, etc.)
+        - **Token Stream**: Sequence of tokens from lexer
+        - **Block Grouping**: Process of organizing tokens into hierarchical structure
+        - **Type Resolution**: Process of converting generic blocks to specific element types
+
+    4.2. Semantic Level
+
+        Terms used for the final document structure:
+
+        - **AST Node**: Specific typed element in the abstract syntax tree
+        - **Document**: Top-level container holding entire txxt document
+        - **Element**: Any semantic component in the final document structure
+
+5. Notation
+
+    This section documents the notation systems used in txxt specifications.
+
+    5.1. Grammar Notation
+
+        txxt specs use a simplified BNF-like notation for describing syntax patterns:
+
+        **Occurrence Indicators**:
+        - `<element>?` - Optional (0 or 1 occurrence)
+        - `<element>*` - Zero or more occurrences
+        - `<element>+` - One or more occurrences
+        - `<element>{n}` - Exactly n occurrences
+        - `<element>{n,m}` - Between n and m occurrences
+        - `<element>{n,*}` - n or more occurrences
+
+        **Sequence Operators**:
+        - `A B` - A followed by B
+        - `A | B` - A or B (alternatives)
+        - `(A B)` - Grouping
+
+        **Examples**:
+        ```
+        <text-line> = <text-span>+ <line-break>
+        <paragraph> = <text-line>+
+        <list-marker> = <dash> | <number> <period> | <letter> <period>
+        <session-title> = (<number> <period>)? <text-span>+ <line-break>
+        ```
+
+    5.2. AST Tree Notation
+
+        AST structures are shown using ASCII tree notation:
+
+        ```
+        ├── session
+        │   ├── session-title
+        │   └── container
+        │       ├── paragraph
+        │       └── list
+        │           ├── list-item
+        │           └── list-item
+        ```
+
+        **Conventions**:
+        - `├──` indicates a child node
+        - `│` indicates continuation of parent structure
+        - `└──` indicates the last child at a level
+        - Indentation shows nesting depth
+
+    5.3. Token Pattern Notation
+
+        Individual token patterns use regular expression-like syntax:
+
+        - `\s` - whitespace character
+        - `\n` - line break
+        - `[a-z]` - character class
+        - `+` - one or more
+        - `*` - zero or more
+        - `?` - optional
+        - `^` - start of line
+        - `$` - end of line
+
+        **Examples**:
+        ```
+        SequenceMarker: ^- \s
+        AnnotationMarker: ::
+        VerbatimStart: .+:\s*$
+        ```
+
+    5.4. Indentation Notation
+
+        Indentation levels are shown with explicit markers:
+
+        ```
+        Base level (column 0)
+            +1 indented (column 4)
+                +2 indented (column 8)
+        ```
+
+        - Each indentation level is exactly 4 spaces
+        - `+n` indicates n levels of indentation from base
+        - Tabs are converted to 4 spaces during preprocessing
+
+6. Reserved Terms
+
+    6.1. Format-Level Terms
+
+        These terms have specific meaning in txxt and should not be used for other purposes in specifications:
+
+        - span, line, block, container, element
+        - session, paragraph, list, definition, verbatim
+        - annotation, reference, citation
+        - marker, token, delimiter
+
+    6.2. Parameter Namespaces
+
+        The `txxt.` namespace is reserved for official format use:
+
+        - `txxt.version` - Format version
+        - `txxt.parser` - Parser metadata
+        - `txxt.internal` - Internal processing information
+
+7. Evolution Guidelines
+
+    7.1. Terminology Stability
+
+        Core structural terms (span, line, block, container) are considered stable and should not change without major version increment.
+
+ 

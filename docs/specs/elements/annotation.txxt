@@ -1,0 +1,337 @@
+:: title :: Annotation Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for annotations - metadata elements that attach information to other document components.
+
+1. Purpose
+
+    Annotations provide structured metadata and document information using the fundamental txxt marker syntax. They are not part of the main content flow but attach metadata to other elements or the document itself. Annotations support both simple text content and complex structured information with parameters.
+
+2. Syntax
+
+    2.1. Basic Forms
+
+        Inline annotation (single line):
+            :: label :: content text here
+        (form)
+
+        Block annotation (multi-line):
+            :: label ::
+                Content can span multiple lines
+                and include complex formatting
+        (form)
+
+        Empty content annotation:
+            :: label ::
+        (form)
+
+    2.2. Parameterized Annotations
+
+        Simple parameters:
+            :: warning:severity=high :: Critical security issue
+        (form)
+
+        Complex parameters:
+            :: meta:version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
+        (form)
+
+        Multi-line with parameters:
+            :: description:lang=en,format=structured ::
+                This is a detailed description
+                that spans multiple lines
+                with parameter metadata
+        (form)
+
+    2.3. Document-Level Annotations
+
+        Annotations at document start (before any content):
+            :: title :: Document Title
+            :: author :: Author Name
+            :: pub-date :: 2025-01-12
+            :: bibliography :: references.bib
+
+            1. First Section
+                Content begins here
+        (example)
+
+3. Grammar
+
+    3.1. Token Patterns
+
+        Basic annotation structure:
+            <annotation-start> = <txxt-marker> <whitespace>* <annotation-label> <whitespace>* <txxt-marker>
+            <annotation-content> = <text-content>
+            <annotation-inline> = <annotation-start> <annotation-content>? <line-break>
+        (grammar)
+
+        Block annotation structure:
+            <annotation-block> = <annotation-start> <line-break> <container>?
+        (grammar)
+
+        Parameterized annotation:
+            <param-annotation-start> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker>
+            <param-annotation> = <param-annotation-start> <annotation-content>? <line-break>
+        (grammar)
+
+        For complete parameter syntax, quoting rules, and examples, see [../parameters.txxt].
+
+    3.2. Label Rules
+
+        Annotation labels follow the standard txxt label system:
+            <annotation-label> = <label>
+        (grammar)
+
+        For complete label syntax, validation rules, and conventions, see [../labels.txxt].
+
+    3.3. Content Rules
+
+        Content can be:
+        - Empty (label-only annotation)
+        - Simple text on same line  
+        - Multi-line indented content
+        - Complex structured content with inline formatting
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    AST Node Structure:
+        ├── Annotation
+        │   ├── label: String
+        │   ├── parameters: Parameters
+        │   ├── content: AnnotationContent
+        │   │   ├── Inline(Vec<Inline>) | Block(Container) | Empty
+        │   └── tokens: TokenSequence
+    (tree)
+
+    Document-level integration:
+        ├── Document
+        │   ├── meta: Meta (populated from annotations)
+        │   ├── blocks: Vec<Block>
+        │   └── annotations: Vec<Annotation> (document-level)
+        └── Block
+            └── annotations: Vec<Annotation> (attached to specific elements)
+    (tree)
+
+5. Attachment Rules
+
+    5.1. Document-Level Attachment
+
+        Annotations at document start attach to document itself:
+
+        Conditions for document attachment:
+        - Appears before any content blocks
+        - Followed by at least one blank line before content
+        - Multiple annotations can be grouped
+
+        Example:
+            :: title :: Research Paper
+            :: author :: Dr. Smith
+            :: date :: 2025-01-12
+
+            1. Introduction
+                Content starts here
+        (attachment)
+
+    5.2. Element Attachment (Next Element Rule)
+
+        Annotations attach to the next element at the same indentation level:
+
+        Next element attachment:
+            :: note :: This explains the following paragraph
+            
+            This paragraph receives the note annotation.
+        (attachment)
+
+        Multiple annotations:
+            :: warning :: Be careful here
+            :: example :: This demonstrates the concept
+            
+            This element has both warning and example annotations.
+        (attachment)
+
+    5.3. Parent Attachment (Last Element Rule)
+
+        If no next element exists, annotation attaches to parent:
+
+        Parent attachment example:
+            1. Session Title
+                
+                Some content here.
+                
+                :: summary :: This summarizes the entire session
+        (attachment)
+
+        The summary annotation attaches to the session since there's no next element at that indentation level.
+
+6. Processing Rules
+
+    6.1. Recognition Priority
+
+        Annotation recognition has high priority in parsing:
+
+        1. Double colon at start of line (after indentation) → Potential annotation
+        2. Validate label syntax (identifier rules)
+        3. Check for closing double colon
+        4. If valid → Process as annotation
+        5. If invalid → Fall back to paragraph text
+
+    6.2. Parameter Processing
+
+        Parameter parsing follows annotation parameter syntax:
+
+        - Same syntax as verbatim block parameters
+        - Key-value pairs separated by commas
+        - Quoted values for complex content
+        - Namespaced keys supported
+        - Invalid parameter syntax causes parse error
+
+    6.3. Content Processing
+
+        Content handling varies by type:
+
+        Inline content:
+        - Processed for inline formatting (bold, italic, references, etc.)
+        - Single line limitation
+        - Empty content allowed
+
+        Block content:
+        - Creates container for indented content
+        - Can contain any txxt elements except sessions
+        - Recursive parsing applied
+        - Multiple paragraphs, lists, etc. supported
+
+7. Use Cases
+
+    7.1. Document Metadata
+
+        Standard document information:
+            :: title :: Advanced txxt Parsing Techniques
+            :: author :: Jane Developer
+            :: pub-date :: 2025-01-12
+            :: version :: 2.1
+            :: status :: draft
+        (metadata)
+
+    7.2. Content Annotations
+
+        Explaining and annotating content:
+            :: warning:severity=critical :: The following code contains security vulnerabilities
+
+            Vulnerable code example:
+                sql = "SELECT * FROM users WHERE id = " + user_id
+                cursor.execute(sql)
+            :: sql
+
+            :: recommendation :: Use parameterized queries instead
+        (content-annotation)
+
+    7.3. Structured Metadata
+
+        Complex metadata with parameters:
+            :: bibliography:format=bibtex,style=apa :: references.bib
+            :: license:type=MIT,year=2025,holder="Example Corp" :: 
+            :: review:reviewer="Dr. Smith",date=2025-01-10,status=approved ::
+                This document has been reviewed and approved
+                for publication with minor revisions noted.
+        (structured)
+
+    7.4. Cross-References
+
+        Creating named anchors:
+            :: anchor:id=security-section :: Security Considerations
+
+            Later reference: See [#security-section] for details.
+        (cross-reference)
+
+    7.5. Tool Integration
+
+        Providing hints for external tools:
+            :: export:format=pdf,template=academic :: 
+            :: syntax-highlight:theme=github,line-numbers=true ::
+            :: lint:ignore=line-length,spelling ::
+        (tool-integration)
+
+8. Reference Documentation
+
+    For detailed information on annotation components:
+
+    - Parameters: Complete parameter syntax, quoting rules, and validation in [../parameters.txxt]
+    - Labels: Label syntax, namespaces, and conventions in [../labels.txxt]
+
+9. Edge Cases
+
+    9.1. Empty Labels
+
+        Invalid annotation (empty label):
+            :: :: Content here
+        (invalid)
+
+        This is parsed as a paragraph, not an annotation.
+
+    9.2. Incomplete Syntax
+
+        Missing closing marker:
+            :: title Content without closing marker
+        (incomplete)
+
+        This falls back to paragraph parsing.
+
+    9.3. Nested Annotations
+
+        Annotations cannot contain other annotations:
+            :: note :: This is a note with :: warning :: nested annotation
+        (invalid)
+
+        The nested `:: warning ::` is treated as literal text.
+
+    9.4. Indentation Context
+
+        Annotations inherit indentation context from their location:
+
+        Within list item:
+            - List item content
+                :: note :: This annotation applies to the list item
+        (context)
+
+        Within session:
+            1. Session Title
+                :: meta :: This applies to the session content
+                
+                Session content here.
+        (context)
+
+10. Implementation Notes
+
+    10.1. Parser Integration
+
+        Annotation parsing requirements:
+
+        - High precedence in token recognition
+        - Graceful fallback to paragraph parsing
+        - Integration with existing parameter parsing
+        - Attachment logic during AST assembly phase
+
+    10.2. Metadata Extraction
+
+        Document assembly process:
+
+        1. Parse all annotations during normal parsing
+        2. Identify document-level annotations  
+        3. Extract metadata from document annotations
+        4. Attach remaining annotations to their target elements
+        5. Populate document meta structure
+
+    10.3. Error Handling
+
+        Common error scenarios:
+
+        - Invalid label syntax → Fall back to paragraph
+        - Malformed parameters → Parse error
+        - Unclosed annotation block → Parse error
+        - Missing attachment target → Attach to parent
+
+    Annotations should fail gracefully, never causing total parse failure.
+
+:: note :: Annotations leverage the fundamental txxt marker (::) to provide consistent metadata capabilities across all document elements. Their attachment rules create intuitive associations between metadata and content.

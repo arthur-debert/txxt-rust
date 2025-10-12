@@ -1,0 +1,311 @@
+:: title :: Label System Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for txxt labels used in annotations, verbatim blocks, and other labeled elements.
+
+1. Purpose
+
+    Labels provide semantic identification for txxt elements. They serve as format hints, semantic markers, and tools for categorization. Labels follow consistent identifier rules across all txxt elements that support them.
+
+2. Syntax
+
+    2.1. Basic Label Form
+
+        Simple identifier:
+            python
+            javascript
+            warning
+            note
+        (labels)
+
+    2.2. Namespaced Labels
+
+        Dot-separated namespaces:
+            org.example.custom
+            company.product.feature
+            user.category.subcategory
+        (namespaced)
+
+    2.3. Integration Patterns
+
+        Annotation labels:
+            :: warning :: Critical information
+            :: org.example.metadata :: Custom data
+        (annotation-integration)
+
+        Verbatim labels:
+            :: python
+            :: sql:dialect=postgresql
+        (verbatim-integration)
+
+3. Grammar
+
+    3.1. Label Structure
+
+        Basic label:
+            <label> = <identifier>
+            <identifier> = <letter> (<alphanumeric> | [._-])*
+        (grammar)
+
+        Namespaced label:
+            <namespaced-label> = <identifier> (<period> <identifier>)*
+        (grammar)
+
+    3.2. Character Rules
+
+        Valid characters:
+        - Letters: `a-z`, `A-Z` (must start with letter)
+        - Digits: `0-9` (not at start)
+        - Separators: `.` (namespace separator only)
+        - Connectors: `_` (underscore), `-` (dash)
+
+        Invalid characters:
+        - Spaces, tabs, or other whitespace
+        - Punctuation except period, underscore, dash
+        - Unicode characters outside basic Latin
+
+    3.3. Length Constraints
+
+        Practical limits:
+        - Individual segments: 1-64 characters
+        - Total namespaced label: 1-255 characters
+        - Recommended: Keep under 32 characters for readability
+
+4. Label Categories
+
+    4.1. Format Labels
+
+        Programming languages:
+            python, javascript, rust, sql, html, css, json, yaml, xml
+        (programming)
+
+        Markup and data formats:
+            markdown, latex, csv, toml, ini, properties
+        (markup)
+
+        Configuration formats:
+            nginx, apache, dockerfile, makefile
+        (config)
+
+    4.2. Content Type Labels
+
+        Media types:
+            image, video, audio, diagram, chart, table
+        (media)
+
+        Document sections:
+            abstract, introduction, conclusion, bibliography
+        (document)
+
+    4.3. Annotation Labels
+
+        Common annotations:
+            note, warning, error, info, tip, example
+            todo, fixme, deprecated, experimental
+        (annotation-types)
+
+        Metadata annotations:
+            title, author, date, version, license, status
+        (metadata)
+
+    4.4. Custom and Tool-Specific
+
+        Organization-specific:
+            acme.internal.review
+            company.product.feature
+        (organization)
+
+        Tool-specific:
+            lint.ignore, export.pdf, syntax.highlight
+        (tool-specific)
+
+5. Reserved Labels
+
+    5.1. Core Format Labels
+
+        Reserved for txxt specification:
+            txxt, meta, internal, system, reserved
+        (core-reserved)
+
+    5.2. Standard Media Types
+
+        Following MIME type conventions:
+            text, image, audio, video, application
+        (media-reserved)
+
+    5.3. Reserved Namespaces
+
+        Official namespaces:
+        - `txxt.*` - Format specification use
+        - `iana.*` - IANA standard types
+        - `rfc.*` - RFC standard references
+        - `iso.*` - ISO standard references
+
+6. Validation Rules
+
+    6.1. Syntax Validation
+
+        Label must:
+        - Start with letter (a-z, A-Z)
+        - Contain only letters, digits, period, underscore, dash
+        - Use period only for namespace separation
+        - Not start or end with period
+        - Not contain consecutive periods
+
+        Valid examples:
+            python, warning, org.example.custom, tool_name, api-v2
+        (valid)
+
+        Invalid examples:
+            123label, -invalid, label., .label, label..name
+        (invalid)
+
+    6.2. Semantic Validation
+
+        Best practices:
+        - Use lowercase for format labels: `python` not `Python`
+        - Use descriptive names: `warning` not `w`
+        - Follow namespace conventions: `org.name.purpose`
+        - Avoid reserved words when possible
+
+    6.3. Context Validation
+
+        Element-specific rules:
+        - Verbatim labels should indicate content format
+        - Annotation labels should indicate metadata type
+        - Custom labels should use namespaces
+        - Tool labels should use tool-specific namespaces
+
+7. Common Label Patterns
+
+    7.1. Programming Languages
+
+        By language family:
+            python, ruby, perl (scripting)
+            javascript, typescript (web)
+            rust, go, cpp (systems)
+            java, csharp, kotlin (enterprise)
+            sql, graphql (query)
+        (language-families)
+
+    7.2. Configuration Formats
+
+        By tool/system:
+            nginx, apache (web servers)
+            docker, kubernetes (containers)
+            git, mercurial (version control)
+            yaml, toml, json (data)
+        (config-types)
+
+    7.3. Documentation Types
+
+        By purpose:
+            api, tutorial, reference, guide
+            specification, proposal, rfc
+            changelog, readme, license
+        (doc-types)
+
+8. Namespace Guidelines
+
+    8.1. Organization Namespaces
+
+        Recommended patterns:
+        - Companies: `company.*` (e.g., `google.docs`)
+        - Open source: `project.*` (e.g., `rust.cargo`)
+        - Standards: `org.*` (e.g., `org.w3c.html`)
+
+    8.2. Personal Namespaces
+
+        Individual use:
+        - `user.name.*` for personal tools
+        - `github.username.*` for public projects
+        - `domain.tld.*` for organization use
+
+    8.3. Tool Namespaces
+
+        Tool-specific labels:
+        - `editor.feature.*` for editor integration
+        - `export.format.*` for export tools
+        - `lint.rule.*` for linting tools
+
+9. Case Sensitivity
+
+    9.1. Label Comparison
+
+        Labels are case-sensitive:
+        - `Python` ≠ `python`
+        - `HTML` ≠ `html`
+        - `org.Example` ≠ `org.example`
+
+    9.2. Conventions
+
+        Recommended case usage:
+        - Lowercase for format labels: `python`, `javascript`
+        - Lowercase for annotation types: `warning`, `note`
+        - Follow established conventions: `HTML`, `CSS`, `JSON`
+        - Use original casing for proper nouns: `PostgreSQL`
+
+10. Implementation Notes
+
+    10.1. Parser Requirements
+
+        Label parsing needs:
+        - Identifier tokenization
+        - Namespace validation  
+        - Case-sensitive comparison
+        - Length limit enforcement
+
+    10.2. Storage and Lookup
+
+        Efficient storage:
+            Label {
+                value: String,
+                namespaces: Vec<String>, // Split by '.'
+                is_namespaced: bool,
+            }
+        (storage)
+
+    10.3. Validation Integration
+
+        Label validation should:
+        - Check syntax during parsing
+        - Warn on unknown labels (optional)
+        - Validate namespace permissions
+        - Support custom label registries
+
+11. Examples by Use Case
+
+    11.1. Code Documentation
+
+        Programming examples:
+            :: python
+            :: rust:edition=2021
+            :: sql:dialect=postgresql
+        (code-docs)
+
+    11.2. Content Annotation
+
+        Content metadata:
+            :: warning:severity=high :: Security vulnerability
+            :: example:type=best-practice :: Recommended approach
+            :: todo:priority=medium :: Implementation needed
+        (content-annotation)
+
+    11.3. Tool Integration
+
+        Tool-specific labels:
+            :: export:pdf:template=academic ::
+            :: lint:ignore=line-length,spelling ::
+            :: syntax:highlight:theme=github ::
+        (tool-integration)
+
+    11.4. Custom Organization
+
+        Company-specific usage:
+            :: acme.review:reviewer="Jane Doe",status=approved ::
+            :: company.legal:classification=internal ::
+            :: org.standards:compliance=iso9001 ::
+        (organization-custom)
+
+:: note :: Labels provide semantic identification across txxt elements. Consistent label conventions improve document portability and tool interoperability.

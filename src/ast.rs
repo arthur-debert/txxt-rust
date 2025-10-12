@@ -18,7 +18,7 @@
 //!
 //! ## Container Indentation Pattern
 //!
-//! **Critical architectural insight**: The container is what gets indented, not the parent element.
+//! Critical architectural insight: The container is what gets indented, not the parent element.
 //! This explains why flat lists don't need indentation - only nested content requires a [`Container`].
 //!
 //! Example:
@@ -97,23 +97,12 @@
 //! - **Generic tree libraries** lack domain-specific semantics for text processing
 //! - **Pandoc's Haskell AST** provides excellent design patterns but needs Rust-native implementation
 //!
-//! ### Our Approach: Rowan-Inspired Red-Green Trees
+//! ### Rowan-Inspired Red-Green Trees + Type safety
 //! - **Red-green pattern**: Inspired by rowan (used by rust-analyzer) for efficient tree operations
 //! - **Structural sharing**: Memory efficiency through shared immutable nodes  
 //! - **Lossless representation**: Preserves all source information including whitespace
 //! - **Incremental updates**: Foundation for future language server incremental parsing
-//!
-//! ### Type Safety Strategy
 //! - **Enum-based nodes**: Compile-time verification of AST structure
-//! - **Rich metadata**: [`Parameters`] and [`Annotation`] systems for extensibility
-//! - **Token integration**: Character-precise positioning throughout the tree
-//! - **Visitor patterns**: Type-safe traversal with exhaustive pattern matching
-//!
-//! ## Performance Characteristics
-//! - **Memory efficient**: Structural sharing reduces duplication
-//! - **Language server optimized**: Character-level precision without performance penalty
-//! - **Incremental friendly**: Tree structure supports future incremental parsing
-//! - **Tooling focused**: Rich metadata supports linters, formatters, converters
 //!
 //! # Module Organization
 //!

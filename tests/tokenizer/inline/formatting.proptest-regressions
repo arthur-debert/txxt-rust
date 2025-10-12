@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc 3d4a8983d81048f3864f5423749d141f4be87812d5bdec43967638cd16571fc9 # shrinks to text = "A", delimiter = "_"
+cc f828f39583acec6aabaeca4537a6425035ccdf4601fe1a701d6169d95063e735 # shrinks to delimiter = "_"

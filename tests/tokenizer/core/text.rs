@@ -153,7 +153,8 @@ proptest! {
         prop_assert!(!text_tokens.is_empty(), "Should produce at least one TEXT token");
 
         // First token should be TEXT if input starts with valid text chars
-        if text.chars().next().unwrap().is_alphanumeric() || text.starts_with('_') {
+        // Note: Standalone _ is an italic delimiter, not text
+        if text.chars().next().unwrap().is_alphanumeric() {
             match &tokens[0] {
                 Token::Text { content, span } => {
                     prop_assert_eq!(span.start.row, 0);
@@ -198,5 +199,22 @@ mod helper_tests {
         // Verify our test framework is working
         let tokens = tokenize("test");
         assert!(!tokens.is_empty());
+    }
+
+    #[test]
+    fn test_underscore_produces_italic_delimiter() {
+        // Verify that standalone underscore produces ItalicDelimiter, not Text
+        let tokens = tokenize("_");
+        assert_eq!(tokens.len(), 2); // ItalicDelimiter + EOF
+
+        match &tokens[0] {
+            Token::ItalicDelimiter { span } => {
+                assert_eq!(span.start.row, 0);
+                assert_eq!(span.start.column, 0);
+                assert_eq!(span.end.row, 0);
+                assert_eq!(span.end.column, 1);
+            }
+            _ => panic!("Expected ItalicDelimiter, got {:?}", tokens[0]),
+        }
     }
 }

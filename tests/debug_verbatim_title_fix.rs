@@ -1,6 +1,6 @@
-//! Debug test for VerbatimStart title content fix
+//! Debug test for VerbatimTitle title content fix
 //!
-//! This test verifies that VerbatimStart tokens contain only the title content
+//! This test verifies that VerbatimTitle tokens contain only the title content
 //! without the trailing colon structural marker.
 
 use txxt::ast::tokens::Token;
@@ -23,9 +23,9 @@ mod tests {
         println!("\nTokens:");
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                Token::VerbatimStart { content, span } => {
+                Token::VerbatimTitle { content, span } => {
                     println!(
-                        "  {}: VerbatimStart {{ content: {:?}, span: {:?} }}",
+                        "  {}: VerbatimTitle {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }
@@ -35,9 +35,9 @@ mod tests {
                         i, content, span
                     );
                 }
-                Token::VerbatimEnd { content, span } => {
+                Token::VerbatimLabel { content, span } => {
                     println!(
-                        "  {}: VerbatimEnd {{ content: {:?}, span: {:?} }}",
+                        "  {}: VerbatimLabel {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }
@@ -47,23 +47,23 @@ mod tests {
             }
         }
 
-        // Find VerbatimStart token
+        // Find VerbatimTitle token
         let verbatim_start = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimStart { .. }))
-            .expect("Should find VerbatimStart token");
+            .find(|token| matches!(token, Token::VerbatimTitle { .. }))
+            .expect("Should find VerbatimTitle token");
 
-        if let Token::VerbatimStart { content, .. } = verbatim_start {
+        if let Token::VerbatimTitle { content, .. } = verbatim_start {
             assert_eq!(
                 content, "My Code Title",
-                "VerbatimStart should contain title without colon"
+                "VerbatimTitle should contain title without colon"
             );
             assert!(
                 !content.ends_with(':'),
-                "VerbatimStart content should not end with colon"
+                "VerbatimTitle content should not end with colon"
             );
             println!(
-                "✅ VerbatimStart correctly contains title without colon: '{}'",
+                "✅ VerbatimTitle correctly contains title without colon: '{}'",
                 content
             );
         }
@@ -86,10 +86,10 @@ mod tests {
 
             let verbatim_start = tokens
                 .iter()
-                .find(|token| matches!(token, Token::VerbatimStart { .. }))
-                .expect("Should find VerbatimStart token");
+                .find(|token| matches!(token, Token::VerbatimTitle { .. }))
+                .expect("Should find VerbatimTitle token");
 
-            if let Token::VerbatimStart { content, .. } = verbatim_start {
+            if let Token::VerbatimTitle { content, .. } = verbatim_start {
                 assert_eq!(
                     content, expected_title,
                     "Title '{}' should become '{}'",

@@ -61,50 +61,6 @@ pub struct Parameters {
     pub tokens: TokenSequence,
 }
 
-/// Common parameter keys with semantic meaning
-///
-/// While parameters are arbitrary key-value pairs, certain keys have
-/// conventional semantic meaning across the TXXT ecosystem.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ParameterKeys;
-
-impl ParameterKeys {
-    /// Reference identifier for creating named anchors
-    /// Used by: verbatim blocks, annotations, definitions
-    /// Example: `ref=hello-world` creates anchor accessible via `[#hello-world]`
-    pub const REF: &'static str = "ref";
-
-    /// Identifier (alternative to ref, often used in annotations)
-    /// Used by: annotations, sessions
-    /// Example: `id=security-note` creates anchor accessible via `[#security-note]`
-    pub const ID: &'static str = "id";
-
-    /// Category for grouping and organization
-    /// Used by: definitions, annotations, verbatim blocks
-    /// Example: `category=glossary` for definition categorization
-    pub const CATEGORY: &'static str = "category";
-
-    /// Severity level for warnings/errors
-    /// Used by: annotations (warnings, errors)
-    /// Example: `severity=high` for critical issues
-    pub const SEVERITY: &'static str = "severity";
-
-    /// Language hint for syntax highlighting
-    /// Used by: verbatim blocks
-    /// Example: `lang=rust` for code block language
-    pub const LANG: &'static str = "lang";
-
-    /// Theme/style hint
-    /// Used by: verbatim blocks, annotations
-    /// Example: `theme=dark` for styling preferences
-    pub const THEME: &'static str = "theme";
-
-    /// Version information
-    /// Used by: annotations, verbatim blocks
-    /// Example: `version=2.0` for format versioning
-    pub const VERSION: &'static str = "version";
-}
-
 /// Parameter validation and processing
 ///
 /// Provides utilities for parameter validation, type conversion,
@@ -152,8 +108,7 @@ impl Parameters {
 
     /// Get reference identifier (ref or id parameter)
     pub fn reference_id(&self) -> Option<&String> {
-        self.get(ParameterKeys::REF)
-            .or_else(|| self.get(ParameterKeys::ID))
+        self.get("ref").or_else(|| self.get("id"))
     }
 
     /// Check if this element can be referenced
@@ -163,17 +118,17 @@ impl Parameters {
 
     /// Get category classification
     pub fn category(&self) -> Option<&String> {
-        self.get(ParameterKeys::CATEGORY)
+        self.get("category")
     }
 
     /// Get severity level (for warnings/errors)
     pub fn severity(&self) -> Option<&String> {
-        self.get(ParameterKeys::SEVERITY)
+        self.get("severity")
     }
 
     /// Get language hint (for code blocks)
     pub fn language(&self) -> Option<&String> {
-        self.get(ParameterKeys::LANG)
+        self.get("lang")
     }
 
     /// Check if parameters are empty
@@ -216,7 +171,7 @@ impl ParameterProcessor {
     /// Validate parameters according to processor configuration
     pub fn validate(&self, parameters: &Parameters) -> Result<(), ParameterError> {
         if self.validate_known_keys {
-            // Validate known parameter values
+            // Validate common parameter values (arbitrary keys are always allowed)
             if let Some(severity) = parameters.severity() {
                 match severity.as_str() {
                     "low" | "medium" | "high" | "critical" => {}

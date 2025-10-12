@@ -82,14 +82,21 @@ pub enum Token {
     /// Footnote numbers ([1], [2])
     FootnoteNumber { content: String, span: SourceSpan },
 
-    /// Verbatim block start (title:)
-    VerbatimStart { content: String, span: SourceSpan },
+    /// Verbatim block title (title:)
+    VerbatimTitle { content: String, span: SourceSpan },
 
     /// Verbatim block content (preserved exactly)
     VerbatimContent { content: String, span: SourceSpan },
 
-    /// Verbatim block end with label and parameters ((label: params))
-    VerbatimEnd { content: String, span: SourceSpan },
+    /// Verbatim block label (:: label syntax)
+    VerbatimLabel { content: String, span: SourceSpan },
+
+    /// Parameter key-value pair (key=value)
+    Parameter {
+        key: String,
+        value: String,
+        span: SourceSpan,
+    },
 
     /// Bold text delimiter (*)
     BoldDelimiter { span: SourceSpan },
@@ -123,9 +130,10 @@ impl Token {
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
             Token::FootnoteNumber { span, .. } => span,
-            Token::VerbatimStart { span, .. } => span,
+            Token::VerbatimTitle { span, .. } => span,
             Token::VerbatimContent { span, .. } => span,
-            Token::VerbatimEnd { span, .. } => span,
+            Token::VerbatimLabel { span, .. } => span,
+            Token::Parameter { span, .. } => span,
             Token::BoldDelimiter { span } => span,
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
@@ -144,9 +152,10 @@ impl Token {
             Token::Identifier { content, .. } => content,
             Token::RefMarker { content, .. } => content,
             Token::FootnoteNumber { content, .. } => content,
-            Token::VerbatimStart { content, .. } => content,
+            Token::VerbatimTitle { content, .. } => content,
             Token::VerbatimContent { content, .. } => content,
-            Token::VerbatimEnd { content, .. } => content,
+            Token::VerbatimLabel { content, .. } => content,
+            Token::Parameter { key, .. } => key, // Return key for content (value accessible separately)
             Token::BoldDelimiter { .. } => "*",
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",
@@ -157,6 +166,14 @@ impl Token {
             Token::Dedent { .. } => "",
             Token::Dash { .. } => "-",
             Token::Eof { .. } => "",
+        }
+    }
+
+    /// Get the parameter value (only valid for Parameter tokens)
+    pub fn parameter_value(&self) -> Option<&str> {
+        match self {
+            Token::Parameter { value, .. } => Some(value),
+            _ => None,
         }
     }
 }

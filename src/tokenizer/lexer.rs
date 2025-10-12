@@ -5,29 +5,27 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
-use regex::Regex;
+use crate::tokenizer::inline::read_inline_delimiter;
+use crate::tokenizer::markers::{
+    integrate_annotation_parameters, integrate_definition_parameters, read_annotation_marker,
+    read_definition_marker, read_sequence_marker, ReferenceLexer,
+};
+use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
-/// Pattern type for :: tokens on the current line
-#[derive(Debug, Clone, PartialEq)]
-enum ColonPattern {
-    /// :: label :: pattern (annotation)
-    Annotation,
-    /// term :: pattern (definition)
-    Definition,
-    /// standalone :: pattern
-    Standalone,
+/// Saved lexer state for backtracking
+#[derive(Debug, Clone)]
+pub struct LexerState {
+    pub(crate) position: usize,
+    pub(crate) row: usize,
+    pub(crate) column: usize,
 }
 
 /// Main tokenizer that produces new AST Token enum variants
 pub struct Lexer {
-    input: Vec<char>,
-    position: usize,
-    row: usize,
-    column: usize,
-    // Regex patterns for :: detection
-    annotation_pattern: Regex,
-    definition_pattern: Regex,
+    pub(crate) input: Vec<char>,
+    pub(crate) position: usize,
+    pub(crate) row: usize,
+    pub(crate) column: usize,
     // Reference classifier for basic validation
     ref_classifier: ReferenceClassifier,
 }
@@ -40,10 +38,6 @@ impl Lexer {
             position: 0,
             row: 0,
             column: 0,
-            // Regex for :: label :: pattern (annotation) - flexible spacing
-            annotation_pattern: Regex::new(r"::\s*\w+.*?\s*::").unwrap(),
-            // Regex for content :: pattern (definition) - ensure :: is exactly at end
-            definition_pattern: Regex::new(r"\w+.*?::\s*$").unwrap(),
             // Reference classifier for basic validation only
             ref_classifier: ReferenceClassifier::new(),
         }
@@ -60,14 +54,16 @@ impl Lexer {
 
         while !self.is_at_end() {
             // Check if we're at the start of a verbatim block
-            if let Some(verbatim_tokens) = self.read_verbatim_block(&verbatim_blocks) {
+            if let Some(verbatim_tokens) =
+                VerbatimLexer::read_verbatim_block(self, &verbatim_blocks)
+            {
                 tokens.extend(verbatim_tokens);
                 continue;
             }
 
             // Try to read sequence marker only at column 0 (start of line)
             if self.column == 0 {
-                if let Some(token) = self.read_sequence_marker() {
+                if let Some(token) = read_sequence_marker(self) {
                     tokens.push(token);
                     continue;
                 }
@@ -110,13 +106,13 @@ impl Lexer {
                 break;
             }
 
-            if let Some(token) = self.read_definition_marker() {
+            if let Some(token) = read_definition_marker(&mut *self) {
                 tokens.push(token);
-            } else if let Some(token) = self.read_annotation_marker() {
+            } else if let Some(token) = read_annotation_marker(&mut *self) {
                 tokens.push(token);
-            } else if let Some(token) = self.read_ref_marker() {
+            } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
                 tokens.push(token);
-            } else if let Some(token) = self.read_inline_delimiter() {
+            } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
                 tokens.push(token);
@@ -131,6 +127,10 @@ impl Lexer {
                 }
             }
         }
+
+        // Simple parameter integration - just detect and split label:params patterns
+        tokens = integrate_annotation_parameters(tokens, self);
+        tokens = integrate_definition_parameters(tokens, self);
 
         // Add EOF token
         tokens.push(Token::Eof {
@@ -192,470 +192,6 @@ impl Lexer {
         }
     }
 
-    /// Read a sequence marker token (list markers like "1. ", "a) ", "- ")
-    fn read_sequence_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-        let saved_position = self.position;
-        let saved_row = self.row;
-        let saved_column = self.column;
-
-        // Try to match sequence marker patterns
-
-        // 1. Plain dash marker: "- "
-        if self.peek() == Some('-') {
-            self.advance();
-            if self.peek() == Some(' ') {
-                self.advance();
-                return Some(Token::SequenceMarker {
-                    content: "-".to_string(),
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: Position {
-                            row: start_pos.row,
-                            column: start_pos.column + 1,
-                        },
-                    },
-                });
-            } else {
-                // Not a valid marker, backtrack
-                self.position = saved_position;
-                self.row = saved_row;
-                self.column = saved_column;
-                return None;
-            }
-        }
-
-        // 2. Numbered markers: "1. ", "42. "
-        let mut number_str = String::new();
-        while let Some(ch) = self.peek() {
-            if ch.is_ascii_digit() {
-                number_str.push(ch);
-                self.advance();
-            } else {
-                break;
-            }
-        }
-
-        if !number_str.is_empty() {
-            if self.peek() == Some('.') {
-                self.advance();
-                if self.peek() == Some(' ') {
-                    self.advance();
-                    let marker = format!("{}.", number_str);
-                    return Some(Token::SequenceMarker {
-                        content: marker.clone(),
-                        span: SourceSpan {
-                            start: start_pos,
-                            end: Position {
-                                row: start_pos.row,
-                                column: start_pos.column + marker.len(),
-                            },
-                        },
-                    });
-                }
-            }
-            // Not a valid marker, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-            return None;
-        }
-
-        // 3. Alphabetical markers: "a. ", "b) ", "A. ", "Z) "
-        if let Some(ch) = self.peek() {
-            if ch.is_ascii_alphabetic() {
-                let letter = ch;
-                self.advance();
-
-                // Check for . or )
-                if let Some(punct) = self.peek() {
-                    if punct == '.' || punct == ')' {
-                        self.advance();
-                        if self.peek() == Some(' ') {
-                            self.advance();
-                            let marker = format!("{}{}", letter, punct);
-                            return Some(Token::SequenceMarker {
-                                content: marker.clone(),
-                                span: SourceSpan {
-                                    start: start_pos,
-                                    end: Position {
-                                        row: start_pos.row,
-                                        column: start_pos.column + marker.len(),
-                                    },
-                                },
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. Roman numeral markers: "i. ", "ii) ", "I. ", "III) "
-        self.position = saved_position;
-        self.row = saved_row;
-        self.column = saved_column;
-
-        let roman_patterns = [
-            "iii", "ii", "i", "iv", "v", "vi", "vii", "viii", "ix", "x", "III", "II", "I", "IV",
-            "V", "VI", "VII", "VIII", "IX", "X",
-        ];
-
-        for pattern in &roman_patterns {
-            if self.matches_string(pattern) {
-                // Advance past the roman numeral
-                for _ in 0..pattern.len() {
-                    self.advance();
-                }
-
-                // Check for . or )
-                if let Some(punct) = self.peek() {
-                    if punct == '.' || punct == ')' {
-                        self.advance();
-                        if self.peek() == Some(' ') {
-                            self.advance();
-                            let marker = format!("{}{}", pattern, punct);
-                            return Some(Token::SequenceMarker {
-                                content: marker.clone(),
-                                span: SourceSpan {
-                                    start: start_pos,
-                                    end: Position {
-                                        row: start_pos.row,
-                                        column: start_pos.column + marker.len(),
-                                    },
-                                },
-                            });
-                        }
-                    }
-                }
-
-                // Not a valid marker, backtrack and try next pattern
-                self.position = saved_position;
-                self.row = saved_row;
-                self.column = saved_column;
-            }
-        }
-
-        None
-    }
-
-    /// Read a definition marker token (term ::)
-    fn read_definition_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        // Check for "::"
-        if self.peek() == Some(':') {
-            let saved_position = self.position;
-            let saved_row = self.row;
-            let saved_column = self.column;
-
-            self.advance(); // First ':'
-
-            if self.peek() == Some(':') {
-                self.advance(); // Second ':'
-
-                // Immediately check if this :: is part of an invalid sequence
-                if let Some(next_ch) = self.peek() {
-                    if next_ch == ':' {
-                        // This is ":::" or longer, not a valid definition marker
-                        self.position = saved_position;
-                        self.row = saved_row;
-                        self.column = saved_column;
-                        return None;
-                    }
-                }
-
-                // Also check if this :: is preceded by a colon (making it part of ":::...")
-                if start_pos.column > 0 {
-                    let line = self.get_current_line();
-                    let col_idx = start_pos.column;
-                    if col_idx > 0 {
-                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
-                            if prev_char == ':' {
-                                // This :: is preceded by ':', making it part of ":::" sequence
-                                self.position = saved_position;
-                                self.row = saved_row;
-                                self.column = saved_column;
-                                return None;
-                            }
-                        }
-                    }
-                }
-
-                // Use regex-based pattern detection to determine context
-                let pattern = self.detect_colon_pattern();
-
-                match pattern {
-                    ColonPattern::Definition => {
-                        // This is definitely a definition marker
-                        return Some(Token::DefinitionMarker {
-                            content: "::".to_string(),
-                            span: SourceSpan {
-                                start: start_pos,
-                                end: self.current_position(),
-                            },
-                        });
-                    }
-                    ColonPattern::Annotation => {
-                        // This line contains annotation pattern, so this :: is not definition
-                        self.position = saved_position;
-                        self.row = saved_row;
-                        self.column = saved_column;
-                        return None;
-                    }
-                    ColonPattern::Standalone => {
-                        // Check if followed by whitespace/end (could be definition at end of line)
-                        if let Some(next_ch) = self.peek() {
-                            if next_ch == '\n'
-                                || next_ch == '\r'
-                                || next_ch == ' '
-                                || next_ch == '\t'
-                            {
-                                // Check if there's content before this :: (making it a definition)
-                                if !self.is_start_of_annotation_pattern(start_pos) {
-                                    return Some(Token::DefinitionMarker {
-                                        content: "::".to_string(),
-                                        span: SourceSpan {
-                                            start: start_pos,
-                                            end: self.current_position(),
-                                        },
-                                    });
-                                }
-                            }
-                        } else if self.is_at_end() {
-                            // At end of input, check if there's content before
-                            if !self.is_start_of_annotation_pattern(start_pos) {
-                                return Some(Token::DefinitionMarker {
-                                    content: "::".to_string(),
-                                    span: SourceSpan {
-                                        start: start_pos,
-                                        end: self.current_position(),
-                                    },
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Not a definition marker, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-        }
-
-        None
-    }
-
-    /// Check if this :: is at the start of an annotation pattern by looking backwards
-    fn is_start_of_annotation_pattern(&self, _start_pos: Position) -> bool {
-        // Definition pattern: "term ::" - has non-whitespace before ::
-        // Annotation pattern: ":: label ::" - has only whitespace before first ::
-
-        // Check if we're at the beginning of the line or only whitespace precedes
-        let start_absolute = self.position - 2; // We advanced past the ::, so go back
-
-        // Look backwards from the start of :: to see what came before on this line
-        let mut pos = start_absolute;
-        while pos > 0 {
-            pos -= 1;
-            if let Some(&ch) = self.input.get(pos) {
-                if ch == '\n' || ch == '\r' {
-                    // Hit newline, everything before :: was whitespace - this is annotation start
-                    return true;
-                } else if ch != ' ' && ch != '\t' {
-                    // Found non-whitespace content before ::, this is NOT annotation start
-                    return false;
-                }
-            }
-        }
-
-        // Reached start of input with only whitespace - this is annotation start
-        true
-    }
-
-    /// Get the current line from the input
-    fn get_current_line(&self) -> String {
-        let mut line_start = self.position;
-        let mut line_end = self.position;
-
-        // Find start of current line
-        while line_start > 0 {
-            if let Some(&ch) = self.input.get(line_start - 1) {
-                if ch == '\n' || ch == '\r' {
-                    break;
-                }
-                line_start -= 1;
-            } else {
-                break;
-            }
-        }
-
-        // Find end of current line
-        while line_end < self.input.len() {
-            if let Some(&ch) = self.input.get(line_end) {
-                if ch == '\n' || ch == '\r' {
-                    break;
-                }
-                line_end += 1;
-            } else {
-                break;
-            }
-        }
-
-        self.input[line_start..line_end].iter().collect()
-    }
-
-    /// Detect what type of :: pattern this line contains
-    fn detect_colon_pattern(&self) -> ColonPattern {
-        let line = self.get_current_line();
-
-        // First check for invalid sequences (:::, ::::, etc.)
-        if line.contains(":::") {
-            return ColonPattern::Standalone; // Treat invalid sequences as standalone (will be rejected)
-        }
-
-        // Check for annotation pattern first (:: label ::)
-        if self.annotation_pattern.is_match(&line) {
-            return ColonPattern::Annotation;
-        }
-
-        // Check for definition pattern (term ::)
-        if self.definition_pattern.is_match(&line) {
-            return ColonPattern::Definition;
-        }
-
-        // Default to standalone
-        ColonPattern::Standalone
-    }
-
-    /// Read an annotation marker token (::)
-    fn read_annotation_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        // Check for "::"
-        if self.peek() == Some(':') {
-            let saved_position = self.position;
-            let saved_row = self.row;
-            let saved_column = self.column;
-
-            self.advance(); // First ':'
-
-            if self.peek() == Some(':') {
-                self.advance(); // Second ':'
-
-                // Check that this is not part of a longer sequence like ":::"
-                // Annotation markers should be exactly "::"
-                if let Some(next_ch) = self.peek() {
-                    if next_ch == ':' {
-                        // This is ":::" or longer, not a valid annotation marker
-                        self.position = saved_position;
-                        self.row = saved_row;
-                        self.column = saved_column;
-                        return None;
-                    }
-                }
-
-                // Also check if this :: is preceded by a colon (making it part of ":::...")
-                if start_pos.column > 0 {
-                    let line = self.get_current_line();
-                    let col_idx = start_pos.column;
-                    if col_idx > 0 {
-                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
-                            if prev_char == ':' {
-                                // This :: is preceded by ':', making it part of ":::" sequence
-                                self.position = saved_position;
-                                self.row = saved_row;
-                                self.column = saved_column;
-                                return None;
-                            }
-                        }
-                    }
-                }
-
-                return Some(Token::AnnotationMarker {
-                    content: "::".to_string(),
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                });
-            } else {
-                // Not an annotation marker, backtrack
-                self.position = saved_position;
-                self.row = saved_row;
-                self.column = saved_column;
-            }
-        }
-
-        None
-    }
-
-    /// Read reference markers ([target], [@citation], [#section], [1])
-    fn read_ref_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        // Must start with [
-        if self.peek() != Some('[') {
-            return None;
-        }
-
-        let saved_position = self.position;
-        let saved_row = self.row;
-        let saved_column = self.column;
-
-        self.advance(); // Consume [
-
-        let mut content = String::new();
-        let mut found_closing = false;
-
-        // Read content until ] or end of line
-        while let Some(ch) = self.peek() {
-            if ch == ']' {
-                self.advance(); // Consume ]
-                found_closing = true;
-                break;
-            } else if ch == '\n' || ch == '\r' {
-                // Reference markers cannot span lines
-                break;
-            } else {
-                content.push(ch);
-                self.advance();
-            }
-        }
-
-        if !found_closing || content.is_empty() {
-            // Not a valid reference marker, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-            return None;
-        }
-
-        // Validate content patterns
-        if self.is_valid_ref_content(&content) {
-            Some(Token::RefMarker {
-                content,
-                span: SourceSpan {
-                    start: start_pos,
-                    end: self.current_position(),
-                },
-            })
-        } else {
-            // Invalid reference content, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-            None
-        }
-    }
-
-    /// Check if reference content is valid (basic alphanumeric validation only)
-    fn is_valid_ref_content(&self, content: &str) -> bool {
-        // Only basic validation - at least one alphanumeric character
-        // Detailed type classification happens during parsing phase
-        self.ref_classifier.is_valid_reference_content(content)
-    }
-
     /// Read a dash token (standalone -)
     fn read_dash(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
@@ -681,51 +217,6 @@ impl Lexer {
         }
 
         None
-    }
-
-    /// Read inline formatting delimiters (*, _, `, #)
-    fn read_inline_delimiter(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        match self.peek()? {
-            '*' => {
-                self.advance();
-                Some(Token::BoldDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            '_' => {
-                self.advance();
-                Some(Token::ItalicDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            '`' => {
-                self.advance();
-                Some(Token::CodeDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            '#' => {
-                self.advance();
-                Some(Token::MathDelimiter {
-                    span: SourceSpan {
-                        start: start_pos,
-                        end: self.current_position(),
-                    },
-                })
-            }
-            _ => None,
-        }
     }
 
     /// Read an identifier token (alphanumeric starting with letter or underscore)
@@ -777,22 +268,7 @@ impl Lexer {
         })
     }
 
-    /// Check if the current position matches a given string
-    fn matches_string(&self, s: &str) -> bool {
-        let chars: Vec<char> = s.chars().collect();
-        for (i, &expected_char) in chars.iter().enumerate() {
-            if let Some(actual_char) = self.input.get(self.position + i) {
-                if *actual_char != expected_char {
-                    return false;
-                }
-            } else {
-                return false;
-            }
-        }
-        true
-    }
-
-    /// Get the current position in the input
+    /// Get the current position in the input (internal method)
     fn current_position(&self) -> Position {
         Position {
             row: self.row,
@@ -800,7 +276,7 @@ impl Lexer {
         }
     }
 
-    /// Advance to the next character and update position tracking
+    /// Advance to the next character and update position tracking (internal method)
     fn advance(&mut self) -> Option<char> {
         if let Some(ch) = self.input.get(self.position).copied() {
             self.position += 1;
@@ -950,163 +426,72 @@ impl Lexer {
     pub fn test_advance(&mut self) -> Option<char> {
         self.advance()
     }
+}
 
-    /// Read verbatim block if current position matches a verbatim block start
-    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<Token>> {
-        let current_line = self.row;
-        let current_char_pos = self.get_absolute_position();
-
-        // Find a verbatim block that starts at this position
-        for block in verbatim_blocks {
-            if self.is_at_verbatim_block_start(block, current_line, current_char_pos) {
-                return Some(self.tokenize_verbatim_block(block));
-            }
-        }
-
-        None
+impl VerbatimLexer for Lexer {
+    fn row(&self) -> usize {
+        self.row
     }
 
-    /// Check if current position is at the start of the given verbatim block
-    fn is_at_verbatim_block_start(
-        &self,
-        block: &VerbatimBlock,
-        current_line: usize,
-        _current_char_pos: usize,
-    ) -> bool {
-        // Check if we're at the correct line for block start (1-based to 0-based conversion)
-        (block.block_start - 1) == current_line && self.is_at_line_start_for_verbatim(block)
+    fn column(&self) -> usize {
+        self.column
     }
 
-    /// Check if we're at the start of a line that should be part of a verbatim block
-    fn is_at_line_start_for_verbatim(&self, _block: &VerbatimBlock) -> bool {
-        // For now, just check if we're at the start of a line
-        self.column == 0
-    }
-
-    /// Tokenize a verbatim block into VerbatimStart and VerbatimContent tokens
-    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
-        let mut tokens = Vec::new();
-
-        // Create VerbatimStart token for the title line
-        let title_start_pos = self.current_position();
-
-        // Advance through the title line to get its content (excluding the trailing colon)
-        let mut title_content = String::new();
-        while let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                break;
-            }
-            if ch == ':' {
-                // Don't include the colon - it's a structural marker, not content
-                self.advance();
-                break;
-            }
-            title_content.push(ch);
-            self.advance();
-        }
-
-        // Advance past the newline
-        if let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                self.advance();
-                if ch == '\r' && self.peek() == Some('\n') {
-                    self.advance(); // Handle CRLF
-                }
-            }
-        }
-
-        tokens.push(Token::VerbatimStart {
-            content: title_content,
-            span: SourceSpan {
-                start: title_start_pos,
-                end: self.current_position(),
-            },
-        });
-
-        // Create VerbatimContent token for the block content
-        let content_start_pos = self.current_position();
-        let mut content = String::new();
-
-        // Advance through all content lines until terminator
-        let mut current_line = self.row;
-        while current_line < (block.block_end - 1) {
-            // Convert 1-based to 0-based
-            // Read the entire line
-            while let Some(ch) = self.peek() {
-                if ch == '\n' || ch == '\r' {
-                    content.push(ch);
-                    self.advance();
-                    if ch == '\r' && self.peek() == Some('\n') {
-                        content.push('\n');
-                        self.advance(); // Handle CRLF
-                    }
-                    break;
-                } else {
-                    content.push(ch);
-                    self.advance();
-                }
-            }
-            current_line = self.row;
-        }
-
-        // Don't include the terminator line in content
-        // Remove trailing newline if it exists
-        if content.ends_with('\n') {
-            content.pop();
-            if content.ends_with('\r') {
-                content.pop();
-            }
-        }
-
-        if !content.is_empty() {
-            tokens.push(Token::VerbatimContent {
-                content,
-                span: SourceSpan {
-                    start: content_start_pos,
-                    end: self.current_position(),
-                },
-            });
-        }
-
-        // Parse the terminator line to extract label and parameters
-        let terminator_start_pos = self.current_position();
-        let mut terminator_content = String::new();
-
-        // Read the entire terminator line content
-        while let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                break;
-            }
-            terminator_content.push(ch);
-            self.advance();
-        }
-
-        // Create VerbatimEnd token with the full terminator content
-        if !terminator_content.trim().is_empty() {
-            tokens.push(Token::VerbatimEnd {
-                content: terminator_content,
-                span: SourceSpan {
-                    start: terminator_start_pos,
-                    end: self.current_position(),
-                },
-            });
-        }
-
-        // Advance past the newline at end of terminator
-        if let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                self.advance();
-                if ch == '\r' && self.peek() == Some('\n') {
-                    self.advance(); // Handle CRLF
-                }
-            }
-        }
-
-        tokens
-    }
-
-    /// Get absolute character position in input
     fn get_absolute_position(&self) -> usize {
         self.position
+    }
+}
+
+impl ReferenceLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn input(&self) -> &[char] {
+        &self.input
+    }
+
+    fn ref_classifier(&self) -> &ReferenceClassifier {
+        &self.ref_classifier
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
     }
 }

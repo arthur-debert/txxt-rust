@@ -122,8 +122,22 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Citation reference:
             <citation-key> = <identifier>
-            <citation-locator> = , <whitespace>* <text-content>
-            <citation-span> = <left-bracket> <at-sign> <citation-key> <citation-locator>? <right-bracket>
+            <citation-keys> = <citation-key> (, <citation-key>)*
+            <page-number> = <digit>+
+            <page-range> = <page-number> (- <page-number>)?
+            <page-list> = <page-range> (, <page-range>)*
+            <page-locator> = p <period>? <page-list> | pp <period>? <page-list>
+            <citation-locator> = , <whitespace>* <page-locator>
+            <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
+        (grammar)
+
+        Page reference:
+            <page-ref> = <left-bracket> <page-locator> <right-bracket>
+        (grammar)
+
+        Session reference:
+            <session-number> = <digit>+ (<period> <digit>+)*
+            <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
         (grammar)
 
 3. Line Elements
@@ -134,7 +148,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Lines containing span elements:
 
-        <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span>
+        <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span> | <page-ref> | <session-ref>
         <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
         (grammar)
 

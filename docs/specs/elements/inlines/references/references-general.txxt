@@ -1,0 +1,200 @@
+:: title :: References General Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for the general reference system - the foundation for linking, cross-referencing, and connecting content within and beyond txxt documents.
+
+:: note :: This specification describes the specific characteristics of reference inline elements. For the general inline token pattern, universal grammar, parsing architecture, and AST foundation shared by all inline elements, see [../inlines-general.txxt].
+
+1. Purpose
+
+    References provide the mechanism for linking content within documents and connecting to external resources. They enable cross-references to document sections, links to external URLs, file references, and integration with citation systems. The reference system maintains the plain text philosophy while providing powerful connectivity and navigation capabilities.
+
+2. General Reference Form
+
+    2.1. Basic Syntax Pattern
+
+        All references follow the bracket-enclosed pattern:
+            [reference-content]
+        
+        Where:
+        - Square brackets immediately surround the reference
+        - No spaces between brackets and content
+        - Content determines reference type and target
+        - References are resolved based on content pattern
+
+        Examples of the general form:
+            [section title]
+            [http://example.com]
+            [file.txt]
+            [@citation-key]
+            [^footnote-id]
+        :: reference-pattern
+
+    2.2. Content-Based Type Resolution
+
+        Reference type determined by content pattern:
+        - URL patterns → External links
+        - File patterns → File references
+        - Citation patterns (`@key`) → Bibliographic citations
+        - Footnote patterns (`^id`) → Footnote references
+        - Session patterns (`#number`) → Session cross-references
+        - Plain text → General document references
+
+3. Reference Types
+
+    3.1. External Links
+
+        Direct URL references:
+            [https://example.com]
+            [http://txxt.org/docs]
+            [mailto:user@domain.com]
+        :: external-links
+
+        Purpose: Links to external web resources, email addresses
+
+    3.2. File References
+
+        Local and relative file links:
+            [../docs/guide.txxt]
+            [images/diagram.png]
+            [/absolute/path/file.txt]
+        :: file-references
+
+        Purpose: References to other files in the project or filesystem
+
+    3.3. Document Cross-References
+
+        Internal document navigation:
+            [Introduction]
+            [#1.2]
+            [Methodology section]
+        :: document-references
+
+        Purpose: Navigation within the current document
+
+    3.4. Citation References
+
+        Bibliographic and academic citations:
+            [@smith2023]
+            [@doe2024, p. 45]
+            [@multiple; @citations]
+        :: citation-references
+
+        Purpose: Academic and bibliographic references
+
+    3.5. Footnote References
+
+        Footnote and annotation links:
+            [^note1]
+            [^detailed-explanation]
+        :: footnote-references
+
+        Purpose: Footnotes and supplementary information
+
+    3.6. TK (To Come) References
+
+        Placeholder references for future content:
+            [TK]                    # Naked TK reference
+            [TK-identifier]         # TK with identifier
+            [TK-1]                  # Numbered TK
+            [TK-someword]           # Named TK
+        :: tk-references
+
+        Purpose: Content placeholders and development markers
+
+    3.7. Not Sure References
+
+        Unresolved or ambiguous references:
+            [ambiguous-content]     # Cannot determine type
+        :: not-sure-references
+
+        Purpose: Default fallback when reference type cannot be determined
+
+4. Target Resolution
+
+    4.1. Resolution Strategy
+
+        Reference target determination:
+        1. Check for explicit patterns (URL, citation, footnote)
+        2. Search document structure for matching targets
+        3. Check external file references
+        4. Fall back to textual display if no target found
+
+    4.2. Target Types
+
+        Reference resolution targets:
+        - URLs: Direct external links
+        - Files: Filesystem paths (relative/absolute)
+        - Sessions: Document sections by title or number
+        - Definitions: Term definitions within document
+        - Citations: Bibliography entries
+        - Footnotes: Footnote content
+        - Anchors: Named reference points
+        - TK: Content placeholders
+        - Not Sure: Unresolved references
+
+    4.3. Ambiguity Resolution
+
+        Handling multiple potential targets:
+        - Prefer exact matches over partial matches
+        - Prioritize document-internal over external references
+        - Use context to disambiguate similar targets
+        - Provide clear error messages for unresolved references
+
+5. Grammar
+
+    5.1. Reference Structure
+
+        General reference grammar:
+            <reference> = "[" <reference-content> "]"
+            <reference-content> = <url> | <file-path> | <citation> | <footnote> | <text>
+        :: grammar
+
+    5.2. Content Patterns
+
+        Pattern-based type detection:
+            <url> = <protocol> "://" <domain> <path>?
+            <file-path> = <relative-path> | <absolute-path>
+            <citation> = "@" <citation-key> <citation-details>?
+            <footnote> = "^" <footnote-id>
+            <session-ref> = "#" <session-number>
+        :: content-patterns
+
+    5.3. Validation Rules
+
+        Reference content validation:
+        - Cannot be empty
+        - Cannot span line breaks
+        - Must match at least one resolution pattern
+        - Special characters properly escaped
+
+6. AST Structure
+
+    Post-parsing semantic representation:
+
+    Reference AST:
+        ├── Reference
+        │   ├── reference_type: ReferenceType
+        │   ├── content: String
+        │   ├── target: Option<ResolvedTarget>
+        │   ├── display_text: Option<String>
+        │   └── tokens: TokenSequence
+    :: reference-tree
+
+    Reference type variants:
+        ├── ReferenceType
+        │   ├── Url(UrlData)
+        │   ├── File(PathData)
+        │   ├── Session(SessionRef)
+        │   ├── Citation(CitationData)
+        │   ├── Footnote(FootnoteRef)
+        │   ├── TK(TKData)
+        │   ├── NotSure(String)
+        │   └── General(String)
+
+10. Implementation Notes
+
+    10.1. Parser Integration
+
+       The parser should make an effort to validate the reference type, but nor error or warn. To be a vlalid reference all it's needed is at least one alpha numberical character. And it should not do further validation such as validate paths or even sessions or footnotes in this same document 

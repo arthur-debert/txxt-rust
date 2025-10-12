@@ -43,8 +43,9 @@
 
 - This is the repo for a plain text format, txxt, so documentation and text
   must be in txxt format. No markdown.
-- The tour [docs/tour.txxt] and vs markdown [docs/not-markdown.txxt] are quick
+- The tour [docs/walkthrough.txxt] and vs markdown [docs/not-markdown.txxt] are quick
 a howtos for txxt, specially how not to use markdown.
+- No emojis. Regular unicode symbols (no colors, consistent accross systems) are great, we just don't want a bunch of badly designed graphics grabbing attention and breaking monocromacity
 
 ### txxt format is finally in final draft + fully detailed syntax
 

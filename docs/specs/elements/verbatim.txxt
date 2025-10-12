@@ -79,33 +79,11 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
     3.1. Verbatim Structure
 
-        A verbatim block is composed of a title, a content block, and a mandatory end label.
+        Verbatim blocks follow the grammar defined in [syntax.txxt] section 5.4. The structure includes three parts: title, content, and mandatory label.
 
-            <verbatim-block> = <inflow-verbatim> | <stretched-verbatim>
+        For complete verbatim block grammar including `<verbatim-block>`, `<verbatim-title>`, `<verbatim-start>`, `<verbatim-end>`, `<inflow-verbatim>`, and `<stretched-verbatim>` definitions, see [syntax.txxt] section 5.4.
 
-        The title is a text line ending with the verbatim start marker (a colon):
-            <verbatim-title> = <text-line> <verbatim-start>
-            <verbatim-start> = <colon> <whitespace>* <line-break>
-
-        The end label can be simple or parameterized:
-            <verbatim-end> = <verbatim-label-line> | <verbatim-param-label-line>
-            <verbatim-label-line> = <txxt-marker> <label> <line-break>
-            <verbatim-param-label-line> = <txxt-marker> <label> <colon> <parameter-list> <line-break>
-
-    3.2. Content Modes
-
-        The content within the block can be in one of two modes, determined by its indentation.
-
-        In-flow verbatim (content indented relative to title):
-            <inflow-verbatim> = <verbatim-title> <inflow-content> <verbatim-end>
-            <inflow-content> = (<indentation-level> <indent> <verbatim-content-line>)*
-
-        Stretched verbatim (content at absolute column 2):
-            <stretched-verbatim> = <verbatim-title> <stretched-content> <verbatim-end>
-            <stretched-content> = <verbatim-content-line>*
-        
-        The parsing rule is that for stretched blocks, each content line must start at absolute column 2 (i.e., be prefixed with a space), which is stripped.
-        :: grammar
+        The two positioning modes (in-flow and stretched) are determined automatically based on the first non-blank content line position relative to the title indentation level.
 
 4. AST Structure
 
@@ -125,8 +103,8 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
     (tree)
 
     Key properties:
-    - Content stored in IgnoreContainer (follows container architecture)
-    - IgnoreContainer holds ignore-lines and blank-lines only
+    - Content stored in Ignore Container (follows container architecture)
+    - Ignore Container holds ignore-lines and blank-lines only
     - Content is preserved exactly as written (sacred text)
     - Title can contain inline formatting
     - Label is always present (mandatory)
@@ -150,14 +128,14 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
         Content handling rules:
 
-        - Content stored as IgnoreContainer with ignore-lines and blank-lines
+        - Content stored as Ignore Container with ignore-lines and blank-lines
         - Raw content is preserved byte-for-byte within ignore-lines
         - Indentation wall is stripped from in-flow content
         - First character is stripped from stretched content
-        - Blank lines preserved as BlankLine elements within IgnoreContainer
+        - Blank lines preserved as BlankLine elements within Ignore Container
         - No escape sequence processing within content
         - No inline parsing within content
-        - IgnoreContainer follows container architecture consistently
+        - Ignore Container follows container architecture consistently
 
     5.3. Label Processing
 

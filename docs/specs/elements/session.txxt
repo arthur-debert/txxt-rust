@@ -62,16 +62,11 @@ Complete specification for sessions - the hierarchical organizational units that
 
     3.1. Session Structure
 
-        A session requires a blank line, followed by a title line, another blank line, and finally an indented session container. This enforces clear structural separation.
+        Sessions follow the grammar defined in [syntax.txxt] section 5.3. The structure requires blank line separation and indented content to distinguish sessions from paragraphs.
 
-            <session> = <blank-line> <session-title> <blank-line> <session-container>
-            <session-title> = <session-numbering>? <text-line>
-        
-        The title can be optionally prefixed with a sequence marker for numbering:
-            <session-numbering> = <sequence-marker>
-        
-        The session's content is held in a session container, which is the only container type that can hold other sessions. For the full grammar of a session container, see the container specification.
-        :: grammar
+        For complete session grammar including `<session>`, `<session-title>`, `<session-numbering>`, and `<session-container>` definitions, see [syntax.txxt] section 5.3.
+
+        Session numbering uses the same sequence marker patterns as lists. For sequence marker definitions, see [syntax.txxt] section 4.1.
 
     3.3. Boundary Rules
 
@@ -90,17 +85,15 @@ Complete specification for sessions - the hierarchical organizational units that
         │   │   ├── content: Vec<Inline>
         │   │   ├── numbering: Option<SessionNumbering>
         │   │   └── tokens: TokenSequence
-        │   ├── content: SessionContainer
+        │   ├── content: Container
         │   │   └── content: Vec<Block> (can include sessions)
-        │   └── annotations: Vec<Annotation>
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+        └── SessionNumbering
+            ├── marker: String (preserved exactly)
+            ├── style: NumberingStyle
+            └── form: NumberingForm
     (tree)
-
-    Session numbering structure:
-        ├── SessionNumbering
-        │   ├── marker: String (preserved exactly)
-        │   ├── style: NumberingStyle
-        │   └── form: NumberingForm
-    (numbering)
 
 5. Numbering System
 
@@ -339,11 +332,13 @@ Complete specification for sessions - the hierarchical organizational units that
     9.2. Numbering Determination
 
         SessionNumbering extraction:
-            fn parse_session_numbering(title: &str) -> (Option<SessionNumbering>, &str) {
-                // Extract sequence marker from start of title
-                // Return numbering info and remaining title content
-            }
-        (numbering-extraction)
+            
+            Function to extract numbering from session title:
+                fn parse_session_numbering(title: &str) -> (Option<SessionNumbering>, &str) {
+                    // Extract sequence marker from start of title
+                    // Return numbering info and remaining title content
+                }
+            :: rust
 
     9.3. AST Construction
 
@@ -359,10 +354,10 @@ Complete specification for sessions - the hierarchical organizational units that
     10.1. Container Integration
 
         Session container characteristics:
-        - SessionContainer type: Can hold any block including sessions
+        - Session Container type: Can hold any block including sessions
         - Blank line requirements: Around nested sessions
         - Recursive structure: Sessions within sessions
-        - Document root: Document itself is conceptually a SessionContainer
+        - Document root: Document itself is conceptually a Session Container
 
     10.2. Numbering Consistency
 

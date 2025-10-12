@@ -59,22 +59,13 @@ Complete specification for annotations - metadata elements that attach informati
 
     3.1. Grammar
 
-        The grammar for annotations distinguishes between inline, block, and parameterized forms.
+        Annotations follow the grammar defined in [syntax.txxt] section 5.6. The syntax supports inline, block, and parameterized forms using the txxt marker (::).
 
-        Inline annotation (content is optional):
-            <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>?
-        
-        Block annotation:
-            <annotation-block> = <txxt-marker> <annotation-label> <txxt-marker> <line-break> <container>?
+        For complete annotation grammar including `<annotation-inline>`, `<annotation-block>`, `<param-annotation>`, and `<annotation-label>` definitions, see [syntax.txxt] section 5.6.
 
-        Parameterized annotation (can be inline or block):
-            <param-annotation> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker> <annotation-content>?
-        
-        The annotation label can be a simple or namespaced identifier:
-            <annotation-label> = <label>
-        :: grammar
+        Annotation labels use the standard label syntax, and parameters follow the parameter list grammar. See [labels.txxt] and [parameters.txxt] for complete specifications.
 
-        For complete parameter syntax, quoting rules, and examples, see [../parameters.txxt].
+        For complete parameter syntax, quoting rules, and examples, see [parameters.txxt].
 
     3.2. Label Rules
 
@@ -82,7 +73,7 @@ Complete specification for annotations - metadata elements that attach informati
             <annotation-label> = <label>
         (grammar)
 
-        For complete label syntax, validation rules, and conventions, see [../labels.txxt].
+        For complete label syntax, validation rules, and conventions, see [labels.txxt].
 
     3.3. Content Rules
 
@@ -257,8 +248,8 @@ Complete specification for annotations - metadata elements that attach informati
 
     For detailed information on annotation components:
 
-    - Parameters: Complete parameter syntax, quoting rules, and validation in [../parameters.txxt]
-    - Labels: Label syntax, namespaces, and conventions in [../labels.txxt]
+    - Parameters: Complete parameter syntax, quoting rules, and validation in [parameters.txxt]
+    - Labels: Label syntax, namespaces, and conventions in [labels.txxt]
 
 9. Edge Cases
 

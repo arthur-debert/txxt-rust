@@ -54,7 +54,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             <parameter-value> = <text-content> | <quoted-string>
             <quoted-string> = " (<text-char> | <escaped-char>)* "
         
-        For the full definition of base tokens like `<identifier>` and `<text-content>`, see the main syntax reference.
+        For the full definition of base tokens like `<identifier>` and `<text-content>`, see [syntax.txxt].
         :: grammar
 
 4. Value Types and Quoting
@@ -230,11 +230,13 @@ Complete specification for the txxt parameter system used across annotations, ve
     9.2. Storage Representation
 
         Recommended storage:
-            Parameters {
-                entries: HashMap<String, String>,
-                source_order: Vec<String>,
-            }
-        (storage)
+            
+            Data structure for efficient parameter storage:
+                Parameters {
+                    entries: HashMap<String, String>,
+                    source_order: Vec<String>,
+                }
+            :: rust
 
         This preserves both lookup efficiency and source order for reconstruction.
 

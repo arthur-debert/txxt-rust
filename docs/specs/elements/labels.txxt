@@ -258,12 +258,14 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
     10.2. Storage and Lookup
 
         Efficient storage:
-            Label {
-                value: String,
-                namespaces: Vec<String>, // Split by '.'
-                is_namespaced: bool,
-            }
-        (storage)
+            
+            Data structure for label representation:
+                Label {
+                    value: String,
+                    namespaces: Vec<String>, // Split by '.'
+                    is_namespaced: bool,
+                }
+            :: rust
 
     10.3. Validation Integration
 

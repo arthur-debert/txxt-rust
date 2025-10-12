@@ -130,6 +130,8 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
                 tokens.push(token);
+            } else if let Some(token) = self.read_period() {
+                tokens.push(token);
             } else if let Some(token) = self.read_text() {
                 tokens.push(token);
             } else if let Some(token) = self.read_identifier() {
@@ -188,6 +190,24 @@ impl Lexer {
                     // At end of input, stop here
                     break;
                 }
+            } else if ch == '.' {
+                // Include period if it's part of decimal numbers (e.g., "2.0")
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    if next_ch.is_ascii_digit()
+                        && !content.is_empty()
+                        && content.chars().last().unwrap().is_ascii_digit()
+                    {
+                        content.push(ch);
+                        self.advance();
+                    } else {
+                        // Period is structural, not part of text
+                        break;
+                    }
+                } else {
+                    // Period at end of input, stop here
+                    break;
+                }
             } else {
                 break;
             }
@@ -223,6 +243,47 @@ impl Lexer {
 
             self.advance();
             return Some(Token::Dash {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a period token (standalone .)
+    /// Only tokenizes periods that are structural markers, not those within text content
+    fn read_period(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('.') {
+            // Check context to determine if this should be a standalone period token
+            // Periods within numeric text (like "2.0") should not be tokenized separately
+
+            // Look at previous character if available
+            let prev_is_digit = if self.position > 0 {
+                self.input
+                    .get(self.position - 1)
+                    .is_some_and(|c| c.is_ascii_digit())
+            } else {
+                false
+            };
+
+            // Look at next character
+            let next_is_digit = self
+                .input
+                .get(self.position + 1)
+                .is_some_and(|c| c.is_ascii_digit());
+
+            // If surrounded by digits, this is part of a decimal number - don't tokenize
+            if prev_is_digit && next_is_digit {
+                return None;
+            }
+
+            self.advance();
+            return Some(Token::Period {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

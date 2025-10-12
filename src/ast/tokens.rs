@@ -73,6 +73,9 @@ pub enum Token {
     /// Dash character (-)
     Dash { span: SourceSpan },
 
+    /// Period character (.)
+    Period { span: SourceSpan },
+
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
@@ -139,6 +142,7 @@ impl Token {
             Token::AnnotationMarker { span, .. } => span,
             Token::DefinitionMarker { span, .. } => span,
             Token::Dash { span } => span,
+            Token::Period { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
             Token::FootnoteNumber { span, .. } => span,
@@ -185,6 +189,7 @@ impl Token {
             Token::Indent { .. } => "",
             Token::Dedent { .. } => "",
             Token::Dash { .. } => "-",
+            Token::Period { .. } => ".",
             Token::Eof { .. } => "",
         }
     }

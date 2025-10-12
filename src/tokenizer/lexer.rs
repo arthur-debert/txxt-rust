@@ -5,7 +5,9 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::inline::{read_inline_delimiter, read_math_span, MathSpanLexer};
+use crate::tokenizer::inline::{
+    read_citation_ref, read_inline_delimiter, read_math_span, CitationRefLexer, MathSpanLexer,
+};
 use crate::tokenizer::markers::{
     integrate_annotation_parameters, integrate_definition_parameters, read_annotation_marker,
     read_definition_marker, read_sequence_marker, ReferenceLexer,
@@ -111,6 +113,8 @@ impl Lexer {
             } else if let Some(token) = read_annotation_marker(&mut *self) {
                 tokens.push(token);
             } else if let Some(token) = read_math_span(self) {
+                tokens.push(token);
+            } else if let Some(token) = read_citation_ref(self) {
                 tokens.push(token);
             } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
                 tokens.push(token);
@@ -499,6 +503,56 @@ impl ReferenceLexer for Lexer {
 }
 
 impl MathSpanLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl CitationRefLexer for Lexer {
     fn current_position(&self) -> Position {
         Position {
             row: self.row,

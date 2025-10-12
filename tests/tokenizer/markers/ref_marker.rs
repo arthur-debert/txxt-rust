@@ -1,7 +1,8 @@
 //! Tests for RefMarker token recognition using rstest and proptest
 //!
 //! Tests both successful parsing and failure cases for reference markers:
-//! [file], [@citation], [#section], [1], [url], etc.
+//! [file], [#section], [1], [url], etc.
+//! NOTE: Citation references ([@...]) are now handled by CitationRef tokens.
 
 use proptest::prelude::*;
 use rstest::rstest;
@@ -9,28 +10,28 @@ use txxt::ast::tokens::Token;
 use txxt::tokenizer::tokenize;
 
 // =============================================================================
-// RefMarker Token - Citation Tests (rstest)
+// CitationRef Token Tests (rstest) - Citations produce CitationRef, not RefMarker
 // =============================================================================
 
 #[rstest]
-#[case("[@smith2023]", "@smith2023")]
-#[case("[@doe_2024]", "@doe_2024")]
-#[case("[@jones-2025]", "@jones-2025")]
-#[case("[@author123]", "@author123")]
+#[case("[@smith2023]", "smith2023")]
+#[case("[@doe_2024]", "doe_2024")]
+#[case("[@jones-2025]", "jones-2025")]
+#[case("[@author123]", "author123")]
 fn test_ref_marker_citation_passing(#[case] input: &str, #[case] expected_content: &str) {
     let tokens = tokenize(input);
 
-    assert_eq!(tokens.len(), 2); // REF_MARKER + EOF
+    assert_eq!(tokens.len(), 2); // CITATION_REF + EOF
 
     match &tokens[0] {
-        Token::RefMarker { content, span } => {
+        Token::CitationRef { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
             assert_eq!(span.end.column, input.len());
         }
-        _ => panic!("Expected RefMarker token, got {:?}", tokens[0]),
+        _ => panic!("Expected CitationRef token, got {:?}", tokens[0]),
     }
 }
 
@@ -200,17 +201,34 @@ fn test_ref_marker_in_context_passing(
         _ => unreachable!(),
     }
 
-    // Find reference marker
-    let ref_token = tokens
-        .iter()
-        .find(|token| matches!(token, Token::RefMarker { content, .. } if content == expected_ref))
-        .expect("Should find reference marker");
+    // Find reference token (could be RefMarker or CitationRef)
+    if let Some(citation_content) = expected_ref.strip_prefix('@') {
+        // Citation reference - should be CitationRef token
+        // Remove @ prefix
+        let ref_token = tokens
+            .iter()
+            .find(|token| matches!(token, Token::CitationRef { content, .. } if content == citation_content))
+            .expect("Should find citation reference");
 
-    match ref_token {
-        Token::RefMarker { content, .. } => {
-            assert_eq!(content, expected_ref);
+        match ref_token {
+            Token::CitationRef { content, .. } => {
+                assert_eq!(content, citation_content);
+            }
+            _ => unreachable!(),
         }
-        _ => unreachable!(),
+    } else {
+        // Other reference types - should be RefMarker token
+        let ref_token = tokens
+            .iter()
+            .find(|token| matches!(token, Token::RefMarker { content, .. } if content == expected_ref))
+            .expect("Should find reference marker");
+
+        match ref_token {
+            Token::RefMarker { content, .. } => {
+                assert_eq!(content, expected_ref);
+            }
+            _ => unreachable!(),
+        }
     }
 
     // Find suffix text
@@ -290,18 +308,17 @@ proptest! {
         let input = format!("[@{}]", identifier);
         let tokens = tokenize(&input);
 
-        // Should have exactly 1 REF_MARKER token + EOF
+        // Should have exactly 1 CITATION_REF token + EOF
         prop_assert_eq!(tokens.len(), 2);
 
         match &tokens[0] {
-            Token::RefMarker { content, span } => {
-                let expected_content = format!("@{}", identifier);
-                prop_assert_eq!(content, &expected_content);
+            Token::CitationRef { content, span } => {
+                prop_assert_eq!(content, &identifier); // Just the identifier, no @ prefix
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, input.len());
             }
-            _ => prop_assert!(false, "Expected RefMarker token"),
+            _ => prop_assert!(false, "Expected CitationRef token"),
         }
     }
 

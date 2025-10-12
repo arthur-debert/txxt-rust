@@ -58,3 +58,10 @@ Now, we have systematically design the full syntax, with the grammar and tokens,
 - The core reusable blocks (docs/specs/elements/container.txxt docs/specs/elements/labels.txxt docs/specs/elements/parameters.txxt)
 - Then docs/specs/elements/ `<elements> for the work you'll be doing
 - This is the authorative information on txxt, and these will win every other source
+
+### File and Code organization
+
+- A big part of the challenge is to make sure the specs are well aligned with the implementation. Which make it essential to mirror specs, tokenizer and parser code structure.
+- The structures in docs/specs should be mirrored as much as possible under src/tokernizer and src/parser
+- This holds true for tests too, i.e. tests/tokenizer/ and tests/parser/
+- Sometimes, things do not map perfectly, and minor adjustments are needed. But the goal is to keep things as aligned as possible.

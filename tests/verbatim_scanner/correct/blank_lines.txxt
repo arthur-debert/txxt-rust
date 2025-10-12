@@ -1,0 +1,7 @@
+Expected: [[2,7,"normal"]]
+Title with blank lines:
+    Some plain text
+
+    More content after blank line
+    Final line
+:: empty

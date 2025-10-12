@@ -1,413 +1,1112 @@
-use crate::tokenizer::tokens::{Token, TokenType};
+//! TXXT Lexer - Character-precise tokenization for new AST
+//!
+//! Converts TXXT source text into Token enum variants with precise SourceSpan
+//! positioning for language server support.
+
+use crate::ast::reference_types::ReferenceClassifier;
+use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
 use regex::Regex;
 
-pub struct Lexer {
-    text: String,
-    tokens: Vec<Token>,
-    current_line: usize,
-    current_col: usize,
-    indent_stack: Vec<usize>,
-    verbatim_blocks: Vec<VerbatimBlock>,
+/// Pattern type for :: tokens on the current line
+#[derive(Debug, Clone, PartialEq)]
+enum ColonPattern {
+    /// :: label :: pattern (annotation)
+    Annotation,
+    /// term :: pattern (definition)
+    Definition,
+    /// standalone :: pattern
+    Standalone,
+}
 
-    // Pre-compiled regex patterns for better performance
-    pragma_re: Regex,
-    empty_pragma_re: Regex,
-    verbatim_start_re: Regex,
-    verbatim_end_re: Regex,
+/// Main tokenizer that produces new AST Token enum variants
+pub struct Lexer {
+    input: Vec<char>,
+    position: usize,
+    row: usize,
+    column: usize,
+    // Regex patterns for :: detection
+    annotation_pattern: Regex,
+    definition_pattern: Regex,
+    // Reference classifier for basic validation
+    ref_classifier: ReferenceClassifier,
 }
 
 impl Lexer {
-    pub fn new(text: &str) -> Self {
+    /// Create a new lexer for the given input text
+    pub fn new(input: &str) -> Self {
         Self {
-            text: text.to_string(),
-            tokens: Vec::new(),
-            current_line: 1,
-            current_col: 1,
-            indent_stack: vec![0],
-            verbatim_blocks: Vec::new(),
-            pragma_re: Regex::new(r"^::\s*(.+?)\s*::(?:\s+(.*))?$").unwrap(),
-            empty_pragma_re: Regex::new(r"^::\s*::$").unwrap(),
-            verbatim_start_re: Regex::new(r"^(.*?)\s*:\s*$").unwrap(),
-            verbatim_end_re: Regex::new(r"^\(([^)]*)\)\s*$").unwrap(),
+            input: input.chars().collect(),
+            position: 0,
+            row: 0,
+            column: 0,
+            // Regex for :: label :: pattern (annotation) - flexible spacing
+            annotation_pattern: Regex::new(r"::\s*\w+.*?\s*::").unwrap(),
+            // Regex for content :: pattern (definition) - ensure :: is exactly at end
+            definition_pattern: Regex::new(r"\w+.*?::\s*$").unwrap(),
+            // Reference classifier for basic validation only
+            ref_classifier: ReferenceClassifier::new(),
         }
     }
 
+    /// Tokenize the input text into Token enum variants
     pub fn tokenize(&mut self) -> Vec<Token> {
-        // Handle empty input
-        if self.text.is_empty() {
-            self.add_token(TokenType::Eof, Some("".to_string()));
-            return self.tokens.clone();
-        }
+        let mut tokens = Vec::new();
 
-        // CRITICAL STEP: Pre-scan for verbatim blocks before tokenizing
-        //
-        // Verbatim blocks contain arbitrary content that should NOT be parsed as TXXT.
-        // We must identify verbatim block boundaries BEFORE tokenization to ensure:
-        // 1. Content inside verbatim blocks is preserved exactly as written
-        // 2. No TXXT parsing (indentation, formatting, etc.) happens inside verbatim blocks
-        // 3. Only title, label, and parameters are parsed as normal TXXT
-        //
-        // The scanner returns line ranges like [[3,6], [10,15]] identifying verbatim blocks
-        let scanner = VerbatimScanner::new();
-        self.verbatim_blocks = scanner.scan(&self.text);
+        // First, pre-scan for verbatim blocks
+        let input_text: String = self.input.iter().collect();
+        let verbatim_scanner = VerbatimScanner::new();
+        let verbatim_blocks = verbatim_scanner.scan(&input_text);
 
-        // Collect lines to avoid borrowing issues
-        let lines: Vec<String> = self.text.lines().map(|s| s.to_string()).collect();
-
-        for (line_idx, line) in lines.iter().enumerate() {
-            self.current_line = line_idx + 1;
-            self.current_col = 1;
-
-            // Calculate current indentation
-            let expanded_line = line.replace('\t', "    ");
-            let stripped_line = expanded_line.trim_start();
-            let indentation = expanded_line.len() - stripped_line.len();
-
-            // Update column position to account for indentation
-            self.current_col = indentation + 1;
-
-            // Handle blank lines (only whitespace)
-            if stripped_line.is_empty() {
-                self.add_token(TokenType::BlankLine, Some("\n".to_string()));
+        while !self.is_at_end() {
+            // Check if we're at the start of a verbatim block
+            if let Some(verbatim_tokens) = self.read_verbatim_block(&verbatim_blocks) {
+                tokens.extend(verbatim_tokens);
                 continue;
             }
 
-            // CRITICAL: Check if this line is verbatim content BEFORE processing indentation
-            //
-            // This is the key architectural decision: verbatim content lines should be
-            // treated as opaque content, not as TXXT structure. This means:
-            //
-            // 1. NO indentation processing (no Indent/Dedent tokens)
-            // 2. NO TXXT parsing of any kind
-            // 3. Preserve the line exactly as written
-            //
-            // Only title lines (e.g., "code:") and label lines (e.g., "(python)")
-            // should be processed as normal TXXT.
-            let scanner = VerbatimScanner::new();
-            if scanner.is_verbatim_content(self.current_line, &self.verbatim_blocks) {
-                // This line is inside a verbatim block - preserve it exactly
-                // DO NOT emit Indent/Dedent tokens or do any TXXT processing
-                self.add_token(TokenType::VerbatimContent, Some(expanded_line));
-            } else {
-                // Normal TXXT line - process indentation changes and content
-                if indentation > self.indent_stack[self.indent_stack.len() - 1] {
-                    self.indent_stack.push(indentation);
-                    self.add_token(TokenType::Indent, Some("".to_string()));
-                } else {
-                    // Emit one DEDENT token for each level we're backing out
-                    while indentation < self.indent_stack[self.indent_stack.len() - 1]
-                        && self.indent_stack.len() > 1
-                    {
-                        self.indent_stack.pop();
-                        self.add_token(TokenType::Dedent, Some("".to_string()));
-                    }
+            // Try to read sequence marker only at column 0 (start of line)
+            if self.column == 0 {
+                if let Some(token) = self.read_sequence_marker() {
+                    tokens.push(token);
+                    continue;
                 }
-
-                // Parse line content as normal TXXT
-                self.process_line_content(stripped_line, line, indentation);
             }
 
-            // Add newline token - should have empty value
-            self.add_token(TokenType::Newline, Some("".to_string()));
-        }
-
-        // Ensure any remaining indents are closed at the end of the file
-        while self.indent_stack.len() > 1 {
-            self.indent_stack.pop();
-            self.add_token(TokenType::Dedent, None);
-        }
-
-        // EOF should be positioned after the last character or newline
-        self.current_col += 1;
-        self.add_token(TokenType::Eof, Some("".to_string()));
-        self.tokens.clone()
-    }
-
-    fn process_line_content(&mut self, line: &str, full_line: &str, indentation: usize) {
-        // Check for pragma/annotation (:: label ::)
-        if let Some(_captures) = self.empty_pragma_re.captures(line) {
-            self.add_token(TokenType::PragmaMarker, Some("::".to_string()));
-            self.add_token(TokenType::PragmaMarker, Some("::".to_string()));
-            return;
-        }
-
-        if let Some(captures) = self.pragma_re.captures(line) {
-            self.add_token(TokenType::PragmaMarker, Some("::".to_string()));
-            let label_part = captures.get(1).unwrap().as_str();
-            self.process_pragma_label(label_part);
-            self.add_token(TokenType::PragmaMarker, Some("::".to_string()));
-            if let Some(value_part) = captures.get(2) {
-                self.add_token(TokenType::Text, Some(value_part.as_str().to_string()));
-            }
-            return;
-        }
-
-        // Check for definition (line ending with :: or :: followed by annotation)
-        let stripped_line = line.trim_end();
-        let definition_re = Regex::new(r"^(.+?)\s*::\s*(\(.+\))?\s*$").unwrap();
-        if let Some(captures) = definition_re.captures(stripped_line) {
-            let term = captures.get(1).unwrap().as_str().trim();
-            let annotation = captures.get(2).map(|m| m.as_str());
-
-            if !term.is_empty() {
-                self.process_text_with_inline_formatting(term);
-            }
-            self.add_token(TokenType::DefinitionMarker, Some("::".to_string()));
-            if let Some(annotation) = annotation {
-                self.add_token(TokenType::Text, Some(format!(" {}", annotation)));
-            }
-            return;
-        }
-
-        // Check for verbatim block start (line ending with : but not ::)
-        if let Some(captures) = self.verbatim_start_re.captures(line) {
-            let content = captures.get(1).unwrap().as_str().trim();
-            // Make sure it doesn't end with :: (pragma marker)
-            if !content.ends_with(':') {
-                if !content.is_empty() {
-                    self.add_token(TokenType::Text, Some(content.to_string()));
-                }
-                self.add_token(TokenType::VerbatimStart, Some(":".to_string()));
-                return;
-            }
-        }
-
-        // Check for verbatim block end: (label) or ()
-        if let Some(captures) = self.verbatim_end_re.captures(line) {
-            self.add_token(TokenType::VerbatimEnd, Some("(".to_string()));
-            let label = captures.get(1).unwrap().as_str();
-            if !label.is_empty() {
-                self.process_pragma_label(label);
-            }
-            self.add_token(TokenType::VerbatimEnd, Some(")".to_string()));
-            return;
-        }
-
-        // Check for dash list marker
-        let dash_re = Regex::new(r"^(\s*)(-\s+)").unwrap();
-        if let Some(captures) = dash_re.captures(full_line) {
-            let indentation_str = captures.get(1).unwrap().as_str();
-            let dash_and_space = captures.get(2).unwrap().as_str();
-
-            // Only match if indentation matches expected level
-            if indentation_str.replace('\t', "    ").len() == indentation {
-                self.add_token(TokenType::Dash, Some(dash_and_space.to_string()));
-                let rest_start = indentation_str.len() + dash_and_space.len();
-                if rest_start < full_line.len() {
-                    let rest = &full_line[rest_start..];
-                    if !rest.is_empty() {
-                        self.process_text_with_inline_formatting(rest);
-                    }
-                }
-                return;
-            }
-        }
-
-        // Check for sequence markers (1., a), etc.)
-        let seq_re = Regex::new(r"^(\s*)(\d+(?:\.\d+)*\.|[a-zA-Z]\)|[a-zA-Z]\.)(\s+)").unwrap();
-        if let Some(captures) = seq_re.captures(full_line) {
-            let indentation_str = captures.get(1).unwrap().as_str();
-            let marker = captures.get(2).unwrap().as_str();
-            let whitespace = captures.get(3).unwrap().as_str();
-
-            // Only match if indentation matches expected level
-            if indentation_str.replace('\t', "    ").len() == indentation {
-                // Capture marker with its following whitespace
-                self.add_token(
-                    TokenType::SequenceMarker,
-                    Some(format!("{}{}", marker, whitespace)),
-                );
-                let rest_start = indentation_str.len() + marker.len() + whitespace.len();
-                if rest_start < full_line.len() {
-                    let rest = &full_line[rest_start..];
-                    if !rest.is_empty() {
-                        self.process_text_with_inline_formatting(rest);
-                    }
-                }
-                return;
-            }
-        }
-
-        // Default: process as text with potential inline formatting
-        self.process_text_with_inline_formatting(line);
-    }
-
-    fn process_pragma_label(&mut self, label: &str) {
-        // Check if label contains parameters (key:value)
-        if label.contains(':') {
-            let parts: Vec<&str> = label.splitn(2, ':').collect();
-            self.add_token(TokenType::Identifier, Some(parts[0].to_string()));
-            self.add_token(TokenType::Colon, Some(":".to_string()));
-            self.process_parameters(parts[1]);
-        } else {
-            self.add_token(TokenType::Identifier, Some(label.to_string()));
-        }
-    }
-
-    fn process_parameters(&mut self, params_str: &str) {
-        let params: Vec<&str> = params_str.split(',').collect();
-        for (i, param) in params.iter().enumerate() {
-            let param = param.trim();
-            if param.contains('=') {
-                let parts: Vec<&str> = param.splitn(2, '=').collect();
-                let key = parts[0].trim();
-                let value = parts[1].trim();
-
-                self.add_token(TokenType::Identifier, Some(key.to_string()));
-                self.add_token(TokenType::Equals, Some("=".to_string()));
-
-                // Check if value is quoted
-                if value.starts_with('"') && value.ends_with('"') && value.len() >= 2 {
-                    self.add_token(TokenType::String, Some(value.to_string()));
-                } else {
-                    self.add_token(TokenType::Identifier, Some(value.to_string()));
-                }
-            } else {
-                self.add_token(TokenType::Identifier, Some(param.to_string()));
-            }
-
-            if i < params.len() - 1 {
-                self.add_token(TokenType::Comma, Some(",".to_string()));
-            }
-        }
-    }
-
-    fn process_text_with_inline_formatting(&mut self, text: &str) {
-        if text.is_empty() {
-            return;
-        }
-
-        let mut i = 0;
-        let mut current_text = String::new();
-        let chars: Vec<char> = text.chars().collect();
-
-        while i < chars.len() {
-            let ch = chars[i];
-
-            // Check for reference/footnote markers [...]
-            if ch == '[' {
-                // Emit any accumulated text first
-                if !current_text.is_empty() {
-                    self.add_token(TokenType::Text, Some(current_text.clone()));
-                    current_text.clear();
-                }
-
-                // Find the matching closing bracket
-                let mut bracket_count = 1;
-                let mut j = i + 1;
-                let mut ref_content = String::new();
-
-                while j < chars.len() && bracket_count > 0 {
-                    if chars[j] == '[' {
-                        bracket_count += 1;
-                    } else if chars[j] == ']' {
-                        bracket_count -= 1;
-                    }
-                    if bracket_count > 0 {
-                        ref_content.push(chars[j]);
-                    }
-                    j += 1;
-                }
-
-                if bracket_count == 0 {
-                    // Determine reference type
-                    if ref_content.starts_with('@') {
-                        // Citation [@key] or [@key, p. 45]
-                        self.add_token(TokenType::Citation, Some(format!("[{}]", ref_content)));
-                    } else if ref_content.chars().all(|c| c.is_ascii_digit()) {
-                        self.add_token(
-                            TokenType::FootnoteNumber,
-                            Some(format!("[{}]", ref_content)),
-                        );
-                    } else if ref_content.starts_with('#') && ref_content.len() > 1 {
-                        // Session reference like #3.4
-                        self.add_token(
-                            TokenType::SessionNumber,
-                            Some(format!("[{}]", ref_content)),
-                        );
+            // Try to read blank lines when at column 0 (start of line)
+            if self.column == 0 {
+                if let Some(token) = self.read_blankline() {
+                    // Check if the last token was also a BlankLine and merge them
+                    if let Some(Token::BlankLine { span: last_span }) = tokens.last_mut() {
+                        // Extend the span of the existing BlankLine to include this new one
+                        last_span.end = token.span().end;
                     } else {
-                        self.add_token(TokenType::RefMarker, Some(format!("[{}]", ref_content)));
+                        // This is the first BlankLine or follows a different token type
+                        tokens.push(token);
                     }
-                    i = j;
-                    continue;
-                } else {
-                    // Unclosed bracket, treat as literal
-                    current_text.push(ch);
-                    i += 1;
                     continue;
                 }
             }
 
-            // Check for inline formatting markers (*, _, `, #)
-            if matches!(ch, '*' | '_' | '`' | '#') {
-                // Check if this could be a valid formatting marker
-                if i + 1 < chars.len() && chars[i + 1] != ' ' {
-                    // Look for the closing marker
-                    let mut j = i + 1;
-                    while j < chars.len() && chars[j] != ch {
-                        j += 1;
+            // Handle newlines (they're significant tokens)
+            if let Some(ch) = self.peek() {
+                if ch == '\n' || ch == '\r' {
+                    if let Some(token) = self.read_newline() {
+                        tokens.push(token);
+                        continue;
                     }
+                }
+            }
 
-                    if j < chars.len() && j > i + 1 {
-                        // Found a matching closing marker
-                        // Check that it's not followed by alphanumeric
-                        if j == chars.len() - 1 || !chars[j + 1].is_alphanumeric() {
-                            // Emit accumulated text
-                            if !current_text.is_empty() {
-                                self.add_token(TokenType::Text, Some(current_text.clone()));
-                                current_text.clear();
+            // Handle other whitespace (spaces and tabs)
+            if let Some(ch) = self.peek() {
+                if ch == ' ' || ch == '\t' {
+                    self.advance();
+                    continue;
+                }
+            }
+
+            if self.is_at_end() {
+                break;
+            }
+
+            if let Some(token) = self.read_definition_marker() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_annotation_marker() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_ref_marker() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_inline_delimiter() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_dash() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_text() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_identifier() {
+                tokens.push(token);
+            } else {
+                // Skip unrecognized character for now
+                if let Some(_ch) = self.peek() {
+                    self.advance();
+                }
+            }
+        }
+
+        // Add EOF token
+        tokens.push(Token::Eof {
+            span: SourceSpan {
+                start: self.current_position(),
+                end: self.current_position(),
+            },
+        });
+
+        tokens
+    }
+
+    /// Read a text token (alphanumeric characters and underscores that are part of words)
+    fn read_text(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+        let mut content = String::new();
+
+        // Don't start text with delimiter characters or dash
+        if let Some(ch) = self.peek() {
+            if ch == '*' || ch == '_' || ch == '`' || ch == '#' || ch == '-' {
+                return None;
+            }
+        }
+
+        while let Some(ch) = self.peek() {
+            if ch.is_alphanumeric() {
+                content.push(ch);
+                self.advance();
+            } else if ch == '_' {
+                // Only include underscore if it's followed by alphanumeric (not delimiter)
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    if next_ch.is_alphanumeric() {
+                        content.push(ch);
+                        self.advance();
+                    } else {
+                        // Next char is not alphanumeric, stop here to let delimiter handler take it
+                        break;
+                    }
+                } else {
+                    // At end of input, stop here
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        if content.is_empty() {
+            None
+        } else {
+            Some(Token::Text {
+                content,
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            })
+        }
+    }
+
+    /// Read a sequence marker token (list markers like "1. ", "a) ", "- ")
+    fn read_sequence_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+        let saved_position = self.position;
+        let saved_row = self.row;
+        let saved_column = self.column;
+
+        // Try to match sequence marker patterns
+
+        // 1. Plain dash marker: "- "
+        if self.peek() == Some('-') {
+            self.advance();
+            if self.peek() == Some(' ') {
+                self.advance();
+                return Some(Token::SequenceMarker {
+                    content: "-".to_string(),
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: Position {
+                            row: start_pos.row,
+                            column: start_pos.column + 1,
+                        },
+                    },
+                });
+            } else {
+                // Not a valid marker, backtrack
+                self.position = saved_position;
+                self.row = saved_row;
+                self.column = saved_column;
+                return None;
+            }
+        }
+
+        // 2. Numbered markers: "1. ", "42. "
+        let mut number_str = String::new();
+        while let Some(ch) = self.peek() {
+            if ch.is_ascii_digit() {
+                number_str.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        if !number_str.is_empty() {
+            if self.peek() == Some('.') {
+                self.advance();
+                if self.peek() == Some(' ') {
+                    self.advance();
+                    let marker = format!("{}.", number_str);
+                    return Some(Token::SequenceMarker {
+                        content: marker.clone(),
+                        span: SourceSpan {
+                            start: start_pos,
+                            end: Position {
+                                row: start_pos.row,
+                                column: start_pos.column + marker.len(),
+                            },
+                        },
+                    });
+                }
+            }
+            // Not a valid marker, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
+            return None;
+        }
+
+        // 3. Alphabetical markers: "a. ", "b) ", "A. ", "Z) "
+        if let Some(ch) = self.peek() {
+            if ch.is_ascii_alphabetic() {
+                let letter = ch;
+                self.advance();
+
+                // Check for . or )
+                if let Some(punct) = self.peek() {
+                    if punct == '.' || punct == ')' {
+                        self.advance();
+                        if self.peek() == Some(' ') {
+                            self.advance();
+                            let marker = format!("{}{}", letter, punct);
+                            return Some(Token::SequenceMarker {
+                                content: marker.clone(),
+                                span: SourceSpan {
+                                    start: start_pos,
+                                    end: Position {
+                                        row: start_pos.row,
+                                        column: start_pos.column + marker.len(),
+                                    },
+                                },
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Roman numeral markers: "i. ", "ii) ", "I. ", "III) "
+        self.position = saved_position;
+        self.row = saved_row;
+        self.column = saved_column;
+
+        let roman_patterns = [
+            "iii", "ii", "i", "iv", "v", "vi", "vii", "viii", "ix", "x", "III", "II", "I", "IV",
+            "V", "VI", "VII", "VIII", "IX", "X",
+        ];
+
+        for pattern in &roman_patterns {
+            if self.matches_string(pattern) {
+                // Advance past the roman numeral
+                for _ in 0..pattern.len() {
+                    self.advance();
+                }
+
+                // Check for . or )
+                if let Some(punct) = self.peek() {
+                    if punct == '.' || punct == ')' {
+                        self.advance();
+                        if self.peek() == Some(' ') {
+                            self.advance();
+                            let marker = format!("{}{}", pattern, punct);
+                            return Some(Token::SequenceMarker {
+                                content: marker.clone(),
+                                span: SourceSpan {
+                                    start: start_pos,
+                                    end: Position {
+                                        row: start_pos.row,
+                                        column: start_pos.column + marker.len(),
+                                    },
+                                },
+                            });
+                        }
+                    }
+                }
+
+                // Not a valid marker, backtrack and try next pattern
+                self.position = saved_position;
+                self.row = saved_row;
+                self.column = saved_column;
+            }
+        }
+
+        None
+    }
+
+    /// Read a definition marker token (term ::)
+    fn read_definition_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        // Check for "::"
+        if self.peek() == Some(':') {
+            let saved_position = self.position;
+            let saved_row = self.row;
+            let saved_column = self.column;
+
+            self.advance(); // First ':'
+
+            if self.peek() == Some(':') {
+                self.advance(); // Second ':'
+
+                // Immediately check if this :: is part of an invalid sequence
+                if let Some(next_ch) = self.peek() {
+                    if next_ch == ':' {
+                        // This is ":::" or longer, not a valid definition marker
+                        self.position = saved_position;
+                        self.row = saved_row;
+                        self.column = saved_column;
+                        return None;
+                    }
+                }
+
+                // Also check if this :: is preceded by a colon (making it part of ":::...")
+                if start_pos.column > 0 {
+                    let line = self.get_current_line();
+                    let col_idx = start_pos.column;
+                    if col_idx > 0 {
+                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
+                            if prev_char == ':' {
+                                // This :: is preceded by ':', making it part of ":::" sequence
+                                self.position = saved_position;
+                                self.row = saved_row;
+                                self.column = saved_column;
+                                return None;
                             }
+                        }
+                    }
+                }
 
-                            // Emit formatting tokens
-                            let marker_type = match ch {
-                                '*' => TokenType::StrongMarker,
-                                '_' => TokenType::EmphasisMarker,
-                                '`' => TokenType::CodeMarker,
-                                '#' => TokenType::MathMarker,
-                                _ => unreachable!(),
-                            };
+                // Use regex-based pattern detection to determine context
+                let pattern = self.detect_colon_pattern();
 
-                            self.add_token(marker_type.clone(), Some(ch.to_string()));
-                            let content: String = chars[(i + 1)..j].iter().collect();
-                            if !content.is_empty() {
-                                self.add_token(TokenType::Text, Some(content));
+                match pattern {
+                    ColonPattern::Definition => {
+                        // This is definitely a definition marker
+                        return Some(Token::DefinitionMarker {
+                            content: "::".to_string(),
+                            span: SourceSpan {
+                                start: start_pos,
+                                end: self.current_position(),
+                            },
+                        });
+                    }
+                    ColonPattern::Annotation => {
+                        // This line contains annotation pattern, so this :: is not definition
+                        self.position = saved_position;
+                        self.row = saved_row;
+                        self.column = saved_column;
+                        return None;
+                    }
+                    ColonPattern::Standalone => {
+                        // Check if followed by whitespace/end (could be definition at end of line)
+                        if let Some(next_ch) = self.peek() {
+                            if next_ch == '\n'
+                                || next_ch == '\r'
+                                || next_ch == ' '
+                                || next_ch == '\t'
+                            {
+                                // Check if there's content before this :: (making it a definition)
+                                if !self.is_start_of_annotation_pattern(start_pos) {
+                                    return Some(Token::DefinitionMarker {
+                                        content: "::".to_string(),
+                                        span: SourceSpan {
+                                            start: start_pos,
+                                            end: self.current_position(),
+                                        },
+                                    });
+                                }
                             }
-                            self.add_token(marker_type, Some(ch.to_string()));
-
-                            i = j + 1;
-                            continue;
+                        } else if self.is_at_end() {
+                            // At end of input, check if there's content before
+                            if !self.is_start_of_annotation_pattern(start_pos) {
+                                return Some(Token::DefinitionMarker {
+                                    content: "::".to_string(),
+                                    span: SourceSpan {
+                                        start: start_pos,
+                                        end: self.current_position(),
+                                    },
+                                });
+                            }
                         }
                     }
                 }
             }
 
-            // Default: accumulate as text
-            current_text.push(ch);
-            i += 1;
+            // Not a definition marker, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
         }
 
-        // Emit any remaining text
-        if !current_text.is_empty() {
-            self.add_token(TokenType::Text, Some(current_text));
+        None
+    }
+
+    /// Check if this :: is at the start of an annotation pattern by looking backwards
+    fn is_start_of_annotation_pattern(&self, _start_pos: Position) -> bool {
+        // Definition pattern: "term ::" - has non-whitespace before ::
+        // Annotation pattern: ":: label ::" - has only whitespace before first ::
+
+        // Check if we're at the beginning of the line or only whitespace precedes
+        let start_absolute = self.position - 2; // We advanced past the ::, so go back
+
+        // Look backwards from the start of :: to see what came before on this line
+        let mut pos = start_absolute;
+        while pos > 0 {
+            pos -= 1;
+            if let Some(&ch) = self.input.get(pos) {
+                if ch == '\n' || ch == '\r' {
+                    // Hit newline, everything before :: was whitespace - this is annotation start
+                    return true;
+                } else if ch != ' ' && ch != '\t' {
+                    // Found non-whitespace content before ::, this is NOT annotation start
+                    return false;
+                }
+            }
+        }
+
+        // Reached start of input with only whitespace - this is annotation start
+        true
+    }
+
+    /// Get the current line from the input
+    fn get_current_line(&self) -> String {
+        let mut line_start = self.position;
+        let mut line_end = self.position;
+
+        // Find start of current line
+        while line_start > 0 {
+            if let Some(&ch) = self.input.get(line_start - 1) {
+                if ch == '\n' || ch == '\r' {
+                    break;
+                }
+                line_start -= 1;
+            } else {
+                break;
+            }
+        }
+
+        // Find end of current line
+        while line_end < self.input.len() {
+            if let Some(&ch) = self.input.get(line_end) {
+                if ch == '\n' || ch == '\r' {
+                    break;
+                }
+                line_end += 1;
+            } else {
+                break;
+            }
+        }
+
+        self.input[line_start..line_end].iter().collect()
+    }
+
+    /// Detect what type of :: pattern this line contains
+    fn detect_colon_pattern(&self) -> ColonPattern {
+        let line = self.get_current_line();
+
+        // First check for invalid sequences (:::, ::::, etc.)
+        if line.contains(":::") {
+            return ColonPattern::Standalone; // Treat invalid sequences as standalone (will be rejected)
+        }
+
+        // Check for annotation pattern first (:: label ::)
+        if self.annotation_pattern.is_match(&line) {
+            return ColonPattern::Annotation;
+        }
+
+        // Check for definition pattern (term ::)
+        if self.definition_pattern.is_match(&line) {
+            return ColonPattern::Definition;
+        }
+
+        // Default to standalone
+        ColonPattern::Standalone
+    }
+
+    /// Read an annotation marker token (::)
+    fn read_annotation_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        // Check for "::"
+        if self.peek() == Some(':') {
+            let saved_position = self.position;
+            let saved_row = self.row;
+            let saved_column = self.column;
+
+            self.advance(); // First ':'
+
+            if self.peek() == Some(':') {
+                self.advance(); // Second ':'
+
+                // Check that this is not part of a longer sequence like ":::"
+                // Annotation markers should be exactly "::"
+                if let Some(next_ch) = self.peek() {
+                    if next_ch == ':' {
+                        // This is ":::" or longer, not a valid annotation marker
+                        self.position = saved_position;
+                        self.row = saved_row;
+                        self.column = saved_column;
+                        return None;
+                    }
+                }
+
+                // Also check if this :: is preceded by a colon (making it part of ":::...")
+                if start_pos.column > 0 {
+                    let line = self.get_current_line();
+                    let col_idx = start_pos.column;
+                    if col_idx > 0 {
+                        if let Some(prev_char) = line.chars().nth(col_idx - 1) {
+                            if prev_char == ':' {
+                                // This :: is preceded by ':', making it part of ":::" sequence
+                                self.position = saved_position;
+                                self.row = saved_row;
+                                self.column = saved_column;
+                                return None;
+                            }
+                        }
+                    }
+                }
+
+                return Some(Token::AnnotationMarker {
+                    content: "::".to_string(),
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            } else {
+                // Not an annotation marker, backtrack
+                self.position = saved_position;
+                self.row = saved_row;
+                self.column = saved_column;
+            }
+        }
+
+        None
+    }
+
+    /// Read reference markers ([target], [@citation], [#section], [1])
+    fn read_ref_marker(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        // Must start with [
+        if self.peek() != Some('[') {
+            return None;
+        }
+
+        let saved_position = self.position;
+        let saved_row = self.row;
+        let saved_column = self.column;
+
+        self.advance(); // Consume [
+
+        let mut content = String::new();
+        let mut found_closing = false;
+
+        // Read content until ] or end of line
+        while let Some(ch) = self.peek() {
+            if ch == ']' {
+                self.advance(); // Consume ]
+                found_closing = true;
+                break;
+            } else if ch == '\n' || ch == '\r' {
+                // Reference markers cannot span lines
+                break;
+            } else {
+                content.push(ch);
+                self.advance();
+            }
+        }
+
+        if !found_closing || content.is_empty() {
+            // Not a valid reference marker, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
+            return None;
+        }
+
+        // Validate content patterns
+        if self.is_valid_ref_content(&content) {
+            Some(Token::RefMarker {
+                content,
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            })
+        } else {
+            // Invalid reference content, backtrack
+            self.position = saved_position;
+            self.row = saved_row;
+            self.column = saved_column;
+            None
         }
     }
 
-    fn add_token(&mut self, token_type: TokenType, value: Option<String>) {
-        self.tokens.push(Token::new(
-            token_type.clone(),
-            value.clone(),
-            self.current_line,
-            self.current_col,
-        ));
+    /// Check if reference content is valid (basic alphanumeric validation only)
+    fn is_valid_ref_content(&self, content: &str) -> bool {
+        // Only basic validation - at least one alphanumeric character
+        // Detailed type classification happens during parsing phase
+        self.ref_classifier.is_valid_reference_content(content)
+    }
 
-        // Update column position based on the token value
-        if let Some(ref val) = value {
-            self.current_col += val.len();
-        } else if !matches!(token_type, TokenType::Indent | TokenType::Dedent) {
-            // For tokens like NEWLINE, advance by 1
-            // But INDENT/DEDENT don't consume any columns
-            self.current_col += 1;
+    /// Read a dash token (standalone -)
+    fn read_dash(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('-') {
+            // Check if this is part of a sequence marker (already handled earlier)
+            // We only want standalone dashes, not "- " sequence markers
+            let next_pos = self.position + 1;
+            if let Some(&next_ch) = self.input.get(next_pos) {
+                if next_ch == ' ' {
+                    // This is a sequence marker, not a standalone dash
+                    return None;
+                }
+            }
+
+            self.advance();
+            return Some(Token::Dash {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
         }
+
+        None
+    }
+
+    /// Read inline formatting delimiters (*, _, `, #)
+    fn read_inline_delimiter(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        match self.peek()? {
+            '*' => {
+                self.advance();
+                Some(Token::BoldDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            '_' => {
+                self.advance();
+                Some(Token::ItalicDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            '`' => {
+                self.advance();
+                Some(Token::CodeDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            '#' => {
+                self.advance();
+                Some(Token::MathDelimiter {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                })
+            }
+            _ => None,
+        }
+    }
+
+    /// Read an identifier token (alphanumeric starting with letter or underscore)
+    fn read_identifier(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+        let mut content = String::new();
+
+        // Must start with letter or underscore (but only if underscore is part of a longer identifier)
+        if let Some(ch) = self.peek() {
+            if ch.is_ascii_alphabetic() {
+                content.push(ch);
+                self.advance();
+            } else if ch == '_' {
+                // Only start with underscore if followed by alphanumeric (not standalone delimiter)
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    if next_ch.is_ascii_alphabetic() || next_ch.is_ascii_digit() || next_ch == '_' {
+                        content.push(ch);
+                        self.advance();
+                    } else {
+                        return None; // Standalone underscore should be handled as delimiter
+                    }
+                } else {
+                    return None; // Underscore at end of input should be delimiter
+                }
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        }
+
+        // Continue with alphanumeric or underscore
+        while let Some(ch) = self.peek() {
+            if ch.is_alphanumeric() || ch == '_' {
+                content.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        Some(Token::Identifier {
+            content,
+            span: SourceSpan {
+                start: start_pos,
+                end: self.current_position(),
+            },
+        })
+    }
+
+    /// Check if the current position matches a given string
+    fn matches_string(&self, s: &str) -> bool {
+        let chars: Vec<char> = s.chars().collect();
+        for (i, &expected_char) in chars.iter().enumerate() {
+            if let Some(actual_char) = self.input.get(self.position + i) {
+                if *actual_char != expected_char {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// Get the current position in the input
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    /// Advance to the next character and update position tracking
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    /// Read a newline token (\n or \r\n)
+    fn read_newline(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if let Some(ch) = self.peek() {
+            if ch == '\r' {
+                // Handle CRLF sequence
+                self.advance(); // Consume \r
+                if self.peek() == Some('\n') {
+                    self.advance(); // Consume \n
+                }
+
+                return Some(Token::Newline {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            } else if ch == '\n' {
+                // Handle LF
+                self.advance(); // Consume \n
+
+                return Some(Token::Newline {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            }
+        }
+
+        None
+    }
+
+    /// Read a blank line token (line containing only whitespace, NOT including line break)  
+    fn read_blankline(&mut self) -> Option<Token> {
+        // Only try to read blank lines when we're at column 0 (start of line)
+        if self.column != 0 {
+            return None;
+        }
+
+        // Don't read blank lines at the very start of input - that should be a newline
+        if self.row == 0 {
+            return None;
+        }
+
+        let start_pos = self.current_position();
+        let saved_position = self.position;
+        let saved_row = self.row;
+        let saved_column = self.column;
+
+        // Collect any whitespace on this line
+        while let Some(ch) = self.peek() {
+            if ch == ' ' || ch == '\t' {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        // Check if this line ends with a newline (making it a blank line)
+        // Consume the newline as part of the BlankLine token
+        if let Some(ch) = self.peek() {
+            if ch == '\n' {
+                // This is a blank line - consume the newline
+                self.advance(); // Consume \n
+                return Some(Token::BlankLine {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            } else if ch == '\r' {
+                // Handle CRLF
+                self.advance(); // Consume \r
+                if self.peek() == Some('\n') {
+                    self.advance(); // Consume \n
+                }
+                return Some(Token::BlankLine {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            }
+        }
+
+        // Also handle end of file after whitespace-only content
+        if self.is_at_end() && self.position > saved_position {
+            return Some(Token::BlankLine {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Not a blank line, backtrack
+        self.position = saved_position;
+        self.row = saved_row;
+        self.column = saved_column;
+        None
+    }
+
+    /// Check if we're at the end of input
+    pub fn is_at_end(&self) -> bool {
+        self.position >= self.input.len()
+    }
+
+    /// Peek at the current character without advancing
+    pub fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    // Debug methods (for testing)
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    pub fn row(&self) -> usize {
+        self.row
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
+    }
+
+    pub fn test_read_newline(&mut self) -> Option<Token> {
+        self.read_newline()
+    }
+
+    pub fn test_advance(&mut self) -> Option<char> {
+        self.advance()
+    }
+
+    /// Read verbatim block if current position matches a verbatim block start
+    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<Token>> {
+        let current_line = self.row;
+        let current_char_pos = self.get_absolute_position();
+
+        // Find a verbatim block that starts at this position
+        for block in verbatim_blocks {
+            if self.is_at_verbatim_block_start(block, current_line, current_char_pos) {
+                return Some(self.tokenize_verbatim_block(block));
+            }
+        }
+
+        None
+    }
+
+    /// Check if current position is at the start of the given verbatim block
+    fn is_at_verbatim_block_start(
+        &self,
+        block: &VerbatimBlock,
+        current_line: usize,
+        _current_char_pos: usize,
+    ) -> bool {
+        // Check if we're at the correct line for block start (1-based to 0-based conversion)
+        (block.block_start - 1) == current_line && self.is_at_line_start_for_verbatim(block)
+    }
+
+    /// Check if we're at the start of a line that should be part of a verbatim block
+    fn is_at_line_start_for_verbatim(&self, _block: &VerbatimBlock) -> bool {
+        // For now, just check if we're at the start of a line
+        self.column == 0
+    }
+
+    /// Tokenize a verbatim block into VerbatimStart and VerbatimContent tokens
+    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        // Create VerbatimStart token for the title line
+        let title_start_pos = self.current_position();
+
+        // Advance through the title line to get its content (excluding the trailing colon)
+        let mut title_content = String::new();
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                break;
+            }
+            if ch == ':' {
+                // Don't include the colon - it's a structural marker, not content
+                self.advance();
+                break;
+            }
+            title_content.push(ch);
+            self.advance();
+        }
+
+        // Advance past the newline
+        if let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance();
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+            }
+        }
+
+        tokens.push(Token::VerbatimStart {
+            content: title_content,
+            span: SourceSpan {
+                start: title_start_pos,
+                end: self.current_position(),
+            },
+        });
+
+        // Create VerbatimContent token for the block content
+        let content_start_pos = self.current_position();
+        let mut content = String::new();
+
+        // Advance through all content lines until terminator
+        let mut current_line = self.row;
+        while current_line < (block.block_end - 1) {
+            // Convert 1-based to 0-based
+            // Read the entire line
+            while let Some(ch) = self.peek() {
+                if ch == '\n' || ch == '\r' {
+                    content.push(ch);
+                    self.advance();
+                    if ch == '\r' && self.peek() == Some('\n') {
+                        content.push('\n');
+                        self.advance(); // Handle CRLF
+                    }
+                    break;
+                } else {
+                    content.push(ch);
+                    self.advance();
+                }
+            }
+            current_line = self.row;
+        }
+
+        // Don't include the terminator line in content
+        // Remove trailing newline if it exists
+        if content.ends_with('\n') {
+            content.pop();
+            if content.ends_with('\r') {
+                content.pop();
+            }
+        }
+
+        if !content.is_empty() {
+            tokens.push(Token::VerbatimContent {
+                content,
+                span: SourceSpan {
+                    start: content_start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Parse the terminator line to extract label and parameters
+        let terminator_start_pos = self.current_position();
+        let mut terminator_content = String::new();
+
+        // Read the entire terminator line content
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                break;
+            }
+            terminator_content.push(ch);
+            self.advance();
+        }
+
+        // Create VerbatimEnd token with the full terminator content
+        if !terminator_content.trim().is_empty() {
+            tokens.push(Token::VerbatimEnd {
+                content: terminator_content,
+                span: SourceSpan {
+                    start: terminator_start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Advance past the newline at end of terminator
+        if let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance();
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+            }
+        }
+
+        tokens
+    }
+
+    /// Get absolute character position in input
+    fn get_absolute_position(&self) -> usize {
+        self.position
     }
 }

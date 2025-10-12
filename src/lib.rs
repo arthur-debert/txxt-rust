@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+pub mod adapters;
 pub mod annotation_parser;
 pub mod ast;
-pub mod block_grouping;
+pub mod ast_debug;
+// pub mod block_grouping;
 pub mod commands;
-pub mod parser;
+// pub mod parser;
 pub mod tokenizer;
 pub mod tree;
 pub mod validator;

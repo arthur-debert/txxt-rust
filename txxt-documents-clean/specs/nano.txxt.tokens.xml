@@ -769,7 +769,7 @@
       <type>VERBATIM_CONTENT</type>
       <line>53</line>
       <column>5</column>
-      <value>    - Or other documents [./spec/03-inline.txxt]. {{listItem}}</value>
+      <value>    - Or other documents [./intro/03-inline.txxt]. {{listItem}}</value>
     </item>
     <item>
       <type>NEWLINE</type>

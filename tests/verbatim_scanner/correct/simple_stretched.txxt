@@ -1,0 +1,13 @@
+Expected: [[2,6,"stretched"], [9,13,"stretched"]]
+title:
+Content starts at column 0
+Another line at column 0
+Blank lines are allowed
+:: empty
+
+
+            title:
+Content starts at column 0
+Another line at column 0
+Blank lines are allowed
+            :: empty

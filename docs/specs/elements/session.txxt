@@ -1,0 +1,304 @@
+:: title :: Session Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for sessions - the hierarchical organizational units that structure txxt documents into navigable sections.
+
+1. Purpose
+
+    Sessions are the primary organizational element in txxt documents, providing hierarchical structure similar to chapters, sections, and subsections. They enable document navigation, content organization, and automated table of contents generation. Sessions can be numbered or unnumbered and support arbitrary nesting depth with flexible numbering schemes.
+
+2. Syntax
+
+    2.1. Basic Session Forms
+
+        Unnumbered session:
+            Introduction
+            
+                Content of the introduction section goes here.
+                Multiple paragraphs are supported.
+        (unnumbered)
+
+        Numbered session:
+            1. Methodology
+            
+                Detailed methodology content follows.
+                Includes all relevant procedures.
+        (numbered)
+
+        Hierarchical numbering:
+            1. Main Section
+            
+                1.1. Subsection
+                
+                    Content at subsection level.
+                    
+                1.2. Another Subsection
+                
+                    More subsection content.
+                    
+            2. Next Main Section
+        (hierarchical)
+
+    2.2. Recognition Rules
+
+        Session identification requirements:
+        - Preceded by blank line (or start of document)
+        - Followed by indented content (+1 indentation level)
+        - Without indented content → Parsed as paragraph
+
+        Session vs paragraph distinction:
+            Valid session (has indented content):
+                Section Title
+                
+                    This content makes it a session.
+            
+            Paragraph (no indented content):
+                This line has no indented content following it.
+                So it's parsed as a paragraph.
+        (recognition)
+
+3. Grammar
+
+    3.1. Session Structure
+
+        Sessions follow the grammar defined in [syntax.txxt] section 5.3. The structure requires blank line separation and indented content to distinguish sessions from paragraphs.
+
+        For complete session grammar including `<session>`, `<session-title>`, `<session-numbering>`, and `<session-container>` definitions, see [syntax.txxt] section 5.3.
+
+        Session numbering uses the same sequence marker patterns as lists. For sequence marker definitions, see [syntax.txxt] section 4.1.
+
+    3.3. Boundary Rules
+
+        Session boundary requirements:
+        - Blank line before title: Sessions must be preceded by a blank line (except at document start).
+        - Blank line after title: A blank line must separate the title from the indented content container.
+        - Indented content: Must have at least one indented child element.
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    Session AST:
+        ├── Session
+        │   ├── title: SessionTitle
+        │   │   ├── content: Vec<Inline>
+        │   │   ├── numbering: Option<SessionNumbering>
+        │   │   └── tokens: TokenSequence
+        │   ├── content: Container
+        │   │   └── content: Vec<Block> (can include sessions)
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+        └── SessionNumbering
+            ├── marker: String (preserved exactly)
+            ├── style: NumberingStyle
+            └── form: NumberingForm
+    (tree)
+
+5. Numbering System
+
+    5.1. Numbering Styles
+
+        Sessions support all list numbering styles:
+        - Plain: No numbering marker
+        - Numerical: 1., 2., 3.
+        - Alphabetical: a., b., c. or A., B., C.
+        - Roman: i., ii., iii. or I., II., III.
+
+    5.2. Hierarchical Numbering
+
+        Short form numbering (each level independent):
+            1. Level 1
+                1. Level 2 (resets at each level)
+                2. Level 2
+            2. Level 1
+                1. Level 2 (resets again)
+        (short-form)
+
+        Full form numbering (hierarchical path):
+            1. Level 1
+                1.1. Level 2 (shows full path)
+                1.2. Level 2
+            2. Level 1
+                2.1. Level 2 (continues path)
+        (full-form)
+
+    5.3. Mixed Numbering Styles
+
+        Different styles at different levels:
+            1. Numerical at top level
+            
+                a. Alphabetical at second level
+                
+                    i. Roman at third level
+                    ii. More roman content
+                    
+                b. Back to alphabetical
+                
+            2. Continue numerical
+        (mixed-styles)
+
+6. Processing Rules
+
+    Sessions follow the standard processing pattern defined in [common-processing.txxt] with the following element-specific requirements:
+
+    6.1. Recognition Criteria
+
+        Session-specific detection algorithm:
+        1. Check for preceding blank line (or document start)
+        2. Parse potential title line
+        3. Check for indented content following title
+        4. If indented content exists → Session
+        5. If no indented content → Apply standard graceful degradation (paragraph)
+
+    6.2. Numbering Processing
+
+        Session-specific numbering extraction and validation:
+        1. Parse sequence marker from title start using standard sequence marker patterns
+        2. Determine NumberingStyle and NumberingForm
+        3. Extract and preserve exact marker text for source reconstruction
+        4. Store numbering information in SessionNumbering
+        5. Process remaining title through standard inline parser
+
+    6.3. Container Creation
+
+        Session-specific container handling:
+        1. Create Session Container for indented content (can contain sessions)
+        2. Apply standard recursive parsing (including nested sessions)
+        3. Apply blank line separation rules for nested sessions
+        4. Validate content types (all blocks allowed - Session Container rules)
+
+7. Edge Cases
+
+    7.1. Session vs Paragraph Ambiguity
+
+        Ambiguous case resolution:
+            Line with no following content
+            
+            Next paragraph here.
+        (ambiguous)
+
+        This is parsed as two paragraphs, not a session, because the first line has no indented content.
+
+    7.2. Empty Sessions
+
+        Invalid (session must have content):
+            1. Empty Section
+            
+            2. Next Section
+        (invalid-empty)
+
+        Valid (session with content):
+            1. Section with Content
+            
+                At least one element required.
+                
+            2. Next Section
+        (valid-content)
+
+    7.3. Deeply Nested Sessions
+
+        Arbitrary nesting depth supported:
+            1. Level 1
+                1.1. Level 2
+                    1.1.1. Level 3
+                        1.1.1.1. Level 4
+                            Content at maximum depth.
+        (deep-nesting)
+
+8. Implementation Notes
+
+    Sessions follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
+
+    8.1. Session-Specific Parser Integration
+
+        Beyond standard parser integration, sessions require:
+        - Blank line detection before titles (boundary requirement)
+        - Indentation level tracking after titles
+        - Sequence marker recognition and preservation using patterns from [syntax.txxt]
+        - Recursive content parsing including nested sessions
+        - Session Container boundary validation
+
+    8.2. Numbering Determination Implementation
+
+        Session-specific numbering extraction:
+            
+            Function to extract numbering from session title:
+                fn parse_session_numbering(title: &str) -> (Option<SessionNumbering>, &str) {
+                    // Extract sequence marker from start of title
+                    // Return numbering info and remaining title content
+                }
+            :: rust
+
+    8.3. Error Handling Additions
+
+        Beyond standard error handling, sessions have:
+
+        Session-specific error scenarios:
+        - Missing indented content → Apply standard graceful degradation (paragraph fallback)
+        - Invalid session numbering → Parse title as plain text, preserve as session
+        - Missing blank line boundaries → Insert boundaries during processing
+        - Nested session boundary violations → Enforce blank line separation
+
+        Sessions follow standard graceful degradation principles.
+
+9. Relationship to Other Elements
+
+    9.1. Container Integration
+
+        Session container characteristics:
+        - Session Container type: Can hold any block including sessions
+        - Blank line requirements: Around nested sessions
+        - Recursive structure: Sessions within sessions
+        - Document root: Document itself is conceptually a Session Container
+
+    9.2. Numbering Consistency
+
+        Shared numbering with lists:
+        - Same sequence marker patterns as lists
+        - Same NumberingStyle enum values
+        - Same NumberingForm concepts
+        - Consistent marker preservation approach
+
+    9.3. Navigation Support
+
+        Sessions enable:
+        - Table of contents generation
+        - Cross-reference targets (e.g., `[#2.1]`)
+        - Document structure analysis
+        - Hierarchical navigation
+
+10. Navigation and References
+
+    10.1. Section References
+
+        Internal document references:
+            See methodology section [#2] for details.
+            Detailed analysis in [#2.1.3] shows the results.
+            Compare with [#-1] (last section).
+        (section-refs)
+
+    10.2. Named Anchors
+
+        Sessions with reference parameters:
+            :: anchor:id=methodology :: 2. Research Methodology
+            
+                Content of methodology section.
+                
+            Later reference: See [#methodology] for details.
+        (named-anchors)
+
+    10.3. Hierarchical Navigation
+
+        Document outline extraction:
+            ├── Abstract
+            ├── 1. Introduction
+            ├── 2. Methodology
+            │   ├── 2.1. Data Collection
+            │   └── 2.2. Analysis Approach
+            ├── 3. Results
+            └── 4. Conclusion
+        (outline)
+
+
+:: note :: Sessions provide the hierarchical backbone of txxt documents. Their recognition rules and container architecture enable flexible document organization while maintaining clear structural boundaries.

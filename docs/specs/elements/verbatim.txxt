@@ -1,0 +1,303 @@
+:: title :: Verbatim Block Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for verbatim blocks - preserved content that bypasses txxt parsing.
+
+1. Purpose
+
+    Verbatim blocks contain non-txxt formatted content such as code, configuration files, diagrams, or any other format that should be preserved exactly as written. They are essential for embedding other formats within txxt documents while maintaining their original structure and meaning.
+
+2. Syntax
+
+    2.1. Basic Structure
+
+        Verbatim blocks consist of three parts:
+
+        Title Line: Optional descriptive text followed by colon
+        Content: Indented lines preserved exactly 
+        Label Line: Format hint using txxt marker (mandatory)
+
+        Basic form:
+            Title:
+                content lines
+            :: label
+        (grammar)
+
+        Minimal form (empty title):
+            :
+                content lines
+            :: label
+        (grammar)
+
+        Empty content (for binary/external files):
+            Title:
+            :: label
+        (grammar)
+
+    2.2. Label Syntax
+
+        Labels use the txxt marker and follow identifier rules:
+
+        Simple label:
+            :: javascript
+            :: python
+            :: configuration
+        (examples)
+
+        Label with parameters:
+            :: python:version=3.11
+            :: sql:dialect=postgresql,version=15
+            :: image:src=diagram.png,alt="System architecture"
+        (examples)
+
+    2.3. Content Positioning
+
+        Verbatim blocks support two positioning modes based on content placement:
+
+        In-flow mode (content indented +1 from title):
+            Database schema:
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL
+                );
+            :: sql
+
+        Stretched mode (content at absolute column 2):
+            Wide table example:
+             | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+             |----------|----------|----------|----------|----------|
+             | Data     | Data     | Data     | Data     | Data     |
+            :: markdown
+
+        Mode determination is automatic:
+        - First non-blank content line at title+4 spaces → In-flow
+        - First non-blank content line at absolute column 2 → Stretched
+        - Empty blocks default to in-flow
+
+3. Grammar
+
+    3.1. Verbatim Structure
+
+        Verbatim blocks follow the grammar defined in [syntax.txxt] section 5.4. The structure includes three parts: title, content, and mandatory label.
+
+        For complete verbatim block grammar including `<verbatim-block>`, `<verbatim-title>`, `<verbatim-start>`, `<verbatim-end>`, `<inflow-verbatim>`, and `<stretched-verbatim>` definitions, see [syntax.txxt] section 5.4.
+
+        The two positioning modes (in-flow and stretched) are determined automatically based on the first non-blank content line position relative to the title indentation level.
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    AST Node Structure:
+        ├── VerbatimBlock
+        │   ├── title: Vec<Inline>
+        │   ├── content: IgnoreContainer
+        │   │   ├── ignore_lines: Vec<IgnoreLine>
+        │   │   └── blank_lines: Vec<BlankLine>
+        │   ├── label: String
+        │   ├── parameters: Parameters
+        │   ├── verbatim_type: VerbatimType (InFlow | Stretched)
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+    (tree)
+
+    Key properties:
+    - Content stored in Ignore Container (follows container architecture)
+    - Ignore Container holds ignore-lines and blank-lines only
+    - Content is preserved exactly as written (sacred text)
+    - Title can contain inline formatting
+    - Label is always present (mandatory)
+    - Parameters follow same syntax as annotations
+    - Mode determined automatically during parsing
+
+5. Processing Rules
+
+    5.1. Verbatim Scanning (Pre-parsing)
+
+        Verbatim blocks require special handling before normal parsing:
+
+        1. Scan for title pattern: `text:` followed by line break
+        2. Enter verbatim scanning mode
+        3. Determine mode from first non-blank content line position
+        4. Scan for label pattern at title indentation level
+        5. Mark all content lines as off-limits to normal parsing
+        6. Extract title, content, and label for later processing
+
+    5.2. Content Preservation
+
+        Content handling rules:
+
+        - Content stored as Ignore Container with ignore-lines and blank-lines
+        - Raw content is preserved byte-for-byte within ignore-lines
+        - Indentation wall is stripped from in-flow content
+        - First character is stripped from stretched content
+        - Blank lines preserved as BlankLine elements within Ignore Container
+        - No escape sequence processing within content
+        - No inline parsing within content
+        - Ignore Container follows container architecture consistently
+
+    5.3. Label Processing
+
+        Label parsing leverages annotation infrastructure:
+
+        - Uses same identifier validation as annotations
+        - Parameters follow annotation parameter syntax
+        - Invalid label syntax causes parse error
+        - Empty labels are not permitted (mandatory requirement)
+
+6. Use Cases
+
+    6.1. Code Examples
+
+        Programming language examples:
+            Algorithm implementation:
+                def quicksort(arr):
+                    if len(arr) <= 1:
+                        return arr
+                    pivot = arr[len(arr) // 2]
+                    left = [x for x in arr if x < pivot]
+                    middle = [x for x in arr if x == pivot]
+                    right = [x for x in arr if x > pivot]
+                    return quicksort(left) + middle + quicksort(right)
+            :: python:style=functional
+
+    6.2. Configuration Files
+
+        System configuration:
+            Server configuration:
+                upstream backend {
+                    server 192.168.1.10:8080;
+                    server 192.168.1.11:8080;
+                }
+                
+                server {
+                    listen 80;
+                    location / {
+                        proxy_pass http://backend;
+                    }
+                }
+            :: nginx
+
+    6.3. Wide Content
+
+        Tables and diagrams requiring full width:
+            System architecture:
+| Frontend | Load Balancer | Application Server | Database | Cache |
+|----------|---------------|-------------------|----------|-------|
+| React    | nginx         | Django            | PostgreSQL| Redis |
+| Vue      | HAProxy       | Express           | MySQL    | Memcached |
+            :: architecture
+
+    6.4. Media References
+
+        External binary content:
+            Network topology diagram:
+            :: image:src=network-topology.png,alt="Network diagram showing server connections"
+
+    6.5. Multi-format Documents
+
+        Embedding other markup formats:
+            HTML snippet:
+                <div class="notification">
+                    <p>This is <strong>important</strong> information.</p>
+                    <button onclick="dismiss()">Dismiss</button>
+                </div>
+            :: html
+
+7. Implementation Notes
+
+    7.1. Parser Architecture
+
+        Verbatim processing requires special parser architecture:
+
+        - Must be handled in pre-parsing phase (verbatim scanning)
+        - Content cannot be processed by normal tokenizer
+        - State machine required for mode detection
+        - Backtracking needed if label not found
+
+    7.2. Error Handling
+
+        Common error scenarios:
+
+        - Unclosed verbatim block (missing label) → Parse error
+        - Invalid label syntax → Parse error  
+        - Empty label → Parse error (mandatory requirement)
+        - Mixed indentation in content → Preserve as-is
+        - Invalid parameter syntax → Parse error
+
+    7.3. Tool Integration
+
+        Label usage for external tools:
+
+        - Syntax highlighting: Use label for language detection
+        - Export tools: Format according to label type
+        - Linters: Validate content according to label rules
+        - Media processors: Handle binary content references
+
+8. Edge Cases
+
+    8.1. Label Ambiguity
+
+        The label must be at exact title indentation level:
+
+        Valid (label at title level):
+            Code:
+                print("hello")
+            :: python
+
+        Invalid (label at content level):
+            Code:
+                print("hello")
+                :: python  # This would be parsed as content
+
+    8.2. Empty Content
+
+        Blocks with no content lines are valid:
+
+        Binary file reference:
+            System diagram:
+            :: image:src=diagram.svg
+
+        Template placeholder:
+            Code will go here:
+            :: python
+
+    8.3. Complex Indentation
+
+        Nested verbatim blocks preserve indentation context:
+
+        Within a list item:
+            - Example code:
+                Algorithm:
+                    def example():
+                        return "hello"
+                :: python
+
+        The verbatim title is indented +1 from list item, content is +1 from title.
+
+9. Migration from Old Syntax
+
+    9.1. Conversion Rules
+
+        Old parentheses syntax:
+            Title:
+                content
+            (label)
+
+        New txxt marker syntax:
+            Title:
+                content
+            :: label
+
+    9.2. Parameter Migration
+
+        Old parameter syntax:
+            (python:version=3.11)
+
+        New parameter syntax:
+            :: python:version=3.11
+
+    The new syntax is cleaner, more consistent with txxt philosophy, and easier to parse due to unambiguous termination.
+
+:: note :: Verbatim blocks are the only txxt element that requires stateful pre-parsing to protect their content from normal tokenization. This architectural requirement keeps parsing complexity isolated to a single, well-defined phase.

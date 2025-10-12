@@ -1,0 +1,286 @@
+:: title :: txxt Format Walkthrough
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+A comprehensive introduction to the txxt plain text format, designed for high expressiveness with minimal syntax.
+
+1. What is txxt?
+
+    txxt is a plain text format that leverages human spatial skills and established text conventions to create structured documents. It achieves high expressiveness through "invisible syntax" - using indentation and familiar patterns rather than complex markup.
+
+    The format is designed around four core principles:
+
+    - Indentation-based structure: Parent-child relationships are encoded through consistent 4-space indentation
+    - Minimal visible syntax: Leverages conventions humans already understand
+    - Container architecture: Clear separation between content and structure
+    - Plain text foundation: Readable and writable without special tools
+
+2. Basic Structure
+
+    txxt documents are organized around sessions (like sections) and indentation. Every element follows a simple rule: children are always +1 indented from their parent.
+
+    Example document structure:
+        
+        1. Introduction
+        
+            This is the introduction content, indented one level from the session title.
+            
+            This paragraph continues the introduction section.
+            
+        2. Core Concepts
+        
+            2.1. Sessions
+            
+                Sessions can be nested to arbitrary depth, each with their own content.
+
+    Key points:
+    - Sessions must be preceded by blank lines and followed by indented content
+    - Content is always +1 indented from its parent element
+    - Sequential blank lines are preserved but carry no extra meaning
+
+3. Core Elements
+
+    txxt has six primary block elements that form document structure:
+
+    3.1. Paragraphs
+
+        The basic unit of flowing text. Paragraphs are one or more lines of text separated by blank lines.
+
+        This is a single-line paragraph.
+
+        This is a multi-line paragraph that flows
+        across several lines until terminated
+        by a blank line.
+
+    3.2. Sessions
+
+        Hierarchical sections that organize document content. Sessions have titles and can contain any content including nested sessions.
+
+        1. Numbered Session
+
+            Content goes here, indented one level.
+
+        Unnumbered Session
+
+            Sessions don't require numbers. The key is the title followed by indented content.
+
+    3.3. Lists
+
+        Structured collections of items with sophisticated numbering support:
+
+        - Unordered lists use dashes
+        - Each item starts with a marker and space
+        - Lists can be nested with different styles
+
+        Ordered lists support multiple formats:
+        1. Numerical (1., 2., 3.)
+        2. Alphabetical (a., b., c.)
+        3. Roman numerals (i., ii., iii.)
+
+        Nested example:
+        1. Groceries
+            - Milk
+            - Bread
+                a. Whole wheat
+                b. Sourdough
+        2. Hardware store
+            - Screws
+            - Paint
+
+    3.4. Verbatim Blocks
+
+        Content that bypasses txxt parsing, essential for code, configuration, or other formats:
+
+        Basic syntax:
+            console.log("Hello, txxt!");
+            alert("This content is preserved exactly");
+        :: javascript
+
+        Verbatim blocks have three parts:
+        - Title: Optional description (can be empty with just `:`)
+        - Content: Indented lines preserved exactly
+        - Label: Format hint using txxt marker (mandatory)
+
+        Advanced example with parameters:
+            def fibonacci(n):
+                return n if n <= 1 else fibonacci(n-1) + fibonacci(n-2)
+        :: python:version=3.11,style=functional
+
+    3.5. Definitions
+
+        Structured term-definition pairs using double colon syntax:
+
+        Parser ::
+            A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
+
+        Recursion ::
+            A programming technique where a function calls itself to solve smaller instances of the same problem.
+
+            Definitions can contain complex content:
+            - Multiple paragraphs
+            - Lists and examples
+            - Even verbatim blocks
+
+    3.6. Containers
+
+        The architectural foundation of txxt - containers hold indented child content. Most elements can host containers when they have nested content.
+
+        The key insight: containers get indented, not their parent elements.
+
+        This explains why:
+        - Flat lists need no indentation
+        - Session content is indented, not session titles
+        - List items can have their own nested containers
+
+4. Inline Formatting
+
+    Within any text content, you can apply formatting using paired markers:
+
+    - Use asterisks for *bold* text
+    - Underscores for _italic_ text  
+    - Backticks for `monospace code`
+    - Hash signs for mathematical expressions: #E = mc^2#
+
+    Inline formats can be nested: *bold with _italic_ inside* but cannot span multiple lines.
+
+5. References and Links
+
+    txxt provides powerful linking capabilities using bracket notation:
+
+    5.1. Basic References
+
+        - External URLs: [https://example.com]
+        - Simple domains: [example.com]  
+        - File paths: [./other-doc.txxt] or [/absolute/path.txxt]
+        - Section references: [#2.1] (this section)
+        - Footnote style: [1] (links to last section, item 1)
+
+    5.2. Academic Citations
+
+        Academic documents use @ prefix for bibliographic references:
+
+        - Single citation: [@smith2023]
+        - Multiple citations: [@smith2023; @jones2024]
+        - With page numbers: [@smith2023, p. 45]
+
+        Citations require a bibliography declaration:
+        :: bibliography :: references.bib
+
+6. Annotations
+
+    Metadata and document information using double colon markers:
+
+    :: title :: Document Title
+    :: author :: Author Name
+    :: note :: This is a helpful annotation
+
+    Annotations can have parameters:
+    :: warning:severity=high :: Critical security information
+
+    Multi-line annotations:
+    :: description ::
+        This annotation spans multiple lines
+        providing detailed information.
+
+7. Character Encoding and Conventions
+
+    7.1. Technical Requirements
+
+        - All text must be UTF-8 encoded
+        - Line endings should use Unix convention (LF)
+        - Tabs are converted to 4 spaces
+        - Indentation must be multiples of 4 spaces
+
+    7.2. Escaping
+
+        Use backslash to display special characters literally:
+        - `\*not bold\*` displays as *not bold*
+        - `\- not a list` prevents list parsing
+        - `\\` displays as a single backslash
+
+8. Document Organization
+
+    8.1. Typical Document Structure
+
+        :: title :: Document Title
+        :: author :: Author Name
+        :: date :: 2025-01-12
+
+        1. Introduction
+
+            Opening content that introduces the topic.
+
+        2. Main Content
+
+            2.1. Subsection
+
+                Detailed discussion with examples:
+                    code_example();
+                :: javascript
+
+        3. Conclusion
+
+            Closing thoughts and summary.
+
+        References
+
+            1. First reference details
+            2. Second reference details
+
+    8.2. Best Practices
+
+        - Use consistent numbering schemes within document sections
+        - Prefer descriptive session titles over generic ones
+        - Include blank lines around major structural elements
+        - Use annotations for document metadata
+        - Place footnotes or references in the final session
+
+9. Parsing Architecture
+
+    Understanding txxt's parsing helps explain its design decisions:
+
+    9.1. Five-Phase Pipeline
+
+        1. Verbatim Marking: Identify and protect non-txxt content
+        2. Tokenization: Convert text to typed tokens with positions
+        3. Block Grouping: Create hierarchical structure from indentation
+        4. Type Resolution: Convert generic blocks to specific elements
+        5. Inline Processing: Parse formatting within text content
+
+    9.2. Container-Centric Design
+
+        The parser leverages the container architecture:
+        - Indentation changes create container boundaries
+        - Each container type has specific content rules
+        - This enables consistent, predictable parsing
+
+10. Getting Started
+
+    10.1. Quick Reference
+
+        For immediate use, remember these patterns:
+        - Sessions: `Title` followed by indented content
+        - Lists: `- Item` or `1. Item` with possible nesting
+        - Code: `Title:` + indented content + `:: label`
+        - Definitions: `Term ::` + indented explanation
+        - References: `[target]` for links, `[@key]` for citations
+
+    10.2. Learning Path
+
+        1. Start with basic paragraphs and sessions
+        2. Add lists and simple verbatim blocks
+        3. Experiment with inline formatting
+        4. Learn reference and citation syntax
+        5. Use annotations for metadata
+
+    10.3. Tools and Ecosystem
+
+        While txxt is designed to be human-readable, tools can enhance the experience:
+        - Syntax highlighting for editors
+        - Export tools for HTML, PDF, etc.
+        - Citation processors for academic work
+        - Linters for style consistency
+
+For detailed specifications of individual elements, see the complete documentation in [docs/specs/].
+
+:: note :: This walkthrough provides the essential concepts for working with txxt. Each element has detailed specifications with syntax rules, examples, and edge cases.

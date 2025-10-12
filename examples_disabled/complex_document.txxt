@@ -1,0 +1,201 @@
+TXXT Format Specification
+
+This document provides a comprehensive example of TXXT format features
+and demonstrates complex nested structures.
+
+:: meta:title=TXXT Format Specification ::
+:: meta:version=1.0 ::
+:: meta:authors=TXXT Team ::
+
+1. Overview
+
+    TXXT is a structured text format designed for technical documentation
+    and content authoring. It supports hierarchical organization, rich
+    formatting, and seamless integration with development workflows.
+
+    1.1. Design Principles
+
+        The format follows several key principles:
+
+        - Human readable and writable
+        - Structured but flexible
+        - Tool-friendly for automation
+        - Extensible through annotations
+
+        Core Philosophy:
+            "Simple things should be simple, complex things should be possible."
+
+    1.2. File Structure
+
+        A TXXT document consists of:
+
+        1. Optional metadata annotations
+        2. Hierarchical content sections
+        3. Mixed content types (text, lists, code, definitions)
+
+2. Syntax Elements
+
+    2.1. Sessions (Sections)
+
+        Sessions are numbered hierarchical sections:
+
+        a. Automatic numbering: "1. Title"
+        b. Manual numbering: "1.2.3. Complex Title"  
+        c. Alphabetical: "a. Alternative Style"
+        d. Roman numerals: "i. Classical Style"
+
+    2.2. Lists
+
+        Multiple list styles are supported:
+
+        Bullet Lists:
+        - Simple bullets
+        - Nested bullets
+            - Sub-level 1
+            - Sub-level 2
+        - Back to main level
+
+        Numbered Lists:
+        1. First item
+        2. Second item
+            a. Sub-item alphabetical
+            b. Another sub-item
+        3. Third item
+
+        Mixed Styles:
+        i. Roman numerals
+        ii. Second roman
+            1. Nested numbers
+            2. More nested
+        iii. Third roman
+
+    2.3. Definitions
+
+        Technical Term:ref=tech-term
+            A definition provides detailed explanation of a concept.
+            Definitions can span multiple paragraphs and contain
+            nested content structures.
+
+        API Endpoint:category=api,version=2.0
+            REST endpoint for data retrieval.
+            
+            Request Format:
+                GET /api/v2/data/{id}
+                Authorization: Bearer <token>
+            
+            Response:
+                {
+                  "id": 123,
+                  "data": {...},
+                  "status": "success"
+                }
+            json
+
+    2.4. Verbatim Blocks
+
+        Inline code example:
+            function calculateTotal(items) {
+                return items.reduce((sum, item) => sum + item.price, 0);
+            }
+        javascript
+
+        Configuration file:
+            # Database configuration
+            database:
+              host: localhost
+              port: 5432
+              name: production_db
+              
+            # Redis cache
+            redis:
+              host: redis.example.com
+              port: 6379
+        yaml:ref=config-example
+
+        Shell script:
+            #!/bin/bash
+            
+            # Build and deploy script
+            echo "Building application..."
+            npm run build
+            
+            echo "Running tests..."
+            npm test
+            
+            echo "Deploying to production..."
+            rsync -av dist/ production:/var/www/
+        bash:category=deployment
+
+3. Advanced Features
+
+    3.1. Annotations
+
+        :: note :: This is an informational annotation that provides
+        additional context without disrupting the main content flow.
+
+        :: warning:severity=high :: Critical sections require special
+        attention during implementation.
+
+        :: todo:assignee=developer :: Feature implementation pending
+        for the next release cycle.
+
+    3.2. Cross-References
+
+        Content can reference other sections:
+        - See [#tech-term] for technical definitions
+        - Configuration details in [#config-example]
+        - Deployment process at [#deployment]
+
+    3.3. External References
+
+        Link to external resources:
+        - Documentation: [docs.txxt.org]
+        - Source code: [github.com/txxt/specification]
+        - Examples: [./examples/basic.txxt]
+
+4. Implementation Notes
+
+    4.1. Parser Requirements
+
+        Parsers must handle:
+
+        1. Nested indentation tracking
+        2. Multiple list style detection
+        3. Verbatim content preservation
+        4. Annotation processing
+        5. Cross-reference resolution
+
+        Error Recovery:
+            Parsers should gracefully handle malformed input
+            and provide helpful error messages with line numbers
+            and suggested corrections.
+
+    4.2. Rendering Targets
+
+        TXXT can be rendered to multiple formats:
+
+        Output Formats:
+        - HTML for web display
+        - PDF for print documents  
+        - Markdown for GitHub compatibility
+        - JSON for programmatic access
+        - LaTeX for academic papers
+
+        Custom Renderers:
+            Implement IRenderer interface to support additional
+            output formats with full feature preservation.
+
+5. Conclusion
+
+    This specification demonstrates the full capabilities of the TXXT
+    format through practical examples. The combination of hierarchical
+    structure, rich content types, and extensible annotations makes
+    TXXT suitable for a wide range of documentation needs.
+
+    Next Steps:
+    - Review implementation guidelines
+    - Test with real-world documents  
+    - Gather community feedback
+    - Refine specification based on usage
+
+:: appendix :: Complete feature matrix available in separate document

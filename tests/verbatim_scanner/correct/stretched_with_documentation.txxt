@@ -1,0 +1,17 @@
+Expected: [[2,6,"stretched"], [8,17,"stretched"]]
+title:
+Content at column 0
+Another line at column 0
+Blank lines allowed
+:: empty
+
+    indented title:
+Content at column 0
+Another line at column 0 
+More content
+Streched mode verbatim rules: 
+1 first line with text inside mode must be absolute 0: check
+Either blank liknes or lines starting a 0: check
+
+final termintion (label) with the same ident as title : check
+    :: empty

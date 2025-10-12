@@ -87,7 +87,7 @@ This will not cover all permutations, but cover all variations.  Aside from pars
 
 8. References
     - You can link to external sites [https://example.com]. {{list-item}}
-    - Or other documents [./spec/03-inline.txxt]. {{list-item}}
+    - Or other documents [./intro/03-inline.txxt]. {{list-item}}
     - It also supports footnotes[1]. {{list-item}}
     - In sessions [#2.1] no the same doc {{list-item}}
     - In terms[#foo], verbatim[#code-with-version-info] or sessions by they name[#references]

@@ -1,0 +1,297 @@
+:: title :: Common Element Processing Patterns
+:: author :: txxt Specification Team
+:: pub-date :: 2025-01-12
+
+Standard processing and error handling patterns shared by txxt block elements. This document defines the common architecture that most elements follow, with element-specific variations documented in their respective specifications.
+
+1. Purpose
+
+    This specification defines the standard processing pipeline and error handling strategies used by most txxt block elements. Elements that follow this pattern include annotations, paragraphs, lists, sessions, and definitions. Elements with special processing requirements (verbatim blocks, containers, inline elements, and support systems) maintain their own processing specifications.
+
+2. Scope
+
+    2.1. Elements Using Standard Processing
+
+        The following elements follow this common processing pattern:
+        - Annotations: Metadata elements with txxt markers
+        - Paragraphs: Basic text content blocks
+        - Lists: Ordered and unordered item collections
+        - Sessions: Hierarchical document sections
+        - Definitions: Term-definition pairs
+
+    2.2. Elements With Special Processing
+
+        The following elements maintain their own processing specifications:
+        - Verbatim Blocks: Require pre-parsing content protection
+        - Containers: Architectural foundation elements
+        - Inline Elements: Token-based pattern matching
+        - Labels and Parameters: Validation-focused support systems
+        - Syntax and Terminology: Reference documents only
+
+3. Standard Processing Pipeline
+
+    3.1. Five-Phase Architecture
+
+        All standard elements participate in the five-phase parsing pipeline:
+
+        Phase 1: Verbatim Scanning
+            Protect non-txxt content from parsing (handled by verbatim scanner)
+
+        Phase 2: Tokenization  
+            Convert text to typed tokens with source positions
+
+        Phase 3: Block Grouping
+            Create hierarchical structure based on indentation
+
+        Phase 4: Type Resolution
+            Convert generic blocks to specific element types (this is where most element processing occurs)
+
+        Phase 5: Inline Processing
+            Parse formatting within text content
+
+    3.2. Element Processing Focus
+
+        Standard elements primarily operate during Phase 4 (Type Resolution) where they:
+        - Recognize their specific patterns
+        - Validate syntax and content
+        - Create typed AST nodes
+        - Handle error conditions gracefully
+
+4. Standard Recognition Priority
+
+    4.1. Priority Hierarchy
+
+        Elements are recognized in order of specificity to avoid ambiguity:
+
+        1. Verbatim boundaries (highest priority - pre-marked)
+        2. Explicit syntax markers (annotations, definitions)
+        3. Structural patterns (lists, sessions)  
+        4. Content-based recognition (inline references)
+        5. Default fallback (paragraphs)
+
+    4.2. Recognition Algorithm
+
+        Standard element recognition follows these steps:
+
+        1. Check for element-specific markers or patterns
+        2. Validate required syntax components
+        3. Verify contextual requirements (indentation, surrounding content)
+        4. If valid → Process as element type
+        5. If invalid → Apply graceful degradation
+
+5. Standard Content Processing
+
+    5.1. Container Creation
+
+        Elements that support nested content follow consistent container rules:
+
+        Content Container Creation:
+        - Detect indentation increase after element
+        - Create appropriate container type (Content Container or Session Container)
+        - Parse nested content recursively
+        - Apply container content restrictions
+
+        Container Types:
+        - Content Container: Holds any blocks except sessions
+        - Session Container: Holds any blocks including sessions
+        - Ignore Container: Holds only verbatim content (special case)
+
+    5.2. Recursive Parsing
+
+        Standard recursive processing:
+
+        1. Identify container boundaries through indentation changes
+        2. Create container of appropriate type
+        3. Parse container contents using full element recognition
+        4. Validate content types against container restrictions
+        5. Build parent-child relationships in AST
+
+    5.3. Inline Content Processing
+
+        For elements containing text content:
+
+        1. Collect all text content from element
+        2. Normalize whitespace according to element rules
+        3. Pass to inline parser for formatting recognition
+        4. Merge adjacent text runs for efficiency
+        5. Create inline element sequence
+
+6. Standard Error Handling
+
+    6.1. Graceful Degradation Philosophy
+
+        Core principle: Always preserve content, never fail completely
+
+        Primary Strategy:
+        When structured syntax fails, fall back to simpler interpretation that preserves all user content.
+
+        Fallback Hierarchy:
+        1. Element-specific degradation → Simpler element type
+        2. Structural degradation → Paragraph text
+        3. Content preservation → Literal text inclusion
+        4. Never discard → All content appears in output
+
+    6.2. Common Error Scenarios
+
+        Standard error types and responses:
+
+        Syntax Errors:
+        - Malformed markers → Fall back to paragraph
+        - Invalid structure → Fall back to paragraph  
+        - Incomplete patterns → Fall back to paragraph
+
+        Content Errors:
+        - Empty content where required → Skip element or require content
+        - Invalid content types → Parse as paragraph
+        - Inconsistent formatting → Include as literal text
+
+        Context Errors:
+        - Wrong indentation level → Parse at correct level
+        - Missing required context → Create minimal valid context
+        - Boundary violations → Insert required boundaries
+
+    6.3. Error Recovery Strategies
+
+        Systematic approaches to error recovery:
+
+        Skip and Continue:
+        - Skip malformed tokens
+        - Continue parsing from next valid position
+        - Preserve source position information for debugging
+
+        Boundary Recovery:
+        - Close incomplete structures at natural boundaries
+        - Use indentation changes as recovery points
+        - Maintain document structure integrity
+
+        Content Preservation:
+        - Include all text content in output
+        - Mark uncertain interpretations clearly
+        - Maintain source position for all content
+
+        Never Fail:
+        - Always produce usable output
+        - Provide warnings rather than errors where possible
+        - Allow tools to post-process and validate
+
+7. Standard Parser Integration
+
+    7.1. Token Recognition Requirements
+
+        Standard elements require these parser capabilities:
+
+        High-Priority Recognition:
+        - Element-specific marker scanning
+        - Pattern validation during tokenization
+        - Context-aware token classification
+
+        Syntax Validation:
+        - Real-time syntax checking during recognition
+        - Graceful handling of incomplete patterns
+        - Position tracking for error reporting
+
+        Fallback Integration:
+        - Seamless transition to paragraph parsing
+        - Preservation of all tokens during fallback
+        - Maintain parsing context across fallbacks
+
+    7.2. AST Construction Standards
+
+        Consistent AST building across elements:
+
+        Node Structure:
+        - All elements extend base Node type
+        - Consistent token sequence preservation
+        - Unified source position tracking
+        - Standard annotation attachment points
+
+        Content Organization:
+        - Separate inline content from structural children
+        - Container architecture for nested content
+        - Consistent parent-child relationship encoding
+        - Preserve source order in all collections
+
+        Metadata Integration:
+        - Standard annotation attachment system
+        - Parameter integration where applicable
+        - Label system integration for relevant elements
+        - Source reconstruction capability
+
+    7.3. Performance Considerations
+
+        Standard optimization approaches:
+
+        Memory Efficiency:
+        - Share immutable content between elements
+        - Merge adjacent text runs in AST
+        - Intern common strings (markers, labels)
+        - Balance memory usage with access patterns
+
+        Processing Efficiency:
+        - Single-pass token recognition where possible
+        - Minimize backtracking during parsing
+        - Cache frequently accessed content
+        - Batch similar processing operations
+
+        Scalability:
+        - Linear parsing complexity for well-formed input
+        - Graceful performance degradation with errors
+        - Streaming-friendly processing where possible
+        - Memory-bounded processing for large documents
+
+8. Implementation Guidelines
+
+    8.1. Parser Requirements
+
+        Essential capabilities for implementing standard processing:
+
+        - Token stream processing with lookahead
+        - Indentation level tracking throughout parsing
+        - Context stack management for nested structures
+        - Error recovery with position preservation
+        - AST building with consistent node types
+
+    8.2. Testing Requirements
+
+        Standard testing coverage for elements:
+
+        - Valid syntax recognition and processing
+        - Invalid syntax graceful degradation
+        - Boundary condition handling
+        - Nested content processing
+        - Error recovery behavior
+        - Performance with large content
+
+    8.3. Extension Points
+
+        How new elements can integrate with standard processing:
+
+        - Define element-specific recognition patterns
+        - Specify container creation rules
+        - Document graceful degradation strategy
+        - Integrate with existing priority hierarchy
+        - Follow standard AST construction patterns
+
+9. Quality Assurance
+
+    9.1. Consistency Requirements
+
+        Standards for maintaining processing consistency:
+
+        - All elements must preserve content during errors
+        - Fallback behavior must be predictable
+        - AST structure must follow common patterns
+        - Error messages must be actionable
+        - Performance must scale linearly
+
+    9.2. Validation Criteria
+
+        How to verify standard processing compliance:
+
+        - Round-trip source reconstruction capability
+        - Graceful handling of all malformed input
+        - Consistent behavior across similar patterns
+        - Integration with container architecture
+        - Compatibility with inline processing
+
+:: note :: This common processing specification ensures consistent behavior across txxt elements while allowing for element-specific requirements. Elements reference this document and document only their unique processing needs.

@@ -1,0 +1,12 @@
+Expected: [[2,5,"normal"], [8,11,"normal"]]
+Code with metadata:
+    def calculate_pi():
+        return 3.14159
+:: python:version=3.11, author="Jane Doe"
+
+
+Code with metadata, but no label:
+    def calculate_pi():
+        return 3.14159
+:: empty:version=3.11, author="Jane Doe"
+

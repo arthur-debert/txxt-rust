@@ -1,0 +1,276 @@
+:: title :: Parameter System Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for the txxt parameter system used across annotations, verbatim blocks, and definitions.
+
+1. Purpose
+
+    Parameters provide structured key-value metadata for txxt elements. They use a consistent syntax across annotations, verbatim blocks, and other elements that support metadata. Parameters enable rich metadata while maintaining txxt's minimalist philosophy.
+
+2. Syntax
+
+    2.1. Basic Form
+
+        Key-value pairs separated by commas:
+            key=value,key2=value2
+        (form)
+
+        Single parameter:
+            debug=true
+        (form)
+
+        Multiple parameters:
+            version=3.11,style=functional,author="Jane Doe"
+        (form)
+
+    2.2. Integration Patterns
+
+        Annotation parameters:
+            :: label:key=value,key2=value2 :: content
+        (integration)
+
+        Verbatim parameters:
+            :: label:key=value,key2=value2
+        (integration)
+
+        Definition parameters (future):
+            Term:key=value,key2=value2 ::
+        (integration)
+
+3. Grammar
+
+    3.1. Parameter Syntax
+
+        The syntax for a parameter list is a comma-separated list of key-value pairs.
+
+            <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
+            <parameter-pair> = <parameter-key> = <parameter-value>
+
+        Keys can be simple or namespaced identifiers:
+            <parameter-key> = <identifier> (<period> <identifier>)*
+
+        Values can be unquoted text content or a quoted string:
+            <parameter-value> = <text-content> | <quoted-string>
+            <quoted-string> = " (<text-char> | <escaped-char>)* "
+        
+        For the full definition of base tokens like `<identifier>` and `<text-content>`, see [syntax.txxt].
+        :: grammar
+
+4. Value Types and Quoting
+
+    4.1. When to Quote
+
+        Quote values containing:
+        - Spaces: `title="My Document"`
+        - Commas: `tags="red,blue,green"`
+        - Special characters: `path="/home/user/docs"`
+        - Leading/trailing whitespace: `note=" important "`
+
+        Don't quote simple values:
+        - Numbers: `version=3.11`
+        - Booleans: `debug=true`
+        - Simple identifiers: `style=functional`
+
+    4.2. Escape Sequences
+
+        Within quoted strings:
+        - `\"` - literal quote mark
+        - `\\` - literal backslash
+        - `\n` - literal newline (rarely used)
+
+        Examples:
+            message="She said, \"Hello!\""
+            path="C:\\Users\\Name\\Documents"
+            multiline="Line 1\nLine 2"
+        (escaping)
+
+    4.3. Boolean Values
+
+        Standard boolean representations:
+        - `true` / `false` (preferred)
+        - `yes` / `no` 
+        - `on` / `off`
+        - `1` / `0`
+
+        Boolean shorthand (key without value implies true):
+            debug,verbose,strict
+        (shorthand)
+
+5. Namespaced Keys
+
+    5.1. Namespace Syntax
+
+        Dot-separated namespaces:
+            org.example.metadata
+            company.product.feature
+            txxt.internal.parser
+        (namespaces)
+
+    5.2. Reserved Namespaces
+
+        Official txxt namespace:
+            txxt.version, txxt.parser, txxt.internal
+        (reserved)
+
+        The `txxt.` namespace is reserved for format specification use.
+
+    5.3. Namespace Conventions
+
+        Recommended patterns:
+        - Organization: `org.example.*`
+        - Company: `company.product.*`
+        - Tool-specific: `tool.feature.*`
+        - Personal: `user.name.*`
+
+6. Common Parameter Patterns
+
+    6.1. Version Information
+
+        Software versions:
+            version=3.11
+            api-version=2.0
+            schema-version=1.2.3
+        (versions)
+
+    6.2. Author and Attribution
+
+        Author information:
+            author="Jane Doe"
+            email="jane@example.com"
+            organization="Example Corp"
+        (attribution)
+
+    6.3. File and Resource References
+
+        External resources:
+            src="image.png"
+            href="https://example.com"
+            file="/path/to/resource"
+        (resources)
+
+    6.4. Display and Formatting
+
+        Presentation hints:
+            theme=dark
+            style=minimal
+            line-numbers=true
+            highlight="1-5,10"
+        (display)
+
+    6.5. Processing Instructions
+
+        Tool behavior:
+            ignore=spelling
+            validate=strict
+            timeout=30
+            cache=false
+        (processing)
+
+7. Validation Rules
+
+    7.1. Key Validation
+
+        Valid keys must:
+        - Start with letter
+        - Contain only letters, digits, period, underscore, dash
+        - Use period only for namespace separation
+        - Be at least one character long
+
+        Invalid key examples:
+            123invalid (starts with digit)
+            -invalid (starts with dash)
+            key..name (double period)
+            key. (ends with period)
+        (invalid-keys)
+
+    7.2. Value Validation
+
+        Value constraints:
+        - Unquoted values cannot contain spaces, commas, quotes
+        - Quoted values must have balanced quotes
+        - Escape sequences must be valid
+        - Empty values are allowed: `key=` or `key=""`
+
+    7.3. List Validation
+
+        Parameter list constraints:
+        - Keys must be unique within a parameter list
+        - No trailing commas allowed
+        - Whitespace around commas is optional but recommended
+
+8. Error Handling
+
+    8.1. Parse Errors
+
+        Common error scenarios:
+        - Unbalanced quotes: `key="value`
+        - Invalid escape sequences: `key="value\z"`
+        - Duplicate keys: `debug=true,debug=false`
+        - Invalid key names: `123=value`
+
+    8.2. Recovery Strategies
+
+        Error recovery approaches:
+        - Invalid parameter syntax → Treat entire element as plain text
+        - Duplicate keys → Use last occurrence
+        - Invalid escape → Treat backslash as literal
+        - Unbalanced quotes → Treat as literal text
+
+9. Implementation Notes
+
+    9.1. Parser Requirements
+
+        Parameter parsing needs:
+        - Tokenizer support for quoted strings
+        - Escape sequence processing
+        - Key uniqueness validation
+        - Integration with element parsers
+
+    9.2. Storage Representation
+
+        Recommended storage:
+            
+            Data structure for efficient parameter storage:
+                Parameters {
+                    entries: HashMap<String, String>,
+                    source_order: Vec<String>,
+                }
+            :: rust
+
+        This preserves both lookup efficiency and source order for reconstruction.
+
+    9.3. Tool Integration
+
+        Parameter usage patterns:
+        - Export tools: Use parameters for format-specific options
+        - Syntax highlighters: Use language/theme parameters
+        - Validators: Use validation control parameters
+        - Processors: Use processing hint parameters
+
+10. Examples by Element Type
+
+    10.1. Annotation Parameters
+
+        Document metadata:
+            :: title:lang=en,type=research :: Advanced Parsing Techniques
+            :: author:affiliation="University",email="prof@example.edu" :: Dr. Smith
+            :: license:type=MIT,year=2025 :: 
+        (annotation-examples)
+
+    10.2. Verbatim Parameters
+
+        Code blocks with metadata:
+            :: python:version=3.11,style=pep8
+            :: sql:dialect=postgresql,version=15
+            :: config:format=yaml,validated=true
+        (verbatim-examples)
+
+    10.3. Complex Parameter Examples
+
+        Rich metadata:
+            :: media:type=image,src="diagram.svg",alt="System architecture",width=800,height=600 ::
+            :: citation:type=article,doi="10.1000/example",year=2025,pages="1-20" ::
+        (complex-examples)
+
+:: note :: Parameters provide consistent metadata capabilities across all txxt elements. Their flexible syntax supports both simple flags and complex structured data while maintaining readability and parseability.

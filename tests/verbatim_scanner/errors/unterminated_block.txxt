@@ -1,0 +1,22 @@
+Error: "Unterminated verbatim block starting at line 2"
+title:
+    content without terminator
+    more things
+    
+     
+    
+    
+
+     
+    
+    
+
+     
+    
+    
+
+    
+    
+    
+
+    moresome final line that is not a terminator

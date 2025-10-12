@@ -1,0 +1,351 @@
+:: title :: Container Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for containers - the foundational structural elements that hold indented child content in txxt documents.
+
+1. Purpose
+
+    Containers are the architectural foundation of txxt's hierarchical structure. They hold indented child content and implement the fundamental design principle: "containers get indented, not their parent elements." Containers enable the clean separation between content and structure that makes txxt's indentation system predictable and parsable.
+
+2. Architecture Principle
+
+    2.1. Core Insight
+
+        The key architectural insight of txxt is that containers are what get indented:
+
+        Incorrect mental model (parent indented):
+            Session Title
+                Session content here
+        (mental-model)
+
+        Correct AST structure (container indented):
+            ├── Session
+            │   ├── title: "Session Title"
+            │   └── container: (indented)
+            │       └── paragraph: "Session content here"
+        (ast-model)
+
+
+3. Container Types
+
+    Containers are quite uniform as txxt strives to be expressive and flexible. While the verbatim lines container is all about ignoring lines (everything about verbatims is one of a kind) , the base container allows one to hold any block elements but sessions while session containers augment the former by hosting session elememnts.
+
+    3.1. Content Container
+
+        Holds any block elements except sessions:
+
+        Allowed children:
+        - Paragraphs, Lists, Definitions, Verbatim Blocks
+        - Annotations, Blank Lines
+        - Other Content Containers (nested structure)
+
+        Prohibited children:
+        - Sessions (reserved for Session Containers)
+
+        Usage contexts:
+        - List item content
+        - Definition content  
+        - Annotation content
+
+    3.2. Session Container
+
+        Holds any block elements including sessions:
+
+        Allowed children:
+        - All Content Container children
+        - Sessions (enables document hierarchy)
+
+        Special requirements:
+        - Must be surrounded by blank lines when containing sessions
+        - Root document is a Session Container
+
+        Usage contexts:
+        - Document root
+        - Session content
+        - Top-level document structure
+
+    3.3. Ignore Container
+
+        Holds verbatim content that should not be parsed:
+
+        Allowed children:
+        - Ignore Lines (raw verbatim content)
+        - Blank Lines (preserved spacing)
+
+        Prohibited children:
+        - Any parsed txxt elements
+
+        Usage contexts:
+        - Verbatim block content only
+
+4. Syntax
+
+    4.1. Implicit Creation
+
+        Containers are created implicitly by indentation:
+
+        Session with container:
+            1. Section Title
+            
+                This paragraph is in the session's container.
+                Container is created automatically.
+        (creation)
+
+        List item with container:
+            - List item text
+                This paragraph is in the list item's container.
+                Nested content creates container automatically.
+        (nested-creation)
+
+    4.2. Indentation Rules
+
+        Container content rules:
+        - Content must be exactly +1 indented from parent
+        - All container children at same indentation level
+        - Blank lines allowed within containers
+        - Containers end when indentation decreases
+
+5. Grammar
+
+    5.1. Container Structure
+
+        Content Container (cannot contain sessions):
+            <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
+        (grammar)
+
+        Session Container (can contain sessions):
+            <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
+        (grammar)
+
+        Ignore Container (verbatim content only):
+            <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
+            <ignore-line> = <any-line>
+        (grammar)
+
+    5.2. Indentation Detection
+
+        Indentation level tracking:
+            <indent-increase> = <current-indent> <indent-unit>
+            <indent-unit> = <whitespace>{4}
+            <current-indent> = <whitespace>{n*4}
+        (grammar)
+
+6. AST Structure
+
+    Post-parsing semantic representation:
+
+    Content Container AST:
+        ├── Container
+        │   ├── container_type: ContentContainer
+        │   ├── content: Vec<Block>
+        │   └── annotations: Vec<Annotation>
+    (tree)
+
+    Session Container AST:
+        ├── Container  
+        │   ├── container_type: SessionContainer
+        │   ├── content: Vec<Block>
+        │   └── annotations: Vec<Annotation>
+    (tree)
+
+    Ignore Container AST:
+        ├── Container
+        │   ├── container_type: IgnoreContainer
+        │   ├── ignore_lines: Vec<IgnoreLine>
+        │   └── blank_lines: Vec<BlankLine>
+    (tree)
+
+7. Processing Rules
+
+    7.1. Container Detection
+
+        Parser container creation:
+        1. Detect indentation increase in token stream
+        2. Determine container type based on parent element
+        3. Create appropriate container type
+        4. Parse container contents recursively
+        5. End container when indentation decreases
+
+    7.2. Type Determination
+
+        Container type selection:
+        - Session context → Session Container
+        - List item, Definition, Annotation context → Content Container  
+        - Verbatim block context → Ignore Container
+
+    7.3. Content Validation
+
+        Container content rules:
+        - Content Container: No sessions allowed
+        - Session Container: All block types allowed
+        - Ignore Container: Only ignore-lines and blank-lines
+        - All types: Must have at least one child (empty containers are invalid)
+
+8. Use Cases
+
+    8.1. Document Structure
+
+        Root document organization:
+            :: title :: Document Title
+            
+            1. Introduction
+            
+                This is the introduction content in a session container.
+                
+                Multiple paragraphs are supported.
+                
+            2. Main Content
+            
+                2.1. Subsection
+                
+                    Nested sessions create nested session containers.
+        (document-structure)
+
+    8.2. List Nesting
+
+        Nested list structure:
+            - Groceries
+                - Milk
+                - Bread
+                    1. Whole wheat
+                    2. Sourdough
+                - Eggs
+            - Hardware store
+                Visit the hardware store for supplies.
+                
+                Remember to bring the shopping list.
+        (list-nesting)
+
+    8.3. Definition Content
+
+        Rich definition content:
+            Parser ::
+                A program that analyzes text according to formal grammar rules.
+                
+                Key characteristics:
+                - Tokenization phase
+                - Syntax analysis phase
+                - Error recovery
+                
+                Common types:
+                1. Recursive descent parsers
+                2. LR parsers
+                3. Parser combinators
+        (definition-content)
+
+9. Edge Cases
+
+    9.1. Empty Containers
+
+        Containers must have content:
+
+        Invalid (empty container):
+            1. Section Title
+            
+            2. Next Section
+        (invalid-empty)
+
+        Valid (with content):
+            1. Section Title
+            
+                At least one element required.
+                
+            2. Next Section
+        (valid-content)
+
+    9.2. Mixed Indentation
+
+        Containers require consistent indentation:
+
+        Invalid (inconsistent indentation):
+            1. Section
+                Paragraph at +1
+                  Another at +2 (invalid)
+        (invalid-indent)
+
+        Valid (consistent indentation):
+            1. Section
+                Paragraph at +1
+                Another paragraph at +1
+                    Nested content at +2 (creates new container)
+        (valid-indent)
+
+    9.3. Session Container Boundaries
+
+        Session containers require blank line separation:
+
+        Invalid (no blank lines around sessions):
+            Content here
+            1. Session Title
+                Session content
+            More content
+        (invalid-boundaries)
+
+        Valid (blank lines around sessions):
+            Content here
+            
+            1. Session Title
+            
+                Session content
+                
+            More content
+        (valid-boundaries)
+
+10. Implementation Notes
+
+    10.1. Parser Architecture
+
+        Container processing requirements:
+        - Indentation level tracking throughout parsing
+        - Container type determination based on context
+        - Recursive descent into container content
+        - Validation of content type restrictions
+
+    10.2. AST Construction
+
+        Container creation during parsing:
+        1. Block Grouping Phase: Identify indentation boundaries
+        2. Type Resolution Phase: Determine container types
+        3. Content Parsing Phase: Recursively parse container contents
+        4. Validation Phase: Ensure content type restrictions
+
+    10.3. Error Handling
+
+        Common container errors:
+        - Empty containers → Require at least one child
+        - Invalid content types → Reject sessions in content containers
+        - Inconsistent indentation → Parse error with recovery
+        - Missing boundaries → Insert blank lines around sessions
+
+11. Relationship to Other Elements
+
+    11.1. Parent Elements
+
+        Elements that create containers:
+        - Sessions: Always create Session Container for content
+        - List Items: Create Content Container when nested content exists
+        - Definitions: Always create Content Container for definition content
+        - Annotations: Create Content Container for multi-line content
+        - Verbatim Blocks: Always create Ignore Container for preserved content
+
+    11.2. Child Elements
+
+        Container content restrictions:
+        - Content Container: All blocks except sessions
+        - Session Container: All block types including sessions
+        - Ignore Container: Only ignore-lines and blank-lines
+
+    11.3. Document Root
+
+        Document structure:
+            ├── Document
+            │   ├── meta: Meta
+            │   ├── blocks: Vec<Block>
+            │   └── annotations: Vec<Annotation>
+        (document-root)
+
+        The document's `blocks` field is conceptually a Session Container.
+
+
+:: note :: Containers are the architectural foundation that makes txxt's indentation-based hierarchy both human-readable and machine-parsable. The "containers get indented" principle eliminates special cases and creates a uniform, predictable document structure.

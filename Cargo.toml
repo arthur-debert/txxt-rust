@@ -7,6 +7,12 @@ license = "MIT OR Apache-2.0"
 keywords = ["parser", "markup", "txxt", "text-processing"]
 categories = ["parser-implementations", "text-processing"]
 
+[features]
+# Enable new type-safe AST system (under development)
+new-ast = []
+# Enable AST adapter for bridging old to new AST
+adapter = ["new-ast"]
+
 [dependencies]
 walkdir = "2.5"
 serde = { version = "1.0", features = ["derive"] }
@@ -16,15 +22,18 @@ terminal_size = "0.3"
 atty = "0.2"
 regex = "1.10"
 quick-xml = "0.36"
+chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 tempfile = "3.10"
 regex = "1.10"
+rstest = "0.18"
+proptest = "1.4"
 
-[[bin]]
-name = "txxt"
-path = "src/bin/txxt.rs"
+# [[bin]]
+# name = "txxt"
+# path = "src/bin/txxt.rs"
 
-[[bin]]
-name = "block_grouper"
-path = "src/bin/block_grouper.rs"
+# [[bin]]
+# name = "block_grouper"
+# path = "src/bin/block_grouper.rs"

@@ -1,0 +1,75 @@
+Simple Document Example
+
+This is a basic TXXT document that demonstrates fundamental elements.
+
+1. Introduction
+
+    Welcome to this example document. This section contains several
+    types of content to demonstrate the TXXT format capabilities.
+
+    - Key features demonstrated
+    - Basic formatting elements  
+    - Structural organization
+
+2. Lists and Content
+
+    2.1. Simple Lists
+
+        Here are some basic list examples:
+
+        - Unordered item 1
+        - Unordered item 2
+        - Unordered item 3
+
+        And a numbered list:
+
+        1. Numbered item 1  
+        2. Numbered item 2
+        3. Numbered item 3
+
+    2.2. Nested Content
+
+        Lists can contain nested content:
+
+        - Parent item 1
+        
+            This is nested content under the first item.
+            It can contain multiple paragraphs.
+            
+        - Parent item 2
+        
+            More nested content here.
+
+3. Definitions and Verbatim
+
+    3.1. Definition Example
+
+        Term Definition:
+            This shows how to define terms in TXXT format.
+            Definitions consist of a term followed by indented content.
+
+        Another Term:
+            Multiple definitions can appear in sequence.
+            Each has its own indented content area.
+
+    3.2. Code Examples
+
+        Here's a code example:
+
+            def hello_world():
+                print("Hello, World!")
+                return "success"
+        python
+
+        Configuration example:
+
+            server:
+              host: localhost
+              port: 8080
+              debug: true
+        yaml
+
+Final Thoughts
+
+This document demonstrates the core TXXT features including
+sessions, lists, definitions, and verbatim blocks.

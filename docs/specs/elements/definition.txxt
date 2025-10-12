@@ -1,0 +1,249 @@
+:: title :: Definition Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for definitions - structured term-definition pairs that provide semantic explanations and glossary content.
+
+1. Purpose
+
+    Definitions provide a structured way to explain terms, concepts, and terminology within txxt documents. They create semantic associations between terms and their explanations, supporting glossary generation, term indexing, and knowledge base construction. Definitions use the txxt marker to distinguish them from verbatim blocks while maintaining the familiar colon syntax.
+
+2. Syntax
+
+    2.1. Basic Definition Form
+
+        Simple term definition:
+            Parser ::
+                A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
+        :: basic
+
+        Complex term with inline formatting:
+            *Important Concept* ::
+                This term uses inline formatting in the term itself.
+                The definition can span multiple paragraphs and include rich content.
+        :: formatted-term
+
+    2.2. Syntax Rules
+
+        Definition recognition:
+        - Term line ends with txxt marker (`::`)
+        - Definition content must be indented +1 from term
+        - Term can contain inline formatting
+        - Content follows through ContentContainer
+
+        Essential pattern:
+            <term-content> ::
+                <indented-definition-content>
+        :: pattern
+
+    2.3. Content Structure
+
+        Rich definition content:
+            Recursion ::
+                A programming technique where a function calls itself.
+                
+                Key characteristics:
+                - Base case to stop recursion
+                - Recursive case that calls itself
+                - Gradual progress toward base case
+                
+                Example implementation:
+                    def factorial(n):
+                        if n <= 1:
+                            return 1
+                        return n * factorial(n - 1)
+                :: python
+        :: rich-content
+
+3. Grammar
+
+    3.1. Definition Structure
+
+        A definition consists of a term line followed by an indented content container.
+
+            <definition> = <definition-term> <definition-content>
+            <definition-term> = <text-line> <definition-marker>
+            <definition-content> = <content-container>
+
+        The term marker allows for optional whitespace around the double colon:
+            <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
+        :: grammar
+
+    3.2. Term Rules
+
+        Definition term constraints:
+        - Must be single line (cannot span multiple lines)
+        - Can contain any inline elements (bold, italic, code, references)
+        - Must end with txxt marker (`::`)
+        - Cannot be empty (must have term content)
+
+        Valid term examples:
+            API ::
+            *Machine Learning* ::
+            `async/await` ::
+            HTTP Response Code ::
+        :: valid-terms
+
+    3.3. Content Rules
+
+        Definition content structure:
+        - Must be indented exactly +1 from term level
+        - Can contain any block elements except sessions
+        - Follows ContentContainer rules
+        - Can include paragraphs, lists, verbatim blocks, nested definitions
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    Definition AST:
+        ├── Definition
+        │   ├── term: DefinitionTerm
+        │   │   ├── content: Vec<Inline>
+        │   │   └── tokens: TokenSequence
+        │   ├── content: ContentContainer
+        │   │   └── blocks: Vec<Block>
+        │   ├── parameters: Parameters (future extension)
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+    :: tree
+
+    Key structural properties:
+    - Term stored as inline content (supports formatting)
+    - Content stored in ContentContainer (consistent with architecture)
+    - Parameters support planned for future extensions
+    - Annotations can be attached to definitions
+
+5. Processing Rules
+
+    Definitions follow the standard processing pattern defined in [common-processing.txxt] with the following element-specific requirements:
+
+    5.1. Recognition Criteria
+
+        Definition-specific recognition pattern:
+        1. Line ending with txxt marker (`::`) → Potential definition
+        2. Validate term content (cannot be empty)
+        3. Check for indented content following term
+        4. If indented content exists → Definition
+        5. If no indented content → Parse error (incomplete definition - strict validation)
+
+    5.2. Term Processing
+
+        Definition-specific term handling:
+        - Parse term line through standard inline parser (supports formatting)
+        - Remove trailing txxt marker before processing
+        - Validate that term is not empty after marker removal
+        - Store exact term tokens for source reconstruction
+
+    5.3. Content Processing
+
+        Definition content handling:
+        1. Create Content Container for indented content (standard container rules)
+        2. Apply standard recursive parsing to nested content
+        3. Apply Content Container restrictions (no sessions allowed)
+        4. Support rich content including nested definitions
+
+6. Edge Cases
+
+    6.1. Empty Terms
+
+        Invalid (empty term):
+            ::
+                This definition has no term.
+        :: invalid-empty
+
+        This is parsed as an annotation, not a definition.
+
+    6.2. Missing Content
+
+        Invalid (no indented content):
+            Term with no definition ::
+            
+            Next paragraph here.
+        :: invalid-incomplete
+
+        This should cause a parse error as definitions require content.
+
+    6.3. Inline-Only Definitions
+
+        Invalid (definition content must be indented):
+            Inline Term :: Definition content on same line
+        :: invalid-inline
+
+        Definitions require indented content; inline content is not supported.
+
+    6.4. Nested Same-Level Definitions
+
+        Valid (definitions can contain other definitions):
+            Programming ::
+                The process of creating computer programs.
+                
+                Algorithm ::
+                    A step-by-step procedure for solving a problem.
+                
+                Data Structure ::
+                    A way of organizing and storing data efficiently.
+        :: nested-valid
+
+7. Implementation Notes
+
+    Definitions follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
+
+    7.1. Definition-Specific Parser Integration
+
+        Beyond standard parser integration, definitions require:
+        - Txxt marker recognition at end of line (unique position)
+        - Term content validation (non-empty requirement)
+        - Indented content validation (must exist)
+        - Content Container creation and management
+
+    7.2. Disambiguation Requirements
+
+        Definition marker disambiguation:
+        - **Annotations**: txxt marker at start of line (`:: label ::`)
+        - **Definitions**: txxt marker at end of line (`term ::`)
+        - **Verbatim**: single colon at end of line (`title:`)
+
+        Marker position determines element type during recognition phase.
+
+    7.3. Error Handling Additions
+
+        Beyond standard error handling, definitions have:
+
+        Definition-specific error scenarios:
+        - Empty term → Parse error (strict validation required)
+        - Missing indented content → Parse error (strict validation required)
+        - Invalid indentation → Parse error with recovery
+        - Malformed txxt marker → Apply standard graceful degradation (paragraph fallback)
+
+        Definitions require strict validation due to their semantic importance.
+
+8. Relationship to Other Elements
+
+    8.1. Container Integration
+
+        Definition content through ContentContainer:
+        - Follows standard container architecture
+        - Can contain paragraphs, lists, verbatim blocks, annotations
+        - Cannot contain sessions (ContentContainer restriction)
+        - Supports nested definitions
+
+    8.2. Inline Content Support
+
+        Definition terms support inline formatting:
+        - Bold, italic, code, math formatting
+        - References and citations
+        - Cannot span multiple lines
+        - Rich term markup for semantic clarity
+
+    8.3. Cross-Referencing
+
+        Definitions as reference targets:
+        - Can be referenced by term name
+        - Support named anchors via annotations
+        - Enable glossary generation
+        - Support semantic indexing
+
+
+
+:: note :: Definitions leverage the txxt marker at end-of-line to create unambiguous term-explanation pairs. Their integration with the container architecture enables rich, structured content while maintaining clear semantic boundaries.

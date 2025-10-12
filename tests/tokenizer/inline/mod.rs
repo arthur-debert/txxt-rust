@@ -7,3 +7,4 @@ mod formatting;
 mod math_span_integration;
 mod page_ref_integration;
 mod parameters;
+mod session_ref_integration;

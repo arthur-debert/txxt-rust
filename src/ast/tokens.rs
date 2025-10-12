@@ -119,6 +119,9 @@ pub enum Token {
     /// Page reference ([p.123] or [p.123-125])
     PageRef { content: String, span: SourceSpan },
 
+    /// Session reference ([#1.2] or [#section])
+    SessionRef { content: String, span: SourceSpan },
+
     /// End of file marker
     Eof { span: SourceSpan },
 }
@@ -150,6 +153,7 @@ impl Token {
             Token::MathSpan { span, .. } => span,
             Token::CitationRef { span, .. } => span,
             Token::PageRef { span, .. } => span,
+            Token::SessionRef { span, .. } => span,
             Token::Eof { span } => span,
         }
     }
@@ -175,6 +179,7 @@ impl Token {
             Token::MathSpan { content, .. } => content,
             Token::CitationRef { content, .. } => content,
             Token::PageRef { content, .. } => content,
+            Token::SessionRef { content, .. } => content,
             Token::Newline { .. } => "\n",
             Token::BlankLine { .. } => "\n",
             Token::Indent { .. } => "",

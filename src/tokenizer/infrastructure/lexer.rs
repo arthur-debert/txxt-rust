@@ -125,6 +125,10 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = self.read_at_sign() {
                 tokens.push(token);
+            } else if let Some(token) = self.read_left_paren() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_right_paren() {
+                tokens.push(token);
             } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
@@ -334,6 +338,40 @@ impl Lexer {
         if self.peek() == Some('@') {
             self.advance();
             return Some(Token::AtSign {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a left parenthesis token (()
+    fn read_left_paren(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('(') {
+            self.advance();
+            return Some(Token::LeftParen {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a right parenthesis token ())
+    fn read_right_paren(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(')') {
+            self.advance();
+            return Some(Token::RightParen {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

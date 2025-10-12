@@ -85,6 +85,12 @@ pub enum Token {
     /// At-sign character (@)
     AtSign { span: SourceSpan },
 
+    /// Left parenthesis character (()
+    LeftParen { span: SourceSpan },
+
+    /// Right parenthesis character ())
+    RightParen { span: SourceSpan },
+
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
@@ -155,6 +161,8 @@ impl Token {
             Token::LeftBracket { span } => span,
             Token::RightBracket { span } => span,
             Token::AtSign { span } => span,
+            Token::LeftParen { span } => span,
+            Token::RightParen { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
             Token::FootnoteNumber { span, .. } => span,
@@ -205,6 +213,8 @@ impl Token {
             Token::LeftBracket { .. } => "[",
             Token::RightBracket { .. } => "]",
             Token::AtSign { .. } => "@",
+            Token::LeftParen { .. } => "(",
+            Token::RightParen { .. } => ")",
             Token::Eof { .. } => "",
         }
     }

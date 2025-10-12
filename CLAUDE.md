@@ -47,3 +47,7 @@
 a howtos for txxt, specially how not to use markdown.
 
 ### TXXT Format Authorative Souce
+- Because the format is still evolving: only the files docs/specs are sure to
+  be correct. Be sure to view the element specific spec you're working on nd
+  the docs/specs/core/syntax.txxt
+  These have ast, syntax and parsing details too

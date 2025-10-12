@@ -168,123 +168,9 @@ Complete specification for sessions - the hierarchical organizational units that
         3. Apply blank line separation rules for nested sessions
         4. Validate content types (all blocks allowed - Session Container rules)
 
-7. Use Cases
+7. Edge Cases
 
-    7.1. Document Structure
-
-        Academic paper structure:
-            :: title :: Research Paper Title
-            :: author :: Dr. Jane Smith
-            
-            Abstract
-            
-                Brief summary of the research findings and methodology.
-                Key contributions and results overview.
-                
-            1. Introduction
-            
-                Background information and problem statement.
-                Literature review and research objectives.
-                
-            2. Methodology
-            
-                2.1. Data Collection
-                
-                    Description of data gathering procedures.
-                    Sample selection and criteria.
-                    
-                2.2. Analysis Approach
-                
-                    Statistical methods and analysis framework.
-                    Tools and software used.
-                    
-            3. Results
-            
-                Findings and experimental results.
-                
-            4. Conclusion
-            
-                Summary of contributions and future work.
-        (academic-structure)
-
-    7.2. Technical Documentation
-
-        Software documentation hierarchy:
-            API Reference
-            
-                1. Authentication
-                
-                    1.1. OAuth 2.0 Flow
-                    
-                        Implementation details for OAuth authentication.
-                        
-                        Example request:
-                            POST /oauth/token
-                            Content-Type: application/json
-                            
-                            {
-                                "grant_type": "authorization_code",
-                                "code": "abc123"
-                            }
-                        :: json
-                        
-                    1.2. API Key Authentication
-                    
-                        Alternative authentication method for simpler use cases.
-                        
-                2. Endpoints
-                
-                    2.1. User Management
-                    
-                        a. Create User
-                        b. Update User  
-                        c. Delete User
-                        
-                    2.2. Data Operations
-                    
-                        a. Retrieve Data
-                        b. Store Data
-                        c. Query Data
-        (technical-docs)
-
-    7.3. Book Structure
-
-        Book with chapters and sections:
-            Preface
-            
-                Author's introduction and acknowledgments.
-                
-            Part I: Foundations
-            
-                1. Getting Started
-                
-                    1.1. Installation
-                    
-                        System requirements and installation procedures.
-                        
-                    1.2. Basic Configuration
-                    
-                        Initial setup and configuration options.
-                        
-                2. Core Concepts
-                
-                    2.1. Architecture Overview
-                    2.2. Key Principles
-                    
-            Part II: Advanced Topics
-            
-                3. Advanced Features
-                4. Integration Patterns
-                
-            Appendix
-            
-                A. Reference Tables
-                B. Troubleshooting Guide
-        (book-structure)
-
-8. Edge Cases
-
-    8.1. Session vs Paragraph Ambiguity
+    7.1. Session vs Paragraph Ambiguity
 
         Ambiguous case resolution:
             Line with no following content
@@ -294,7 +180,7 @@ Complete specification for sessions - the hierarchical organizational units that
 
         This is parsed as two paragraphs, not a session, because the first line has no indented content.
 
-    8.2. Empty Sessions
+    7.2. Empty Sessions
 
         Invalid (session must have content):
             1. Empty Section
@@ -310,7 +196,7 @@ Complete specification for sessions - the hierarchical organizational units that
             2. Next Section
         (valid-content)
 
-    8.3. Deeply Nested Sessions
+    7.3. Deeply Nested Sessions
 
         Arbitrary nesting depth supported:
             1. Level 1
@@ -320,11 +206,11 @@ Complete specification for sessions - the hierarchical organizational units that
                             Content at maximum depth.
         (deep-nesting)
 
-9. Implementation Notes
+8. Implementation Notes
 
     Sessions follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-    9.1. Session-Specific Parser Integration
+    8.1. Session-Specific Parser Integration
 
         Beyond standard parser integration, sessions require:
         - Blank line detection before titles (boundary requirement)
@@ -333,7 +219,7 @@ Complete specification for sessions - the hierarchical organizational units that
         - Recursive content parsing including nested sessions
         - Session Container boundary validation
 
-    9.2. Numbering Determination Implementation
+    8.2. Numbering Determination Implementation
 
         Session-specific numbering extraction:
             
@@ -344,7 +230,7 @@ Complete specification for sessions - the hierarchical organizational units that
                 }
             :: rust
 
-    9.3. Error Handling Additions
+    8.3. Error Handling Additions
 
         Beyond standard error handling, sessions have:
 
@@ -356,9 +242,9 @@ Complete specification for sessions - the hierarchical organizational units that
 
         Sessions follow standard graceful degradation principles.
 
-10. Relationship to Other Elements
+9. Relationship to Other Elements
 
-    10.1. Container Integration
+    9.1. Container Integration
 
         Session container characteristics:
         - Session Container type: Can hold any block including sessions
@@ -366,7 +252,7 @@ Complete specification for sessions - the hierarchical organizational units that
         - Recursive structure: Sessions within sessions
         - Document root: Document itself is conceptually a Session Container
 
-    10.2. Numbering Consistency
+    9.2. Numbering Consistency
 
         Shared numbering with lists:
         - Same sequence marker patterns as lists
@@ -374,7 +260,7 @@ Complete specification for sessions - the hierarchical organizational units that
         - Same NumberingForm concepts
         - Consistent marker preservation approach
 
-    10.3. Navigation Support
+    9.3. Navigation Support
 
         Sessions enable:
         - Table of contents generation
@@ -382,9 +268,9 @@ Complete specification for sessions - the hierarchical organizational units that
         - Document structure analysis
         - Hierarchical navigation
 
-11. Navigation and References
+10. Navigation and References
 
-    11.1. Section References
+    10.1. Section References
 
         Internal document references:
             See methodology section [#2] for details.
@@ -392,7 +278,7 @@ Complete specification for sessions - the hierarchical organizational units that
             Compare with [#-1] (last section).
         (section-refs)
 
-    11.2. Named Anchors
+    10.2. Named Anchors
 
         Sessions with reference parameters:
             :: anchor:id=methodology :: 2. Research Methodology
@@ -402,7 +288,7 @@ Complete specification for sessions - the hierarchical organizational units that
             Later reference: See [#methodology] for details.
         (named-anchors)
 
-    11.3. Hierarchical Navigation
+    10.3. Hierarchical Navigation
 
         Document outline extraction:
             ├── Abstract

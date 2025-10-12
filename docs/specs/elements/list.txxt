@@ -187,86 +187,9 @@ Complete specification for lists - ordered and unordered collections of items wi
         3. Apply standard recursive parsing to nested content
         4. Allow any content type except sessions (standard Content Container restrictions)
 
-7. Use Cases
+7. Edge Cases
 
-    7.1. Simple Lists
-
-        Basic plain style list:
-            - Task planning
-            - Resource gathering  
-            - Implementation
-            - Testing
-            - Documentation
-        (simple-plain)
-
-        Basic numerical style list:
-            1. Initialize system
-            2. Load configuration
-            3. Start services
-            4. Begin processing
-            5. Monitor status
-        (simple-numerical)
-
-    7.2. Complex Hierarchical Lists
-
-        Technical outline with mixed styles:
-            1. System Architecture
-                - Frontend components
-                    a. User interface
-                    b. State management
-                    c. API integration
-                - Backend services
-                    i. Authentication service
-                    ii. Data processing service
-                    iii. Storage service
-            2. Implementation Plan
-                - Phase 1: Core functionality
-                - Phase 2: Advanced features
-                - Phase 3: Performance optimization
-        (hierarchical)
-
-    7.3. Lists with Rich Content
-
-        List items with complex content:
-            1. Database Setup
-                Configure the database connection and schema.
-                
-                Required steps:
-                - Install PostgreSQL
-                - Create database
-                - Run migrations
-                
-                Connection string example:
-                    postgresql://user:pass@localhost/db
-                :: sql
-                
-            2. Application Configuration
-                Set up the application environment and dependencies.
-        (rich-content)
-
-    7.4. Mixed Content Lists
-
-        Academic or technical documentation:
-            1. Literature Review
-                
-                Summary of existing research findings.
-                
-                Key papers reviewed:
-                - Smith et al. (2023) - Basic methodology
-                - Jones (2024) - Advanced techniques
-                
-            2. Methodology
-                
-                Research approach and experimental design.
-                
-                Data Collection ::
-                    Primary data collected through surveys and interviews.
-                    Secondary data from published sources.
-        (academic)
-
-8. Edge Cases
-
-    8.1. Single Item Lists
+    7.1. Single Item Lists
 
         Invalid (single item treated as paragraph):
             - Call mom.
@@ -274,7 +197,7 @@ Complete specification for lists - ordered and unordered collections of items wi
 
         This is parsed as a paragraph, not a list, to avoid ambiguity with dialog.
 
-    8.2. Inconsistent Numbering
+    7.2. Inconsistent Numbering
 
         Valid but inconsistent (accepted without error):
             1. First item
@@ -284,7 +207,7 @@ Complete specification for lists - ordered and unordered collections of items wi
 
         Original markers preserved; tools can auto-correct if needed.
 
-    8.3. Mixed Styles
+    7.3. Mixed Styles
 
         Valid but mixed (first item determines official style):
             1. First item (style: Numerical)
@@ -294,18 +217,18 @@ Complete specification for lists - ordered and unordered collections of items wi
 
         List officially has Numerical style based on first item.
 
-    8.4. Nested Single Items
+    7.4. Nested Single Items
 
         Valid (single items allowed in nested context):
             - Main task
                 - Single subtask (valid in nested context)
         (nested-single)
 
-9. Implementation Notes
+8. Implementation Notes
 
     Lists follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-    9.1. List-Specific Parser Integration
+    8.1. List-Specific Parser Integration
 
         Beyond standard parser integration, lists require:
         - Sequence marker recognition and validation using patterns from [syntax.txxt]
@@ -313,7 +236,7 @@ Complete specification for lists - ordered and unordered collections of items wi
         - Exact marker preservation for source reconstruction
         - Nesting level tracking for Content Container creation
 
-    9.2. Style Processing Implementation
+    8.2. Style Processing Implementation
 
         List-specific style determination:
             
@@ -324,7 +247,7 @@ Complete specification for lists - ordered and unordered collections of items wi
                 }
             :: rust
 
-    9.3. Source Reconstruction Capabilities
+    8.3. Source Reconstruction Capabilities
 
         List-specific reconstruction features:
         - Exact marker preservation enables faithful source reconstruction
@@ -332,23 +255,23 @@ Complete specification for lists - ordered and unordered collections of items wi
         - Automated renumbering tools integration
         - Format conversion utilities support
 
-10. Relationship to Other Elements
+9. Relationship to Other Elements
 
-    10.1. Container Integration
+    9.1. Container Integration
 
         List nesting through containers:
         - Flat lists: No containers needed
         - Nested lists: Create Content Container for nested content
         - Mixed content: Content Container can hold any blocks except sessions
 
-    10.2. Inline Content
+    9.2. Inline Content
 
         List item content:
         - Supports all inline elements (bold, italic, code, math, references)
         - Cannot span multiple lines within single item
         - Rich content goes in nested Content Container
 
-    10.3. Annotation Support
+    9.3. Annotation Support
 
         Lists support annotations:
         - List-level annotations: Attached to entire list

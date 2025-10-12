@@ -143,107 +143,9 @@ Complete specification for definitions - structured term-definition pairs that p
         3. Apply Content Container restrictions (no sessions allowed)
         4. Support rich content including nested definitions
 
-6. Use Cases
+6. Edge Cases
 
-    6.1. Technical Glossaries
-
-        Software development terms:
-            API ::
-                Application Programming Interface - a set of protocols and tools for building software applications.
-
-            REST ::
-                Representational State Transfer - an architectural style for designing networked applications that rely on stateless communication.
-
-            Microservice ::
-                An architectural approach where applications are built as a collection of loosely coupled, independently deployable services.
-        :: technical-glossary
-
-    6.2. Academic Definitions
-
-        Research terminology:
-            Hypothesis ::
-                A proposed explanation for a phenomenon that can be tested through experimentation or observation.
-                
-                Characteristics of good hypotheses:
-                - Testable and falsifiable
-                - Based on existing knowledge
-                - Specific and measurable
-                - Logically sound
-
-            Peer Review ::
-                The evaluation of scholarly work by experts in the same field before publication.
-                
-                The peer review process typically involves:
-                1. Submission to journal or conference
-                2. Initial editorial screening
-                3. Review by 2-3 domain experts
-                4. Revision based on feedback
-                5. Final acceptance or rejection
-        :: academic-definitions
-
-    6.3. Complex Nested Definitions
-
-        Hierarchical concept explanation:
-            Machine Learning ::
-                A subset of artificial intelligence that enables computers to learn and improve from experience without explicit programming.
-                
-                Key approaches:
-                
-                Supervised Learning ::
-                    Learning with labeled training data to make predictions on new data.
-                    
-                    Examples:
-                    - Classification (predicting categories)
-                    - Regression (predicting continuous values)
-                
-                Unsupervised Learning ::
-                    Finding patterns in data without labeled examples.
-                    
-                    Common techniques:
-                    - Clustering (grouping similar data)
-                    - Dimensionality reduction
-                    - Association rule learning
-                
-                Reinforcement Learning ::
-                    Learning through interaction with an environment using rewards and penalties.
-        :: nested-definitions
-
-    6.4. Code Documentation
-
-        Programming concept definitions:
-            Closure ::
-                A function that captures and retains access to variables from its outer scope.
-                
-                Example in JavaScript:
-                    function outerFunction(x) {
-                        return function(y) {
-                            return x + y; // 'x' is captured from outer scope
-                        };
-                    }
-                    
-                    const addFive = outerFunction(5);
-                    console.log(addFive(3)); // Output: 8
-                :: javascript
-
-            `async/await` ::
-                Modern JavaScript syntax for handling asynchronous operations more readably than callbacks or raw promises.
-                
-                Basic pattern:
-                    async function fetchData() {
-                        try {
-                            const response = await fetch('/api/data');
-                            const data = await response.json();
-                            return data;
-                        } catch (error) {
-                            console.error('Fetch failed:', error);
-                        }
-                    }
-                :: javascript
-        :: code-documentation
-
-7. Edge Cases
-
-    7.1. Empty Terms
+    6.1. Empty Terms
 
         Invalid (empty term):
             ::
@@ -252,7 +154,7 @@ Complete specification for definitions - structured term-definition pairs that p
 
         This is parsed as an annotation, not a definition.
 
-    7.2. Missing Content
+    6.2. Missing Content
 
         Invalid (no indented content):
             Term with no definition ::
@@ -262,7 +164,7 @@ Complete specification for definitions - structured term-definition pairs that p
 
         This should cause a parse error as definitions require content.
 
-    7.3. Inline-Only Definitions
+    6.3. Inline-Only Definitions
 
         Invalid (definition content must be indented):
             Inline Term :: Definition content on same line
@@ -270,7 +172,7 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Definitions require indented content; inline content is not supported.
 
-    7.4. Nested Same-Level Definitions
+    6.4. Nested Same-Level Definitions
 
         Valid (definitions can contain other definitions):
             Programming ::
@@ -283,11 +185,11 @@ Complete specification for definitions - structured term-definition pairs that p
                     A way of organizing and storing data efficiently.
         :: nested-valid
 
-8. Implementation Notes
+7. Implementation Notes
 
     Definitions follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-    8.1. Definition-Specific Parser Integration
+    7.1. Definition-Specific Parser Integration
 
         Beyond standard parser integration, definitions require:
         - Txxt marker recognition at end of line (unique position)
@@ -295,7 +197,7 @@ Complete specification for definitions - structured term-definition pairs that p
         - Indented content validation (must exist)
         - Content Container creation and management
 
-    8.2. Disambiguation Requirements
+    7.2. Disambiguation Requirements
 
         Definition marker disambiguation:
         - **Annotations**: txxt marker at start of line (`:: label ::`)
@@ -304,7 +206,7 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Marker position determines element type during recognition phase.
 
-    8.3. Error Handling Additions
+    7.3. Error Handling Additions
 
         Beyond standard error handling, definitions have:
 
@@ -316,9 +218,9 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Definitions require strict validation due to their semantic importance.
 
-9. Relationship to Other Elements
+8. Relationship to Other Elements
 
-    9.1. Container Integration
+    8.1. Container Integration
 
         Definition content through ContentContainer:
         - Follows standard container architecture
@@ -326,7 +228,7 @@ Complete specification for definitions - structured term-definition pairs that p
         - Cannot contain sessions (ContentContainer restriction)
         - Supports nested definitions
 
-    9.2. Inline Content Support
+    8.2. Inline Content Support
 
         Definition terms support inline formatting:
         - Bold, italic, code, math formatting
@@ -334,7 +236,7 @@ Complete specification for definitions - structured term-definition pairs that p
         - Cannot span multiple lines
         - Rich term markup for semantic clarity
 
-    9.3. Cross-Referencing
+    8.3. Cross-Referencing
 
         Definitions as reference targets:
         - Can be referenced by term name

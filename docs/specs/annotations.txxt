@@ -1,0 +1,152 @@
+:: title :: txxt Deep Dive: Annotation Details
+:: author :: Arthur Debert (Original), Gemini (Refactor)
+:: pub_date :: 2025-09-23
+
+This document covers Annotation elements in depth
+
+1. Syntax
+
+    Annotations have a label (the name for that information) and its content (the information itself). Annotations use txxt  markers (::) to encode signify it's label and separate it from its content.
+
+    Basic form:
+    :: label :: content
+    :: form :: Annotations have a label and content. Anything between the double-colons (`::`) markers is the label (whitespace trimmed), and anything after the last marker is the content.
+    
+    With parameters:
+    :: label:key=value,key2="quoted value" :: content
+    :: form-with-params :: Labels can include parameters using the same syntax as verbatim blocks. Parameters are key-value pairs separated by commas.
+    
+    Special form for longer content:
+    :: multiline ::
+        If an annotation has no content but is followed by an indented block, that block becomes the annotation's content.
+    
+    Parameters work with multiline too:
+    :: warning:severity=high ::
+        This is a high severity warning
+        that spans multiple lines.
+    
+    These are less useful, but legal:
+    :: empty content annotation ::
+    :: :: And this is an annotation with an empty label.
+    
+    Namespaced labels:
+    :: org.example.meta:version=2.0 :: Metadata with namespace
+    :: form-namespace :: Labels can use dots to create namespaces. The txxt. namespace is reserved for official use.
+
+2. Semantics
+
+    Annotations are design to be very flexible. Labels are not unique, even within the same annotation block, as the latter is structured as a list of annotations.
+
+    
+
+1. Annotation Attachment
+
+    Annotations always refer to an elemnet. These are the attachment rules, how to determine which element annotations refere too.
+
+    1.1 Document Level: 
+
+        Annotation block that are the first elements and followed by at least one blank line in a document will be attached to the document iself. As in : 
+            -- document start:
+            <annotation-1>
+            <annotatin-2>
+
+            <annotation-3>
+        (txxt)
+        In this case annotatins 1 and 2 are document level, whereas 3 will attach to the next element.
+
+        withouth a blank line, first doc annotations follow the next-element rule: 
+            -- docuemnt start: 
+            <annotation-1>
+            <annotation-2>
+            <paragraph>
+        (txxt)
+
+    1.2 Next Element Rule
+
+        Annottation blocks are attached to the element that follows them *on the same level* (blank lines not withstanding) Blank lines between annotations and the annotated documents are ignored: 
+            <annotation-1>
+            <annotation-2>
+
+            <annotation-3>
+            <element>
+        (txxt)
+        In the example, element has annotations 1,2,3
+
+        Consider the case, where the annotation is the last element on this level: 
+            <session-1>
+                <paragraph-1>
+                <annotation-1>
+
+            <list-1>
+        (txxt)
+        Annotation is not attached to list-1. See next rule.
+
+    1.3 Annotation As Last Element
+
+        If no other elements follows an annotation block on the same level, the annotation will be attached to it's parent. In the example above, annotation-1 will be attached to session-1
+
+2. Non-Unique Labels
+
+    Annotation labels do not need to be unique, even within the same annotation block. The parser treats the annotations associated with an element as an ordered list.
+
+    Example:
+        :: author :: Jane Doe
+        :: author :: John Smith
+        
+        This paragraph has two authors.
+
+3. Empty Label Edge Case
+
+    A line that appears to be a annotation but has an empty label and no content is not treated as a annotation. It is parsed as a standard paragraph.
+
+    :: -- 
+    
+    The line above, containing `:: --`, will be rendered as a paragraph containing that text. This prevents lines used for stylistic separation from being incorrectly parsed as annotations.
+
+4. Annotation Parameters
+
+    Annotations support parameters using the same syntax as verbatim blocks. Parameters are key-value pairs that provide structured metadata.
+
+    4.1. Parameter Syntax
+
+        Parameters follow the label, separated by a colon:
+        :: label:key=value,key2=value2 :: content
+
+        Examples:
+        :: warning:severity=high,category=security :: Critical security issue
+        :: meta:version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
+
+    4.2. Quoted Values
+
+        Parameter values containing spaces, commas, or special characters must be quoted:
+        :: config:path="/home/user/documents",mode="read only" :: Configuration
+
+        Within quotes, use backslash to escape quotes:
+        :: quote:author="She said, \"Hello!\"" :: Nested quotes example
+
+    4.3. Namespaced Labels
+
+        Labels can use dots to create namespaces:
+        :: org.example.status:approved=true,reviewer=alice :: Approved by Alice
+        :: txxt.internal:parser-version=2.0 :: Internal txxt metadata
+
+        The txxt. namespace is reserved for official use.
+
+    4.4. Parameters with Multiline Annotations
+
+        Parameters work identically with multiline annotations:
+        :: description:lang=en,format=plain ::
+            This is a longer description
+            that spans multiple lines
+            with parameters on the first line
+
+    4.5. Edge Cases
+
+        Empty parameters are valid:
+        :: label: :: No parameters, just a colon
+
+        Labels without values but with parameters:
+        :: status:complete=true ::
+
+        Multiple dots in namespaces:
+        :: com.example.app.config:debug=true :: Deep namespace

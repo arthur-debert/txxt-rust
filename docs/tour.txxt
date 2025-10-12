@@ -88,7 +88,7 @@ This document is a brief tour of the txxt format, designed to get you started qu
     `txxt` has powerful linking and citation capabilities.
 
     - You can link to external sites [https://example.com]. (list-item)
-    - Or other documents [./spec/03-inline.txxt]. (list-item)
+    - Or other documents [./intro/03-inline.txxt]. (list-item)
     - It also supports footnotes[1]. (list-item)
     - In sessions [#2.3] no the same doc (list-item)
     - Academic citations [@smith2023; @jones2024] with bibliography support (list-item)
@@ -103,7 +103,7 @@ This document is a brief tour of the txxt format, designed to get you started qu
 
 5. Where to Next? (session)
 
-    This tour has only scratched the surface. To learn more, please see the full specification, starting with [./spec/01-general.txxt].
+    This tour has only scratched the surface. To learn more, please see the full specification, starting with [./intro/01-general.txxt].
 
 Notes (session)
     1. Footnotes are created by adding a numbered list in the document's final session.

@@ -1,0 +1,17 @@
+Spec for the Paragraph Element
+
+A paragraph is a list of one or more text line elments.
+
+They can be single line as the one above. 
+Or multi-lined as this one.
+
+
+1. AST
+
+    Paragraphs are made of text lines, which them selves are made of text spans.
+    Hence: 
+        
+		├── paragraph
+		│ 	├── text-line: 
+		│ 	    ├── text-span: 
+        

@@ -1,0 +1,67 @@
+:: title :: txxt Specification: General Principles
+:: author :: Arthur Debert (Original), Gemini (Refactor)
+:: pub-date :: 2025-09-23
+
+This document covers the general principles of the txxt format, including character encoding, whitespace, and annotations.
+
+txxt is a plain text format, designed for a high level of expressivness, including complex concepts like nested structures and relationships that relies heavily on visual , non formal elements and a long heritagy of plain text conventions resulting in a format that is easy to read and write without tollls and has low cognitive load for parsing.
+
+
+1. Character Encoding,  Whitespace and Indentation
+
+    Much of the power and usability of txxt derives from being an indentation signitifcant format.
+    In txxt, indentation conveys structure a  parent/child relationship. A node's children are always +1 indented, since they are inside the node's element container.
+
+    1.1 Indentation
+
+        Indentation is used to mark a content's block, a collection of elements that are a block's children. This session (1.1 Indendtation) has several children, including this paragraph, which are +1 indented. These are called containers.
+
+        Hence, indentation increases are always sequential (you can create a sub setcion without a parent), but decrease can jump (because we can, say, end session 1.3.3 and go to session 2)
+
+        There are three types of containers: Content Containers, Session Containers, And IgnoreContiners. Session ones can host inner sessions. You don't wan't a list item to father a session.
+
+        As txxt is a hierarchical format, most block elements can host containers. The exceptions being pagragraphs. Everything else can: List Items, Annotations, Definitions, Sessions, Verbatim Blocks. See the containers [docs/specs/containers.txxt]
+        
+        1.1.1  Tab Handling
+
+            - Tab characters are converted to spaces
+            - One tab = 1 tab stop =  spaces 
+            - Mixing tabs and spaces for indentation in the same file should be avoided, but the parser will normalize these. Including the indentation prefix for verbatim lines.
+            - Incorrect number of spaces is an error an may exit parsing..
+
+    1.2. Character Encoding
+
+        - All text must be UTF-8 encoded
+        - Line endings must use Unix convention (LF, not CRLF)
+        - No maximum line length is enforced by the parser, left at the discretion of tooling on publishing workflows.
+
+    1.3. Blank Lines
+
+        Blank lines are lines of text comprised of zero or more whistepace characters followed by a line break. Any such whispace characters are removed. 
+
+        Sequential blank lines are preserved, but carry no extra meaning . For example sessions must be enclosed in blank lines, and having 1 or 7 lines is the same.
+
+        In the role of boundary, document start and document finish are equivalent to blank lines.
+
+2. Escaping
+
+    To display a character that has a special meaning in `txxt` syntax as a literal character, you can escape it with a backslash (`\`). The backslash removes the special meaning from the character immediately following it.
+
+    This is useful for:
+    - Preventing inline formatting: `\*not bold\*` will appear as *not bold*.
+    - Showing block markers literally: `\- Not a list item` will not be parsed as a list.
+    - Using special characters in verbatim parameters: `media: alt="A wide shot\\, with clouds":`
+    - Displaying a literal backslash: `\\` will appear as a single `\`.
+
+    The escaping is handled in a preprocessing step, which means it works consistently across the entire document.
+
+3. Annotations
+
+    Annotations attach metadata to other elements. They are not part of the main content and are often omitted in exporting workflows following tool discretion.
+
+    In the final AST annotations are not a node's child, but store in it's metadata field.
+
+    :: note:: Througout these documents , you wil see many annotations adding additonal information, like hints,  such as this one.
+
+  
+    See the annotations spec [docs/specs/annotations.txxt]

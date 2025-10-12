@@ -46,15 +46,15 @@
 
         - *External URL:* For more information, see [https://example.com].
         - *Simple URL:* You can also link to [example.com].
-        - *Relative File Path:* See the architecture guide [../spec/02-structure.txxt].
-        - *Absolute File Path:* Details are in [/docs/deep-dive/references.txxt].
+        - *Relative File Path:* See the architecture guide [../intro/02-structure.txxt].
+        - *Absolute File Path:* Details are in [/docs/specs/references.txxt].
         - *Section Anchor:* Jump to a specific section with [#2.1].
 
     2.2. Advanced Usage
 
         The reference system also supports more advanced features like footnote-style numerical references and named anchors defined in verbatim blocks.
 
-        For a complete guide on these topics, as well as details on how link text (anchors) is determined, please see the deep-dive on this topic [../deep-dive/references.txxt].
+        For a complete guide on these topics, as well as details on how link text (anchors) is determined, please see the specs on this topic [../specs/references.txxt].
 
     3. Academic Citations
 

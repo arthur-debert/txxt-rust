@@ -50,7 +50,7 @@ Code with version info:
 
 8. References
     - You can link to external sites [https://example.com]. {{listItem}}
-    - Or other documents [./spec/03-inline.txxt]. {{listItem}}
+    - Or other documents [./intro/03-inline.txxt]. {{listItem}}
     - It also supports footnotes[1]. {{listItem}}
     - In sessions [#2.1] no the same doc {{listItem}}
     - Academic citations [@smith2023; @jones2024] with bibliography support {{listItem}}

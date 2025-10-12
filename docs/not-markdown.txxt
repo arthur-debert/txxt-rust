@@ -1,6 +1,6 @@
 From Markdown to txxt formating in a nutshell.
 
-While txxt borrows from Markdown, it differs significantly from it. You should read the full specs [docs/spec/*], but this will act as quick checklist quitck guide.
+While txxt borrows from Markdown, it differs significantly from it. You should read the full specs [docs/intro/*], but this will act as quick checklist quitck guide.
 
 1. Sections
 

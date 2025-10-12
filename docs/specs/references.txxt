@@ -52,7 +52,7 @@ References in Txxt use the [] notation to link to other documents, sections, or 
         - [p.43,44] or [p.43-100] - Multiple pages or ranges
         - [pp.43] or [pp 44] - Alternative page formats
 
-    See the citations [docs/deep-dive/citations.txxt] doc for more details.
+    See the citations [docs/specs/citations.txxt] doc for more details.
 
     e. Too Come (TK) Reference
 

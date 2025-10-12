@@ -4,24 +4,16 @@
 
 This document covers the structural elements of the txxt format, including sessions, paragraphs, lists, and verbatim blocks.
 
-
-
-
-Most elements in txxt are block elements, at least the most interesting ones.
+txxt diferentiates block elements (ocuupy a single line), from span elements.
+High level elements are block elements, often comprised of span elements.
 
 1. Paragraphs
 
-    
     This is the first content of our session, in this case a one line paragraph. But with multiple sentences (multiple end-puncutation ).
     
     Paragraphs can be single lines.
 
-    And can be multiline. (line 1)
-    That is, a line break + text, but not a blank line (which would break into 2 paragraphs) (line 2)
-    Hence paragraphs are made of text lines. Of course, lines can be arbitrarily long. Tools can decide on wrapping or truncating on export workflows, but the spec itself doesn't care how long lines are. (line 3)
-    Hence this is a paragraph made out of 4 text lines. (line 4)
-
-    But this is another paragraph altogether
+    And can be multiline. 
     
     
 2. Lists
@@ -118,7 +110,7 @@ Most elements in txxt are block elements, at least the most interesting ones.
 
     Since there is no ambiguity now.
 
-    For more detailed terminology and rules, such as the canonical form and templated numbering, please see the deep-dive on this topic [../deep-dive/list-details.txxt].
+    For more detailed terminology and rules, such as the canonical form and templated numbering, please see the specs on this topic [../specs/lists.txxt].
 
 3. Verbatim Blocks
 
@@ -215,7 +207,7 @@ Most elements in txxt are block elements, at least the most interesting ones.
         (python: version=3)
     (txxt)
 
-    For a complete guide to indentation, termination, and other advanced rules, please see the deep-dive on this topic [../deep-dive/blocks-edge-cases.txxt]. For specifics on label syntax and parsing rationale, see the [../deep-dive/verbatim-blocks-details.txxt].
+    For a complete guide to indentation, termination, and other advanced rules, please see the specs on this topic [../specs/blocks-edge-cases.txxt]. For specifics on label syntax and parsing rationale, see the [../specs/verbatim-blocks-details.txxt].
 
 3.4 Media
 
@@ -304,4 +296,4 @@ Most elements in txxt are block elements, at least the most interesting ones.
 
     The `txxt` format has a number of rules to handle ambiguous situations, such as distinguishing a session title from a paragraph, or a list item from a line of dialog.
 
-    For a complete guide to these topics, including list indentation, mixed markers, and blank lines in lists, please see the deep-dive on this topic [../deep-dive/blocks-edge-cases.txxt].
+    For a complete guide to these topics, including list indentation, mixed markers, and blank lines in lists, please see the specs on this topic [../specs/blocks-edge-cases.txxt].

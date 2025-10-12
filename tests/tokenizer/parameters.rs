@@ -9,7 +9,7 @@
 use proptest::prelude::*;
 use std::collections::HashMap;
 use txxt::ast::tokens::{Position, Token};
-use txxt::tokenizer::inline::parameters::{parse_parameters, ParameterLexer};
+use txxt::tokenizer::parameters::{parse_parameters, ParameterLexer};
 
 /// Mock lexer for testing parameter parsing
 struct MockParameterLexer {

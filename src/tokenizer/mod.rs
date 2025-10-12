@@ -1,63 +1,65 @@
-//! TXXT Tokenizer - Character-precise token generation for new AST
+//! TXXT Tokenizer - Perfect specification alignment
 //!
-//! This module implements the tokenization phase that produces Token enum variants
-//! from src/ast/tokens.rs with precise source positioning for language server support.
+//! Every tokenizer module corresponds directly to a specification file in
+//! docs/specs/elements/, enabling intuitive navigation from specification to
+//! implementation. Infrastructure modules are separated to infrastructure/
+//! for clear architectural boundaries.
 //!
-//! ## File Layout/ In progress, do not break:
+//! ## Specification-Aligned Modules
 //!
-//!   src/tokenizer/
-//!   ├── mod.rs                    # Public API
-//!   ├── lexer.rs                  # Main tokenizer
-//!   ├── indentation.rs            # Indent/dedent tracking
-//!   ├── verbatim_scanner.rs       # Pre-parsing verbatim detection (existing)
-//!   ├── markers/
-//!   │   ├── mod.rs               # Marker token detection
-//!   │   ├── sequence.rs          # List sequence markers
-//!   │   └── txxt_marker.rs       # :: token detection and classification
-//!   ├── inline/
-//!   │   ├── mod.rs               # Inline element detection
-//!   │   ├── formatting/          # Formatting inline elements
-//!   │   │   ├── mod.rs           # Formatting module
-//!   │   │   ├── delimiters.rs    # Bold, italic, code delimiters
-//!   │   │   └── math_span.rs     # Math expression spans (#content#)
-//!   │   ├── references/          # Reference inline elements
-//!   │   │   ├── mod.rs           # Reference module
-//!   │   │   ├── citations.rs     # Citation references ([@key])
-//!   │   │   ├── general.rs       # Generic reference fallback
-//!   │   │   ├── page_ref.rs      # Page references ([p.123])
-//!   │   │   └── session_ref.rs   # Session references ([#1.2])
-//!   │   └── parameters.rs        # Parameter parsing (key=value lists)
-//!   └── patterns.rs             # Pattern matching and content extraction utilities
+//! - [`annotation`] - docs/specs/elements/annotation.txxt
+//! - [`definition`] - docs/specs/elements/definition.txxt
+//! - [`list`] - docs/specs/elements/list.txxt
+//! - [`parameters`] - docs/specs/elements/parameters.txxt
+//! - [`container`] - docs/specs/elements/container.txxt (TODO)
+//! - [`labels`] - docs/specs/elements/labels.txxt (TODO)
+//! - [`paragraph`] - docs/specs/elements/paragraph.txxt (TODO)
+//! - [`session`] - docs/specs/elements/session.txxt (TODO)
+//! - [`inline`] - docs/specs/elements/inlines/ (complete)
+//!
+//! ## Infrastructure Modules
+//!
+//! - [`infrastructure`] - Lexer, patterns, and marker detection
+//! - [`verbatim_scanner`] - Pre-parsing verbatim detection
+//! - [`indentation`] - Indent/dedent tracking (TODO implementation)
 //!
 //! ## Architecture
 //!
-//! - [`verbatim_scanner`] - Pre-tokenization verbatim block detection
-//! - [`lexer`] - Main tokenizer that produces Token enum with SourceSpan positions
-//! - [`markers`] - Marker token detection (sequence, txxt, reference markers)
-//! - [`inline`] - Inline element parsing (formatting)
-//! - [`parameters`] - Parameter parsing (key=value syntax)
-//! - [`indentation`] - Indentation tracking and indent/dedent tokens
-//! - [`patterns`] - Shared regex patterns for validation
-//!
-//! ## New AST Integration
-//!
-//! This tokenizer is built specifically for the new AST system defined in src/ast/tokens.rs.
-//! It produces Token enum variants with precise SourceSpan positioning for character-level
-//! language server operations.
+//! This design achieves perfect 1:1 mapping between specification and implementation
+//! while maintaining clear separation between infrastructure and specification-driven code.
 
+// Specification-aligned modules
+pub mod annotation;
+pub mod container;
+pub mod definition;
 pub mod indentation;
+pub mod labels;
+pub mod list;
+pub mod paragraph;
+pub mod parameters;
+pub mod session;
+
+// Infrastructure and utilities
+pub mod infrastructure;
 pub mod inline;
-pub mod lexer;
-pub mod markers;
-pub mod patterns;
 pub mod verbatim_scanner;
 
-pub use lexer::Lexer;
+// Re-export main interfaces
+pub use infrastructure::lexer::Lexer;
 pub use verbatim_scanner::{VerbatimBlock, VerbatimScanner, VerbatimType};
 
-// Re-export marker and inline parsing functionality
-pub use inline::{parse_parameters, read_inline_delimiter, InlineDelimiterLexer, ParameterLexer};
-pub use markers::{read_sequence_marker, SequenceMarkerLexer};
+// Re-export specification-aligned functions
+pub use annotation::read_annotation_marker;
+pub use definition::read_definition_marker;
+pub use list::read_sequence_marker;
+pub use parameters::{parse_parameters, ParameterLexer};
+
+// Re-export inline functionality
+pub use inline::{
+    read_citation_ref, read_inline_delimiter, read_math_span, read_page_ref, read_session_ref,
+    CitationRefLexer, InlineDelimiterLexer, MathSpanLexer, PageRefLexer, ReferenceLexer,
+    SessionRefLexer,
+};
 
 // Re-export new AST token types
 pub use crate::ast::tokens::{Position, SourceSpan, Token, TokenSequence};

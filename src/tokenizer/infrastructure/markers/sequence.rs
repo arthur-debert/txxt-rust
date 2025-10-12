@@ -8,7 +8,7 @@
 //! - Roman numeral markers: "i. ", "III) "
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::lexer::{Lexer, LexerState};
+use crate::tokenizer::infrastructure::lexer::{Lexer, LexerState};
 
 /// Read a sequence marker token (list markers like "1. ", "a) ", "- ")
 ///

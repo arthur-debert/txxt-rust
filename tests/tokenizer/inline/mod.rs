@@ -4,5 +4,4 @@
 //! Organized by specification structure in docs/specs/elements/inlines/
 
 mod formatting;
-mod parameters;
 mod references;

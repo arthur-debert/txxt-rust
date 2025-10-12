@@ -265,56 +265,5 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
         Paragraphs serve as the ultimate fallback for all content preservation.
 
-11. Semantic Applications
-
-    11.1. Document Structure
-
-        Paragraphs in document organization:
-        - Primary content delivery mechanism
-        - Building blocks for readable flow
-        - Foundation for higher-level semantic analysis
-        - Support for automated content extraction
-
-    11.2. Text Analysis
-
-        Paragraph-level analysis capabilities:
-        - Readability scoring and analysis
-        - Keyword extraction and indexing
-        - Sentiment analysis and classification
-        - Content summarization and abstraction
-
-    11.3. Publishing Integration
-
-        Paragraph rendering and output:
-        - Direct mapping to HTML `<p>` elements
-        - Support for styling and presentation
-        - Integration with typography systems
-        - Responsive layout and formatting
-
-12. Best Practices
-
-    12.1. Content Organization
-
-        Effective paragraph usage:
-        - Keep paragraphs focused on single ideas
-        - Use appropriate length for readability
-        - Include topic sentences for clarity
-        - Maintain logical flow between paragraphs
-
-    12.2. Inline Formatting
-
-        Formatting guidelines:
-        - Use emphasis sparingly for maximum impact
-        - Prefer semantic formatting over visual formatting
-        - Maintain consistency in formatting choices
-        - Balance readability with formatting complexity
-
-    12.3. Structure Integration
-
-        Paragraph integration with document structure:
-        - Use paragraphs as building blocks for larger structures
-        - Separate distinct ideas with blank lines
-        - Consider paragraph flow within sessions and lists
-        - Maintain appropriate indentation levels
 
 :: note :: Paragraphs are the foundational text elements in txxt, providing the primary mechanism for readable content delivery while supporting rich inline formatting and seamless integration with the document's hierarchical structure.

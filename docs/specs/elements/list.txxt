@@ -355,38 +355,5 @@ Complete specification for lists - ordered and unordered collections of items wi
         - Item-level annotations: Attached to specific items
         - Content annotations: Within nested content
 
-11. Authoring Patterns
-
-    11.1. Templated Numbering Workflow
-
-        Editing-friendly approach:
-            1. Write all items as "1."
-            1. Add/remove items without renumbering
-            1. Let tools auto-number on export
-        (templated-workflow)
-
-    11.2. Hierarchical Outlining
-
-        Technical document structure:
-            1. Major section
-                1.1. Subsection (full form)
-                1.2. Another subsection
-                    a. Detail level (mixed styles)
-                    b. More details
-            2. Next major section
-        (outlining)
-
-    11.3. Task Lists
-
-        Project management lists:
-            - Project setup
-                - Create repository
-                - Set up CI/CD
-                - Configure dependencies
-            - Development phase
-                - Implement core features
-                - Write tests
-                - Documentation
-        (task-lists)
 
 :: note :: Lists in txxt are designed for flexibility and forgiveness. The "first item determines style" rule combined with exact marker preservation enables both strict technical documentation and flexible authoring workflows.

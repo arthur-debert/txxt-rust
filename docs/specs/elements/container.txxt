@@ -26,13 +26,6 @@ Complete specification for containers - the foundational structural elements tha
             │       └── paragraph: "Session content here"
         (ast-model)
 
-    2.2. Benefits
-
-        This architecture provides:
-        - Uniform parsing: All indented content follows same rules
-        - Predictable structure: Clear parent-child relationships  
-        - Eliminates special cases: No element-specific indentation rules
-        - Recursive composition: Containers can contain other containers
 
 3. Container Types
 
@@ -354,30 +347,5 @@ Complete specification for containers - the foundational structural elements tha
 
         The document's `blocks` field is conceptually a Session Container.
 
-12. Benefits of Container Architecture
-
-    12.1. Parsing Simplification
-
-        Uniform parsing approach:
-        - All indented content goes through containers
-        - Same parsing logic for all container types
-        - Clear recursion boundaries
-        - Predictable AST structure
-
-    12.2. Structural Clarity
-
-        Clear document hierarchy:
-        - Explicit parent-child relationships
-        - Consistent indentation semantics
-        - No ambiguity about content ownership
-        - Easy AST navigation
-
-    12.3. Extensibility
-
-        Future-proof design:
-        - New block types easily integrate with containers
-        - Container rules remain consistent
-        - Parser complexity doesn't increase
-        - AST structure stays predictable
 
 :: note :: Containers are the architectural foundation that makes txxt's indentation-based hierarchy both human-readable and machine-parsable. The "containers get indented" principle eliminates special cases and creates a uniform, predictable document structure.

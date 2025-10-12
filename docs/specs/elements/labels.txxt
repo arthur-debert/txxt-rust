@@ -160,13 +160,6 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
             123label, -invalid, label., .label, label..name
         (invalid)
 
-    6.2. Semantic Validation
-
-        Best practices:
-        - Use lowercase for format labels: `python` not `Python`
-        - Use descriptive names: `warning` not `w`
-        - Follow namespace conventions: `org.name.purpose`
-        - Avoid reserved words when possible
 
     6.3. Context Validation
 

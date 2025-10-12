@@ -193,67 +193,17 @@ Complete specification for annotations - metadata elements that attach informati
         - Can contain any txxt elements except sessions
         - Applies standard container content validation
 
-7. Use Cases
 
-    7.1. Document Metadata
-
-        Standard document information:
-            :: title :: Advanced txxt Parsing Techniques
-            :: author :: Jane Developer
-            :: pub-date :: 2025-01-12
-            :: version :: 2.1
-            :: status :: draft
-        (metadata)
-
-    7.2. Content Annotations
-
-        Explaining and annotating content:
-            :: warning:severity=critical :: The following code contains security vulnerabilities
-
-            Vulnerable code example:
-                sql = "SELECT * FROM users WHERE id = " + user_id
-                cursor.execute(sql)
-            :: sql
-
-            :: recommendation :: Use parameterized queries instead
-        (content-annotation)
-
-    7.3. Structured Metadata
-
-        Complex metadata with parameters:
-            :: bibliography:format=bibtex,style=apa :: references.bib
-            :: license:type=MIT,year=2025,holder="Example Corp" :: 
-            :: review:reviewer="Dr. Smith",date=2025-01-10,status=approved ::
-                This document has been reviewed and approved
-                for publication with minor revisions noted.
-        (structured)
-
-    7.4. Cross-References
-
-        Creating named anchors:
-            :: anchor:id=security-section :: Security Considerations
-
-            Later reference: See [#security-section] for details.
-        (cross-reference)
-
-    7.5. Tool Integration
-
-        Providing hints for external tools:
-            :: export:format=pdf,template=academic :: 
-            :: syntax-highlight:theme=github,line-numbers=true ::
-            :: lint:ignore=line-length,spelling ::
-        (tool-integration)
-
-8. Reference Documentation
+7. Reference Documentation
 
     For detailed information on annotation components:
 
     - Parameters: Complete parameter syntax, quoting rules, and validation in [parameters.txxt]
     - Labels: Label syntax, namespaces, and conventions in [labels.txxt]
 
-9. Edge Cases
+8. Edge Cases
 
-    9.1. Empty Labels
+    8.1. Empty Labels
 
         Invalid annotation (empty label):
             :: :: Content here
@@ -261,7 +211,7 @@ Complete specification for annotations - metadata elements that attach informati
 
         This is parsed as a paragraph, not an annotation.
 
-    9.2. Incomplete Syntax
+    8.2. Incomplete Syntax
 
         Missing closing marker:
             :: title Content without closing marker
@@ -269,7 +219,7 @@ Complete specification for annotations - metadata elements that attach informati
 
         This falls back to paragraph parsing.
 
-    9.3. Nested Annotations
+    8.3. Nested Annotations
 
         Annotations cannot contain other annotations:
             :: note :: This is a note with :: warning :: nested annotation
@@ -277,7 +227,7 @@ Complete specification for annotations - metadata elements that attach informati
 
         The nested `:: warning ::` is treated as literal text.
 
-    9.4. Indentation Context
+    8.4. Indentation Context
 
         Annotations inherit indentation context from their location:
 
@@ -293,18 +243,18 @@ Complete specification for annotations - metadata elements that attach informati
                 Session content here.
         (context)
 
-10. Implementation Notes
+9. Implementation Notes
 
     Annotations follow the standard implementation pattern defined in [common-processing.txxt] with the following element-specific requirements:
 
-    10.1. Annotation-Specific Parser Integration
+    9.1. Annotation-Specific Parser Integration
 
         Beyond standard parser integration, annotations require:
         - High precedence in token recognition (before structural elements)
         - Integration with parameter parsing system
         - Attachment logic during AST assembly phase (not during parsing)
 
-    10.2. Metadata Extraction Process
+    9.2. Metadata Extraction Process
 
         Annotation-specific document assembly:
 
@@ -314,7 +264,7 @@ Complete specification for annotations - metadata elements that attach informati
         4. Apply attachment rules (next element or parent fallback)
         5. Populate document meta structure
 
-    10.3. Error Handling Additions
+    9.3. Error Handling Additions
 
         Beyond standard error handling, annotations have:
 

@@ -414,29 +414,5 @@ Complete specification for sessions - the hierarchical organizational units that
             └── 4. Conclusion
         (outline)
 
-12. Authoring Guidelines
-
-    12.1. Numbering Best Practices
-
-        Recommended numbering approaches:
-        - Consistent style: Use same style within hierarchy level
-        - Logical progression: Follow natural numbering sequence
-        - Meaningful titles: Descriptive rather than generic titles
-        - Appropriate depth: Avoid excessive nesting (3-4 levels max)
-
-    12.2. Content Organization
-
-        Effective session structure:
-        - Logical flow: Organize content in logical progression
-        - Balanced depth: Similar amounts of content at same levels
-        - Clear boundaries: Use blank lines appropriately
-        - Meaningful hierarchy: Reflect actual content relationships
-
-    12.3. Cross-Referencing
-
-        Reference strategies:
-        - Numerical references: Use section numbers for formal documents
-        - Named anchors: Use meaningful names for frequently referenced sections
-        - Relative references: Use negative indexing for appendices
 
 :: note :: Sessions provide the hierarchical backbone of txxt documents. Their recognition rules and container architecture enable flexible document organization while maintaining clear structural boundaries.

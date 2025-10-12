@@ -12,10 +12,7 @@ use crate::tokenizer::infrastructure::markers::{
         read_definition_marker,
     },
 };
-use crate::tokenizer::inline::{
-    read_citation_ref, read_inline_delimiter, read_math_span, read_page_ref, read_session_ref,
-    CitationRefLexer, MathSpanLexer, PageRefLexer, ReferenceLexer, SessionRefLexer,
-};
+use crate::tokenizer::inline::{read_inline_delimiter, read_math_span, MathSpanLexer};
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
 /// Saved lexer state for backtracking
@@ -118,13 +115,18 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = read_math_span(self) {
                 tokens.push(token);
-            } else if let Some(token) = read_citation_ref(self) {
+            // TODO: Update these to work with atomic tokens from parser level
+            // } else if let Some(token) = read_citation_ref(self) {
+            //     tokens.push(token);
+            // } else if let Some(token) = read_page_ref(self) {
+            //     tokens.push(token);
+            // } else if let Some(token) = read_session_ref(self) {
+            //     tokens.push(token);
+            // } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
+            //     tokens.push(token);
+            } else if let Some(token) = self.read_left_bracket() {
                 tokens.push(token);
-            } else if let Some(token) = read_page_ref(self) {
-                tokens.push(token);
-            } else if let Some(token) = read_session_ref(self) {
-                tokens.push(token);
-            } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
+            } else if let Some(token) = self.read_right_bracket() {
                 tokens.push(token);
             } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
@@ -284,6 +286,40 @@ impl Lexer {
 
             self.advance();
             return Some(Token::Period {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a left bracket token ([)
+    fn read_left_bracket(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('[') {
+            self.advance();
+            return Some(Token::LeftBracket {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a right bracket token (])
+    fn read_right_bracket(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(']') {
+            self.advance();
+            return Some(Token::RightBracket {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -517,59 +553,7 @@ impl VerbatimLexer for Lexer {
     }
 }
 
-impl ReferenceLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn column(&self) -> usize {
-        self.column
-    }
-
-    fn position(&self) -> usize {
-        self.position
-    }
-
-    fn input(&self) -> &[char] {
-        &self.input
-    }
-
-    fn ref_classifier(&self) -> &ReferenceClassifier {
-        &self.ref_classifier
-    }
-
-    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
-        self.position = position;
-        self.row = row;
-        self.column = column;
-    }
-}
+// Note: ReferenceLexer trait implementation removed - now using atomic tokens
 
 impl MathSpanLexer for Lexer {
     fn current_position(&self) -> Position {
@@ -621,152 +605,5 @@ impl MathSpanLexer for Lexer {
     }
 }
 
-impl CitationRefLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn peek_at(&self, offset: usize) -> Option<char> {
-        self.input.get(self.position + offset).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn column(&self) -> usize {
-        self.column
-    }
-
-    fn position(&self) -> usize {
-        self.position
-    }
-
-    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
-        self.position = position;
-        self.row = row;
-        self.column = column;
-    }
-}
-
-impl PageRefLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn peek_at(&self, offset: usize) -> Option<char> {
-        self.input.get(self.position + offset).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn column(&self) -> usize {
-        self.column
-    }
-
-    fn position(&self) -> usize {
-        self.position
-    }
-
-    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
-        self.position = position;
-        self.row = row;
-        self.column = column;
-    }
-}
-
-impl SessionRefLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn peek_at(&self, offset: usize) -> Option<char> {
-        self.input.get(self.position + offset).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn column(&self) -> usize {
-        self.column
-    }
-
-    fn position(&self) -> usize {
-        self.position
-    }
-
-    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
-        self.position = position;
-        self.row = row;
-        self.column = column;
-    }
-}
+// Note: CitationRefLexer, PageRefLexer, and SessionRefLexer trait implementations removed
+// These will be handled at the parser level using atomic bracket tokens

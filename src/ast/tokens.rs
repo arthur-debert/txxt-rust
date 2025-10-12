@@ -76,6 +76,12 @@ pub enum Token {
     /// Period character (.)
     Period { span: SourceSpan },
 
+    /// Left bracket character ([)
+    LeftBracket { span: SourceSpan },
+
+    /// Right bracket character (])
+    RightBracket { span: SourceSpan },
+
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
@@ -143,6 +149,8 @@ impl Token {
             Token::DefinitionMarker { span, .. } => span,
             Token::Dash { span } => span,
             Token::Period { span } => span,
+            Token::LeftBracket { span } => span,
+            Token::RightBracket { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
             Token::FootnoteNumber { span, .. } => span,
@@ -190,6 +198,8 @@ impl Token {
             Token::Dedent { .. } => "",
             Token::Dash { .. } => "-",
             Token::Period { .. } => ".",
+            Token::LeftBracket { .. } => "[",
+            Token::RightBracket { .. } => "]",
             Token::Eof { .. } => "",
         }
     }

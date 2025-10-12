@@ -5,4 +5,5 @@
 mod citation_ref_integration;
 mod formatting;
 mod math_span_integration;
+mod page_ref_integration;
 mod parameters;

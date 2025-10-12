@@ -116,6 +116,9 @@ pub enum Token {
     /// Citation reference ([@key])
     CitationRef { content: String, span: SourceSpan },
 
+    /// Page reference ([p.123] or [p.123-125])
+    PageRef { content: String, span: SourceSpan },
+
     /// End of file marker
     Eof { span: SourceSpan },
 }
@@ -146,6 +149,7 @@ impl Token {
             Token::MathDelimiter { span } => span,
             Token::MathSpan { span, .. } => span,
             Token::CitationRef { span, .. } => span,
+            Token::PageRef { span, .. } => span,
             Token::Eof { span } => span,
         }
     }
@@ -170,6 +174,7 @@ impl Token {
             Token::MathDelimiter { .. } => "#",
             Token::MathSpan { content, .. } => content,
             Token::CitationRef { content, .. } => content,
+            Token::PageRef { content, .. } => content,
             Token::Newline { .. } => "\n",
             Token::BlankLine { .. } => "\n",
             Token::Indent { .. } => "",

@@ -102,6 +102,8 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
+use crate::ast::tokens::{SourceSpan, Token};
+use crate::tokenizer::inline::{parse_parameters, ParameterLexer};
 use regex::Regex;
 
 /// Standard indentation level in spaces
@@ -533,5 +535,211 @@ impl VerbatimScanner {
                 false // Empty blocks have no content
             }
         })
+    }
+}
+
+/// Trait for verbatim block tokenization
+pub trait VerbatimLexer: ParameterLexer + Sized {
+    /// Get current row (line number)
+    fn row(&self) -> usize;
+
+    /// Get current column
+    fn column(&self) -> usize;
+
+    /// Get absolute position in input
+    fn get_absolute_position(&self) -> usize;
+
+    /// Read verbatim block if current position matches a verbatim block start
+    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<Token>> {
+        let current_line = self.row();
+        let current_char_pos = self.get_absolute_position();
+
+        // Find a verbatim block that starts at this position
+        for block in verbatim_blocks {
+            if self.is_at_verbatim_block_start(block, current_line, current_char_pos) {
+                return Some(self.tokenize_verbatim_block(block));
+            }
+        }
+
+        None
+    }
+
+    /// Check if current position is at the start of the given verbatim block
+    fn is_at_verbatim_block_start(
+        &self,
+        block: &VerbatimBlock,
+        current_line: usize,
+        _current_char_pos: usize,
+    ) -> bool {
+        // Check if we're at the correct line for block start (1-based to 0-based conversion)
+        (block.block_start - 1) == current_line && self.is_at_line_start_for_verbatim(block)
+    }
+
+    /// Check if we're at the start of a line that should be part of a verbatim block
+    fn is_at_line_start_for_verbatim(&self, _block: &VerbatimBlock) -> bool {
+        // For now, just check if we're at the start of a line
+        self.column() == 0
+    }
+
+    /// Tokenize a verbatim block into VerbatimTitle and VerbatimContent tokens
+    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
+        let mut tokens = Vec::new();
+
+        // Create VerbatimTitle token for the title line
+        let title_start_pos = self.current_position();
+
+        // Advance through the title line to get its content (excluding the trailing colon)
+        let mut title_content = String::new();
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                break;
+            }
+            if ch == ':' {
+                // Don't include the colon - it's a structural marker, not content
+                self.advance();
+                break;
+            }
+            title_content.push(ch);
+            self.advance();
+        }
+
+        // Advance past the newline
+        if let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance();
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+            }
+        }
+
+        tokens.push(Token::VerbatimTitle {
+            content: title_content,
+            span: SourceSpan {
+                start: title_start_pos,
+                end: self.current_position(),
+            },
+        });
+
+        // Create VerbatimContent token for the block content
+        let content_start_pos = self.current_position();
+        let mut content = String::new();
+
+        // Advance through all content lines until terminator
+        let mut current_line = self.row();
+        while current_line < (block.block_end - 1) {
+            // Convert 1-based to 0-based
+            // Read the entire line
+            while let Some(ch) = self.peek() {
+                if ch == '\n' || ch == '\r' {
+                    content.push(ch);
+                    self.advance();
+                    if ch == '\r' && self.peek() == Some('\n') {
+                        content.push('\n');
+                        self.advance(); // Handle CRLF
+                    }
+                    break;
+                } else {
+                    content.push(ch);
+                    self.advance();
+                }
+            }
+            current_line = self.row();
+        }
+
+        // Don't include the terminator line in content
+        // Remove trailing newline if it exists
+        if content.ends_with('\n') {
+            content.pop();
+            if content.ends_with('\r') {
+                content.pop();
+            }
+        }
+
+        if !content.is_empty() {
+            tokens.push(Token::VerbatimContent {
+                content,
+                span: SourceSpan {
+                    start: content_start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        // Parse the terminator line to extract label and parameters
+        let terminator_start_pos = self.current_position();
+        let mut terminator_content = String::new();
+
+        // Read the entire terminator line content
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                break;
+            }
+            terminator_content.push(ch);
+            self.advance();
+        }
+
+        // Extract just the label+params portion (without :: prefix)
+        if !terminator_content.trim().is_empty() {
+            // Use the same regex pattern as the verbatim scanner
+            let verbatim_end_re =
+                Regex::new(r"^\s*::\s+([a-zA-Z_][a-zA-Z0-9._-]*(?::[^:\s].*)?)\s*$").unwrap();
+
+            if let Some(captures) = verbatim_end_re.captures(&terminator_content) {
+                if let Some(label_and_params) = captures.get(1) {
+                    let label_and_params_str = label_and_params.as_str();
+
+                    // Split label from parameters at the first colon
+                    if let Some(colon_pos) = label_and_params_str.find(':') {
+                        // There are parameters - split them
+                        let label = &label_and_params_str[..colon_pos];
+                        let params_str = &label_and_params_str[colon_pos + 1..];
+
+                        // Add the clean verbatim label
+                        tokens.push(Token::VerbatimLabel {
+                            content: label.to_string(),
+                            span: SourceSpan {
+                                start: terminator_start_pos,
+                                end: self.current_position(),
+                            },
+                        });
+
+                        // Parse and add individual parameter tokens
+                        let mut param_tokens = parse_parameters(self, params_str);
+                        tokens.append(&mut param_tokens);
+                    } else {
+                        // No parameters - just the label
+                        tokens.push(Token::VerbatimLabel {
+                            content: label_and_params_str.to_string(),
+                            span: SourceSpan {
+                                start: terminator_start_pos,
+                                end: self.current_position(),
+                            },
+                        });
+                    }
+                }
+            } else {
+                // Fallback: if regex doesn't match, use the full content (shouldn't happen)
+                tokens.push(Token::VerbatimLabel {
+                    content: terminator_content,
+                    span: SourceSpan {
+                        start: terminator_start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            }
+        }
+
+        // Advance past the newline at end of terminator
+        if let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance();
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+            }
+        }
+
+        tokens
     }
 }

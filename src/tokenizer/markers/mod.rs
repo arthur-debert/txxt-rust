@@ -4,12 +4,12 @@
 //! defined in the TXXT specification, including sequence markers, txxt markers,
 //! and reference markers.
 
+pub mod reference;
 pub mod sequence;
 pub mod txxt_marker;
-// TODO: Implement these modules in subsequent commits
-// pub mod reference;
 
 // Re-export public interfaces
+pub use reference::ReferenceLexer;
 pub use sequence::{read_sequence_marker, SequenceMarkerLexer};
 pub use txxt_marker::{
     detect_colon_pattern, integrate_annotation_parameters, integrate_definition_parameters,

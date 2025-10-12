@@ -5,13 +5,12 @@
 
 use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::inline::{parse_parameters, read_inline_delimiter};
+use crate::tokenizer::inline::read_inline_delimiter;
 use crate::tokenizer::markers::{
     integrate_annotation_parameters, integrate_definition_parameters, read_annotation_marker,
-    read_definition_marker, read_sequence_marker,
+    read_definition_marker, read_sequence_marker, ReferenceLexer,
 };
-use crate::tokenizer::verbatim_scanner::{VerbatimBlock, VerbatimScanner};
-use regex::Regex;
+use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
 /// Saved lexer state for backtracking
 #[derive(Debug, Clone)]
@@ -55,7 +54,9 @@ impl Lexer {
 
         while !self.is_at_end() {
             // Check if we're at the start of a verbatim block
-            if let Some(verbatim_tokens) = self.read_verbatim_block(&verbatim_blocks) {
+            if let Some(verbatim_tokens) =
+                VerbatimLexer::read_verbatim_block(self, &verbatim_blocks)
+            {
                 tokens.extend(verbatim_tokens);
                 continue;
             }
@@ -109,7 +110,7 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = read_annotation_marker(&mut *self) {
                 tokens.push(token);
-            } else if let Some(token) = self.read_ref_marker() {
+            } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
                 tokens.push(token);
             } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
@@ -189,72 +190,6 @@ impl Lexer {
                 },
             })
         }
-    }
-
-    /// Read reference markers ([target], [@citation], [#section], [1])
-    fn read_ref_marker(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        // Must start with [
-        if self.peek() != Some('[') {
-            return None;
-        }
-
-        let saved_position = self.position;
-        let saved_row = self.row;
-        let saved_column = self.column;
-
-        self.advance(); // Consume [
-
-        let mut content = String::new();
-        let mut found_closing = false;
-
-        // Read content until ] or end of line
-        while let Some(ch) = self.peek() {
-            if ch == ']' {
-                self.advance(); // Consume ]
-                found_closing = true;
-                break;
-            } else if ch == '\n' || ch == '\r' {
-                // Reference markers cannot span lines
-                break;
-            } else {
-                content.push(ch);
-                self.advance();
-            }
-        }
-
-        if !found_closing || content.is_empty() {
-            // Not a valid reference marker, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-            return None;
-        }
-
-        // Validate content patterns
-        if self.is_valid_ref_content(&content) {
-            Some(Token::RefMarker {
-                content,
-                span: SourceSpan {
-                    start: start_pos,
-                    end: self.current_position(),
-                },
-            })
-        } else {
-            // Invalid reference content, backtrack
-            self.position = saved_position;
-            self.row = saved_row;
-            self.column = saved_column;
-            None
-        }
-    }
-
-    /// Check if reference content is valid (basic alphanumeric validation only)
-    fn is_valid_ref_content(&self, content: &str) -> bool {
-        // Only basic validation - at least one alphanumeric character
-        // Detailed type classification happens during parsing phase
-        self.ref_classifier.is_valid_reference_content(content)
     }
 
     /// Read a dash token (standalone -)
@@ -491,203 +426,72 @@ impl Lexer {
     pub fn test_advance(&mut self) -> Option<char> {
         self.advance()
     }
+}
 
-    /// Read verbatim block if current position matches a verbatim block start
-    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<Token>> {
-        let current_line = self.row;
-        let current_char_pos = self.get_absolute_position();
-
-        // Find a verbatim block that starts at this position
-        for block in verbatim_blocks {
-            if self.is_at_verbatim_block_start(block, current_line, current_char_pos) {
-                return Some(self.tokenize_verbatim_block(block));
-            }
-        }
-
-        None
+impl VerbatimLexer for Lexer {
+    fn row(&self) -> usize {
+        self.row
     }
 
-    /// Check if current position is at the start of the given verbatim block
-    fn is_at_verbatim_block_start(
-        &self,
-        block: &VerbatimBlock,
-        current_line: usize,
-        _current_char_pos: usize,
-    ) -> bool {
-        // Check if we're at the correct line for block start (1-based to 0-based conversion)
-        (block.block_start - 1) == current_line && self.is_at_line_start_for_verbatim(block)
+    fn column(&self) -> usize {
+        self.column
     }
 
-    /// Check if we're at the start of a line that should be part of a verbatim block
-    fn is_at_line_start_for_verbatim(&self, _block: &VerbatimBlock) -> bool {
-        // For now, just check if we're at the start of a line
-        self.column == 0
-    }
-
-    /// Tokenize a verbatim block into VerbatimTitle and VerbatimContent tokens
-    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
-        let mut tokens = Vec::new();
-
-        // Create VerbatimTitle token for the title line
-        let title_start_pos = self.current_position();
-
-        // Advance through the title line to get its content (excluding the trailing colon)
-        let mut title_content = String::new();
-        while let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                break;
-            }
-            if ch == ':' {
-                // Don't include the colon - it's a structural marker, not content
-                self.advance();
-                break;
-            }
-            title_content.push(ch);
-            self.advance();
-        }
-
-        // Advance past the newline
-        if let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                self.advance();
-                if ch == '\r' && self.peek() == Some('\n') {
-                    self.advance(); // Handle CRLF
-                }
-            }
-        }
-
-        tokens.push(Token::VerbatimTitle {
-            content: title_content,
-            span: SourceSpan {
-                start: title_start_pos,
-                end: self.current_position(),
-            },
-        });
-
-        // Create VerbatimContent token for the block content
-        let content_start_pos = self.current_position();
-        let mut content = String::new();
-
-        // Advance through all content lines until terminator
-        let mut current_line = self.row;
-        while current_line < (block.block_end - 1) {
-            // Convert 1-based to 0-based
-            // Read the entire line
-            while let Some(ch) = self.peek() {
-                if ch == '\n' || ch == '\r' {
-                    content.push(ch);
-                    self.advance();
-                    if ch == '\r' && self.peek() == Some('\n') {
-                        content.push('\n');
-                        self.advance(); // Handle CRLF
-                    }
-                    break;
-                } else {
-                    content.push(ch);
-                    self.advance();
-                }
-            }
-            current_line = self.row;
-        }
-
-        // Don't include the terminator line in content
-        // Remove trailing newline if it exists
-        if content.ends_with('\n') {
-            content.pop();
-            if content.ends_with('\r') {
-                content.pop();
-            }
-        }
-
-        if !content.is_empty() {
-            tokens.push(Token::VerbatimContent {
-                content,
-                span: SourceSpan {
-                    start: content_start_pos,
-                    end: self.current_position(),
-                },
-            });
-        }
-
-        // Parse the terminator line to extract label and parameters
-        let terminator_start_pos = self.current_position();
-        let mut terminator_content = String::new();
-
-        // Read the entire terminator line content
-        while let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                break;
-            }
-            terminator_content.push(ch);
-            self.advance();
-        }
-
-        // Extract just the label+params portion (without :: prefix)
-        if !terminator_content.trim().is_empty() {
-            // Use the same regex pattern as the verbatim scanner
-            let verbatim_end_re =
-                Regex::new(r"^\s*::\s+([a-zA-Z_][a-zA-Z0-9._-]*(?::[^:\s].*)?)\s*$").unwrap();
-
-            if let Some(captures) = verbatim_end_re.captures(&terminator_content) {
-                if let Some(label_and_params) = captures.get(1) {
-                    let label_and_params_str = label_and_params.as_str();
-
-                    // Split label from parameters at the first colon
-                    if let Some(colon_pos) = label_and_params_str.find(':') {
-                        // There are parameters - split them
-                        let label = &label_and_params_str[..colon_pos];
-                        let params_str = &label_and_params_str[colon_pos + 1..];
-
-                        // Add the clean verbatim label
-                        tokens.push(Token::VerbatimLabel {
-                            content: label.to_string(),
-                            span: SourceSpan {
-                                start: terminator_start_pos,
-                                end: self.current_position(),
-                            },
-                        });
-
-                        // Parse and add individual parameter tokens
-                        let mut param_tokens = parse_parameters(self, params_str);
-                        tokens.append(&mut param_tokens);
-                    } else {
-                        // No parameters - just the label
-                        tokens.push(Token::VerbatimLabel {
-                            content: label_and_params_str.to_string(),
-                            span: SourceSpan {
-                                start: terminator_start_pos,
-                                end: self.current_position(),
-                            },
-                        });
-                    }
-                }
-            } else {
-                // Fallback: if regex doesn't match, use the full content (shouldn't happen)
-                tokens.push(Token::VerbatimLabel {
-                    content: terminator_content,
-                    span: SourceSpan {
-                        start: terminator_start_pos,
-                        end: self.current_position(),
-                    },
-                });
-            }
-        }
-
-        // Advance past the newline at end of terminator
-        if let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                self.advance();
-                if ch == '\r' && self.peek() == Some('\n') {
-                    self.advance(); // Handle CRLF
-                }
-            }
-        }
-
-        tokens
-    }
-
-    /// Get absolute character position in input
     fn get_absolute_position(&self) -> usize {
         self.position
+    }
+}
+
+impl ReferenceLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn input(&self) -> &[char] {
+        &self.input
+    }
+
+    fn ref_classifier(&self) -> &ReferenceClassifier {
+        &self.ref_classifier
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
     }
 }

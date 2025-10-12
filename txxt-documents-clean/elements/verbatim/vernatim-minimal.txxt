@@ -3,4 +3,4 @@ This document has the veri minimum for a verbatim block, only this paragraph.
 Simple verbatim with title and label:
     print("Hello World")
     return 42
-(python)
+:: python

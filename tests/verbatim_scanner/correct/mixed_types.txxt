@@ -1,9 +1,9 @@
 Expected: [[2,4,"normal"], [6,9,"stretched"]]
 Normal verbatim:
     content indented
-()
+:: empty
 
 Stretched verbatim:
 Content at column 0
 More at column 0
-()
+:: empty

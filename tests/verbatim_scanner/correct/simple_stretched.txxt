@@ -3,11 +3,11 @@ title:
 Content starts at column 0
 Another line at column 0
 Blank lines are allowed
-()
+:: empty
 
 
             title:
 Content starts at column 0
 Another line at column 0
 Blank lines are allowed
-            ()
+            :: empty

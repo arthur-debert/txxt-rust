@@ -7,40 +7,40 @@
     Simple verbatim with title and label:
         print("Hello World")
         return 42
-    (python)
+    :: python
 
     Anonymous verbatim (no title or label)
 
     :
         Some plain text
         In verbatim block
-    ()
+    :: text
 
     Title only:
         def example():
             pass
-    ()
+    :: python
 
     Label only. 
     :
         SELECT * FROM users
-    (sql)
+    :: sql
 
     :
-    ()
+    :: empty
 
 
     First block:
         first content
-    ()
+    :: text
 
     Second block:
         second content
-    ()
+    :: text
 
     Strecthed verbatim:
 In this block, the content is not +1 indented, but the first column, absolute
 Many lines
 
 Even blank lines
-    ()
+    :: text

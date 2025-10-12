@@ -4,6 +4,6 @@
 Verbatim with formatting:
   This has *asterisks* and _underscores_
   But they are `not` parsed as #formatting#
-()
+:: text
 
 The above verbatim block should preserve all formatting markers literally.

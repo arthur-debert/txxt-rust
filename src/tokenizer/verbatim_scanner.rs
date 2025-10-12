@@ -14,7 +14,7 @@
 //! Verbatim blocks have three components:
 //! 1. **Title line**: Optional text followed by a single `:` at end of line
 //! 2. **Content lines**: Everything between title and terminator (preserved exactly)
-//! 3. **Terminator line**: `(label)` or `()` with optional parameters
+//! 3. **Terminator line**: `:: label` or `:: label:params` with optional parameters
 //!
 //! ### Normal Verbatim Block
 //! ```txxt
@@ -23,7 +23,7 @@
 //!     Another line
 //!
 //!     Blank lines are allowed
-//! (identifier)
+//! :: identifier
 //! ```
 //!
 //! ### Stretched Verbatim Block
@@ -33,14 +33,14 @@
 //! Another line at column 0
 //!
 //! Blank lines are allowed
-//! (identifier)
+//! :: identifier
 //! ```
 //!
 //! ### With Parameters
 //! ```txxt
 //! title:
 //!     Content here
-//! (label: key1=value1, key2=value2)
+//! :: label:key1=value1,key2=value2
 //! ```
 //!
 //! ## Scanner State Machine
@@ -86,12 +86,12 @@
 //! ### 5. Terminator Validation
 //! Valid terminator must:
 //! - Be at **exact same indentation** as title line
-//! - Match pattern: `(identifier)` or `(identifier: params)` or `()`
+//! - Match pattern: `:: identifier` or `:: identifier:params`
 //! - Have proper parameter syntax if present
 //!
 //! ## Error Conditions
 //! - **No terminator found**: Document ends while in verbatim mode
-//! - **Invalid terminator syntax**: Malformed `(...)` line
+//! - **Invalid terminator syntax**: Malformed `:: label` line
 //! - **Wrong terminator indent**: Not aligned with title
 //! - **Content at wrong indent**: Breaks verbatim rules
 //!
@@ -186,8 +186,9 @@ impl VerbatimScanner {
         Self {
             // Match line ending with single : (not ::)
             verbatim_start_re: Regex::new(r"^(.*):\s*$").unwrap(),
-            // Match terminator: (identifier) or (identifier: params) or ()
-            verbatim_end_re: Regex::new(r"^\s*\(([^)]*)\)\s*$").unwrap(),
+            // Match terminator: :: identifier or :: identifier:params
+            verbatim_end_re: Regex::new(r"^\s*::\s+([a-zA-Z_][a-zA-Z0-9._-]*(?::[^:\s].*)?)\s*$")
+                .unwrap(),
             // Match annotation lines :: label ::
             annotation_re: Regex::new(r"^.*::\s*.*::\s*.*$").unwrap(),
             // Match definition lines ending with ::

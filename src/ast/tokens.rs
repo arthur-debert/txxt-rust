@@ -82,6 +82,9 @@ pub enum Token {
     /// Right bracket character (])
     RightBracket { span: SourceSpan },
 
+    /// At-sign character (@)
+    AtSign { span: SourceSpan },
+
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
@@ -151,6 +154,7 @@ impl Token {
             Token::Period { span } => span,
             Token::LeftBracket { span } => span,
             Token::RightBracket { span } => span,
+            Token::AtSign { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
             Token::FootnoteNumber { span, .. } => span,
@@ -200,6 +204,7 @@ impl Token {
             Token::Period { .. } => ".",
             Token::LeftBracket { .. } => "[",
             Token::RightBracket { .. } => "]",
+            Token::AtSign { .. } => "@",
             Token::Eof { .. } => "",
         }
     }

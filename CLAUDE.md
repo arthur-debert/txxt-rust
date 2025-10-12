@@ -44,4 +44,6 @@
 - This is the repo for a plain text format, txxt, so documentation and text
   must be in txxt format. No markdown.
 - The tour [docs/tour.txxt] and vs markdown [docs/not-markdown.txxt] are quick
-  howtos for txxt, specially how not to use markdown.
+a howtos for txxt, specially how not to use markdown.
+
+### TXXT Format Authorative Souce

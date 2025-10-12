@@ -885,15 +885,32 @@ impl Lexer {
             self.advance();
         }
 
-        // Create VerbatimLabel token with the full terminator content
+        // Extract just the label+params portion (without :: prefix)
         if !terminator_content.trim().is_empty() {
-            tokens.push(Token::VerbatimLabel {
-                content: terminator_content,
-                span: SourceSpan {
-                    start: terminator_start_pos,
-                    end: self.current_position(),
-                },
-            });
+            // Use the same regex pattern as the verbatim scanner
+            let verbatim_end_re =
+                Regex::new(r"^\s*::\s+([a-zA-Z_][a-zA-Z0-9._-]*(?::[^:\s].*)?)\s*$").unwrap();
+
+            if let Some(captures) = verbatim_end_re.captures(&terminator_content) {
+                if let Some(label_and_params) = captures.get(1) {
+                    tokens.push(Token::VerbatimLabel {
+                        content: label_and_params.as_str().to_string(),
+                        span: SourceSpan {
+                            start: terminator_start_pos,
+                            end: self.current_position(),
+                        },
+                    });
+                }
+            } else {
+                // Fallback: if regex doesn't match, use the full content (shouldn't happen)
+                tokens.push(Token::VerbatimLabel {
+                    content: terminator_content,
+                    span: SourceSpan {
+                        start: terminator_start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            }
         }
 
         // Advance past the newline at end of terminator

@@ -1,0 +1,449 @@
+:: title :: Session Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for sessions - the hierarchical organizational units that structure txxt documents into navigable sections.
+
+1. Purpose
+
+    Sessions are the primary organizational element in txxt documents, providing hierarchical structure similar to chapters, sections, and subsections. They enable document navigation, content organization, and automated table of contents generation. Sessions can be numbered or unnumbered and support arbitrary nesting depth with flexible numbering schemes.
+
+2. Syntax
+
+    2.1. Basic Session Forms
+
+        Unnumbered session:
+            Introduction
+            
+                Content of the introduction section goes here.
+                Multiple paragraphs are supported.
+        (unnumbered)
+
+        Numbered session:
+            1. Methodology
+            
+                Detailed methodology content follows.
+                Includes all relevant procedures.
+        (numbered)
+
+        Hierarchical numbering:
+            1. Main Section
+            
+                1.1. Subsection
+                
+                    Content at subsection level.
+                    
+                1.2. Another Subsection
+                
+                    More subsection content.
+                    
+            2. Next Main Section
+        (hierarchical)
+
+    2.2. Recognition Rules
+
+        Session identification requirements:
+        - **Preceded by blank line** (or start of document)
+        - **Followed by indented content** (+1 indentation level)
+        - **Without indented content** → Parsed as paragraph
+
+        Session vs paragraph distinction:
+            Valid session (has indented content):
+                Section Title
+                
+                    This content makes it a session.
+            
+            Paragraph (no indented content):
+                This line has no indented content following it.
+                So it's parsed as a paragraph.
+        (recognition)
+
+3. Grammar
+
+    3.1. Session Structure
+
+        Complete session pattern:
+            <session> = <blank-line>? <session-title> <session-container>
+            <session-title> = <session-numbering>? <inline-content> <line-break>
+            <session-container> = <indent-increase> <session-content>+
+        (grammar)
+
+        Session numbering (optional):
+            <session-numbering> = <sequence-marker>
+        (grammar)
+
+        Uses the same sequence markers as lists for consistency.
+
+    3.2. Content Rules
+
+        Session container content:
+            <session-content> = <paragraph> | <list> | <definition> | <verbatim-block> | <annotation> | <session> | <blank-line>
+        (grammar)
+
+        Key distinction: Sessions can contain other sessions (unlike content containers).
+
+    3.3. Boundary Rules
+
+        Session boundary requirements:
+        - **Blank line before**: Sessions must be preceded by blank line (except document start)
+        - **Blank line separation**: When sessions contain nested sessions, blank line separation required
+        - **Indented content**: Must have at least one indented child element
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    Session AST:
+        ├── Session
+        │   ├── title: SessionTitle
+        │   │   ├── content: Vec<Inline>
+        │   │   ├── numbering: Option<SessionNumbering>
+        │   │   └── tokens: TokenSequence
+        │   ├── content: SessionContainer
+        │   │   └── content: Vec<Block> (can include sessions)
+        │   └── annotations: Vec<Annotation>
+    (tree)
+
+    Session numbering structure:
+        ├── SessionNumbering
+        │   ├── marker: String (preserved exactly)
+        │   ├── style: NumberingStyle
+        │   └── form: NumberingForm
+    (numbering)
+
+5. Numbering System
+
+    5.1. Numbering Styles
+
+        Sessions support all list numbering styles:
+        - **Plain**: No numbering marker
+        - **Numerical**: 1., 2., 3.
+        - **Alphabetical**: a., b., c. or A., B., C.
+        - **Roman**: i., ii., iii. or I., II., III.
+
+    5.2. Hierarchical Numbering
+
+        Short form numbering (each level independent):
+            1. Level 1
+                1. Level 2 (resets at each level)
+                2. Level 2
+            2. Level 1
+                1. Level 2 (resets again)
+        (short-form)
+
+        Full form numbering (hierarchical path):
+            1. Level 1
+                1.1. Level 2 (shows full path)
+                1.2. Level 2
+            2. Level 1
+                2.1. Level 2 (continues path)
+        (full-form)
+
+    5.3. Mixed Numbering Styles
+
+        Different styles at different levels:
+            1. Numerical at top level
+            
+                a. Alphabetical at second level
+                
+                    i. Roman at third level
+                    ii. More roman content
+                    
+                b. Back to alphabetical
+                
+            2. Continue numerical
+        (mixed-styles)
+
+6. Processing Rules
+
+    6.1. Session Recognition
+
+        Session detection algorithm:
+        1. Check for preceding blank line (or document start)
+        2. Parse potential title line
+        3. Check for indented content following title
+        4. If indented content exists → Session
+        5. If no indented content → Paragraph
+
+    6.2. Numbering Processing
+
+        Number extraction and validation:
+        1. Parse sequence marker from title start
+        2. Determine NumberingStyle and NumberingForm
+        3. Extract and preserve exact marker text
+        4. Store numbering information in SessionNumbering
+        5. Process remaining title as inline content
+
+    6.3. Container Creation
+
+        Session container handling:
+        1. Create SessionContainer for indented content
+        2. Parse content recursively (including nested sessions)
+        3. Apply blank line separation rules for nested sessions
+        4. Validate content types (all blocks allowed)
+
+7. Use Cases
+
+    7.1. Document Structure
+
+        Academic paper structure:
+            :: title :: Research Paper Title
+            :: author :: Dr. Jane Smith
+            
+            Abstract
+            
+                Brief summary of the research findings and methodology.
+                Key contributions and results overview.
+                
+            1. Introduction
+            
+                Background information and problem statement.
+                Literature review and research objectives.
+                
+            2. Methodology
+            
+                2.1. Data Collection
+                
+                    Description of data gathering procedures.
+                    Sample selection and criteria.
+                    
+                2.2. Analysis Approach
+                
+                    Statistical methods and analysis framework.
+                    Tools and software used.
+                    
+            3. Results
+            
+                Findings and experimental results.
+                
+            4. Conclusion
+            
+                Summary of contributions and future work.
+        (academic-structure)
+
+    7.2. Technical Documentation
+
+        Software documentation hierarchy:
+            API Reference
+            
+                1. Authentication
+                
+                    1.1. OAuth 2.0 Flow
+                    
+                        Implementation details for OAuth authentication.
+                        
+                        Example request:
+                            POST /oauth/token
+                            Content-Type: application/json
+                            
+                            {
+                                "grant_type": "authorization_code",
+                                "code": "abc123"
+                            }
+                        :: json
+                        
+                    1.2. API Key Authentication
+                    
+                        Alternative authentication method for simpler use cases.
+                        
+                2. Endpoints
+                
+                    2.1. User Management
+                    
+                        a. Create User
+                        b. Update User  
+                        c. Delete User
+                        
+                    2.2. Data Operations
+                    
+                        a. Retrieve Data
+                        b. Store Data
+                        c. Query Data
+        (technical-docs)
+
+    7.3. Book Structure
+
+        Book with chapters and sections:
+            Preface
+            
+                Author's introduction and acknowledgments.
+                
+            Part I: Foundations
+            
+                1. Getting Started
+                
+                    1.1. Installation
+                    
+                        System requirements and installation procedures.
+                        
+                    1.2. Basic Configuration
+                    
+                        Initial setup and configuration options.
+                        
+                2. Core Concepts
+                
+                    2.1. Architecture Overview
+                    2.2. Key Principles
+                    
+            Part II: Advanced Topics
+            
+                3. Advanced Features
+                4. Integration Patterns
+                
+            Appendix
+            
+                A. Reference Tables
+                B. Troubleshooting Guide
+        (book-structure)
+
+8. Edge Cases
+
+    8.1. Session vs Paragraph Ambiguity
+
+        Ambiguous case resolution:
+            Line with no following content
+            
+            Next paragraph here.
+        (ambiguous)
+
+        This is parsed as two paragraphs, not a session, because the first line has no indented content.
+
+    8.2. Empty Sessions
+
+        Invalid (session must have content):
+            1. Empty Section
+            
+            2. Next Section
+        (invalid-empty)
+
+        Valid (session with content):
+            1. Section with Content
+            
+                At least one element required.
+                
+            2. Next Section
+        (valid-content)
+
+    8.3. Deeply Nested Sessions
+
+        Arbitrary nesting depth supported:
+            1. Level 1
+                1.1. Level 2
+                    1.1.1. Level 3
+                        1.1.1.1. Level 4
+                            Content at maximum depth.
+        (deep-nesting)
+
+9. Implementation Notes
+
+    9.1. Parser Requirements
+
+        Session parsing needs:
+        - Blank line detection before titles
+        - Indentation level tracking after titles
+        - Sequence marker recognition and preservation
+        - Recursive content parsing including nested sessions
+        - Boundary validation for session containers
+
+    9.2. Numbering Determination
+
+        SessionNumbering extraction:
+            fn parse_session_numbering(title: &str) -> (Option<SessionNumbering>, &str) {
+                // Extract sequence marker from start of title
+                // Return numbering info and remaining title content
+            }
+        (numbering-extraction)
+
+    9.3. AST Construction
+
+        Session creation process:
+        1. **Recognition**: Identify session candidates
+        2. **Validation**: Ensure indented content exists
+        3. **Title parsing**: Extract numbering and inline content
+        4. **Container creation**: Create SessionContainer
+        5. **Content parsing**: Recursively parse session content
+
+10. Relationship to Other Elements
+
+    10.1. Container Integration
+
+        Session container characteristics:
+        - **SessionContainer type**: Can hold any block including sessions
+        - **Blank line requirements**: Around nested sessions
+        - **Recursive structure**: Sessions within sessions
+        - **Document root**: Document itself is conceptually a SessionContainer
+
+    10.2. Numbering Consistency
+
+        Shared numbering with lists:
+        - Same sequence marker patterns as lists
+        - Same NumberingStyle enum values
+        - Same NumberingForm concepts
+        - Consistent marker preservation approach
+
+    10.3. Navigation Support
+
+        Sessions enable:
+        - Table of contents generation
+        - Cross-reference targets (e.g., `[#2.1]`)
+        - Document structure analysis
+        - Hierarchical navigation
+
+11. Navigation and References
+
+    11.1. Section References
+
+        Internal document references:
+            See methodology section [#2] for details.
+            Detailed analysis in [#2.1.3] shows the results.
+            Compare with [#-1] (last section).
+        (section-refs)
+
+    11.2. Named Anchors
+
+        Sessions with reference parameters:
+            :: anchor:id=methodology :: 2. Research Methodology
+            
+                Content of methodology section.
+                
+            Later reference: See [#methodology] for details.
+        (named-anchors)
+
+    11.3. Hierarchical Navigation
+
+        Document outline extraction:
+            ├── Abstract
+            ├── 1. Introduction
+            ├── 2. Methodology
+            │   ├── 2.1. Data Collection
+            │   └── 2.2. Analysis Approach
+            ├── 3. Results
+            └── 4. Conclusion
+        (outline)
+
+12. Authoring Guidelines
+
+    12.1. Numbering Best Practices
+
+        Recommended numbering approaches:
+        - **Consistent style**: Use same style within hierarchy level
+        - **Logical progression**: Follow natural numbering sequence
+        - **Meaningful titles**: Descriptive rather than generic titles
+        - **Appropriate depth**: Avoid excessive nesting (3-4 levels max)
+
+    12.2. Content Organization
+
+        Effective session structure:
+        - **Logical flow**: Organize content in logical progression
+        - **Balanced depth**: Similar amounts of content at same levels
+        - **Clear boundaries**: Use blank lines appropriately
+        - **Meaningful hierarchy**: Reflect actual content relationships
+
+    12.3. Cross-Referencing
+
+        Reference strategies:
+        - **Numerical references**: Use section numbers for formal documents
+        - **Named anchors**: Use meaningful names for frequently referenced sections
+        - **Relative references**: Use negative indexing for appendices
+
+:: note :: Sessions provide the hierarchical backbone of txxt documents. Their recognition rules and container architecture enable flexible document organization while maintaining clear structural boundaries.

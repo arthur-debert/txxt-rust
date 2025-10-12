@@ -1,0 +1,407 @@
+:: title :: List Element Specification
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+
+Complete specification for lists - ordered and unordered collections of items with sophisticated styling and nesting support.
+
+1. Purpose
+
+    Lists provide structured collections of related items with support for complex numbering schemes, nesting, and flexible authoring patterns. Lists in txxt are designed for technical documentation needs, supporting everything from simple bullet points to complex hierarchical outlines with mixed numbering styles.
+
+2. Syntax
+
+    2.1. Basic List Styles
+
+        Plain style list:
+            - First item
+            - Second item
+            - Third item
+        (plain)
+
+        Numerical style list:
+            1. First item
+            2. Second item
+            3. Third item
+        (numerical)
+
+        Alphabetical style list:
+            a. First item
+            b. Second item
+            c. Third item
+        (alphabetical)
+
+        Roman style list:
+            i. First item
+            ii. Second item
+            iii. Third item
+        (roman)
+
+    2.2. Marker Variations
+
+        Numerical formats:
+            1. Period format (canonical)
+            1) Parenthesis format
+        (numerical)
+
+        Alphabetical formats:
+            a. Lowercase with period
+            A. Uppercase with period
+            a) Lowercase with parenthesis
+            A) Uppercase with parenthesis
+        (alphabetical-formats)
+
+        Roman numeral formats:
+            i. Lowercase roman with period
+            I. Uppercase roman with period
+            i) Lowercase roman with parenthesis
+            I) Uppercase roman with parenthesis
+        (roman-formats)
+
+    2.3. Nested Lists
+
+        Mixed styling across levels:
+            1. Groceries
+                - Milk
+                - Bread
+                    a. Whole wheat
+                    b. Sourdough
+                - Eggs
+            2. Hardware store
+                - Screws
+                - Paint
+        (nested)
+
+3. Grammar
+
+    3.1. List Markers
+
+        Sequence marker patterns:
+            <plain-marker> = <dash> <whitespace>
+            <numerical-marker> = <digit>+ <period> <whitespace>
+            <numerical-paren-marker> = <digit>+ <right-paren> <whitespace>
+            <alpha-marker> = [a-zA-Z] <period> <whitespace>
+            <alpha-paren-marker> = [a-zA-Z] <right-paren> <whitespace>
+            <roman-marker> = <roman-numeral> <period> <whitespace>
+            <roman-paren-marker> = <roman-numeral> <right-paren> <whitespace>
+        (grammar)
+
+        Complete sequence marker:
+            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alpha-marker> | <alpha-paren-marker> | <roman-marker> | <roman-paren-marker>
+        (grammar)
+
+    3.2. List Structure
+
+        List item structure:
+            <list-item-content> = <inline-content>
+            <list-item> = <sequence-marker> <list-item-content> <line-break> <content-container>?
+        (grammar)
+
+        Complete list:
+            <list> = <list-item>{2,*}
+        (grammar)
+
+        Note: Single-item "lists" are parsed as paragraphs to avoid ambiguity with dialog.
+
+    3.3. Nesting Rules
+
+        Nested list structure:
+            <nested-content> = <content-container>
+            <nested-list> = <list>
+            <nested-content> = <nested-list> | <paragraph> | <verbatim-block> | <definition>
+        (grammar)
+
+4. AST Structure
+
+    Post-parsing semantic representation:
+
+    List AST:
+        ├── List
+        │   ├── decoration_type: ListDecorationType
+        │   │   ├── style: NumberingStyle
+        │   │   └── form: NumberingForm
+        │   ├── items: Vec<ListItem>
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+    (tree)
+
+    List Item AST:
+        ├── ListItem
+        │   ├── marker: String (preserved exactly)
+        │   ├── content: Vec<Inline>
+        │   ├── nested: Option<ContentContainer>
+        │   ├── annotations: Vec<Annotation>
+        │   └── tokens: TokenSequence
+    (tree)
+
+    Numbering styles and forms:
+        NumberingStyle: Plain | Numerical | AlphabeticalLower | AlphabeticalUpper | RomanLower | RomanUpper
+        NumberingForm: Short | Full
+    (enums)
+
+5. Styling and Decoration
+
+    5.1. Style Determination
+
+        List style rules:
+        - **First item determines style**: Style of first list item sets style for entire list
+        - **Marker preservation**: Original markers preserved exactly for source reconstruction
+        - **No validation**: Mixed or incorrect numbering accepted without error
+        - **Forgiving parsing**: Content preserved, inconsistencies noted but not rejected
+
+    5.2. List Forms
+
+        Short form (local numbering):
+            1. First
+            2. Second
+                a. Nested first
+                b. Nested second
+            3. Third
+        (short-form)
+
+        Extended form (hierarchical numbering):
+            1. First
+            2. Second
+                2.a. Nested first
+                2.b. Nested second  
+            3. Third
+        (extended-form)
+
+        Form determination is based on the actual markers used in the source.
+
+    5.3. Templated Numbering
+
+        All items numbered as "1." for easy editing:
+            1. First item
+            1. Second item (written as 1.)
+            1. Third item (written as 1.)
+        (templated)
+
+        This pattern allows easy insertion/deletion without renumbering.
+
+6. Processing Rules
+
+    6.1. List Recognition
+
+        List detection requirements:
+        - **Multiple items**: Single items parsed as paragraphs
+        - **Consistent indentation**: All items at same level
+        - **Valid markers**: Must match sequence marker patterns
+        - **Content requirement**: Each item must have content
+
+    6.2. Style Processing
+
+        Style determination algorithm:
+        1. Parse first item marker
+        2. Determine NumberingStyle and NumberingForm
+        3. Apply style to entire list
+        4. Preserve all original markers exactly
+        5. Note but don't reject style inconsistencies
+
+    6.3. Nesting Processing
+
+        Nested content handling:
+        1. Detect indentation increase after list item
+        2. Create ContentContainer for nested content
+        3. Parse nested content recursively
+        4. Allow any content type except sessions
+
+7. Use Cases
+
+    7.1. Simple Lists
+
+        Basic plain style list:
+            - Task planning
+            - Resource gathering  
+            - Implementation
+            - Testing
+            - Documentation
+        (simple-plain)
+
+        Basic numerical style list:
+            1. Initialize system
+            2. Load configuration
+            3. Start services
+            4. Begin processing
+            5. Monitor status
+        (simple-numerical)
+
+    7.2. Complex Hierarchical Lists
+
+        Technical outline with mixed styles:
+            1. System Architecture
+                - Frontend components
+                    a. User interface
+                    b. State management
+                    c. API integration
+                - Backend services
+                    i. Authentication service
+                    ii. Data processing service
+                    iii. Storage service
+            2. Implementation Plan
+                - Phase 1: Core functionality
+                - Phase 2: Advanced features
+                - Phase 3: Performance optimization
+        (hierarchical)
+
+    7.3. Lists with Rich Content
+
+        List items with complex content:
+            1. Database Setup
+                Configure the database connection and schema.
+                
+                Required steps:
+                - Install PostgreSQL
+                - Create database
+                - Run migrations
+                
+                Connection string example:
+                    postgresql://user:pass@localhost/db
+                :: sql
+                
+            2. Application Configuration
+                Set up the application environment and dependencies.
+        (rich-content)
+
+    7.4. Mixed Content Lists
+
+        Academic or technical documentation:
+            1. Literature Review
+                
+                Summary of existing research findings.
+                
+                Key papers reviewed:
+                - Smith et al. (2023) - Basic methodology
+                - Jones (2024) - Advanced techniques
+                
+            2. Methodology
+                
+                Research approach and experimental design.
+                
+                Data Collection ::
+                    Primary data collected through surveys and interviews.
+                    Secondary data from published sources.
+        (academic)
+
+8. Edge Cases
+
+    8.1. Single Item Lists
+
+        Invalid (single item treated as paragraph):
+            - Call mom.
+        (single-item)
+
+        This is parsed as a paragraph, not a list, to avoid ambiguity with dialog.
+
+    8.2. Inconsistent Numbering
+
+        Valid but inconsistent (accepted without error):
+            1. First item
+            3. Second item (numbered as 3)
+            1. Third item (numbered as 1)
+        (inconsistent)
+
+        Original markers preserved; tools can auto-correct if needed.
+
+    8.3. Mixed Styles
+
+        Valid but mixed (first item determines official style):
+            1. First item (style: Numerical)
+            a. Second item (different style but accepted)
+            i. Third item (different style but accepted)
+        (mixed-styles)
+
+        List officially has Numerical style based on first item.
+
+    8.4. Nested Single Items
+
+        Valid (single items allowed in nested context):
+            - Main task
+                - Single subtask (valid in nested context)
+        (nested-single)
+
+9. Implementation Notes
+
+    9.1. Parser Requirements
+
+        List parsing needs:
+        - Sequence marker recognition and validation
+        - Style determination from first item
+        - Marker preservation for source reconstruction
+        - Nesting level tracking
+        - Content container creation for nested items
+
+    9.2. Style Processing
+
+        ListDecorationType determination:
+            fn determine_style(marker: &str) -> ListDecorationType {
+                // Parse marker to determine NumberingStyle and NumberingForm
+                // Store for entire list based on first item
+            }
+        (style-processing)
+
+    9.3. Source Reconstruction
+
+        Exact marker preservation enables:
+        - Faithful source reconstruction
+        - Style consistency analysis
+        - Automated renumbering tools
+        - Format conversion utilities
+
+10. Relationship to Other Elements
+
+    10.1. Container Integration
+
+        List nesting through containers:
+        - **Flat lists**: No containers needed
+        - **Nested lists**: Create ContentContainer for nested content
+        - **Mixed content**: ContentContainer can hold any blocks except sessions
+
+    10.2. Inline Content
+
+        List item content:
+        - Supports all inline elements (bold, italic, code, math, references)
+        - Cannot span multiple lines within single item
+        - Rich content goes in nested ContentContainer
+
+    10.3. Annotation Support
+
+        Lists support annotations:
+        - **List-level annotations**: Attached to entire list
+        - **Item-level annotations**: Attached to specific items
+        - **Content annotations**: Within nested content
+
+11. Authoring Patterns
+
+    11.1. Templated Numbering Workflow
+
+        Editing-friendly approach:
+            1. Write all items as "1."
+            1. Add/remove items without renumbering
+            1. Let tools auto-number on export
+        (templated-workflow)
+
+    11.2. Hierarchical Outlining
+
+        Technical document structure:
+            1. Major section
+                1.1. Subsection (full form)
+                1.2. Another subsection
+                    a. Detail level (mixed styles)
+                    b. More details
+            2. Next major section
+        (outlining)
+
+    11.3. Task Lists
+
+        Project management lists:
+            - Project setup
+                - Create repository
+                - Set up CI/CD
+                - Configure dependencies
+            - Development phase
+                - Implement core features
+                - Write tests
+                - Documentation
+        (task-lists)
+
+:: note :: Lists in txxt are designed for flexibility and forgiveness. The "first item determines style" rule combined with exact marker preservation enables both strict technical documentation and flexible authoring workflows.

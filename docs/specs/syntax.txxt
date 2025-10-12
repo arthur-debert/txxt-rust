@@ -152,26 +152,26 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
     4.1. List Markers
 
-        Sequence markers that start list items:
+        Sequence markers that start list items, grouped by list style:
 
-        Plain marker:
+        Plain style marker:
             <plain-marker> = <dash> <whitespace>
         (grammar)
 
-        Numerical markers:
+        Numerical style markers:
             <number> = <digit>+
             <numerical-marker> = <number> <period> <whitespace>
             <numerical-paren-marker> = <number> <right-paren> <whitespace>
         (grammar)
 
-        Alphabetical markers:
+        Alphabetical style markers:
             <letter-lower> = [a-z]
             <letter-upper> = [A-Z]
-            <alpha-marker> = (<letter-lower> | <letter-upper>) <period> <whitespace>
-            <alpha-paren-marker> = (<letter-lower> | <letter-upper>) <right-paren> <whitespace>
+            <alphabetical-marker> = (<letter-lower> | <letter-upper>) <period> <whitespace>
+            <alphabetical-paren-marker> = (<letter-lower> | <letter-upper>) <right-paren> <whitespace>
         (grammar)
 
-        Roman numeral markers:
+        Roman style markers:
             <roman-lower> = i | ii | iii | iv | v | vi | vii | viii | ix | x
             <roman-upper> = I | II | III | IV | V | VI | VII | VIII | IX | X
             <roman-marker> = (<roman-lower> | <roman-upper>) <period> <whitespace>
@@ -179,7 +179,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         (grammar)
 
         Complete sequence marker:
-            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alpha-marker> | <alpha-paren-marker> | <roman-marker> | <roman-paren-marker>
+            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alphabetical-marker> | <alphabetical-paren-marker> | <roman-marker> | <roman-paren-marker>
         (grammar)
 
     4.2. Annotation Markers
@@ -219,12 +219,14 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
     5.2. List Blocks
 
-        Collection of list items with consistent markers:
+        Collection of list items with consistent style:
 
         <list-item-content> = <text-line>
         <list-item> = <sequence-marker> <list-item-content>
         <list> = <list-item>+
         (grammar)
+
+        Note: First item determines list style (plain, numerical, alphabetical, roman) and form (short, extended) for entire list.
 
     5.3. Session Blocks
 
@@ -407,7 +409,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         How context affects interpretation:
 
         - Indentation level determines container type
-        - First list item determines style for entire list
+        - First list item determines style and form for entire list
         - Blank lines affect session vs paragraph resolution vs list 
         - Verbatim mode suspends all other parsing
 

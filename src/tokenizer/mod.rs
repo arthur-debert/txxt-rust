@@ -5,8 +5,12 @@
 //!
 //! ## Architecture
 //!
-//! - [`verbatim_scanner`] - Pre-tokenization verbatim block detection (existing)
+//! - [`verbatim_scanner`] - Pre-tokenization verbatim block detection
 //! - [`lexer`] - Main tokenizer that produces Token enum with SourceSpan positions
+//! - [`markers`] - Marker token detection (sequence, txxt, reference markers)
+//! - [`inline`] - Inline element parsing (formatting, parameters)
+//! - [`indentation`] - Indentation tracking and indent/dedent tokens
+//! - [`patterns`] - Shared regex patterns for validation
 //!
 //! ## New AST Integration
 //!
@@ -14,7 +18,10 @@
 //! It produces Token enum variants with precise SourceSpan positioning for character-level
 //! language server operations.
 
+pub mod indentation;
+pub mod inline;
 pub mod lexer;
+pub mod markers;
 pub mod patterns;
 pub mod verbatim_scanner;
 

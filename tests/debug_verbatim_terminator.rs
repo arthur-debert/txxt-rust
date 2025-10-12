@@ -1,6 +1,6 @@
 //! Debug test for verbatim block terminator parsing
 //!
-//! This test verifies that the tokenizer correctly captures VerbatimEnd tokens
+//! This test verifies that the tokenizer correctly captures VerbatimLabel tokens
 //! with label and parameter information instead of skipping the terminator line.
 
 use txxt::ast::tokens::Token;
@@ -24,9 +24,9 @@ mod tests {
         println!("\nTokens:");
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                Token::VerbatimStart { content, span } => {
+                Token::VerbatimTitle { content, span } => {
                     println!(
-                        "  {}: VerbatimStart {{ content: {:?}, span: {:?} }}",
+                        "  {}: VerbatimTitle {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }
@@ -36,9 +36,9 @@ mod tests {
                         i, content, span
                     );
                 }
-                Token::VerbatimEnd { content, span } => {
+                Token::VerbatimLabel { content, span } => {
                     println!(
-                        "  {}: VerbatimEnd {{ content: {:?}, span: {:?} }}",
+                        "  {}: VerbatimLabel {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }
@@ -48,32 +48,32 @@ mod tests {
             }
         }
 
-        // Verify we have a VerbatimEnd token with the terminator content
+        // Verify we have a VerbatimLabel token with the terminator content
         let verbatim_end_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, Token::VerbatimEnd { .. }))
+            .filter(|token| matches!(token, Token::VerbatimLabel { .. }))
             .collect();
 
         assert_eq!(
             verbatim_end_tokens.len(),
             1,
-            "Should have exactly 1 VerbatimEnd token"
+            "Should have exactly 1 VerbatimLabel token"
         );
 
-        if let Token::VerbatimEnd { content, .. } = &verbatim_end_tokens[0] {
+        if let Token::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
             assert!(
                 content.contains("python"),
-                "VerbatimEnd should contain label 'python'"
+                "VerbatimLabel should contain label 'python'"
             );
             assert!(
                 content.contains("version=3.9"),
-                "VerbatimEnd should contain parameter 'version=3.9'"
+                "VerbatimLabel should contain parameter 'version=3.9'"
             );
             assert!(
                 content.contains("syntax_highlight=true"),
-                "VerbatimEnd should contain parameter 'syntax_highlight=true'"
+                "VerbatimLabel should contain parameter 'syntax_highlight=true'"
             );
-            println!("\n✅ VerbatimEnd token correctly captured: {}", content);
+            println!("\n✅ VerbatimLabel token correctly captured: {}", content);
         }
     }
 
@@ -87,22 +87,22 @@ mod tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimEnd token
+        // Find VerbatimLabel token
         let verbatim_end_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, Token::VerbatimEnd { .. }))
+            .filter(|token| matches!(token, Token::VerbatimLabel { .. }))
             .collect();
 
         assert_eq!(
             verbatim_end_tokens.len(),
             1,
-            "Should have exactly 1 VerbatimEnd token"
+            "Should have exactly 1 VerbatimLabel token"
         );
 
-        if let Token::VerbatimEnd { content, .. } = &verbatim_end_tokens[0] {
+        if let Token::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
             assert!(
                 content.contains("mylabel"),
-                "VerbatimEnd should contain full terminator"
+                "VerbatimLabel should contain full terminator"
             );
             println!("✅ Simple label correctly captured: {}", content);
         }
@@ -118,22 +118,22 @@ mod tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimEnd token
+        // Find VerbatimLabel token
         let verbatim_end_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, Token::VerbatimEnd { .. }))
+            .filter(|token| matches!(token, Token::VerbatimLabel { .. }))
             .collect();
 
         assert_eq!(
             verbatim_end_tokens.len(),
             1,
-            "Should have exactly 1 VerbatimEnd token"
+            "Should have exactly 1 VerbatimLabel token"
         );
 
-        if let Token::VerbatimEnd { content, .. } = &verbatim_end_tokens[0] {
+        if let Token::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
             assert!(
                 content.contains("empty"),
-                "VerbatimEnd should contain empty terminator"
+                "VerbatimLabel should contain empty terminator"
             );
             println!("✅ Empty terminator correctly captured: {}", content);
         }

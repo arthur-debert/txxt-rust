@@ -1,4 +1,4 @@
-//! Tests for VerbatimStart and VerbatimContent token recognition
+//! Tests for VerbatimTitle and VerbatimContent token recognition
 //!
 //! Tests the integration between verbatim scanner and tokenizer to ensure
 //! verbatim blocks are correctly identified and tokenized.
@@ -8,7 +8,7 @@ use txxt::ast::tokens::Token;
 use txxt::tokenizer::tokenize;
 
 // =============================================================================
-// VerbatimStart and VerbatimContent Token Tests
+// VerbatimTitle and VerbatimContent Token Tests
 // =============================================================================
 
 #[rstest]
@@ -29,14 +29,14 @@ fn test_verbatim_block_basic(
 ) {
     let tokens = tokenize(input);
 
-    // Find VerbatimStart token
+    // Find VerbatimTitle token
     let verbatim_start = tokens
         .iter()
-        .find(|token| matches!(token, Token::VerbatimStart { .. }))
-        .expect("Should find VerbatimStart token");
+        .find(|token| matches!(token, Token::VerbatimTitle { .. }))
+        .expect("Should find VerbatimTitle token");
 
     match verbatim_start {
-        Token::VerbatimStart { content, span } => {
+        Token::VerbatimTitle { content, span } => {
             assert_eq!(content, expected_title);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -64,10 +64,10 @@ fn test_verbatim_block_basic(
 fn test_verbatim_block_empty(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should have VerbatimStart but no VerbatimContent
+    // Should have VerbatimTitle but no VerbatimContent
     let verbatim_starts: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::VerbatimStart { .. }))
+        .filter(|token| matches!(token, Token::VerbatimTitle { .. }))
         .collect();
 
     let verbatim_contents: Vec<_> = tokens
@@ -78,7 +78,7 @@ fn test_verbatim_block_empty(#[case] input: &str) {
     assert_eq!(
         verbatim_starts.len(),
         1,
-        "Should have one VerbatimStart token"
+        "Should have one VerbatimTitle token"
     );
     assert_eq!(
         verbatim_contents.len(),
@@ -105,14 +105,14 @@ fn test_verbatim_block_stretched(
 ) {
     let tokens = tokenize(input);
 
-    // Find VerbatimStart token
+    // Find VerbatimTitle token
     let verbatim_start = tokens
         .iter()
-        .find(|token| matches!(token, Token::VerbatimStart { .. }))
-        .expect("Should find VerbatimStart token");
+        .find(|token| matches!(token, Token::VerbatimTitle { .. }))
+        .expect("Should find VerbatimTitle token");
 
     match verbatim_start {
-        Token::VerbatimStart { content, .. } => {
+        Token::VerbatimTitle { content, .. } => {
             assert_eq!(content, expected_title);
         }
         _ => unreachable!(),
@@ -143,7 +143,7 @@ fn test_non_verbatim_content(#[case] input: &str) {
     // Should not contain any verbatim tokens
     let verbatim_starts: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::VerbatimStart { .. }))
+        .filter(|token| matches!(token, Token::VerbatimTitle { .. }))
         .collect();
 
     let verbatim_contents: Vec<_> = tokens
@@ -154,7 +154,7 @@ fn test_non_verbatim_content(#[case] input: &str) {
     assert_eq!(
         verbatim_starts.len(),
         0,
-        "Should not have VerbatimStart tokens for non-verbatim content"
+        "Should not have VerbatimTitle tokens for non-verbatim content"
     );
     assert_eq!(
         verbatim_contents.len(),

@@ -831,11 +831,11 @@ impl Lexer {
         self.column == 0
     }
 
-    /// Tokenize a verbatim block into VerbatimStart and VerbatimContent tokens
+    /// Tokenize a verbatim block into VerbatimTitle and VerbatimContent tokens
     fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
         let mut tokens = Vec::new();
 
-        // Create VerbatimStart token for the title line
+        // Create VerbatimTitle token for the title line
         let title_start_pos = self.current_position();
 
         // Advance through the title line to get its content (excluding the trailing colon)
@@ -863,7 +863,7 @@ impl Lexer {
             }
         }
 
-        tokens.push(Token::VerbatimStart {
+        tokens.push(Token::VerbatimTitle {
             content: title_content,
             span: SourceSpan {
                 start: title_start_pos,
@@ -929,9 +929,9 @@ impl Lexer {
             self.advance();
         }
 
-        // Create VerbatimEnd token with the full terminator content
+        // Create VerbatimLabel token with the full terminator content
         if !terminator_content.trim().is_empty() {
-            tokens.push(Token::VerbatimEnd {
+            tokens.push(Token::VerbatimLabel {
                 content: terminator_content,
                 span: SourceSpan {
                     start: terminator_start_pos,

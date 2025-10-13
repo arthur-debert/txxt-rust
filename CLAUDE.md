@@ -17,6 +17,15 @@
 - Small strings (like tokens) can be test embedded, but larger txxt fragments
   must used the vetoed txxt files in the txxt-documents-clean fir.
 
+#### TxxtCorpora: Specification-Driven Testing (REQUIRED)
+
+- **ALL parser and tokenizer tests MUST use TxxtCorpora** for test case extraction
+- Test cases are embedded directly in docs/specs/ files using :: txxt.core.spec.* :: labels
+- This ensures perfect alignment between specification and implementation
+- See tests/README.md for complete documentation and examples
+- Use TxxtCorpora::load() for basic tests, TxxtCorpora::load_with_processing() for pipeline testing
+- Never create isolated test strings - always add test cases to specification documents
+
 ### Documentation
 
 - No use of writing a doc that repeats the code in natural language.

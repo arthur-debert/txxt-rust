@@ -29,6 +29,7 @@ tempfile = "3.10"
 regex = "1.10"
 rstest = "0.18"
 proptest = "1.4"
+insta = "1.34"
 
 # [[bin]]
 # name = "txxt"

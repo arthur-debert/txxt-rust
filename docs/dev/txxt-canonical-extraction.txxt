@@ -1,0 +1,108 @@
+:: title :: TXXT Canonical Test Case Extraction
+:: author :: Gemini
+:: pub-date :: 2025-10-12
+:: status :: Proposed
+
+This document outlines the architecture for a robust, spec-driven testing framework for the TXXT parser. It establishes a single source of truth for test cases, ensuring the parser remains perfectly aligned with the official specification.
+
+1. Core Problem: The Chicken and the Egg
+
+    As a new format, TXXT faces a classic bootstrapping problem: without a reference parser, how can we validate that a piece of TXXT source is correct? And without a corpus of validated source, how can we test a new parser?
+
+    Relying on ad-hoc test strings leads to a "95% done" parser that fails on complex, combined structures. The maintenance burden of managing hundreds of disconnected test cases becomes unmanageable.
+
+2. The Solution: A Living Specification
+
+    The breakthrough is to treat the specification documents themselves as the canonical source for all test cases. By embedding examples directly within the `docs/specs/` files, we create a "living specification" where documentation and test assets are one and the same.
+
+    This approach guarantees that any change to a specified behavior will be immediately reflected in the test suite, preventing implementation drift.
+
+3. Test Case Definition Syntax
+
+    Test cases will be defined within the specification documents using labeled verbatim blocks. This allows us to write TXXT source examples that are protected from being parsed as part of the spec document itself.
+
+    3.1. Valid Syntax Example
+
+        A simple, valid paragraph:
+            This is a standard paragraph. It contains plain text and is the default block element.
+        :: txxt.core.spec.paragraph.valid.simple ::
+
+        The verbatim block's label serves as a unique, machine-readable identifier for the test case.
+
+    3.2. Invalid Syntax (Error) Example
+
+        To test error conditions, we add parameters to the verbatim label that define the expected parser error.
+
+        An invalid single-item list:
+            - This is not a list.
+        :: txxt.core.spec.list.error.singleItem:error="ParseError",message="Lists require multiple items at the top level",line=1,column=1 ::
+
+        This allows us to test not only that the parser fails, but that it fails with the *correct* error at the *correct* location.
+
+4. The `TxxtCorpora` Utility
+
+    A dedicated Rust utility, `TxxtCorpora`, will be responsible for extracting these test cases from the specification files. This utility will be a simple, non-validating pre-parser.
+
+    4.1. Extraction Logic
+
+        The extractor will be a state machine that reads spec files line-by-line:
+
+        1. Scan for a verbatim label line that matches the `txxt.core.spec.*` pattern.
+        2. Upon finding a match, capture the test case identifier and its indentation level.
+        3. Enter a "seeking title" state and read lines *backwards* from the label.
+        4. The first line found at the exact same indentation level that ends with a colon (`:`) is the title line.
+        5. The content between the title line and the label line is the raw TXXT source for the test case.
+        6. Parse any parameters from the label line (e.g., `error`, `message`).
+
+    4.2. API Design
+
+        The utility will expose a simple, high-level API for use in tests.
+
+        Rust usage example:
+            let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
+            assert_eq!(corpus.name, "txxt.core.spec.paragraph.valid.simple");
+            assert_eq!(corpus.source_text, "This is a standard paragraph...");
+        :: rust
+
+    4.3. Data Structure
+
+        The `load` function will return a structured representation of the test case.
+
+        Corpus struct definition:
+            pub struct Corpus {
+                pub name: String,
+                pub source_text: String,
+                pub parameters: HashMap<String, String>,
+            }
+        :: rust
+
+5. Parser Testing Workflow with Snapshotting
+
+    To validate the parser's output (the AST), we will use snapshot testing. This avoids writing brittle, manual assertions against complex tree structures. The `insta` crate is the recommended tool for this.
+
+    5.1. Valid Case Workflow
+
+        1.  Load: `let corpus = TxxtCorpora::load("...")`
+        2.  Parse: `let ast = parser::parse(&corpus.source_text)`
+        3.  Assert: `insta::assert_yaml_snapshot!(ast)`
+
+        The first run generates a `.snap` file containing the serialized AST. Subsequent runs compare the parser's output against this snapshot, failing if there is a mismatch.
+
+    5.2. Error Case Workflow
+
+        1.  Load: `let corpus = TxxtCorpora::load("...")`
+        2.  Parse: `let result = parser::parse(&corpus.source_text)`
+        3.  Assert:
+            - Assert that `result.is_err()`.
+            - Extract the expected error details from `corpus.parameters`.
+            - Assert that the actual error returned by the parser matches the expected error.
+
+6. Implementation Plan
+
+    1.  Build `TxxtCorpora`: Create a new `tests/corpora.rs` module. Implement the file discovery and extraction logic.
+    2.  Integrate `insta`: Add the `insta` crate to `Cargo.toml` as a dev-dependency.
+    3.  Create First Parser Test: Add a `tests/parser/` directory and start with a simple element like `paragraph.rs`. Write the first valid test case using the full `TxxtCorpora` and `insta` workflow.
+    4.  Establish Error Convention: Formalize the parameter names (`error`, `message`, `line`, `column`) and create the first error test.
+    5.  Iterate: Systematically add test cases to the specification documents and implement the parser code to make the tests pass, element by element.
+
+:: note :: This spec-driven framework provides a robust, maintainable, and scalable foundation for developing the TXXT parser. It ensures correctness by design and creates a tight feedback loop between the language specification and its implementation.

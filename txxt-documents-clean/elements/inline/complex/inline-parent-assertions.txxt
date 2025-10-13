@@ -1,9 +1,0 @@
-Testing various assertion styles
-
-This has *bold text {{strong}}* in a paragraph.
-
-- List item with _emphasis {{emphasis}}_ text
-
-Testing attributes on annotations:
-
-:: author :: John Doe {{annotation, label="author", value="John Doe"}}

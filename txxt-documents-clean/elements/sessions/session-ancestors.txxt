@@ -1,7 +1,0 @@
-1. Deep Session {{session}}
-
-    Content paragraph {{paragraph}}
-
-    1.1 Nested Session
-
-        Nested paragraph {{paragraph, _ancestors=[session, session]}}

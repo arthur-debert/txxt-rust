@@ -1,9 +1,0 @@
-This is the unorderd style: 
-
-- First item {{listItem, marker="-"}}
-- Second item {{listItem, marker="-"}}
-
-This is the ordered syle:
-
-1. First ordered item {{listItem}}
-2. Second ordered item {{listItem}}

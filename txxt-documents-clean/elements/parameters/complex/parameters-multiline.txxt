@@ -1,8 +1,0 @@
-Multi-line Annotation Edge Cases
-
-:: multiline:param=value :: This starts a multiline
-    But parameters should only be on first line
-    :: nested:key=val :: This is content, not parameters
-    
-:: another:key="multiline
-    value" :: Quoted value with newline (should it work?)

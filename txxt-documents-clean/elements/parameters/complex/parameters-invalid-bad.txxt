@@ -1,6 +1,0 @@
-4. Invalid Parameter Syntax, the file is called bad so we can be ok with failure to parse
-
-:: broken:key=val=ue :: Multiple equals in value
-:: invalid:key value :: Missing equals sign
-:: bad-chars:key@value=test :: Invalid character in key
-:: special:key#1=value :: Invalid key character

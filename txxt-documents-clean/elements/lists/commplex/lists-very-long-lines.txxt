@@ -1,4 +1,0 @@
-Testing very long single-line items for wrapping behavior
-
-- This is an extremely long list item that continues for a very significant length to test how the parser handles line wrapping and whether it maintains the list structure when dealing with content that would typically wrap in most text editors or displays, continuing on and on with more text to ensure we exceed typical line length limits.
-- Second item is shorter

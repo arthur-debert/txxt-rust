@@ -1,7 +1,0 @@
-Testing text content and TextLine structure
-
-This paragraph contains text {{paragraph}}
-
-The textLine structure {{paragraph.textLine}}
-
-With *formatted {{strong}}* content inside {{paragraph}}

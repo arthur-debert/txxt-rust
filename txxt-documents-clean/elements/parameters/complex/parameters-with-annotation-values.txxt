@@ -1,7 +1,0 @@
-Interaction with Annotation Values
-
-:: label:param=value :: annotation value :: Both parameters and value
-
-:: complex:a=1,b=2 :: :: Empty value with parameters
-
-:: trailing:key=value :: value with :: double colons :: inside

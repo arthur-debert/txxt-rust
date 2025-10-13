@@ -1,7 +1,0 @@
-A list that has no blank line from a paragraph is still a list:
-1. Number or Unnumbered
-    2. Nested or not
-
-A list that has no blank line from a paragraph is still a list:
-- Number or Unnumbered
-    - Nested or not

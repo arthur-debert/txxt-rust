@@ -1,9 +1,0 @@
-Namespace Edge Cases
-
-:: .startdot:param=value :: Namespace starting with dot
-
-:: enddot.:param=value :: Namespace ending with dot
-
-:: multiple..dots:param=value :: Consecutive dots
-
-:: namespace.label.extra:param=value :: Dot in label part

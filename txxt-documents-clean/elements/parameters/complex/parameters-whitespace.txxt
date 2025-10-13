@@ -1,5 +1,0 @@
-Whitespace Handling
-
-:: spaced : key = value , other = "with spaces" :: Spaces around delimiters
-::padded:    key=value    :: Extra whitespace in parameters
-:: label:key=value trailing text :: Parameters with trailing content

@@ -76,8 +76,25 @@
 //!
 //! # Module Organization
 //!
-//! The AST is organized into focused modules for maintainability:
+//! The AST follows a layered architecture that mirrors the specification structure
+//! and provides clear separation of concerns for maintainability and extensibility.
 //!
+//! ## Layer 1: Node Definitions (`nodes/`)
+//! **Element-specific AST nodes that mirror `docs/specs/elements/` structure:**
+//! - `nodes/annotation.rs` - Annotation AST nodes
+//! - `nodes/container.rs` - Container AST nodes (verbatim, content, session)
+//! - `nodes/definition.rs` - Definition AST nodes
+//! - `nodes/list.rs` - List AST nodes with sequence markers
+//! - `nodes/paragraph.rs` - Paragraph AST nodes (default element)
+//! - `nodes/session.rs` - Session AST nodes with numbering
+//! - `nodes/verbatim.rs` - Verbatim AST nodes
+//! - `nodes/inlines/` - Inline element AST nodes
+//!   - `nodes/inlines/formatting.rs` - Text formatting AST
+//!   - `nodes/inlines/text.rs` - Plain text content AST
+//!   - `nodes/inlines/references/` - Reference AST nodes
+//!
+//! ## Layer 2: Core Systems (existing structure)
+//! **Foundational AST infrastructure:**
 //! - [`annotations`] - Metadata attachment system with proximity rules
 //! - [`base`] - Core document structure and assembly information  
 //! - [`blocks`] - Block-level elements (verbatim, lists, definitions)
@@ -86,11 +103,42 @@
 //! - [`reference_types`] - References and citations ([file.txxt], [@smith2023])
 //! - [`structure`] - Hierarchical elements (containers, sessions, paragraphs)
 //! - [`tokens`] - Character-precise positioning for language servers
+//!
+//! # Design Philosophy
+//!
+//! ## Specification Alignment
+//! The AST structure perfectly mirrors the specification to ensure:
+//! - Easy navigation between docs, code, and tests
+//! - Consistent naming and organization
+//! - Perfect alignment with parser and tokenizer modules
+//!
+//! ## Parser Integration
+//! Each AST node type corresponds to:
+//! - A specification in `docs/specs/elements/`
+//! - A tokenizer in `src/tokenizer/elements/`
+//! - A parser in `src/parser/elements/`
+//! - Test cases via `TxxtCorpora` extraction
+//!
+//! ## Testing Integration
+//! All AST nodes integrate with the specification-driven testing framework:
+//! ```rust,ignore
+//! use tests::corpora::{TxxtCorpora, ProcessingStage};
+//!
+//! let corpus = TxxtCorpora::load_with_processing(
+//!     "txxt.core.spec.paragraph.valid.simple",
+//!     ProcessingStage::ParsedAst
+//! )?;
+//! let ast_node = corpus.ast().unwrap();
+//! ```
 
 // ============================================================================
 // NEW AST SYSTEM - Modern typed AST with token-level precision
 // ============================================================================
 
+// Element-specific AST nodes (mirrors docs/specs/elements/)
+pub mod nodes;
+
+// Core AST infrastructure (existing proven architecture)
 pub mod annotations;
 pub mod base;
 pub mod blocks;

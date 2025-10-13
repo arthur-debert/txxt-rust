@@ -111,7 +111,7 @@ fn extract_paragraph_content(tokens: &[Token]) -> String {
         .filter_map(|token| match token {
             Token::Text { content, .. } => Some(content.as_str()),
             Token::Identifier { content, .. } => Some(content.as_str()),
-            Token::SequenceMarker { content, .. } => Some(content.as_str()),
+            Token::SequenceMarker { marker_type, .. } => Some(marker_type.content()),
             // Include most content-bearing tokens but skip structural ones
             _ => None,
         })
@@ -242,7 +242,7 @@ mod tests {
 
     fn create_sequence_token(content: &str) -> Token {
         Token::SequenceMarker {
-            content: content.to_string(),
+            marker_type: crate::ast::tokens::SequenceMarkerType::Plain(content.to_string()),
             span: create_test_span(),
         }
     }

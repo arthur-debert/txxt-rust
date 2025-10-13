@@ -11,7 +11,7 @@ use crate::tokenizer::infrastructure::markers::{
         read_definition_marker,
     },
 };
-use crate::tokenizer::inline::{read_inline_delimiter};
+use crate::tokenizer::inline::read_inline_delimiter;
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
 /// Saved lexer state for backtracking
@@ -632,5 +632,83 @@ impl VerbatimLexer for Lexer {
     }
 }
 
-// Note: ReferenceLexer and MathSpanLexer trait implementations removed - now using atomic tokens
-// CitationRefLexer, PageRefLexer, and SessionRefLexer will be handled at the parser level using atomic bracket tokens
+// Trait implementations for reference lexing
+use crate::tokenizer::inline::references::{CitationRefLexer, PageRefLexer};
+
+impl CitationRefLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        self.advance()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl PageRefLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        self.advance()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}

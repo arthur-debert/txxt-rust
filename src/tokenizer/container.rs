@@ -84,12 +84,12 @@ pub fn validate_container_content(
         ContainerType::Content => {
             // Check for session markers which are not allowed in content containers
             for token in content_tokens {
-                if let Token::SequenceMarker { content, .. } = token {
+                if let Token::SequenceMarker { marker_type, .. } = token {
                     // Session markers are numeric sequences like "1.", "2.1.", etc.
-                    if is_session_marker(content) {
+                    if is_session_marker(marker_type.content()) {
                         return Err(format!(
                             "Sessions not allowed in Content containers. Found session marker: {}",
-                            content
+                            marker_type.content()
                         ));
                     }
                 }
@@ -230,7 +230,7 @@ mod tests {
             span: span.clone(),
         };
         let list_marker = Token::SequenceMarker {
-            content: "-".to_string(),
+            marker_type: crate::ast::tokens::SequenceMarkerType::Plain("-".to_string()),
             span: span.clone(),
         };
         let content_tokens = vec![text_token, list_marker];
@@ -239,7 +239,7 @@ mod tests {
 
         // Content container with disallowed session marker
         let session_marker = Token::SequenceMarker {
-            content: "1.".to_string(),
+            marker_type: crate::ast::tokens::SequenceMarkerType::Numerical(1, "1.".to_string()),
             span: span.clone(),
         };
         let invalid_content = vec![session_marker];
@@ -248,7 +248,7 @@ mod tests {
 
         // Session container allows everything
         let session_marker = Token::SequenceMarker {
-            content: "1.".to_string(),
+            marker_type: crate::ast::tokens::SequenceMarkerType::Numerical(1, "1.".to_string()),
             span: span.clone(),
         };
         let session_content = vec![session_marker];

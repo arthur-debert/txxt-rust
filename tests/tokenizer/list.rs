@@ -19,6 +19,8 @@ use txxt::tokenizer::tokenize;
 #[case("1. ", "1.")]
 #[case("2. ", "2.")]
 #[case("42. ", "42.")]
+#[case("1) ", "1)")]
+#[case("42) ", "42)")]
 // Alphabetical lowercase
 #[case("a. ", "a.")]
 #[case("b. ", "b.")]
@@ -51,8 +53,8 @@ fn test_sequence_marker_isolated_passing(#[case] input: &str, #[case] expected_m
     assert!(!tokens.is_empty(), "Should have at least one token");
 
     match &tokens[0] {
-        Token::SequenceMarker { content, span } => {
-            assert_eq!(content, expected_marker);
+        Token::SequenceMarker { marker_type, span } => {
+            assert_eq!(marker_type.content(), expected_marker);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
@@ -68,6 +70,7 @@ fn test_sequence_marker_isolated_passing(#[case] input: &str, #[case] expected_m
 #[case("a) Alpha item", "a)", "Alpha")]
 #[case("I. Roman item", "I.", "Roman")]
 #[case("42. Numbered item", "42.", "Numbered")]
+#[case("1) First item", "1)", "First")]
 fn test_sequence_marker_with_content_passing(
     #[case] input: &str,
     #[case] expected_marker: &str,
@@ -80,8 +83,8 @@ fn test_sequence_marker_with_content_passing(
 
     // First token should be sequence marker
     match &tokens[0] {
-        Token::SequenceMarker { content, span } => {
-            assert_eq!(content, expected_marker);
+        Token::SequenceMarker { marker_type, span } => {
+            assert_eq!(marker_type.content(), expected_marker);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
         }
@@ -121,7 +124,6 @@ fn test_sequence_marker_with_content_passing(
 #[case("aa. ")] // Multi-letter (invalid for alphabet)
 #[case("1a. ")] // Mixed alphanumeric
 // Numbers with wrong punctuation
-#[case("1) text")] // Numbers should use . not )
 // Invalid roman numerals
 #[case("iiii. ")] // Should be iv
 #[case("iiiii. ")] // Should be v
@@ -180,9 +182,9 @@ proptest! {
         prop_assert_eq!(sequence_tokens.len(), 1, "Should produce exactly one SEQUENCE_MARKER token");
 
         match &tokens[0] {
-            Token::SequenceMarker { content, span } => {
+            Token::SequenceMarker { marker_type, span } => {
                 let expected = format!("{}.", num);
-                prop_assert_eq!(content, &expected);
+                prop_assert_eq!(marker_type.content(), &expected);
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, expected.len());
@@ -205,9 +207,9 @@ proptest! {
         prop_assert_eq!(sequence_tokens.len(), 1);
 
         match &tokens[0] {
-            Token::SequenceMarker { content, span } => {
+            Token::SequenceMarker { marker_type, span } => {
                 let expected = format!("{}.", letter);
-                prop_assert_eq!(content, &expected);
+                prop_assert_eq!(marker_type.content(), &expected);
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, expected.len());
@@ -224,11 +226,11 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::SequenceMarker { content, span } = token {
+            if let Token::SequenceMarker { marker_type, span } = token {
                 // Span should be consistent with content length
                 prop_assert_eq!(
                     span.end.column - span.start.column,
-                    content.len(),
+                    marker_type.content().len(),
                     "Span length should match content length"
                 );
 

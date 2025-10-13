@@ -48,8 +48,8 @@ pub fn detect_session_title(tokens: &[Token]) -> SessionParseResult {
     let mut title_start_idx = 0;
 
     // Check for optional numeric sequence at start
-    if let Some(Token::SequenceMarker { content, .. }) = tokens.first() {
-        if let Some(parsed_numbering) = parse_session_numbering(content) {
+    if let Some(Token::SequenceMarker { marker_type, .. }) = tokens.first() {
+        if let Some(parsed_numbering) = parse_session_numbering(marker_type.content()) {
             numbering = Some(parsed_numbering);
             title_start_idx = 1; // Skip the sequence marker when extracting title
         }
@@ -163,7 +163,7 @@ mod tests {
 
     fn create_sequence_token(content: &str) -> Token {
         Token::SequenceMarker {
-            content: content.to_string(),
+            marker_type: crate::ast::tokens::SequenceMarkerType::Numerical(1, content.to_string()),
             span: create_test_span(),
         }
     }

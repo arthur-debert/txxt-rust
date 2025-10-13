@@ -52,22 +52,51 @@ fn test_math_delimiter_integration_with_text() {
         .collect();
     assert_eq!(math_delimiters.len(), 2);
 
-    // Find the text token with "E=mc^2"
-    let math_content = tokens
+    // Find the text tokens with "E", "mc", "2" (math content is broken into multiple tokens)
+    let e_token = tokens
         .iter()
         .find(|token| {
             if let Token::Text { content, .. } = token {
-                content == "E=mc^2"
+                content == "E"
             } else {
                 false
             }
         })
-        .expect("Should find math content token");
+        .expect("Should find 'E' token");
 
-    match math_content {
-        Token::Text { content, .. } => {
-            assert_eq!(content, "E=mc^2");
-        }
+    let mc_token = tokens
+        .iter()
+        .find(|token| {
+            if let Token::Text { content, .. } = token {
+                content == "mc"
+            } else {
+                false
+            }
+        })
+        .expect("Should find 'mc' token");
+
+    let two_token = tokens
+        .iter()
+        .find(|token| {
+            if let Token::Text { content, .. } = token {
+                content == "2"
+            } else {
+                false
+            }
+        })
+        .expect("Should find '2' token");
+
+    // Verify the tokens have correct content
+    match e_token {
+        Token::Text { content, .. } => assert_eq!(content, "E"),
+        _ => unreachable!(),
+    }
+    match mc_token {
+        Token::Text { content, .. } => assert_eq!(content, "mc"),
+        _ => unreachable!(),
+    }
+    match two_token {
+        Token::Text { content, .. } => assert_eq!(content, "2"),
         _ => unreachable!(),
     }
 }
@@ -98,7 +127,7 @@ fn test_math_delimiter_adjacent() {
         .iter()
         .filter(|token| matches!(token, Token::MathDelimiter { .. }))
         .collect();
-    
+
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
@@ -125,15 +154,13 @@ fn test_incomplete_math_delimiter_behavior() {
         "Should produce MathDelimiter for standalone #"
     );
 
-    let has_text = tokens
-        .iter()
-        .any(|token| {
-            if let Token::Text { content, .. } = token {
-                content == "incomplete"
-            } else {
-                false
-            }
-        });
+    let has_text = tokens.iter().any(|token| {
+        if let Token::Text { content, .. } = token {
+            content == "incomplete"
+        } else {
+            false
+        }
+    });
 
     assert!(has_text, "Should produce Text token for 'incomplete'");
 }

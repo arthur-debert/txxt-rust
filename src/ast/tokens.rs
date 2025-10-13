@@ -17,6 +17,50 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Rich semantic information for sequence markers
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum SequenceMarkerType {
+    /// Plain markers like "-", "*"
+    Plain(String),
+    /// Numerical markers like "1.", "42)" with parsed number and original string
+    Numerical(u64, String),
+    /// Alphabetical markers like "a.", "Z)" with parsed letter and original string  
+    Alphabetical(char, String),
+    /// Roman numeral markers like "i.", "IV)" with parsed value and original string
+    Roman(u64, String),
+}
+
+impl SequenceMarkerType {
+    /// Get the original string representation of this sequence marker
+    pub fn content(&self) -> &str {
+        match self {
+            SequenceMarkerType::Plain(s) => s,
+            SequenceMarkerType::Numerical(_, s) => s,
+            SequenceMarkerType::Alphabetical(_, s) => s,
+            SequenceMarkerType::Roman(_, s) => s,
+        }
+    }
+
+    /// Get the semantic value as a number (for ordered lists)
+    pub fn numeric_value(&self) -> Option<u64> {
+        match self {
+            SequenceMarkerType::Plain(_) => None,
+            SequenceMarkerType::Numerical(n, _) => Some(*n),
+            SequenceMarkerType::Alphabetical(c, _) => {
+                // Convert a-z to 1-26, A-Z to 1-26
+                if c.is_ascii_lowercase() {
+                    Some((*c as u8 - b'a' + 1) as u64)
+                } else if c.is_ascii_uppercase() {
+                    Some((*c as u8 - b'A' + 1) as u64)
+                } else {
+                    None
+                }
+            }
+            SequenceMarkerType::Roman(n, _) => Some(*n),
+        }
+    }
+}
+
 /// Precise source position for character-level language server support
 ///
 /// Unlike traditional AST source spans, we need both start and end positions
@@ -61,8 +105,11 @@ pub enum Token {
     /// Indentation decrease  
     Dedent { span: SourceSpan },
 
-    /// List/sequence markers (1., -, a), etc.)
-    SequenceMarker { content: String, span: SourceSpan },
+    /// List/sequence markers (1., -, a), etc.) with rich semantic information
+    SequenceMarker {
+        marker_type: SequenceMarkerType,
+        span: SourceSpan,
+    },
 
     /// Annotation markers (:: label ::)
     AnnotationMarker { content: String, span: SourceSpan },
@@ -186,7 +233,7 @@ impl Token {
     pub fn content(&self) -> &str {
         match self {
             Token::Text { content, .. } => content,
-            Token::SequenceMarker { content, .. } => content,
+            Token::SequenceMarker { marker_type, .. } => marker_type.content(),
             Token::AnnotationMarker { content, .. } => content,
             Token::DefinitionMarker { content, .. } => content,
             Token::Identifier { content, .. } => content,
@@ -223,6 +270,14 @@ impl Token {
     pub fn parameter_value(&self) -> Option<&str> {
         match self {
             Token::Parameter { value, .. } => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Get the semantic sequence marker information (only valid for SequenceMarker tokens)
+    pub fn sequence_marker_type(&self) -> Option<&SequenceMarkerType> {
+        match self {
+            Token::SequenceMarker { marker_type, .. } => Some(marker_type),
             _ => None,
         }
     }

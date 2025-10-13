@@ -2,10 +2,10 @@
 //!
 //! TODO: This is a stub implementation. The real parser will:
 //! 1. Take new Token enum variants from the tokenizer
-//! 2. Convert to proper typed AST nodes (not legacy AstNode)
+//! 2. Convert to proper typed AST nodes using new AST system
 //! 3. Follow the finalized specs in docs/specs/core/
 
-use crate::ast::{AstNode, Document};
+use crate::ast::base::Document;
 
 /// Main parser that converts Tokens to AST
 ///
@@ -26,11 +26,20 @@ impl DocumentParser {
     /// - Implement block grouping (Phase 2a)
     /// - Convert to typed AST nodes (Phase 2b)
     pub fn parse(&self, _tokens: &[crate::ast::tokens::Token]) -> Document {
-        // STUB: Return empty document until real implementation
-        let mut document = Document::new(self.source.clone());
-        let root = AstNode::new("document".to_string());
-        document.root = root;
-        document
+        // STUB: Return minimal document until real implementation
+        use crate::ast::base::{AssemblyInfo, Meta};
+
+        Document {
+            blocks: Vec::new(),
+            annotations: Vec::new(),
+            meta: Meta::default(),
+            assembly_info: AssemblyInfo {
+                parser_version: env!("CARGO_PKG_VERSION").to_string(),
+                source_path: Some(self.source.clone()),
+                processed_at: None,
+                stats: Default::default(),
+            },
+        }
     }
 }
 

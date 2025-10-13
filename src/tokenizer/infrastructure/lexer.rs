@@ -86,8 +86,8 @@ impl Lexer {
                 }
             }
 
-            // Try to read sequence marker only at column 0 (start of line)
-            if self.column == 0 {
+            // Try to read sequence marker at start of line or after indentation
+            if self.column == 0 || self.is_at_line_start_after_indent(&tokens) {
                 if let Some(token) = read_sequence_marker(self) {
                     tokens.push(token);
                     continue;
@@ -726,6 +726,48 @@ impl Lexer {
     /// Peek at the current character without advancing
     pub fn peek(&self) -> Option<char> {
         self.input.get(self.position).copied()
+    }
+
+    /// Check if we're at the start of line content after proper indentation
+    fn is_at_line_start_after_indent(&self, tokens: &[Token]) -> bool {
+        use crate::tokenizer::indentation::is_valid_indentation_level;
+
+        // Look back at recent tokens to see if we just processed proper indentation
+        if tokens.is_empty() {
+            return false;
+        }
+
+        // We need to be immediately after an Indent token with valid indentation
+        // and any following whitespace
+        let mut found_valid_indent = false;
+        let only_whitespace_since = true;
+
+        for token in tokens.iter().rev() {
+            match token {
+                Token::Whitespace { .. } => {
+                    // Continue looking back through whitespace
+                    continue;
+                }
+                Token::Indent { span, .. } => {
+                    // Check if this is a valid indentation level (multiple of 4)
+                    let indent_level = span.end.column - span.start.column;
+                    if is_valid_indentation_level(indent_level) && only_whitespace_since {
+                        found_valid_indent = true;
+                    }
+                    break;
+                }
+                Token::Newline { .. } | Token::BlankLine { .. } => {
+                    // We're at the start of a line, but no indent
+                    break;
+                }
+                _ => {
+                    // Some other token, not immediately after indent
+                    break;
+                }
+            }
+        }
+
+        found_valid_indent
     }
 
     // Debug methods (for testing)

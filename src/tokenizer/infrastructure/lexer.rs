@@ -208,7 +208,7 @@ impl Lexer {
         let start_pos = self.current_position();
         let mut content = String::new();
 
-        // Don't start text with delimiter characters or dash
+        // Don't start text with delimiter characters or dash (unless it's a backslash)
         if let Some(ch) = self.peek() {
             if ch == '*' || ch == '_' || ch == '`' || ch == '#' || ch == '-' {
                 return None;
@@ -216,7 +216,36 @@ impl Lexer {
         }
 
         while let Some(ch) = self.peek() {
-            if ch.is_alphanumeric() || ch == '^' {
+            if ch == '\\' {
+                // Handle escape sequences
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    // Check if next character is a special character that should be escaped
+                    if next_ch == '*'
+                        || next_ch == '_'
+                        || next_ch == '`'
+                        || next_ch == '#'
+                        || next_ch == '-'
+                        || next_ch == '\\'
+                        || next_ch == '['
+                        || next_ch == ']'
+                    {
+                        // Include both backslash and the escaped character
+                        content.push(ch);
+                        self.advance();
+                        content.push(next_ch);
+                        self.advance();
+                    } else {
+                        // Backslash not followed by special character, just include it
+                        content.push(ch);
+                        self.advance();
+                    }
+                } else {
+                    // Backslash at end of input, include it
+                    content.push(ch);
+                    self.advance();
+                }
+            } else if ch.is_alphanumeric() || ch == '^' {
                 // Include alphanumeric and caret characters
                 content.push(ch);
                 self.advance();

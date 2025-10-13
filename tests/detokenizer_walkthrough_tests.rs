@@ -174,7 +174,6 @@ Empty title example:
 }
 
 #[test]
-#[ignore = "Requires tokenizer escape sequence support - see issue docs"]
 fn test_escaping_special_chars() {
     let input = r#"Use backslash to display special characters literally:
 - `\*not bold\*` displays as *not bold*

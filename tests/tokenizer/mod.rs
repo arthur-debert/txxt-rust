@@ -16,6 +16,7 @@ mod session;
 
 // Infrastructure and core tests
 mod core;
+mod escape_sequences;
 mod inline;
 mod verbatim;
 

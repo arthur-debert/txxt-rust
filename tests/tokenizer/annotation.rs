@@ -205,12 +205,39 @@ proptest! {
 
         prop_assert_eq!(pragma_tokens.len(), 2, "Should produce exactly 2 ANNOTATION_MARKER tokens");
 
-        // Should have exactly 1 TEXT token
-        let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { content, .. } if content == &identifier))
+        // The content between annotation markers should reconstruct to the identifier
+        // Find indices of annotation markers
+        let marker_indices: Vec<usize> = tokens.iter().enumerate()
+            .filter_map(|(i, token)| {
+                if matches!(token, Token::AnnotationMarker { .. }) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect();
 
-        prop_assert_eq!(text_tokens.len(), 1, "Should produce exactly 1 TEXT token");
+        prop_assert_eq!(marker_indices.len(), 2, "Should have exactly 2 annotation markers");
+
+        // Reconstruct content between markers
+        if marker_indices.len() == 2 {
+            let content_tokens = &tokens[marker_indices[0] + 1..marker_indices[1]];
+            let reconstructed: String = content_tokens.iter()
+                .filter_map(|token| match token {
+                    Token::Text { content, .. } => Some(content.as_str()),
+                    Token::Identifier { content, .. } => Some(content.as_str()),
+                    Token::ItalicDelimiter { .. } => Some("_"),
+                    Token::BoldDelimiter { .. } => Some("*"),
+                    Token::CodeDelimiter { .. } => Some("`"),
+                    Token::MathDelimiter { .. } => Some("#"),
+                    Token::Whitespace { .. } => None, // Skip whitespace in reconstruction
+                    _ => None,
+                })
+                .collect();
+
+            prop_assert_eq!(&reconstructed, &identifier,
+                "Content between markers should reconstruct to the identifier");
+        }
     }
 
     #[test]
@@ -258,13 +285,48 @@ proptest! {
         prop_assert_eq!(pragma_tokens.len(), 2 * identifiers.len(),
             "Should produce 2 annotation markers per identifier");
 
-        // Should have exactly identifiers.len() TEXT tokens
-        let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { .. }))
+        // Each annotation should contain the expected identifier
+        let marker_indices: Vec<usize> = tokens.iter().enumerate()
+            .filter_map(|(i, token)| {
+                if matches!(token, Token::AnnotationMarker { .. }) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
             .collect();
 
-        prop_assert_eq!(text_tokens.len(), identifiers.len(),
-            "Should produce one text token per annotation");
+        // Should have pairs of markers
+        prop_assert_eq!(marker_indices.len() % 2, 0, "Annotation markers should come in pairs");
+
+        // Verify each annotation contains its identifier
+        let mut reconstructed_identifiers = Vec::new();
+        for i in (0..marker_indices.len()).step_by(2) {
+            if i + 1 < marker_indices.len() {
+                let content_tokens = &tokens[marker_indices[i] + 1..marker_indices[i + 1]];
+                let reconstructed: String = content_tokens.iter()
+                    .filter_map(|token| match token {
+                        Token::Text { content, .. } => Some(content.as_str()),
+                        Token::Identifier { content, .. } => Some(content.as_str()),
+                        Token::ItalicDelimiter { .. } => Some("_"),
+                        Token::BoldDelimiter { .. } => Some("*"),
+                        Token::CodeDelimiter { .. } => Some("`"),
+                        Token::MathDelimiter { .. } => Some("#"),
+                        Token::Whitespace { .. } => None, // Skip whitespace
+                        _ => None,
+                    })
+                    .collect();
+                reconstructed_identifiers.push(reconstructed);
+            }
+        }
+
+        prop_assert_eq!(reconstructed_identifiers.len(), identifiers.len(),
+            "Should reconstruct one identifier per annotation");
+
+        // Verify all identifiers are present
+        for (expected, actual) in identifiers.iter().zip(reconstructed_identifiers.iter()) {
+            prop_assert_eq!(actual, expected, "Reconstructed content should match identifier");
+        }
     }
 }
 

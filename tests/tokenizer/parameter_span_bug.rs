@@ -8,11 +8,16 @@ use txxt::ast::tokens::Token;
 use txxt::tokenizer::Lexer;
 
 #[test]
-#[ignore = "Bug #23: Parameter tokens have incorrect spans"]
 fn test_parameter_spans_in_annotation() {
     let input = ":: note:key=value,flag ::";
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
+
+    // Debug: print all tokens
+    println!("All tokens for annotation test:");
+    for token in &tokens {
+        println!("  {:?}", token);
+    }
 
     // Find parameter tokens
     let param_tokens: Vec<&Token> = tokens
@@ -64,7 +69,6 @@ fn test_parameter_spans_in_annotation() {
 }
 
 #[test]
-#[ignore = "Bug #23: Parameter tokens have incorrect spans"]
 fn test_parameter_spans_in_definition() {
     let input = "term:width=100,height=50 ::";
     let mut lexer = Lexer::new(input);
@@ -120,7 +124,6 @@ fn test_parameter_spans_in_definition() {
 }
 
 #[test]
-#[ignore = "Bug #23: Colon tokens in parameter context have incorrect spans"]
 fn test_colon_span_after_label() {
     let input = ":: note: ::";
     let mut lexer = Lexer::new(input);

@@ -79,11 +79,11 @@ fn verify_the_real_bug_is_in_parameters() {
             "Parameter '{}={}' span: start=({},{}), end=({},{})",
             key, value, span.start.row, span.start.column, span.end.row, span.end.column
         );
-        // The bug is that the span has zero width!
+        // The bug has been fixed - parameter spans now have correct width!
         assert_eq!(
             span.end.column - span.start.column,
-            0,
-            "This is a bug - parameter span has zero width"
+            9,
+            "Parameter span should have width 9 for 'key=value'"
         );
     }
 }

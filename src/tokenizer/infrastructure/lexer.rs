@@ -6,11 +6,11 @@
 use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::indentation::IndentationTracker;
 use crate::tokenizer::infrastructure::markers::{
-    sequence::read_sequence_marker,
-    txxt_marker::{
-        integrate_annotation_parameters, integrate_definition_parameters, read_annotation_marker,
-        read_definition_marker,
+    parameter_integration_v2::{
+        integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
     },
+    sequence::read_sequence_marker,
+    txxt_marker::{read_annotation_marker, read_definition_marker},
 };
 use crate::tokenizer::inline::read_inline_delimiter;
 use crate::tokenizer::inline::references::{
@@ -162,6 +162,10 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = self.read_colon() {
                 tokens.push(token);
+            } else if let Some(token) = self.read_equals() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_comma() {
+                tokens.push(token);
             } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
@@ -180,10 +184,9 @@ impl Lexer {
             }
         }
 
-        // Simple parameter integration - just detect and split label:params patterns
-        // Use original integration for now until we fix the new one
-        tokens = integrate_annotation_parameters(tokens, self);
-        tokens = integrate_definition_parameters(tokens, self);
+        // Use new parameter integration that preserves positions and whitespace
+        tokens = integrate_annotation_parameters_v2(tokens);
+        tokens = integrate_definition_parameters_v2(tokens);
 
         // Finalize indentation processing (emit remaining dedents)
         let final_indent_tokens = self.indent_tracker.finalize();
@@ -421,7 +424,6 @@ impl Lexer {
     }
 
     /// Read a colon token (:)
-    /// Only tokenizes structural colons, not those used in parameter syntax
     fn read_colon(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
 
@@ -435,39 +437,44 @@ impl Lexer {
                 }
             }
 
-            // Check if this colon is likely part of parameter syntax
-            // Look backwards for alphanumeric content (term before colon)
-            if self.position > 0 {
-                if let Some(&prev_ch) = self.input.get(self.position - 1) {
-                    if prev_ch.is_alphanumeric() {
-                        // Look ahead for parameter-like content (key=value)
-                        let mut lookahead_pos = next_pos;
-                        while lookahead_pos < self.input.len() {
-                            if let Some(&ch) = self.input.get(lookahead_pos) {
-                                if ch == '=' {
-                                    // Found = after colon following alphanumeric, likely parameter
-                                    return None;
-                                } else if ch == ' '
-                                    || ch == '\t'
-                                    || ch.is_alphanumeric()
-                                    || ch == '_'
-                                {
-                                    lookahead_pos += 1;
-                                    continue;
-                                } else {
-                                    // Hit non-parameter character, break
-                                    break;
-                                }
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
             self.advance();
             return Some(Token::Colon {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read an equals token (=)
+    fn read_equals(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('=') {
+            self.advance();
+            return Some(Token::Text {
+                content: "=".to_string(),
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a comma token (,)
+    fn read_comma(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(',') {
+            self.advance();
+            return Some(Token::Text {
+                content: ",".to_string(),
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

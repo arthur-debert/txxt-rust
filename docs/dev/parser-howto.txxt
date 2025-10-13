@@ -2,6 +2,52 @@ Parser Implementation Guide
 
     This guide covers the implementation approach for the txxt parser, building on the comprehensive file structure established in Item 5.1.
 
+**STRICT PARSER IMPLEMENTATION PROTOCOL - MUST FOLLOW EXACTLY**
+
+**RULE 1: ONE ELEMENT AT A TIME - NO EXCEPTIONS**
+- Implement exactly ONE element per commit
+- Each element must have: code + tests + AST assertions + commit 
+- Do NOT proceed to next element until current one is committed and pushed
+- Do NOT create test files for unimplemented elements
+- Respect file layout for parser, ast and tests with mirrored layouts.
+
+**RULE 2: CORPORA SOURCES ONLY - NO AD HOC STRINGS**
+- ALL test sources MUST come from corpora (docs/specs with :: txxt.core.spec.* labels)
+- NEVER use inline strings like `r#"- First item"`
+- If corpora doesn't exist for your element, CREATE it in the spec first
+- Use TxxtCorpora::load_with_processing() for all parser tests
+
+**RULE 3: MANDATORY FILE STRUCTURE - MIRROR SPECS EXACTLY**
+- Parser code goes in src/parser/elements/[element].rs
+- Tests go in tests/parser/elements/[element].rs (mirrors src structure)
+- AST structures already exist in src/ast/ (follow existing structure)
+- Source of truth is ALWAYS the spec in docs/specs/elements/[element].txxt
+
+**RULE 4: IMPLEMENTATION SEQUENCE - MANDATORY ORDER**
+2. Simple forms only: paragraphs, annotations, definitions, verbatim blocks, lists (step 1)
+3. Advanced forms (step 2)
+4. Containers without recursion (step 3.1)
+5. [etc.]
+
+**RULE 5: BEFORE STARTING ANY ELEMENT:**
+1. Check if corpora exists: `:: txxt.core.spec.[element].valid.simple` 
+2. If not, create it in docs/specs/elements/[element].txxt
+3. Read the element specification completely
+4. Identify what AST assertions are needed, create it .
+
+**RULE 6: TESTING PROTOCOL:**
+- Create single test file: tests/parser/elements/[element].rs
+- Use TxxtCorpora for ALL test sources
+- Use custom AST assertions for ALL test logic
+- Test ONLY the current element, nothing else
+
+**CHECKPOINT QUESTIONS TO ASK BEFORE PROCEEDING:**
+- Am I implementing exactly one element?
+- Am I using corpora sources (not ad hoc strings)?
+- Do I have the corpora defined in the spec?
+- Have I committed the previous element?
+- Am I following the exact file structure?
+
 1. File Structure Overview
 
     The parser implementation follows a three-phase architecture that mirrors the specification structure:
@@ -35,6 +81,20 @@ Parser Implementation Guide
     │   ├── container.rs  # Container AST structures
     │   └── inlines/      # Inline AST nodes
     └── detokenizer.rs    # AST → source reconstruction
+
+    tests/parser/
+    ├── elements/          # Element tests (mirrors src/parser/elements/)
+    │   ├── paragraph.rs   # Paragraph parsing tests
+    │   ├── session.rs     # Session parsing tests  
+    │   ├── container.rs   # Container parsing tests
+    │   ├── verbatim.rs    # Verbatim parsing tests
+    │   ├── list.rs        # List parsing tests
+    │   ├── definition.rs  # Definition parsing tests
+    │   ├── annotation.rs  # Annotation parsing tests
+    │   └── inlines/       # Inline element tests
+    └── integration/       # Cross-element integration tests
+
+    The source of truth is ALWAYS the specification in docs/specs/elements/ and tests must follow the same file layout structure.
 
 
 2. Source Of Truth
@@ -78,26 +138,37 @@ Parser Implementation Guide
         - Proper handling of nested structures
         - Annotation attachment using proximity rules
 
-3. Testing with TxxtCorpora
+3. Testing X
 
-    If you feed invalid txxt sources to your tests, nothing will be correct.
-    Hence it's key that you use only vettoed and verified txxt sources. These 
-    are the ones in the specs, and the TxxtCorpora testing framework established in tests/corpora.rs and tests/parser_integration.rs. will give you one liners to leead them.
+    3.a Where to get the txxt source
+        
+        If you feed invalid txxt sources to your tests, nothing will be correct.
+        Hence it's key that you use only vettoed and verified txxt sources. These 
+        are the ones in the specs, and the TxxtCorpora testing framework established in tests/corpora.rs and tests/parser_integration.rs. will give you one liners to leead them.
 
-    Testing approach:
-    - Use TxxtCorpora::load .
-    - Implement tests for each processing stage: tokenization → block grouping → parsing → post-processing
-    - Test both valid cases and error conditions
+        Testing approach:
+        - Use TxxtCorpora::load .
+        - Implement tests for each processing stage: tokenization → block grouping → parsing → post-processing
+        - Test both valid cases and error conditions
 
-    Example test pattern:
-        #[rstest]
-        #[case::simple("paragraph-basic.txxt")]
-        #[case::with_params("paragraph-params.txxt")]
-        fn test_paragraph_parsing(#[case] corpus_file: &str) {
-            let corpus = load_corpus(corpus_file);
-            // Test parsing stages...
-        }
-    rust ::
+        Example test pattern:
+            #[rstest]
+            #[case::simple("paragraph-basic.txxt")]
+            #[case::with_params("paragraph-params.txxt")]
+            fn test_paragraph_parsing(#[case] corpus_file: &str) {
+                let corpus = load_corpus(corpus_file);
+                // Test parsing stages...
+            }
+        rust ::
+    
+    3.b  High level assertions. 
+
+        Paring test tend to do much AST traversal, which is hard to write , read and britlle. 
+        For each node you take you should use high level assertions, which are pplciation logic level as in node.assert_paragraph(line_count=3, text_contains"Hello)" and so on. 
+        Each high level assertion should expose params that make testing easy.
+
+        Also, this protects us from having britlte tests. Withouth doing direct ast traversal, changes to the ast can be fixed in one place, and not many
+
 
 4. Implementation stages.
 

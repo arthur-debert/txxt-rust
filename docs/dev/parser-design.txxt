@@ -1,0 +1,72 @@
+:: title :: TXXT Parser Design: Phase 2
+:: author :: Gemini
+:: status :: Proposed
+
+This document outlines the proposed design for the second phase of the txxt parser, which focuses on converting the hierarchical token blocks into a semantic Abstract Syntax Tree (AST).
+
+1. Core Challenge: Ambiguity
+
+    The primary challenge in parsing txxt is the lack of explicit delimiters. A single line of text can represent a paragraph, a list item, or the title of a container, depending entirely on the context of the *following* lines.
+
+    - A line followed by nothing or another line at the same indent is a *paragraph*.
+    - A line starting with a list marker is a *list item*.
+    - A line followed by an indented block of content is a *title*.
+
+    Our parsing strategy must resolve this ambiguity efficiently.
+
+2. Proposed Strategy: Top-Down Recursive Descent
+
+    A top-down, recursive parsing approach is the most natural fit for txxt's indentation-based structure. We will implement a "Recursive Descent" parser.
+
+    The core of this parser will be a single function, tentatively named `parse_blocks`, which takes a list of token blocks at a single indentation level and converts them into a list of AST nodes.
+
+3. The `parse_blocks` Function
+
+    The main parsing function will have a signature similar to this:
+
+        fn parse_blocks(blocks: Vec<TokenBlock>, is_in_container: bool) -> Vec<AstNode>
+
+    - `blocks`: A list of token blocks at the current indentation level.
+    - `is_in_container`: A boolean flag to enforce the rule that `Session` elements cannot be nested.
+
+    The function will iterate through the `blocks`, using lookahead (peeking at the next block) to determine the type of the current block.
+
+4. Parsing Logic with Lookahead
+
+    For each block, the parser will apply the following logic:
+
+    1. Check for Unambiguous Markers
+        - `"""`: Parse as a `Verbatim` block.
+        - `[[...]]`: Parse as an `Annotation`.
+        - `---` (and `is_in_container` is false): Parse as a `Session`.
+
+    2. Resolve Ambiguous Text Blocks
+        - If the next block is indented further:
+            The current block is a *Title*. Consume it and the indented child block, then recursively call `parse_blocks` on the children to create a `Container` node.
+        - If the block starts with a list marker (`*`, `-`, `1.`):
+            Parse as a `List Item`. Group consecutive list items into a single `List` node.
+        - Otherwise:
+            The block is a `Paragraph`. Group consecutive, non-special lines into a single `Paragraph` node.
+
+5. Incremental Implementation Plan
+
+    The parser will be built incrementally to manage complexity.
+
+    1. Parser Structure
+        - Create a `Parser` struct to manage the token stream, including `peek()` and `consume()` helpers.
+
+    2. Unambiguous Parsers
+        - Implement parsing for simple, self-contained elements like `Verbatim` and `Annotation`.
+
+    3. Flat Block Parsing
+        - Implement the main `parse_blocks` loop for a flat list of blocks, focusing on the `Paragraph` vs. `List` distinction.
+
+    4. Nested Block Parsing
+        - Add the recursive logic. Implement the lookahead to detect titles and create nested `Container` nodes.
+
+    5. Session Parsing
+        - Add the final logic to handle top-level `Session` blocks, respecting the nesting rules.
+
+6. Notes on Containers vs. Sessions
+
+    While `Container` and `Session` nodes are structurally similar, they are semantically distinct in the AST. The parsing logic can be shared, but the `is_in_container` flag will be used to determine which type of node to create and to enforce validation rules. A `Session` can only be created at the top level of the document or a nested document context, but not within a `Container`.

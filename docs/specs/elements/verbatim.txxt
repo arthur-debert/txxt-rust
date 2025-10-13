@@ -22,18 +22,18 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
             Title:
                 content lines
             :: label
-        (grammar)
+        :: grammar
 
         Minimal form (empty title):
             :
                 content lines
             :: label
-        (grammar)
+        :: grammar
 
         Empty content (for binary/external files):
             Title:
             :: label
-        (grammar)
+        :: grammar
 
     2.2. Label Syntax
 
@@ -43,13 +43,13 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
             :: javascript
             :: python
             :: configuration
-        (examples)
+        :: grammar
 
         Label with parameters:
             :: python:version=3.11
             :: sql:dialect=postgresql,version=15
             :: image:src=diagram.png,alt="System architecture"
-        (examples)
+        :: grammar
 
     2.3. Content Positioning
 
@@ -100,7 +100,7 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
         │   ├── verbatim_type: VerbatimType (InFlow | Stretched)
         │   ├── annotations: Vec<Annotation>
         │   └── tokens: TokenSequence
-    (tree)
+    :: tree
 
     Key properties:
     - Content stored in Ignore Container (follows container architecture)

@@ -71,7 +71,7 @@ Complete specification for annotations - metadata elements that attach informati
 
         Annotation labels follow the standard txxt label system:
             <annotation-label> = <label>
-        (grammar)
+        :: grammar
 
         For complete label syntax, validation rules, and conventions, see [labels.txxt].
 
@@ -94,7 +94,7 @@ Complete specification for annotations - metadata elements that attach informati
         │   ├── content: AnnotationContent
         │   │   ├── Inline(Vec<Inline>) | Block(Container) | Empty
         │   └── tokens: TokenSequence
-    (tree)
+    :: tree
 
     Document-level integration:
         ├── Document
@@ -103,7 +103,7 @@ Complete specification for annotations - metadata elements that attach informati
         │   └── annotations: Vec<Annotation> (document-level)
         └── Block
             └── annotations: Vec<Annotation> (attached to specific elements)
-    (tree)
+    :: tree
 
 5. Attachment Rules
 

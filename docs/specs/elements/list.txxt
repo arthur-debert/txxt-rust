@@ -102,7 +102,7 @@ Complete specification for lists - ordered and unordered collections of items wi
         │   ├── items: Vec<ListItem>
         │   ├── annotations: Vec<Annotation>
         │   └── tokens: TokenSequence
-    (tree)
+    :: tree
 
     List Item AST:
         ├── ListItem
@@ -111,7 +111,7 @@ Complete specification for lists - ordered and unordered collections of items wi
         │   ├── nested: Option<Container>
         │   ├── annotations: Vec<Annotation>
         │   └── tokens: TokenSequence
-    (tree)
+    :: tree
 
     Numbering styles and forms:
         NumberingStyle: Plain | Numerical | AlphabeticalLower | AlphabeticalUpper | RomanLower | RomanUpper

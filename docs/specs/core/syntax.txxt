@@ -21,12 +21,12 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <alphanumeric> = <letter> | <digit>
             <line-break> = \n
             <any-char> = .
-        (grammar)
+        :: grammar
 
         Escaping:
             <escaped-char> = \ <any-char>
             <literal-char> = <any-char> - [*_`#\[\]@:]
-        (grammar)
+        :: grammar
 
         The backslash removes special meaning from any following character.
 
@@ -38,13 +38,13 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <text-char> = <literal-char> | <escaped-char>
             <text-span> = <text-char>+
             <identifier> = <letter> (<alphanumeric> | [._-])*
-        (grammar)
+        :: grammar
 
         Structural tokens:
             <blank-line> = <whitespace>* <line-break>
             <indent> = <whitespace>{4}
             <line-break> = \n
-        (grammar)
+        :: grammar
 
         Marker tokens:
             <dash> = -
@@ -61,14 +61,14 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <right-paren> = )
             <at-sign> = @
             <caret> = ^
-        (grammar)
+        :: grammar
 
     1.3. txxt Marker
 
         The double colon is the fundamental txxt marker used across multiple elements:
 
         <txxt-marker> = <double-colon>
-        (grammar)
+        :: grammar
 
         Usage contexts:
         - Annotations: `:: label :: content`
@@ -85,7 +85,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         Plain text content without special formatting:
 
         <text-content> = <text-span> (<whitespace> <text-span>)*
-        (grammar)
+        :: grammar
 
     2.2. Formatting Spans
 
@@ -93,19 +93,19 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Bold text:
             <bold-span> = <asterisk> <text-content> <asterisk>
-        (grammar)
+        :: grammar
 
         Italic text:
             <italic-span> = <underscore> <text-content> <underscore>
-        (grammar)
+        :: grammar
 
         Code text:
             <code-span> = <backtick> <text-content> <backtick>
-        (grammar)
+        :: grammar
 
         Math text:
             <math-span> = <hash> <text-content> <hash>
-        (grammar)
+        :: grammar
 
         Constraints:
         - No whitespace between markers and content
@@ -119,7 +119,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         Basic reference:
             <reference-content> = (<text-char> - [[\]])+
             <reference-span> = <left-bracket> <reference-content> <right-bracket>
-        (grammar)
+        :: grammar
 
         Citation reference:
             <citation-key> = <identifier>
@@ -130,16 +130,16 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <page-locator> = p <period>? <page-list> | pp <period>? <page-list>
             <citation-locator> = , <whitespace>* <page-locator>
             <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
-        (grammar)
+        :: grammar
 
         Page reference:
             <page-ref> = <left-bracket> <page-locator> <right-bracket>
-        (grammar)
+        :: grammar
 
         Session reference:
             <session-number> = <digit>+ (<period> <digit>+)*
             <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
-        (grammar)
+        :: grammar
 
         Footnote reference:
             <footnote-number> = <digit>+
@@ -147,7 +147,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <footnote-naked> = <left-bracket> <footnote-number> <right-bracket>
             <footnote-labeled> = <left-bracket> ^ <footnote-label> <right-bracket>
             <footnote-ref> = <footnote-naked> | <footnote-labeled>
-        (grammar)
+        :: grammar
 
 3. Line Elements
 
@@ -159,7 +159,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span> | <page-ref> | <session-ref> | <footnote-ref>
         <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
-        (grammar)
+        :: grammar
 
     3.2. Structural Lines
 
@@ -167,7 +167,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Blank line:
             <blank-line> = <whitespace>* <line-break>
-        (grammar)
+        :: grammar
 
 4. Block Markers
 
@@ -179,38 +179,38 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Plain style marker:
             <plain-marker> = <dash> <whitespace>
-        (grammar)
+        :: grammar
 
         Numerical style markers:
             <number> = <digit>+
             <numerical-marker> = <number> <period> <whitespace>
             <numerical-paren-marker> = <number> <right-paren> <whitespace>
-        (grammar)
+        :: grammar
 
         Alphabetical style markers:
             <letter-lower> = [a-z]
             <letter-upper> = [A-Z]
             <alphabetical-marker> = (<letter-lower> | <letter-upper>) <period> <whitespace>
             <alphabetical-paren-marker> = (<letter-lower> | <letter-upper>) <right-paren> <whitespace>
-        (grammar)
+        :: grammar
 
         Roman style markers:
             <roman-lower> = i | ii | iii | iv | v | vi | vii | viii | ix | x
             <roman-upper> = I | II | III | IV | V | VI | VII | VIII | IX | X
             <roman-marker> = (<roman-lower> | <roman-upper>) <period> <whitespace>
             <roman-paren-marker> = (<roman-lower> | <roman-upper>) <right-paren> <whitespace>
-        (grammar)
+        :: grammar
 
         Complete sequence marker:
             <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alphabetical-marker> | <alphabetical-paren-marker> | <roman-marker> | <roman-paren-marker>
-        (grammar)
+        :: grammar
 
     4.2. Annotation Markers
 
         txxt markers for metadata:
 
         <annotation-marker> = <txxt-marker>
-        (grammar)
+        :: grammar
 
     4.3. Verbatim Markers
 
@@ -221,14 +221,14 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <verbatim-label-line> = <txxt-marker> <label> <line-break>
         <verbatim-param-label-line> = <txxt-marker> <label> <colon> <parameter-list> <line-break>
         <verbatim-end> = <verbatim-label-line> | <verbatim-param-label-line>
-        (grammar)
+        :: grammar
 
     4.4. Definition Markers
 
         txxt markers at end of line:
 
         <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
-        (grammar)
+        :: grammar
 
 5. Block Elements
 
@@ -239,7 +239,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         One or more text lines terminated by blank line:
 
         <paragraph> = <text-line>+ <blank-line>?
-        (grammar)
+        :: grammar
 
     5.2. List Blocks
 
@@ -248,7 +248,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <list-item-content> = <text-line>
         <list-item> = <sequence-marker> <list-item-content>
         <list> = <list-item>{2,}
-        (grammar)
+        :: grammar
 
         **Critical disambiguation rule**: Lists require multiple items at the top level. Single items with markers are parsed as paragraphs to avoid ambiguity with dialog. However, single items are permitted within nested containers.
         
@@ -261,7 +261,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <session-numbering> = <sequence-marker>
         <session-title> = <session-numbering>? <text-line>
         <session> = <blank-line> <session-title> <blank-line> <session-container>
-        (grammar)
+        :: grammar
 
     5.4. Verbatim Blocks
 
@@ -281,7 +281,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         
         Complete verbatim block:
         <verbatim-block> = <inflow-verbatim> | <stretched-verbatim>
-        (grammar)
+        :: grammar
 
         Mode determination:
         - First non-blank content line at title-level + 4 spaces → In-flow
@@ -301,7 +301,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <definition-term> = <text-line> <definition-marker>
         <definition-content> = <container>
         <definition> = <definition-term> <definition-content>
-        (grammar)
+        :: grammar
 
     5.6. Annotation Blocks
 
@@ -311,11 +311,11 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <annotation-content> = <text-content>
             <annotation-label> = <label>
             <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>?
-        (grammar)
+        :: grammar
 
         Block annotation:
             <annotation-block> = <txxt-marker> <annotation-label> <txxt-marker> <line-break> <container>?
-        (grammar)
+        :: grammar
 
 6. Container Architecture
 
@@ -329,7 +329,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <indent-increase> = <indentation-level>{n+1}
         <indent-decrease> = <indentation-level>{n-k} (where k >= 1)
         <indent-same> = <indentation-level>{n}
-        (grammar)
+        :: grammar
 
     6.2. Container Types
 
@@ -337,18 +337,18 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Content container (cannot contain sessions):
             <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
-        (grammar)
+        :: grammar
 
         Session container (can contain sessions):
             <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
-        (grammar)
+        :: grammar
 
         Note: Within containers, single list items are allowed because they are nested, not at the top level.
 
         Ignore container (verbatim content only):
             <ignore-line> = <any-line>
             <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
-        (grammar)
+        :: grammar
 
 7. Document Structure
 
@@ -359,7 +359,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         A document is a session container at the root level:
 
         <document> = <annotation-block>* <session-container>
-        (grammar)
+        :: grammar
 
     7.2. Element Resolution
 
@@ -391,7 +391,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <quoted-string> = " (<text-char> | <escaped-char>)* "
         <parameter-pair> = <parameter-key> = <parameter-value>
         <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
-        (grammar)
+        :: grammar
 
     8.2. Parameter Integration
 
@@ -399,11 +399,11 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Parameterized annotation:
             <param-annotation> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker> <annotation-content>?
-        (grammar)
+        :: grammar
 
         Parameterized verbatim:
             <param-verbatim-end> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
-        (grammar)
+        :: grammar
 
 9. Precedence and Disambiguation
 

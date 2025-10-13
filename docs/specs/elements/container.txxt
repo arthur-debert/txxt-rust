@@ -112,16 +112,16 @@ Complete specification for containers - the foundational structural elements tha
 
         Content Container (cannot contain sessions):
             <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
-        (grammar)
+        :: grammar
 
         Session Container (can contain sessions):
             <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
-        (grammar)
+        :: grammar
 
         Ignore Container (verbatim content only):
             <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
             <ignore-line> = <any-line>
-        (grammar)
+        :: grammar
 
     5.2. Indentation Detection
 
@@ -129,7 +129,7 @@ Complete specification for containers - the foundational structural elements tha
             <indent-increase> = <current-indent> <indent-unit>
             <indent-unit> = <whitespace>{4}
             <current-indent> = <whitespace>{n*4}
-        (grammar)
+        :: grammar
 
 6. AST Structure
 
@@ -140,21 +140,21 @@ Complete specification for containers - the foundational structural elements tha
         │   ├── container_type: ContentContainer
         │   ├── content: Vec<Block>
         │   └── annotations: Vec<Annotation>
-    (tree)
+    :: tree
 
     Session Container AST:
         ├── Container  
         │   ├── container_type: SessionContainer
         │   ├── content: Vec<Block>
         │   └── annotations: Vec<Annotation>
-    (tree)
+    :: tree
 
     Ignore Container AST:
         ├── Container
         │   ├── container_type: IgnoreContainer
         │   ├── ignore_lines: Vec<IgnoreLine>
         │   └── blank_lines: Vec<BlankLine>
-    (tree)
+    :: tree
 
 7. Processing Rules
 

@@ -180,7 +180,7 @@ This document defines the standardized terminology used throughout txxt specific
             <paragraph> = <text-line>+
             <list-marker> = <dash> | <number> <period> | <letter> <period>
             <session-title> = (<number> <period>)? <text-span>+ <line-break>
-        (grammar)
+        :: grammar
 
     5.2. AST Tree Notation
 
@@ -194,7 +194,7 @@ This document defines the standardized terminology used throughout txxt specific
             │       └── list
             │           ├── list-item
             │           └── list-item
-        (tree)
+        :: tree
 
         Conventions:
         - `├──` indicates a child node
@@ -219,7 +219,7 @@ This document defines the standardized terminology used throughout txxt specific
             SequenceMarker: ^- \s
             AnnotationMarker: ::
             VerbatimStart: .+:\s*$
-        (regex)
+        :: regex
 
     5.4. Indentation Notation
 
@@ -229,7 +229,7 @@ This document defines the standardized terminology used throughout txxt specific
             Base level (column 0)
                 +1 indented (column 4)
                     +2 indented (column 8)
-        (indentation)
+        :: indentation
 
         - Each indentation level is exactly 4 spaces
         - `+n` indicates n levels of indentation from base

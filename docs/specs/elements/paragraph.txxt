@@ -77,7 +77,7 @@ Complete specification for paragraphs - the fundamental text blocks that contain
         │   ├── content: Vec<Inline>
         │   ├── annotations: Vec<Annotation>
         │   └── tokens: TokenSequence
-    (tree)
+    :: tree
 
     Key structural properties:
     - Content stored as sequence of inline elements

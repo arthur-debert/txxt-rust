@@ -24,4 +24,5 @@ mod debug_parameters;
 mod debug_underscore;
 mod debug_whitespace;
 mod parameter_span_bug;
+mod sequence_marker_span_bug;
 mod whitespace_loss_bug;

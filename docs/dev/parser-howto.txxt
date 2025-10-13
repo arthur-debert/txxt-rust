@@ -1,0 +1,142 @@
+Parser Implementation Guide
+
+This guide covers the implementation approach for the txxt parser, building on the comprehensive file structure established in Item 5.1.
+
+File Structure Overview
+
+The parser implementation follows a three-phase architecture that mirrors the specification structure:
+
+src/parser/
+├── pipeline/           # Three-phase processing pipeline
+│   ├── lexer.rs       # Phase 1: Tokenization wrapper
+│   ├── block_grouper.rs # Phase 2a: Block hierarchy
+│   ├── parser.rs      # Phase 2b: AST generation
+│   └── post_processor.rs # Phase 3: Final assembly
+├── elements/          # Element-specific parsers (mirrors docs/specs/elements/)
+│   ├── paragraph.rs   # Basic text blocks
+│   ├── session.rs     # Hierarchical sections
+│   ├── container.rs   # Content containers
+│   ├── verbatim.rs    # Code and literal blocks
+│   ├── list.rs        # Ordered and unordered lists
+│   ├── definition.rs  # Definition pairs
+│   ├── annotation.rs  # Metadata attachments
+│   └── inlines/       # Inline element parsers
+├── core/              # Shared parsing utilities
+│   ├── indentation.rs # Indentation handling
+│   ├── line_grouping.rs # Line organization
+│   └── span_utils.rs  # Token span management
+└── infrastructure/    # Error handling and validation
+
+src/ast/
+├── base.rs           # Core AST types (Document, Block, etc.)
+├── nodes/            # Element-specific AST nodes (mirrors docs/specs/elements/)
+│   ├── paragraph.rs  # Paragraph AST structures
+│   ├── session.rs    # Session AST structures
+│   ├── container.rs  # Container AST structures
+│   └── inlines/      # Inline AST nodes
+└── detokenizer.rs    # AST → source reconstruction
+
+Core Implementation Principles
+
+AST Specification Alignment
+
+Each AST node must precisely reflect its corresponding specification in docs/specs/elements/. The parser validates both syntactic structure and semantic constraints defined in the specs.
+
+Key requirements:
+- Token-level precision for source reconstruction
+- Parameter validation according to element specs
+- Proper handling of nested structures
+- Annotation attachment using proximity rules
+
+Testing with TxxtCorpora
+
+All parser implementations must use the TxxtCorpora testing framework established in tests/corpora.rs and tests/parser_integration.rs.
+
+Testing approach:
+- Use txxt files from txxt-documents-clean/ directory
+- Implement tests for each processing stage: tokenization → block grouping → parsing → post-processing
+- Test both valid cases and error conditions
+- Verify round-trip consistency (source → AST → source)
+
+Example test pattern:
+```rust
+#[rstest]
+#[case::simple("paragraph-basic.txxt")]
+#[case::with_params("paragraph-params.txxt")]
+fn test_paragraph_parsing(#[case] corpus_file: &str) {
+    let corpus = load_corpus(corpus_file);
+    // Test parsing stages...
+}
+```
+
+Implementation Order (Item 6.1)
+
+The implementation should proceed in this order for systematic development:
+
+Phase 1: Foundation
+1. Complete pipeline infrastructure (block_grouper, parser coordination)
+2. Implement core utilities (indentation, line_grouping, span_utils)
+3. Set up error handling and validation framework
+
+Phase 2: Basic Elements (Isolated)
+1. Paragraph parsing - simplest block element
+2. Session parsing - hierarchical structure foundation
+3. Verbatim parsing - literal content handling
+4. Blankline processing - document structure
+
+Phase 3: Container Elements
+1. Basic containers without nesting
+2. Container nesting and indentation rules
+3. Container parameter handling
+
+Phase 4: Structured Elements
+1. List parsing (ordered/unordered)
+2. Definition parsing (term/description pairs)
+3. Annotation parsing and proximity attachment
+
+Phase 5: Inline Elements
+1. Basic inline text processing
+2. Formatting delimiters (emphasis, strong, math)
+3. Reference processing (citations, footnotes, sessions, pages)
+
+Phase 6: Complex Integration
+1. Multi-element documents
+2. Cross-reference resolution
+3. Annotation proximity rules
+4. Document metadata assembly
+
+Phase 7: Advanced Features
+1. Error recovery and partial parsing
+2. Performance optimization
+3. Detailed error reporting with source locations
+
+Testing Strategy for Each Phase
+
+For each element implementation:
+
+1. Start with simplest valid cases from corpora
+2. Add parameter variations
+3. Test indentation and nesting
+4. Test error conditions and edge cases
+5. Verify round-trip consistency
+6. Test integration with other elements
+
+Development Workflow
+
+1. Pick next element from implementation order
+2. Study corresponding specification in docs/specs/elements/
+3. Implement AST node in src/ast/nodes/
+4. Implement parser in src/parser/elements/
+5. Write comprehensive tests using TxxtCorpora
+6. Verify all tests pass including existing regression tests
+7. Update documentation if needed
+8. Commit with clear atomic changes
+
+Key Files to Reference
+
+- docs/specs/ - Authoritative element specifications
+- src/tokenizer/ - Completed tokenization implementation
+- tests/corpora.rs - TxxtCorpora testing framework
+- tests/parser_integration.rs - Integration test patterns
+
+The goal is systematic, specification-driven implementation that maintains the high quality established in the tokenizer phase.

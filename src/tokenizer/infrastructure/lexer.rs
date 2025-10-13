@@ -181,6 +181,7 @@ impl Lexer {
         }
 
         // Simple parameter integration - just detect and split label:params patterns
+        // Use original integration for now until we fix the new one
         tokens = integrate_annotation_parameters(tokens, self);
         tokens = integrate_definition_parameters(tokens, self);
 

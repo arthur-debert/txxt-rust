@@ -15,6 +15,7 @@
 
 use crate::ast::tokens::Token;
 use crate::parser::pipeline::BlockGroup;
+use crate::tokenizer::indentation::INDENT_SIZE;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;
@@ -25,13 +26,16 @@ impl Detokenizer {
         Self
     }
 
-    /// Reconstruct source text from a flat list of tokens
+    /// Reconstruct source text from tokens
     ///
-    /// This produces text that, when re-tokenized, yields the same tokens.
-    /// The output may differ from the original source in non-tokenized content.
+    /// This method takes a flat list of tokens and reconstructs the source text.
+    /// It tracks indentation levels using Indent/Dedent tokens to properly
+    /// reconstruct the hierarchical structure.
     pub fn detokenize_tokens(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&Token> = None;
+        let mut indent_level: usize = 0;
+        let mut at_line_start = true;
 
         for token in tokens {
             // Handle parameter separators based on previous token
@@ -66,13 +70,44 @@ impl Detokenizer {
                 }
 
                 prev_token = Some(token);
+                at_line_start = false;
                 continue;
             }
 
-            // With explicit Whitespace tokens, we don't need to track indent levels
-            // or add spacing heuristics - just append each token
+            // Track indentation level changes
+            match token {
+                Token::Indent { .. } => {
+                    indent_level += 1;
+                    continue;
+                }
+                Token::Dedent { .. } => {
+                    indent_level = indent_level.saturating_sub(1);
+                    continue;
+                }
+                _ => {}
+            }
+
+            // Add indentation at the start of lines (skip Whitespace at line start)
+            if at_line_start && !matches!(token, Token::Whitespace { .. }) {
+                let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
+                result.push_str(&indent_ws);
+                at_line_start = false;
+            }
+
+            // Skip whitespace tokens at the start of lines as they represent
+            // the original indentation that we're replacing
+            if at_line_start && matches!(token, Token::Whitespace { .. }) {
+                continue;
+            }
+
+            // Append the token
             self.append_token(&mut result, token)?;
             prev_token = Some(token);
+
+            // Track if we just added a newline
+            if matches!(token, Token::Newline { .. } | Token::BlankLine { .. }) {
+                at_line_start = true;
+            }
         }
 
         Ok(result)
@@ -93,18 +128,77 @@ impl Detokenizer {
         &self,
         result: &mut String,
         block: &BlockGroup,
-        _indent_level: usize,
+        indent_level: usize,
     ) -> Result<(), DetokenizeError> {
-        // First, append all tokens at this level
+        // Track whether we're at the start of a line
+        let mut at_line_start = result.is_empty() || result.ends_with('\n');
+        let mut prev_token: Option<&Token> = None;
+
+        // Process all tokens at this level
         for token in &block.tokens {
-            // With explicit Whitespace tokens, we don't need to add indentation
+            // Handle parameter tokens specially for separator logic
+            if let Token::Parameter { key, value, .. } = token {
+                // Add appropriate separator before parameter
+                if let Some(prev) = prev_token {
+                    match prev {
+                        Token::VerbatimLabel { .. } => {
+                            result.push(':'); // First param after verbatim label
+                        }
+                        Token::Colon { .. } => {
+                            // After a colon in annotation context, no separator needed
+                        }
+                        Token::Parameter { .. } => {
+                            result.push(','); // Subsequent params
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Add the parameter
+                result.push_str(key);
+                result.push('=');
+
+                // Check if value needs quotes
+                if value.contains(' ') || value.contains(',') || value.contains('=') {
+                    result.push('"');
+                    result.push_str(value);
+                    result.push('"');
+                } else {
+                    result.push_str(value);
+                }
+
+                prev_token = Some(token);
+                at_line_start = false;
+                continue;
+            }
+
+            // Add indentation at the start of each line
+            if at_line_start && !matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
+                // For child blocks, skip leading whitespace tokens as they represent
+                // the original indentation that we're replacing
+                if indent_level > 0 && matches!(token, Token::Whitespace { .. }) {
+                    continue;
+                }
+
+                // Add the correct indentation based on block depth
+                let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
+                result.push_str(&indent_ws);
+                at_line_start = false;
+            }
+
+            // Append the token
             self.append_token(result, token)?;
+            prev_token = Some(token);
+
+            // Track if we just added a newline
+            if matches!(token, Token::Newline { .. } | Token::BlankLine { .. }) {
+                at_line_start = true;
+            }
         }
 
-        // Then, process each child
+        // Process all children with increased indentation
         for child in &block.children {
-            // Note: indent_level is no longer needed with explicit Whitespace tokens
-            self.append_block_group(result, child, 0)?;
+            self.append_block_group(result, child, indent_level + 1)?;
         }
 
         Ok(())
@@ -205,11 +299,9 @@ impl Detokenizer {
                 result.push_str(content);
             }
             Token::Parameter { .. } => {
-                // Parameters are handled specially in detokenize_tokens
-                // to manage separators correctly
-                return Err(DetokenizeError::InvalidBlockStructure(
-                    "Parameter tokens should be handled in detokenize_tokens".to_string(),
-                ));
+                // Parameters are handled specially in append_block_group
+                // This case should not be reached
+                unreachable!("Parameter tokens should be handled in append_block_group");
             }
             Token::BoldDelimiter { .. } => {
                 result.push('*');
@@ -239,6 +331,8 @@ impl Detokenizer {
                 result.push(']');
             }
             Token::Whitespace { content, .. } => {
+                // Whitespace tokens represent inline spacing (not indentation)
+                // Indentation is reconstructed from the BlockGroup hierarchy
                 result.push_str(content);
             }
             Token::Eof { .. } => {

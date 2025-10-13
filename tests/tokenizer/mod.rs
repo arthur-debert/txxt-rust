@@ -30,5 +30,6 @@ mod debug_whitespace;
 mod parameter_span_bug;
 mod sequence_marker_span_bug;
 mod unicode_span_tests;
+mod verbatim_false_positive;
 mod verify_unicode_handling;
 mod whitespace_loss_bug;

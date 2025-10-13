@@ -197,3 +197,35 @@ pub struct BlankLine {
     /// Source position information
     pub tokens: TokenSequence,
 }
+
+/// Ignore line - raw verbatim content preserved exactly
+///
+/// Ignore lines contain content that should not be parsed as TXXT.
+/// They are used within IgnoreContainer to hold verbatim block content
+/// while preserving exact spacing and formatting.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoreLine {
+    /// Raw content preserved byte-for-byte
+    pub content: String,
+
+    /// Source position information
+    pub tokens: TokenSequence,
+}
+
+/// Ignore container - container for verbatim content only
+///
+/// Ignore containers follow the container architecture but hold only
+/// ignore lines and blank lines. They are used exclusively for verbatim
+/// block content to preserve formatting exactly while maintaining the
+/// consistent container structure.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoreContainer {
+    /// Raw content lines preserved exactly
+    pub ignore_lines: Vec<IgnoreLine>,
+
+    /// Blank lines within verbatim content
+    pub blank_lines: Vec<BlankLine>,
+
+    /// Annotations attached to this container
+    pub annotations: Vec<Annotation>,
+}

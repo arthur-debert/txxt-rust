@@ -1,0 +1,61 @@
+:: title :: Tokenizer Span Calculation Issues
+
+This document summarizes span calculation bugs found in the tokenizer subsystem.
+
+== Common Pattern ==
+
+Multiple tokenizers calculate end positions by adding string length to column position:
+
+[@ code @]
+end: Position {
+    row: start_pos.row,
+    column: start_pos.column + content.len(),
+}
+[@@]
+
+This pattern is incorrect because:
+- It assumes single-byte characters
+- Column positions should count Unicode characters, not bytes
+- Multi-byte characters (emojis, accented letters) will cause incorrect spans
+
+== Affected Components ==
+
+=== 1. Parameter Tokenizer (Bug #23) ===
+
+Location :: src/tokenizer/parameters.rs
+Issue :: Creates all tokens at position (0, 0) instead of tracking actual position
+Status :: Infrastructure for fix created, needs completion
+
+=== 2. Sequence Marker Tokenizer ===
+
+Location :: src/tokenizer/infrastructure/markers/sequence.rs
+Issue :: Calculates end position using `column + marker.len()`
+Examples ::
+- Plain marker: `column + 1`
+- Numerical: `column + marker.len()`
+- Alphabetical: `column + marker.len()`
+- Roman: `column + marker.len()`
+
+=== 3. Parameter Integration Module ===
+
+Location :: src/tokenizer/infrastructure/markers/parameter_integration.rs
+Issue :: Also uses `column + colon_pos` and similar patterns
+
+== Root Cause ==
+
+The tokenizer subsystem was designed with character-level position tracking, but some components incorrectly use byte-length arithmetic for span calculation.
+
+== Solution ==
+
+All tokenizers should:
+1. Track position using the lexer's `current_position()` method
+2. Never calculate positions using string length
+3. Use lexer's advance methods which properly update row/column
+
+== Test Coverage ==
+
+New tests added:
+- tests/tokenizer/parameter_span_bug.rs
+- tests/tokenizer/sequence_marker_span_bug.rs
+
+These tests demonstrate the bugs and will verify fixes.

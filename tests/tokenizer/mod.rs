@@ -18,3 +18,15 @@ mod session;
 mod core;
 mod inline;
 mod verbatim;
+
+// Bug reproduction tests
+mod comprehensive_span_audit;
+mod debug_parameters;
+mod debug_underscore;
+mod debug_unicode_positions;
+mod debug_whitespace;
+mod parameter_span_bug;
+mod sequence_marker_span_bug;
+mod unicode_span_tests;
+mod verify_unicode_handling;
+mod whitespace_loss_bug;

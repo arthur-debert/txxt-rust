@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+process_txxt() {
+    local file="$1"
+    
+    # Check if file exists
+    if [[ ! -f "${file}" ]]; then
+        echo "File not found: ${file}" >&2
+        exit 1
+    fi
+    
+    # Read first three lines
+    local line1 line2 line3
+    {
+        IFS= read -r line1 || { echo "Cannot read title line" >&2; exit 1; }
+        IFS= read -r line2 || { echo "Cannot read blank line" >&2; exit 1; }
+        IFS= read -r line3 || { echo "Cannot read first body line" >&2; exit 1; }
+    } < "${file}"
+    
+    # Check: first line has content, second line is blank, third line has content
+    if [[ -n "${line1}" && -z "${line2}" && -n "${line3}" ]]; then
+        # Extract title and body
+        local title="${line1}"
+        local body
+        body=$(tail -n +3 "${file}")
+        
+        echo "TITLE:${title}"
+        echo "BODY:${body}"
+        return 0
+    fi
+    
+    echo "Invalid txxt format: title, blank line, body required" >&2
+    exit 1
+}
+
+check_issue_exists() {
+    local title="$1"
+    
+    # Use simple gh issue list with grep to check for existing issues
+    local existing_issue
+    existing_issue=$(gh issue list --limit 100 --json number,title,url | jq -r --arg title "${title}" '.[] | select(.title == $title) | "#\(.number) \(.title) \(.url)"' | head -1)
+    
+    if [[ -n "${existing_issue}" ]]; then
+        echo "ISSUE_EXISTS:${existing_issue}"
+        return 0
+    else
+        return 1
+    fi
+}
+
+create_gh_issue() {
+    local title="$1"
+    local body="$2"
+    
+    gh issue create --title "${title}" --body "${body}"
+}
+
+main() {
+    local file="$1"
+    
+    # Get title and body from txxt file
+    local output
+    output=$(process_txxt "${file}")
+    
+    local title body
+    title=$(echo "${output}" | grep "^TITLE:" | cut -d: -f2-)
+    body=$(echo "${output}" | grep -A 999 "^BODY:" | tail -n +1 | cut -d: -f2-)
+    
+    # Check if issue exists
+    if check_issue_exists "${title}"; then
+        return 0
+    fi
+    
+    # Create new issue
+    create_gh_issue "${title}" "${body}"
+}
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 <file>" >&2
+    exit 1
+fi
+
+main "$1"

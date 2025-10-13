@@ -3,8 +3,70 @@
 //! These tests verify the detokenizer can handle complex, realistic txxt documents
 //! using examples from the walkthrough documentation.
 
+use txxt::ast::tokens::Token;
 use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::tokenize;
+
+/// Compare tokens for equality (ignoring source spans)
+fn tokens_equal(t1: &Token, t2: &Token) -> bool {
+    use Token::*;
+    match (t1, t2) {
+        (Text { content: c1, .. }, Text { content: c2, .. }) => c1 == c2,
+        (Newline { .. }, Newline { .. }) => true,
+        (BlankLine { .. }, BlankLine { .. }) => true,
+        (Indent { .. }, Indent { .. }) => true,
+        (Dedent { .. }, Dedent { .. }) => true,
+        (
+            SequenceMarker {
+                marker_type: m1, ..
+            },
+            SequenceMarker {
+                marker_type: m2, ..
+            },
+        ) => m1 == m2,
+        (AnnotationMarker { content: c1, .. }, AnnotationMarker { content: c2, .. }) => c1 == c2,
+        (DefinitionMarker { content: c1, .. }, DefinitionMarker { content: c2, .. }) => c1 == c2,
+        (Dash { .. }, Dash { .. }) => true,
+        (Period { .. }, Period { .. }) => true,
+        (LeftBracket { .. }, LeftBracket { .. }) => true,
+        (RightBracket { .. }, RightBracket { .. }) => true,
+        (AtSign { .. }, AtSign { .. }) => true,
+        (LeftParen { .. }, LeftParen { .. }) => true,
+        (RightParen { .. }, RightParen { .. }) => true,
+        (Colon { .. }, Colon { .. }) => true,
+        (Identifier { content: c1, .. }, Identifier { content: c2, .. }) => c1 == c2,
+        (RefMarker { content: c1, .. }, RefMarker { content: c2, .. }) => c1 == c2,
+        (
+            FootnoteRef {
+                footnote_type: f1, ..
+            },
+            FootnoteRef {
+                footnote_type: f2, ..
+            },
+        ) => f1 == f2,
+        (VerbatimTitle { content: c1, .. }, VerbatimTitle { content: c2, .. }) => c1 == c2,
+        (VerbatimContent { content: c1, .. }, VerbatimContent { content: c2, .. }) => c1 == c2,
+        (VerbatimLabel { content: c1, .. }, VerbatimLabel { content: c2, .. }) => c1 == c2,
+        (
+            Parameter {
+                key: k1, value: v1, ..
+            },
+            Parameter {
+                key: k2, value: v2, ..
+            },
+        ) => k1 == k2 && v1 == v2,
+        (BoldDelimiter { .. }, BoldDelimiter { .. }) => true,
+        (ItalicDelimiter { .. }, ItalicDelimiter { .. }) => true,
+        (CodeDelimiter { .. }, CodeDelimiter { .. }) => true,
+        (MathDelimiter { .. }, MathDelimiter { .. }) => true,
+        (CitationRef { content: c1, .. }, CitationRef { content: c2, .. }) => c1 == c2,
+        (PageRef { content: c1, .. }, PageRef { content: c2, .. }) => c1 == c2,
+        (SessionRef { content: c1, .. }, SessionRef { content: c2, .. }) => c1 == c2,
+        (Whitespace { content: c1, .. }, Whitespace { content: c2, .. }) => c1 == c2,
+        (Eof { .. }, Eof { .. }) => true,
+        _ => false,
+    }
+}
 
 /// Helper to verify round-trip tokenization
 fn verify_detokenizer_round_trip(original: &str) {
@@ -15,20 +77,35 @@ fn verify_detokenizer_round_trip(original: &str) {
         .expect("Detokenization should succeed");
     let tokens2 = tokenize(&reconstructed);
 
-    // Compare token counts
-    assert_eq!(
-        tokens1.len(),
-        tokens2.len(),
-        "Token count mismatch for input:\n{}\nReconstructed:\n{}",
-        original,
-        reconstructed
-    );
+    // Compare tokens one by one to find exact mismatch
+    let max_len = tokens1.len().max(tokens2.len());
+    for i in 0..max_len {
+        let t1_opt = tokens1.get(i);
+        let t2_opt = tokens2.get(i);
 
-    // For debugging: if tokens don't match, show the differences
-    if tokens1 != tokens2 {
-        eprintln!("Original tokens: {:?}", tokens1);
-        eprintln!("Reconstructed tokens: {:?}", tokens2);
-        panic!("Token mismatch");
+        match (t1_opt, t2_opt) {
+            (Some(t1), Some(t2)) => {
+                if !tokens_equal(t1, t2) {
+                    panic!(
+                        "Token mismatch at position {}:\n  Expected: {:?}\n  Got:      {:?}\n\nOriginal:\n{}\n\nReconstructed:\n{}",
+                        i, t1, t2, original, reconstructed
+                    );
+                }
+            }
+            (Some(t1), None) => {
+                panic!(
+                    "Missing token at position {}:\n  Expected: {:?}\n  Got:      MISSING\n\nOriginal:\n{}\n\nReconstructed:\n{}",
+                    i, t1, original, reconstructed
+                );
+            }
+            (None, Some(t2)) => {
+                panic!(
+                    "Extra token at position {}:\n  Expected: MISSING\n  Got:      {:?}\n\nOriginal:\n{}\n\nReconstructed:\n{}",
+                    i, t2, original, reconstructed
+                );
+            }
+            (None, None) => break,
+        }
     }
 }
 

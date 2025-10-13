@@ -735,15 +735,8 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
             }
         }
 
-        // Advance past the newline at end of terminator
-        if let Some(ch) = self.peek() {
-            if ch == '\n' || ch == '\r' {
-                self.advance();
-                if ch == '\r' && self.peek() == Some('\n') {
-                    self.advance(); // Handle CRLF
-                }
-            }
-        }
+        // Don't advance past the newline at end of terminator
+        // The newline should be tokenized separately, potentially as part of a BlankLine
 
         tokens
     }

@@ -87,7 +87,17 @@ impl Detokenizer {
                 _ => {}
             }
 
-            // Add indentation at the start of lines (skip Whitespace at line start)
+            // Handle BlankLine tokens specially to ensure correct indentation
+            if let Token::BlankLine { whitespace, .. } = token {
+                // For blank lines, preserve the whitespace as-is since it's part of the blank line
+                result.push_str(whitespace);
+                result.push('\n');
+                at_line_start = true;
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Add indentation at the start of lines (but not for certain tokens)
             if at_line_start && !matches!(token, Token::Whitespace { .. }) {
                 let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
                 result.push_str(&indent_ws);
@@ -105,7 +115,7 @@ impl Detokenizer {
             prev_token = Some(token);
 
             // Track if we just added a newline
-            if matches!(token, Token::Newline { .. } | Token::BlankLine { .. }) {
+            if matches!(token, Token::Newline { .. }) {
                 at_line_start = true;
             }
         }
@@ -172,6 +182,16 @@ impl Detokenizer {
                 continue;
             }
 
+            // Handle BlankLine tokens specially
+            if let Token::BlankLine { whitespace, .. } = token {
+                // For blank lines, preserve the whitespace as-is
+                result.push_str(whitespace);
+                result.push('\n');
+                at_line_start = true;
+                prev_token = Some(token);
+                continue;
+            }
+
             // Add indentation at the start of each line
             if at_line_start && !matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
                 // For child blocks, skip leading whitespace tokens as they represent
@@ -191,7 +211,7 @@ impl Detokenizer {
             prev_token = Some(token);
 
             // Track if we just added a newline
-            if matches!(token, Token::Newline { .. } | Token::BlankLine { .. }) {
+            if matches!(token, Token::Newline { .. }) {
                 at_line_start = true;
             }
         }
@@ -297,6 +317,8 @@ impl Detokenizer {
                 result.push_str("::");
                 result.push(' ');
                 result.push_str(content);
+                // Note: VerbatimLabel tokens don't include a trailing newline
+                // The newline after a label comes as a separate Newline token
             }
             Token::Parameter { .. } => {
                 // Parameters are handled specially in append_block_group

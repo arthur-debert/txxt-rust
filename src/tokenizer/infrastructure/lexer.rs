@@ -4,6 +4,7 @@
 //! positioning for language server support.
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::tokenizer::indentation::IndentationTracker;
 use crate::tokenizer::infrastructure::markers::{
     sequence::read_sequence_marker,
     txxt_marker::{
@@ -32,6 +33,7 @@ pub struct Lexer {
     pub(crate) position: usize,
     pub(crate) row: usize,
     pub(crate) column: usize,
+    pub(crate) indent_tracker: IndentationTracker,
 }
 
 impl Lexer {
@@ -42,6 +44,7 @@ impl Lexer {
             position: 0,
             row: 0,
             column: 0,
+            indent_tracker: IndentationTracker::new(),
         }
     }
 
@@ -61,6 +64,26 @@ impl Lexer {
             {
                 tokens.extend(verbatim_tokens);
                 continue;
+            }
+
+            // Process indentation at column 0 (start of line), but skip verbatim content lines
+            if self.column == 0 {
+                // Check if this line is part of verbatim content that should be skipped
+                let current_line = self.row + 1; // Convert to 1-based line numbers for verbatim scanner
+                let is_verbatim_content =
+                    verbatim_scanner.is_verbatim_content(current_line, &verbatim_blocks);
+
+                if !is_verbatim_content {
+                    // Get the current line for indentation processing
+                    if let Some(line) = self.get_current_line() {
+                        // Update indentation tracker position
+                        self.indent_tracker.set_position(self.current_position());
+
+                        // Process line indentation and emit Indent/Dedent tokens
+                        let indent_tokens = self.indent_tracker.process_line_indentation(&line);
+                        tokens.extend(indent_tokens);
+                    }
+                }
             }
 
             // Try to read sequence marker only at column 0 (start of line)
@@ -158,6 +181,10 @@ impl Lexer {
         // Simple parameter integration - just detect and split label:params patterns
         tokens = integrate_annotation_parameters(tokens, self);
         tokens = integrate_definition_parameters(tokens, self);
+
+        // Finalize indentation processing (emit remaining dedents)
+        let final_indent_tokens = self.indent_tracker.finalize();
+        tokens.extend(final_indent_tokens);
 
         // Add EOF token
         tokens.push(Token::Eof {
@@ -628,6 +655,35 @@ impl Lexer {
     /// Check if we're at the end of input
     pub fn is_at_end(&self) -> bool {
         self.position >= self.input.len()
+    }
+
+    /// Get the current line as a string (for indentation processing)
+    ///
+    /// Returns the entire line that the current position is on, starting from
+    /// the beginning of the line to the end of the line (or end of input).
+    fn get_current_line(&self) -> Option<String> {
+        if self.is_at_end() {
+            return None;
+        }
+
+        // Find the start of the current line
+        let mut line_start = self.position;
+        while line_start > 0 && self.input[line_start - 1] != '\n' {
+            line_start -= 1;
+        }
+
+        // Find the end of the current line
+        let mut line_end = self.position;
+        while line_end < self.input.len()
+            && self.input[line_end] != '\n'
+            && self.input[line_end] != '\r'
+        {
+            line_end += 1;
+        }
+
+        // Extract the line
+        let line: String = self.input[line_start..line_end].iter().collect();
+        Some(line)
     }
 
     /// Peek at the current character without advancing

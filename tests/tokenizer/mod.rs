@@ -18,3 +18,7 @@ mod session;
 mod core;
 mod inline;
 mod verbatim;
+
+// Bug reproduction tests
+mod debug_whitespace;
+mod whitespace_loss_bug;

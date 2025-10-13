@@ -122,8 +122,10 @@ impl Lexer {
             // Handle other whitespace (spaces and tabs)
             if let Some(ch) = self.peek() {
                 if ch == ' ' || ch == '\t' {
-                    self.advance();
-                    continue;
+                    if let Some(token) = self.read_whitespace() {
+                        tokens.push(token);
+                        continue;
+                    }
                 }
             }
 
@@ -580,6 +582,33 @@ impl Lexer {
         }
 
         None
+    }
+
+    /// Read whitespace token (spaces and tabs, but not newlines)
+    fn read_whitespace(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+        let mut content = String::new();
+
+        while let Some(ch) = self.peek() {
+            if ch == ' ' || ch == '\t' {
+                content.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        if content.is_empty() {
+            None
+        } else {
+            Some(Token::Whitespace {
+                content,
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            })
+        }
     }
 
     /// Read a blank line token (line containing only whitespace, NOT including line break)  

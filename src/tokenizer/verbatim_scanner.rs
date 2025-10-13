@@ -343,6 +343,11 @@ impl VerbatimScanner {
             };
         }
 
+        // Check if this line is an annotation - if so, this is NOT a verbatim block
+        if self.annotation_re.is_match(line) {
+            return ScanState::ScanningNormal;
+        }
+
         let line_indent = self.calculate_indentation(line);
 
         // Check for terminator immediately after title (empty verbatim block)

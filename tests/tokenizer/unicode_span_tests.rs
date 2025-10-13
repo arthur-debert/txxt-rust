@@ -371,7 +371,7 @@ fn get_token_span(token: &Token) -> &txxt::ast::tokens::SourceSpan {
         | Token::Dash { span }
         | Token::Period { span }
         | Token::Newline { span }
-        | Token::BlankLine { span }
+        | Token::BlankLine { span, .. }
         | Token::Whitespace { span, .. }
         | Token::Parameter { span, .. }
         | Token::RefMarker { span, .. }

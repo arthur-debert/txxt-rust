@@ -100,7 +100,11 @@ pub enum Token {
     Newline { span: SourceSpan },
 
     /// Blank line (empty line with possible whitespace)
-    BlankLine { span: SourceSpan },
+    BlankLine {
+        /// The whitespace content of the blank line (spaces/tabs before the newline)
+        whitespace: String,
+        span: SourceSpan,
+    },
 
     /// Indentation increase
     Indent { span: SourceSpan },
@@ -204,7 +208,7 @@ impl Token {
             Token::Text { span, .. } => span,
             Token::Whitespace { span, .. } => span,
             Token::Newline { span } => span,
-            Token::BlankLine { span } => span,
+            Token::BlankLine { span, .. } => span,
             Token::Indent { span } => span,
             Token::Dedent { span } => span,
             Token::SequenceMarker { span, .. } => span,
@@ -259,7 +263,7 @@ impl Token {
             Token::PageRef { content, .. } => content,
             Token::SessionRef { content, .. } => content,
             Token::Newline { .. } => "\n",
-            Token::BlankLine { .. } => "\n",
+            Token::BlankLine { whitespace, .. } => whitespace,
             Token::Indent { .. } => "",
             Token::Dedent { .. } => "",
             Token::Dash { .. } => "-",

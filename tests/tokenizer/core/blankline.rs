@@ -33,7 +33,7 @@ fn test_blankline_isolated_passing(#[case] input: &str) {
     );
 
     match blankline_tokens[0] {
-        Token::BlankLine { span } => {
+        Token::BlankLine { span, .. } => {
             assert_eq!(span.start.row, 1); // After first newline
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2); // Before second newline
@@ -121,7 +121,7 @@ fn test_blankline_with_structured_content(#[case] input: &str) {
 
     // BlankLine should be between structured elements
     match blankline_tokens[0] {
-        Token::BlankLine { span } => {
+        Token::BlankLine { span, .. } => {
             assert_eq!(span.start.row, 1); // After first line
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2); // Before second line
@@ -268,7 +268,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::BlankLine { span } = token {
+            if let Token::BlankLine { span, .. } = token {
                 // Blank lines should span from after first newline to before next content
                 prop_assert_eq!(span.start.row, 1,
                     "BlankLine should start on row 1 (after first newline)");

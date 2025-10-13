@@ -97,14 +97,9 @@ impl Lexer {
             // Try to read blank lines when at column 0 (start of line)
             if self.column == 0 {
                 if let Some(token) = self.read_blankline() {
-                    // Check if the last token was also a BlankLine and merge them
-                    if let Some(Token::BlankLine { span: last_span }) = tokens.last_mut() {
-                        // Extend the span of the existing BlankLine to include this new one
-                        last_span.end = token.span().end;
-                    } else {
-                        // This is the first BlankLine or follows a different token type
-                        tokens.push(token);
-                    }
+                    // Don't merge blank lines - each one should be preserved separately
+                    // to maintain exact whitespace content
+                    tokens.push(token);
                     continue;
                 }
             }
@@ -208,7 +203,7 @@ impl Lexer {
         let start_pos = self.current_position();
         let mut content = String::new();
 
-        // Don't start text with delimiter characters or dash
+        // Don't start text with delimiter characters or dash (unless it's a backslash)
         if let Some(ch) = self.peek() {
             if ch == '*' || ch == '_' || ch == '`' || ch == '#' || ch == '-' {
                 return None;
@@ -216,7 +211,36 @@ impl Lexer {
         }
 
         while let Some(ch) = self.peek() {
-            if ch.is_alphanumeric() || ch == '^' {
+            if ch == '\\' {
+                // Handle escape sequences
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    // Check if next character is a special character that should be escaped
+                    if next_ch == '*'
+                        || next_ch == '_'
+                        || next_ch == '`'
+                        || next_ch == '#'
+                        || next_ch == '-'
+                        || next_ch == '\\'
+                        || next_ch == '['
+                        || next_ch == ']'
+                    {
+                        // Include both backslash and the escaped character
+                        content.push(ch);
+                        self.advance();
+                        content.push(next_ch);
+                        self.advance();
+                    } else {
+                        // Backslash not followed by special character, just include it
+                        content.push(ch);
+                        self.advance();
+                    }
+                } else {
+                    // Backslash at end of input, include it
+                    content.push(ch);
+                    self.advance();
+                }
+            } else if ch.is_alphanumeric() || ch == '^' {
                 // Include alphanumeric and caret characters
                 content.push(ch);
                 self.advance();
@@ -636,10 +660,12 @@ impl Lexer {
         let saved_position = self.position;
         let saved_row = self.row;
         let saved_column = self.column;
+        let mut whitespace_content = String::new();
 
         // Collect any whitespace on this line
         while let Some(ch) = self.peek() {
             if ch == ' ' || ch == '\t' {
+                whitespace_content.push(ch);
                 self.advance();
             } else {
                 break;
@@ -653,6 +679,7 @@ impl Lexer {
                 // This is a blank line - consume the newline
                 self.advance(); // Consume \n
                 return Some(Token::BlankLine {
+                    whitespace: whitespace_content,
                     span: SourceSpan {
                         start: start_pos,
                         end: self.current_position(),
@@ -665,6 +692,7 @@ impl Lexer {
                     self.advance(); // Consume \n
                 }
                 return Some(Token::BlankLine {
+                    whitespace: whitespace_content,
                     span: SourceSpan {
                         start: start_pos,
                         end: self.current_position(),
@@ -676,6 +704,7 @@ impl Lexer {
         // Also handle end of file after whitespace-only content
         if self.is_at_end() && self.position > saved_position {
             return Some(Token::BlankLine {
+                whitespace: whitespace_content,
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

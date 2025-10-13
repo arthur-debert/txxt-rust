@@ -251,7 +251,7 @@ fn get_span(token: &Token) -> &SourceSpan {
         | Token::CodeDelimiter { span }
         | Token::MathDelimiter { span }
         | Token::Newline { span }
-        | Token::BlankLine { span }
+        | Token::BlankLine { span, .. }
         | Token::LeftBracket { span }
         | Token::RightBracket { span }
         | Token::Colon { span }

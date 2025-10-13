@@ -62,6 +62,9 @@ impl Detokenizer {
     }
 
     /// Add appropriate spacing between tokens
+    /// 
+    /// TODO: This is a workaround for issue #24 - tokenizer drops whitespace
+    /// We use heuristics to add spaces where they likely should be.
     fn add_spacing(&self, result: &mut String, prev: &Token, curr: &Token) {
         use Token::*;
 

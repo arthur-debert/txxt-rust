@@ -9,7 +9,6 @@ use txxt::tokenizer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
 #[test]
-#[ignore = "Unicode + inline marker tokenization needs systematic fix"]
 fn test_all_tokenizers_with_emoji() {
     // This test verifies that inline markers and special delimiters are properly
     // recognized after Unicode characters, and that column positions are calculated
@@ -33,7 +32,6 @@ fn test_all_tokenizers_with_emoji() {
         LeftBracket,
         RightBracket,
         RefMarker,
-        AtSign,
         LeftParen,
         RightParen,
         Whitespace,
@@ -121,12 +119,11 @@ fn test_all_tokenizers_with_emoji() {
         },
         TestCase {
             input: "🎉 @citation",
-            description: "at-sign with space is separate",
+            description: "at-sign with space forms single text token",
             expected_tokens: vec![
                 ExpectedToken::Text("🎉"),
                 ExpectedToken::Whitespace,
-                ExpectedToken::AtSign,
-                ExpectedToken::Text("citation"),
+                ExpectedToken::Text("@citation"),
             ],
         },
     ];
@@ -232,14 +229,6 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::AtSign, Token::AtSign { span }) => {
-                    assert_eq!(
-                        span.start.column, expected_col,
-                        "{}: AtSign should start at column {}",
-                        test_case.description, expected_col
-                    );
-                    expected_col = span.end.column;
-                }
                 (ExpectedToken::Whitespace, Token::Whitespace { span, .. }) => {
                     assert_eq!(
                         span.start.column, expected_col,
@@ -263,7 +252,6 @@ fn test_all_tokenizers_with_emoji() {
                             ExpectedToken::LeftBracket => "LeftBracket",
                             ExpectedToken::RightBracket => "RightBracket",
                             ExpectedToken::RefMarker => "RefMarker",
-                            ExpectedToken::AtSign => "AtSign",
                             ExpectedToken::LeftParen => "LeftParen",
                             ExpectedToken::RightParen => "RightParen",
                             ExpectedToken::Whitespace => "Whitespace",
@@ -429,37 +417,98 @@ fn test_inline_delimiters_unicode() {
 
 /// Test reference markers with Unicode
 #[test]
-#[ignore = "Unicode + inline marker tokenization needs systematic fix"]
 fn test_reference_markers_unicode() {
-    // Test that brackets and @ signs are properly tokenized after Unicode text
-    // Column positions should be based on character count, not byte count
+    // Test that reference markers and @ signs in text are properly handled with Unicode
+    // Note: @ is no longer a special delimiter outside of brackets
+    // [ref] patterns are tokenized as RefMarker tokens
+
+    #[allow(dead_code)]
+    struct TestCase {
+        input: &'static str,
+        description: &'static str,
+        #[allow(clippy::type_complexity)]
+        check: Box<dyn Fn(&[Token])>,
+    }
 
     let test_cases = vec![
-        ("café [ref]", '[', 5, "ref after accented"),
-        ("café @cite", '@', 5, "citation after accented"),
-        ("🎉 [ref]", '[', 2, "ref after emoji"),
-        ("→ @cite", '@', 2, "citation after arrow"),
+        TestCase {
+            input: "café [ref]",
+            description: "ref marker after accented",
+            check: Box::new(|tokens| {
+                let ref_marker = tokens
+                    .iter()
+                    .find(|t| matches!(t, Token::RefMarker { .. }))
+                    .expect("Should find RefMarker token");
+                match ref_marker {
+                    Token::RefMarker { span, .. } => {
+                        assert_eq!(
+                            span.start.column, 5,
+                            "RefMarker should start at column 5 after 'café '"
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+            }),
+        },
+        TestCase {
+            input: "café @cite",
+            description: "@ in text after accented",
+            check: Box::new(|tokens| {
+                // @ is no longer special, so "@cite" should be part of a text token
+                let text_with_at = tokens
+                    .iter()
+                    .find(|t| matches!(t, Token::Text { content, .. } if content.contains("@cite")))
+                    .expect("Should find text token containing @cite");
+                match text_with_at {
+                    Token::Text { content, span } => {
+                        assert!(content.contains("@cite"), "Text should contain @cite");
+                        assert_eq!(span.start.column, 5, "Text with @ should start at column 5");
+                    }
+                    _ => unreachable!(),
+                }
+            }),
+        },
+        TestCase {
+            input: "🎉 [ref]",
+            description: "ref marker after emoji",
+            check: Box::new(|tokens| {
+                let ref_marker = tokens
+                    .iter()
+                    .find(|t| matches!(t, Token::RefMarker { .. }))
+                    .expect("Should find RefMarker token");
+                match ref_marker {
+                    Token::RefMarker { span, .. } => {
+                        assert_eq!(
+                            span.start.column, 2,
+                            "RefMarker should start at column 2 after emoji and space"
+                        );
+                    }
+                    _ => unreachable!(),
+                }
+            }),
+        },
+        TestCase {
+            input: "→ @cite",
+            description: "@ in text after arrow",
+            check: Box::new(|tokens| {
+                let text_with_at = tokens
+                    .iter()
+                    .find(|t| matches!(t, Token::Text { content, .. } if content.contains("@cite")))
+                    .expect("Should find text token containing @cite");
+                match text_with_at {
+                    Token::Text { span, .. } => {
+                        assert_eq!(span.start.column, 2, "Text with @ should start at column 2");
+                    }
+                    _ => unreachable!(),
+                }
+            }),
+        },
     ];
 
-    for (input, expected_char, expected_col, description) in test_cases {
-        let mut lexer = Lexer::new(input);
+    for test_case in test_cases {
+        let mut lexer = Lexer::new(test_case.input);
         let tokens = lexer.tokenize();
-
-        // Find the bracket or at-sign
-        let token = tokens
-            .iter()
-            .find(|t| {
-                matches!(t, Token::LeftBracket { .. }) && expected_char == '['
-                    || matches!(t, Token::AtSign { .. }) && expected_char == '@'
-            })
-            .unwrap_or_else(|| panic!("Should find {} in: {}", expected_char, description));
-
-        let span = get_token_span(token);
-        assert_eq!(
-            span.start.column, expected_col,
-            "{}: {} should start at column {} but was {}",
-            description, expected_char, expected_col, span.start.column
-        );
+        (test_case.check)(&tokens);
     }
 }
 

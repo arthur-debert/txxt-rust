@@ -23,7 +23,7 @@ use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 fn is_special_delimiter(ch: char) -> bool {
     matches!(
         ch,
-        '*' | '_' | '`' | '#' | '-' | '[' | ']' | '@' | ':' | '(' | ')' | '=' | ',' | '.' | '\\'
+        '*' | '_' | '`' | '#' | '-' | '[' | ']' | ':' | '(' | ')' | '=' | ',' | '.' | '\\'
     )
 }
 
@@ -156,8 +156,6 @@ impl Lexer {
             } else if let Some(token) = self.read_left_bracket() {
                 tokens.push(token);
             } else if let Some(token) = self.read_right_bracket() {
-                tokens.push(token);
-            } else if let Some(token) = self.read_at_sign() {
                 tokens.push(token);
             } else if let Some(token) = self.read_left_paren() {
                 tokens.push(token);
@@ -387,23 +385,6 @@ impl Lexer {
         if self.peek() == Some(']') {
             self.advance();
             return Some(Token::RightBracket {
-                span: SourceSpan {
-                    start: start_pos,
-                    end: self.current_position(),
-                },
-            });
-        }
-
-        None
-    }
-
-    /// Read an at-sign token (@)
-    fn read_at_sign(&mut self) -> Option<Token> {
-        let start_pos = self.current_position();
-
-        if self.peek() == Some('@') {
-            self.advance();
-            return Some(Token::AtSign {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

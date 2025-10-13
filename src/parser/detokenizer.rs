@@ -273,6 +273,8 @@ impl Detokenizer {
                 result.push_str(content);
             }
             Token::Parameter { key, value, .. } => {
+                // TODO: Once issue #23 is fixed, Parameter tokens will have proper spans
+                // Currently they have zero-width spans, so we reconstruct from key/value
                 result.push_str(key);
                 result.push('=');
                 // Check if value needs quotes

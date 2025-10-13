@@ -13,7 +13,8 @@ use crate::tokenizer::infrastructure::markers::{
 };
 use crate::tokenizer::inline::read_inline_delimiter;
 use crate::tokenizer::inline::references::{
-    citations::read_citation_ref, page_ref::read_page_ref, session_ref::read_session_ref,
+    citations::read_citation_ref, footnote_ref::read_footnote_ref, page_ref::read_page_ref,
+    session_ref::read_session_ref,
 };
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
@@ -117,6 +118,8 @@ impl Lexer {
             } else if let Some(token) = read_page_ref(self) {
                 tokens.push(token);
             } else if let Some(token) = read_session_ref(self) {
+                tokens.push(token);
+            } else if let Some(token) = read_footnote_ref(self) {
                 tokens.push(token);
             } else if let Some(token) =
                 crate::tokenizer::inline::references::ReferenceLexer::read_ref_marker(self)
@@ -836,6 +839,56 @@ impl crate::tokenizer::inline::references::ReferenceLexer for Lexer {
         static CLASSIFIER: std::sync::OnceLock<crate::ast::reference_types::ReferenceClassifier> =
             std::sync::OnceLock::new();
         CLASSIFIER.get_or_init(crate::ast::reference_types::ReferenceClassifier::new)
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl crate::tokenizer::inline::references::footnote_ref::FootnoteRefLexer for Lexer {
+    fn current_position(&self) -> crate::ast::tokens::Position {
+        crate::ast::tokens::Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
     }
 
     fn backtrack(&mut self, position: usize, row: usize, column: usize) {

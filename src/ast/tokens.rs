@@ -147,8 +147,11 @@ pub enum Token {
     /// Reference markers ([text], [@citation], [#section])
     RefMarker { content: String, span: SourceSpan },
 
-    /// Footnote numbers ([1], [2])
-    FootnoteNumber { content: String, span: SourceSpan },
+    /// Footnote references ([1], [2], [^label])
+    FootnoteRef {
+        footnote_type: crate::tokenizer::inline::references::footnote_ref::FootnoteType,
+        span: SourceSpan,
+    },
 
     /// Verbatim block title (title:)
     VerbatimTitle { content: String, span: SourceSpan },
@@ -213,7 +216,7 @@ impl Token {
             Token::Colon { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
-            Token::FootnoteNumber { span, .. } => span,
+            Token::FootnoteRef { span, .. } => span,
             Token::VerbatimTitle { span, .. } => span,
             Token::VerbatimContent { span, .. } => span,
             Token::VerbatimLabel { span, .. } => span,
@@ -238,7 +241,7 @@ impl Token {
             Token::DefinitionMarker { content, .. } => content,
             Token::Identifier { content, .. } => content,
             Token::RefMarker { content, .. } => content,
-            Token::FootnoteNumber { content, .. } => content,
+            Token::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
             Token::VerbatimTitle { content, .. } => content,
             Token::VerbatimContent { content, .. } => content,
             Token::VerbatimLabel { content, .. } => content,
@@ -278,6 +281,16 @@ impl Token {
     pub fn sequence_marker_type(&self) -> Option<&SequenceMarkerType> {
         match self {
             Token::SequenceMarker { marker_type, .. } => Some(marker_type),
+            _ => None,
+        }
+    }
+
+    /// Get the footnote type information (only valid for FootnoteRef tokens)
+    pub fn footnote_type(
+        &self,
+    ) -> Option<&crate::tokenizer::inline::references::footnote_ref::FootnoteType> {
+        match self {
+            Token::FootnoteRef { footnote_type, .. } => Some(footnote_type),
             _ => None,
         }
     }

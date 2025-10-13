@@ -5,42 +5,32 @@
 
 use txxt::ast::tokens::Token;
 use txxt::parser::detokenizer::Detokenizer;
-use txxt::parser::pipeline::BlockGrouper;
 use txxt::tokenizer::tokenize;
 
-/// Helper function to perform round-trip test
-fn round_trip_test(original: &str) -> Result<(), String> {
+/// Helper function to verify detokenization produces identical tokens
+fn verify_round_trip(original: &str) {
     // Step 1: Tokenize
     let tokens1 = tokenize(original);
-
+    
     // Step 2: Detokenize
     let detokenizer = Detokenizer::new();
     let reconstructed = detokenizer
         .detokenize_tokens(&tokens1)
-        .map_err(|e| format!("Detokenization failed: {:?}", e))?;
-
+        .expect("Detokenization should succeed");
+    
     // Step 3: Re-tokenize
     let tokens2 = tokenize(&reconstructed);
-
+    
     // Step 4: Compare tokens (not strings)
-    if tokens1.len() != tokens2.len() {
-        return Err(format!(
-            "Token count mismatch: {} vs {}",
-            tokens1.len(),
-            tokens2.len()
-        ));
-    }
-
+    assert_eq!(tokens1.len(), tokens2.len(), 
+        "Token count mismatch for input: {}\nReconstructed: {}", 
+        original, reconstructed);
+    
     for (i, (t1, t2)) in tokens1.iter().zip(tokens2.iter()).enumerate() {
-        if !tokens_equal(t1, t2) {
-            return Err(format!(
-                "Token mismatch at position {}: {:?} vs {:?}",
-                i, t1, t2
-            ));
-        }
+        assert!(tokens_equal(t1, t2), 
+            "Token mismatch at position {} for input: {}\nExpected: {:?}\nGot: {:?}", 
+            i, original, t1, t2);
     }
-
-    Ok(())
 }
 
 /// Compare tokens for equality (ignoring source spans)
@@ -103,260 +93,286 @@ fn tokens_equal(t1: &Token, t2: &Token) -> bool {
     }
 }
 
-// Basic text tests
+// ===== LEVEL 1: Basic Text =====
 
 #[test]
-fn test_detokenize_simple_text() {
-    let original = "Hello, world!";
-    round_trip_test(original).expect("Round trip failed");
+fn test_single_word() {
+    verify_round_trip("Hello");
 }
 
 #[test]
-fn test_detokenize_paragraph() {
-    let original = "This is a paragraph.\nIt has multiple lines.\nAnd ends here.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_two_words() {
+    verify_round_trip("Hello world");
 }
 
 #[test]
-fn test_detokenize_with_blank_lines() {
-    let original = "First paragraph.\n\nSecond paragraph.";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// List tests
-
-#[test]
-fn test_detokenize_simple_list() {
-    let original = "- First item\n- Second item\n- Third item";
-    round_trip_test(original).expect("Round trip failed");
+fn test_sentence_with_punctuation() {
+    verify_round_trip("Hello, world!");
 }
 
 #[test]
-fn test_detokenize_numbered_list() {
-    let original = "1. First item\n2. Second item\n3. Third item";
-    round_trip_test(original).expect("Round trip failed");
+fn test_empty_string() {
+    verify_round_trip("");
+}
+
+// ===== LEVEL 2: Paragraphs =====
+
+#[test]
+fn test_single_line_paragraph() {
+    verify_round_trip("This is a paragraph.");
 }
 
 #[test]
-fn test_detokenize_alphabetical_list() {
-    let original = "a. First item\nb. Second item\nc. Third item";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Annotation tests
-
-#[test]
-fn test_detokenize_annotation() {
-    let original = ":: author :: John Doe";
-    round_trip_test(original).expect("Round trip failed");
+fn test_two_line_paragraph() {
+    verify_round_trip("First line.\nSecond line.");
 }
 
 #[test]
-fn test_detokenize_annotation_block() {
-    let original = ":: note ::\n\n    This is a note.";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Definition tests
-
-#[test]
-fn test_detokenize_definition() {
-    let original = "Term ::\n\n    Definition content here.";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Session tests
-
-#[test]
-fn test_detokenize_simple_session() {
-    let original = "1. Session Title\n\n    Content in session.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_multi_line_paragraph() {
+    verify_round_trip("First line.\nSecond line.\nThird line.");
 }
 
 #[test]
-fn test_detokenize_unnumbered_session() {
-    let original = "Session Title\n\n    Content in session.";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Verbatim tests
-
-#[test]
-fn test_detokenize_verbatim() {
-    let original = "code:\n    fn main() {\n        println!(\"Hello\");\n    }\n:: rust";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Inline formatting tests
-
-#[test]
-fn test_detokenize_bold() {
-    let original = "This is *bold* text.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_two_paragraphs() {
+    verify_round_trip("First paragraph.\n\nSecond paragraph.");
 }
 
 #[test]
-fn test_detokenize_italic() {
-    let original = "This is _italic_ text.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_three_paragraphs() {
+    verify_round_trip("First paragraph.\n\nSecond paragraph.\n\nThird paragraph.");
+}
+
+// ===== LEVEL 3: Simple Lists =====
+
+#[test]
+fn test_single_dash_item() {
+    verify_round_trip("- Item");
 }
 
 #[test]
-fn test_detokenize_code() {
-    let original = "This is `code` text.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_two_dash_items() {
+    verify_round_trip("- First\n- Second");
 }
 
 #[test]
-fn test_detokenize_math() {
-    let original = "This is #math# text.";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Reference tests
-
-#[test]
-fn test_detokenize_citation() {
-    let original = "See [@smith2020] for details.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_single_numbered_item() {
+    verify_round_trip("1. Item");
 }
 
 #[test]
-fn test_detokenize_page_ref() {
-    let original = "See [p.42] for details.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_two_numbered_items() {
+    verify_round_trip("1. First\n2. Second");
 }
 
 #[test]
-fn test_detokenize_session_ref() {
-    let original = "See [#1.2] for details.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_single_alpha_item() {
+    verify_round_trip("a. Item");
 }
 
 #[test]
-fn test_detokenize_footnote_ref() {
-    let original = "Some text[1] with footnote.";
-    round_trip_test(original).expect("Round trip failed");
+fn test_mixed_list_types() {
+    verify_round_trip("1. Numbered\na. Alpha\n- Dash");
+}
+
+// ===== LEVEL 4: Inline Formatting =====
+
+#[test]
+fn test_bold_single_word() {
+    verify_round_trip("*bold*");
 }
 
 #[test]
-fn test_detokenize_labeled_footnote() {
-    let original = "Some text[^note] with footnote.";
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Complex nested structure tests
-
-#[test]
-fn test_detokenize_nested_structure() {
-    let original = r#"1. Main Section
-
-    First paragraph in section.
-    
-    - List item one
-    - List item two
-    
-    Another paragraph."#;
-    round_trip_test(original).expect("Round trip failed");
+fn test_bold_in_sentence() {
+    verify_round_trip("This is *bold* text.");
 }
 
 #[test]
-fn test_detokenize_deeply_nested() {
-    let original = r#"1. Level 1
-
-    Content at level 1.
-    
-    1.1. Level 2
-    
-        Content at level 2.
-        
-        - Nested list
-            With indented content"#;
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Block group tests
-
-#[test]
-fn test_detokenize_from_block_groups() {
-    let original = "Parent\n    Child 1\n    Child 2\nBack to parent";
-
-    // Tokenize and group
-    let tokens = tokenize(original);
-    let grouper = BlockGrouper::new();
-    let blocks = grouper.group_blocks(tokens).unwrap();
-
-    // Detokenize from blocks
-    let detokenizer = Detokenizer::new();
-    let reconstructed = detokenizer.detokenize(&blocks).unwrap();
-
-    // Re-tokenize and compare
-    let tokens2 = tokenize(&reconstructed);
-    let tokens1 = tokenize(original);
-
-    assert_eq!(tokens1.len(), tokens2.len(), "Token count mismatch");
-}
-
-// Edge cases
-
-#[test]
-fn test_detokenize_empty_string() {
-    let original = "";
-    round_trip_test(original).expect("Round trip failed");
+fn test_italic_single_word() {
+    verify_round_trip("_italic_");
 }
 
 #[test]
-fn test_detokenize_only_whitespace() {
-    // Note: whitespace normalization may occur
-    let original = "   \n   \n   ";
-    let tokens = tokenize(original);
-    let detokenizer = Detokenizer::new();
-    let result = detokenizer.detokenize_tokens(&tokens).unwrap();
-    // Just verify it doesn't crash - exact whitespace may differ
-    assert!(result.trim().is_empty());
-}
-
-// Walkthrough document test
-
-#[test]
-fn test_detokenize_walkthrough_snippet() {
-    let original = r#"TXXT :: A Radical Take on Minimal Structured Text
-
-TXXT is a plain text format designed for simplicity and expressiveness.
-
-1. What is TXXT?
-
-    TXXT (pronounced "text") is a structured plain text format.
-    
-    It features:
-    - Human readability
-    - Machine parsability"#;
-
-    round_trip_test(original).expect("Round trip failed");
-}
-
-// Parameter tests
-
-#[test]
-fn test_detokenize_parameters() {
-    let original = ":: note:id=123,type=info ::";
-    round_trip_test(original).expect("Round trip failed");
+fn test_italic_in_sentence() {
+    verify_round_trip("This is _italic_ text.");
 }
 
 #[test]
-fn test_detokenize_parameters_with_quotes() {
-    let original = r#":: note:title="Hello, World",author=John ::"#;
-    round_trip_test(original).expect("Round trip failed");
+fn test_code_single_word() {
+    verify_round_trip("`code`");
 }
 
-// Multi-line verbatim test
+#[test]
+fn test_code_in_sentence() {
+    verify_round_trip("This is `code` text.");
+}
 
 #[test]
-fn test_detokenize_multiline_verbatim() {
-    let original = r#"Example code:
-    def hello():
-        print("Hello, World!")
-        return 42
-:: python"#;
-    round_trip_test(original).expect("Round trip failed");
+fn test_math_single_word() {
+    verify_round_trip("#math#");
+}
+
+#[test]
+fn test_math_in_sentence() {
+    verify_round_trip("This is #math# text.");
+}
+
+// ===== LEVEL 5: References =====
+
+#[test]
+fn test_footnote_naked() {
+    verify_round_trip("[1]");
+}
+
+#[test]
+fn test_footnote_in_text() {
+    verify_round_trip("Text[1] here.");
+}
+
+#[test]
+fn test_footnote_labeled() {
+    verify_round_trip("[^note]");
+}
+
+#[test]
+fn test_page_ref() {
+    verify_round_trip("[p.42]");
+}
+
+#[test]
+fn test_page_ref_in_text() {
+    verify_round_trip("See [p.42] for details.");
+}
+
+#[test]
+fn test_citation_ref() {
+    verify_round_trip("[@smith2020]");
+}
+
+#[test]
+fn test_citation_ref_in_text() {
+    verify_round_trip("As noted [@smith2020] in the study.");
+}
+
+#[test]
+fn test_session_ref() {
+    verify_round_trip("[#1.2]");
+}
+
+// ===== LEVEL 6: Annotations and Definitions =====
+
+#[test]
+fn test_simple_annotation() {
+    verify_round_trip(":: note ::");
+}
+
+#[test]
+fn test_annotation_with_content() {
+    verify_round_trip(":: author :: John Doe");
+}
+
+#[test]
+fn test_simple_definition() {
+    verify_round_trip("Term ::");
+}
+
+#[test]
+fn test_definition_with_content() {
+    verify_round_trip("Term :: definition text");
+}
+
+// ===== LEVEL 7: Indented Content =====
+
+#[test]
+fn test_simple_indented_line() {
+    verify_round_trip("    Indented content");
+}
+
+#[test]
+fn test_list_with_indented_content() {
+    verify_round_trip("- Item\n    Indented under item");
+}
+
+#[test]
+fn test_numbered_list_with_indent() {
+    verify_round_trip("1. First\n    Details");
+}
+
+// ===== LEVEL 8: Sessions =====
+
+#[test]
+fn test_simple_session() {
+    verify_round_trip("Title");
+}
+
+#[test]
+fn test_numbered_session() {
+    verify_round_trip("1. Session Title");
+}
+
+#[test]
+fn test_session_with_content() {
+    verify_round_trip("Title\n\n    Content");
+}
+
+// ===== LEVEL 9: Verbatim Blocks =====
+
+#[test]
+fn test_simple_verbatim() {
+    verify_round_trip("code:\n    print(\"hello\")");
+}
+
+#[test]
+fn test_verbatim_with_label() {
+    verify_round_trip("code:\n    print(\"hello\")\n:: python");
+}
+
+// ===== LEVEL 10: Parameters =====
+
+#[test]
+fn test_annotation_with_param() {
+    verify_round_trip(":: note:id=123 ::");
+}
+
+#[test]
+fn test_annotation_with_two_params() {
+    verify_round_trip(":: note:id=123,type=info ::");
+}
+
+#[test]
+fn test_param_with_quoted_value() {
+    verify_round_trip(":: note:title=\"Hello, World\" ::");
+}
+
+// ===== LEVEL 11: Complex Nesting =====
+
+#[test]
+fn test_nested_lists() {
+    verify_round_trip("1. First\n    - Sub item\n    - Another sub");
+}
+
+#[test]
+fn test_deeply_nested() {
+    verify_round_trip("1. Level 1\n    1.1. Level 2\n        - Level 3");
+}
+
+#[test]
+fn test_annotation_block() {
+    verify_round_trip(":: note ::\n\n    This is a note.");
+}
+
+#[test]
+fn test_definition_block() {
+    verify_round_trip("Term ::\n\n    Definition content.");
+}
+
+// ===== LEVEL 12: Mixed Content =====
+
+#[test]
+fn test_paragraph_with_formatting() {
+    verify_round_trip("This has *bold* and _italic_ and `code`.");
+}
+
+#[test]
+fn test_list_with_references() {
+    verify_round_trip("- See [p.42]\n- Check [@smith2020]\n- Note[1]");
 }

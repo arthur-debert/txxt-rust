@@ -110,6 +110,26 @@ impl Detokenizer {
             (SequenceMarker { .. }, _) => {
                 // Space already included in sequence marker
             }
+            
+            // Space before definition marker
+            (Text { .. }, DefinitionMarker { .. }) => {
+                result.push(' ');
+            }
+            
+            // Space after definition marker when followed by text
+            (DefinitionMarker { .. }, Text { .. }) => {
+                result.push(' ');
+            }
+            
+            // Space after annotation marker
+            (AnnotationMarker { .. }, Text { .. }) => {
+                result.push(' ');
+            }
+            
+            // Space before closing annotation marker  
+            (Text { .. }, AnnotationMarker { .. }) | (Parameter { .. }, AnnotationMarker { .. }) => {
+                result.push(' ');
+            }
 
             // Default: no space
             _ => {}
@@ -189,8 +209,6 @@ impl Detokenizer {
             }
             Token::DefinitionMarker { content, .. } => {
                 result.push_str(content);
-                result.push(' ');
-                result.push_str("::");
             }
             Token::Dash { .. } => {
                 result.push('-');

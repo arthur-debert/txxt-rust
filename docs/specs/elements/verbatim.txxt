@@ -137,6 +137,30 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
         - No inline parsing within content
         - Ignore Container follows container architecture consistently
 
+        The "wall" concept for content lines:
+        
+        In-flow mode:
+            Function example:          # title at indentation 4
+                |def hi():             # wall at indent + 4 = 8, content = "def hi():"
+                |    print("hello")    # wall at indent + 4 = 8, content = "    print(\"hello\")"
+            :: python                  # terminator at indent = 4
+            
+        Stretched mode:
+            Function example:          # title at indentation 4
+            |def hi():                 # wall at column 0, content = "def hi():"
+            |    print("hello")        # wall at column 0, content = "    print(\"hello\")"
+            :: python                  # terminator at indent = 4
+            
+        In both cases, the content stored is identical:
+        - Line 1: "def hi():"
+        - Line 2: "    print(\"hello\")"
+        
+        The wall position determines where content starts:
+        - In-flow: wall = title_indent + 4 spaces
+        - Stretched: wall = column 0
+        
+        Content is stored relative to the wall, not with absolute indentation
+
     5.3. Label Processing
 
         Label parsing leverages annotation infrastructure:

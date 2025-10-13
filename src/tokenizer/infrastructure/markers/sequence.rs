@@ -92,7 +92,7 @@ where
                             start: start_pos,
                             end: Position {
                                 row: start_pos.row,
-                                column: start_pos.column + marker.len(),
+                                column: start_pos.column + marker.chars().count(),
                             },
                         },
                     });
@@ -116,7 +116,7 @@ where
     for pattern in &roman_patterns {
         if lexer.matches_string(pattern) {
             // Advance past the roman numeral
-            for _ in 0..pattern.len() {
+            for _ in 0..pattern.chars().count() {
                 lexer.advance();
             }
 
@@ -134,7 +134,7 @@ where
                                 start: start_pos,
                                 end: Position {
                                     row: start_pos.row,
-                                    column: start_pos.column + marker.len(),
+                                    column: start_pos.column + marker.chars().count(),
                                 },
                             },
                         });
@@ -167,7 +167,7 @@ where
                                 start: start_pos,
                                 end: Position {
                                     row: start_pos.row,
-                                    column: start_pos.column + marker.len(),
+                                    column: start_pos.column + marker.chars().count(),
                                 },
                             },
                         });

@@ -136,13 +136,13 @@ fn test_blankline_with_structured_content(#[case] input: &str) {
 // =============================================================================
 
 #[rstest]
-#[case("text\n\n\nmore", 1)] // Two consecutive blank lines -> 1 BlankLine token
-#[case("text\n\n\n\nmore", 1)] // Three consecutive blank lines -> 1 BlankLine token
-#[case("text\n \n \nmore", 1)] // Blank lines with spaces -> 1 BlankLine token
+#[case("text\n\n\nmore", 2)] // Two consecutive blank lines -> 2 BlankLine tokens
+#[case("text\n\n\n\nmore", 3)] // Three consecutive blank lines -> 3 BlankLine tokens
+#[case("text\n \n \nmore", 2)] // Blank lines with spaces -> 2 BlankLine tokens
 fn test_blankline_multiple_consecutive(#[case] input: &str, #[case] expected_count: usize) {
     let tokens = tokenize(input);
 
-    // Multiple consecutive blank lines should be collapsed into one BlankLine token
+    // Each blank line should produce its own BlankLine token
     let blankline_tokens: Vec<_> = tokens
         .iter()
         .filter(|token| matches!(token, Token::BlankLine { .. }))

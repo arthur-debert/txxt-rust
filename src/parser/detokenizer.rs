@@ -15,6 +15,7 @@
 
 use crate::ast::tokens::Token;
 use crate::parser::pipeline::BlockGroup;
+use crate::tokenizer::indentation::INDENT_SIZE;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;
@@ -25,16 +26,82 @@ impl Detokenizer {
         Self
     }
 
-    /// Reconstruct source text from a flat list of tokens
+    /// Simple detokenization for round-trip verification
     ///
-    /// This produces text that, when re-tokenized, yields the same tokens.
-    /// The output may differ from the original source in non-tokenized content.
-    pub fn detokenize_tokens(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
+    /// This is a simplified version that reconstructs text from tokens without
+    /// complex indentation tracking, suitable for round-trip verification tests.
+    pub fn detokenize_for_verification(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&Token> = None;
 
         for token in tokens {
+            // Skip Indent/Dedent tokens as they're structural markers, not content
+            if matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
+                continue;
+            }
+
             // Handle parameter separators based on previous token
+            if let Token::Parameter { key, value, .. } = token {
+                if let Some(prev) = prev_token {
+                    match prev {
+                        Token::VerbatimLabel { .. } => {
+                            result.push(':'); // First param after verbatim label
+                        }
+                        Token::Parameter { .. } => {
+                            result.push(','); // Subsequent params
+                        }
+                        _ => {}
+                    }
+                }
+
+                result.push_str(key);
+                result.push('=');
+
+                // Check if value needs quotes
+                if value.contains(' ') || value.contains(',') || value.contains('=') {
+                    result.push('"');
+                    result.push_str(value);
+                    result.push('"');
+                } else {
+                    result.push_str(value);
+                }
+
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Append the token using simple logic
+            self.append_token(&mut result, token, 0)?;
+            prev_token = Some(token);
+        }
+
+        Ok(result)
+    }
+
+    /// Reconstruct source text from block groups
+    ///
+    /// Takes the output of Phase 2a (block grouping) and reconstructs
+    /// the original source text for verification purposes.
+    pub fn detokenize(&self, blocks: &BlockGroup) -> Result<String, DetokenizeError> {
+        let mut result = String::new();
+        self.append_block_group(&mut result, blocks, 0)?;
+        Ok(result)
+    }
+
+    /// Recursively append a block group to the result
+    fn append_block_group(
+        &self,
+        result: &mut String,
+        block: &BlockGroup,
+        indent_level: usize,
+    ) -> Result<(), DetokenizeError> {
+        // Track whether we're at the start of a line
+        let mut at_line_start = result.is_empty() || result.ends_with('\n');
+        let mut prev_token: Option<&Token> = None;
+
+        // Process all tokens at this level
+        for token in &block.tokens {
+            // Handle parameter tokens specially for separator logic
             if let Token::Parameter { key, value, .. } = token {
                 // Add appropriate separator before parameter
                 if let Some(prev) = prev_token {
@@ -66,52 +133,59 @@ impl Detokenizer {
                 }
 
                 prev_token = Some(token);
+                at_line_start = false;
                 continue;
             }
 
-            // With explicit Whitespace tokens, we don't need to track indent levels
-            // or add spacing heuristics - just append each token
-            self.append_token(&mut result, token)?;
+            // Handle BlankLine tokens specially
+            if let Token::BlankLine { whitespace, .. } = token {
+                // For blank lines, preserve the whitespace as-is
+                result.push_str(whitespace);
+                result.push('\n');
+                at_line_start = true;
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Add indentation at the start of each line
+            if at_line_start && !matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
+                // For child blocks, skip leading whitespace tokens as they represent
+                // the original indentation that we're replacing
+                if indent_level > 0 && matches!(token, Token::Whitespace { .. }) {
+                    continue;
+                }
+
+                // Add the correct indentation based on block depth
+                let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
+                result.push_str(&indent_ws);
+                at_line_start = false;
+            }
+
+            // Append the token
+            self.append_token(result, token, indent_level)?;
             prev_token = Some(token);
+
+            // Track if we just added a newline
+            if matches!(token, Token::Newline { .. }) {
+                at_line_start = true;
+            }
         }
 
-        Ok(result)
-    }
-
-    /// Reconstruct source text from block groups
-    ///
-    /// Takes the output of Phase 2a (block grouping) and reconstructs
-    /// the original source text for verification purposes.
-    pub fn detokenize(&self, blocks: &BlockGroup) -> Result<String, DetokenizeError> {
-        let mut result = String::new();
-        self.append_block_group(&mut result, blocks, 0)?;
-        Ok(result)
-    }
-
-    /// Recursively append a block group to the result
-    fn append_block_group(
-        &self,
-        result: &mut String,
-        block: &BlockGroup,
-        _indent_level: usize,
-    ) -> Result<(), DetokenizeError> {
-        // First, append all tokens at this level
-        for token in &block.tokens {
-            // With explicit Whitespace tokens, we don't need to add indentation
-            self.append_token(result, token)?;
-        }
-
-        // Then, process each child
+        // Process all children with increased indentation
         for child in &block.children {
-            // Note: indent_level is no longer needed with explicit Whitespace tokens
-            self.append_block_group(result, child, 0)?;
+            self.append_block_group(result, child, indent_level + 1)?;
         }
 
         Ok(())
     }
 
     /// Append a single token to the result string
-    fn append_token(&self, result: &mut String, token: &Token) -> Result<(), DetokenizeError> {
+    fn append_token(
+        &self,
+        result: &mut String,
+        token: &Token,
+        current_indent_level: usize,
+    ) -> Result<(), DetokenizeError> {
         match token {
             Token::Text { content, .. } => {
                 result.push_str(content);
@@ -196,20 +270,32 @@ impl Detokenizer {
                 result.push('\n');
             }
             Token::VerbatimContent { content, .. } => {
-                result.push_str(content);
+                // For verbatim content, we need to add the wall indentation back
+                // Split content into lines and add proper indentation to each
+                let lines: Vec<&str> = content.split('\n').collect();
+                for (i, line) in lines.iter().enumerate() {
+                    if i > 0 {
+                        result.push('\n');
+                    }
+                    // Add current indentation plus one extra level for the wall
+                    if !line.is_empty() {
+                        result.push_str(&" ".repeat((current_indent_level + 1) * INDENT_SIZE));
+                        result.push_str(line);
+                    }
+                }
                 result.push('\n');
             }
             Token::VerbatimLabel { content, .. } => {
                 result.push_str("::");
                 result.push(' ');
                 result.push_str(content);
+                // Note: VerbatimLabel tokens don't include a trailing newline
+                // The newline after a label comes as a separate Newline token
             }
             Token::Parameter { .. } => {
-                // Parameters are handled specially in detokenize_tokens
-                // to manage separators correctly
-                return Err(DetokenizeError::InvalidBlockStructure(
-                    "Parameter tokens should be handled in detokenize_tokens".to_string(),
-                ));
+                // Parameters are handled specially in append_block_group
+                // This case should not be reached
+                unreachable!("Parameter tokens should be handled in append_block_group");
             }
             Token::BoldDelimiter { .. } => {
                 result.push('*');
@@ -239,6 +325,8 @@ impl Detokenizer {
                 result.push(']');
             }
             Token::Whitespace { content, .. } => {
+                // Whitespace tokens represent inline spacing (not indentation)
+                // Indentation is reconstructed from the BlockGroup hierarchy
                 result.push_str(content);
             }
             Token::Eof { .. } => {

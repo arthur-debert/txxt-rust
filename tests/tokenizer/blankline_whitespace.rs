@@ -3,12 +3,13 @@
 use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::{tokenize, Token};
 
-/// Helper to verify round-trip tokenization
+/// Helper to verify round-trip tokenization for verification purposes
 fn verify_blankline_round_trip(original: &str) {
     let tokens1 = tokenize(original);
+
     let detokenizer = Detokenizer::new();
     let reconstructed = detokenizer
-        .detokenize_tokens(&tokens1)
+        .detokenize_for_verification(&tokens1)
         .expect("Detokenization should succeed");
 
     assert_eq!(

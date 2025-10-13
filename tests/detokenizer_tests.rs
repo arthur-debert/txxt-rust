@@ -7,15 +7,15 @@ use txxt::ast::tokens::Token;
 use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::tokenize;
 
-/// Helper function to verify detokenization produces identical tokens
+/// Helper function to verify detokenization produces identical tokens for round-trip verification
 fn verify_round_trip(original: &str) {
     // Step 1: Tokenize
     let tokens1 = tokenize(original);
 
-    // Step 2: Detokenize
+    // Step 2: Simple detokenization for verification (not using BlockGroup as it's for parsing)
     let detokenizer = Detokenizer::new();
     let reconstructed = detokenizer
-        .detokenize_tokens(&tokens1)
+        .detokenize_for_verification(&tokens1)
         .expect("Detokenization should succeed");
 
     // Step 3: Re-tokenize

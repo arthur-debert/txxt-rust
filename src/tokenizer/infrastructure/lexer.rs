@@ -97,14 +97,9 @@ impl Lexer {
             // Try to read blank lines when at column 0 (start of line)
             if self.column == 0 {
                 if let Some(token) = self.read_blankline() {
-                    // Check if the last token was also a BlankLine and merge them
-                    if let Some(Token::BlankLine { span: last_span }) = tokens.last_mut() {
-                        // Extend the span of the existing BlankLine to include this new one
-                        last_span.end = token.span().end;
-                    } else {
-                        // This is the first BlankLine or follows a different token type
-                        tokens.push(token);
-                    }
+                    // Don't merge blank lines - each one should be preserved separately
+                    // to maintain exact whitespace content
+                    tokens.push(token);
                     continue;
                 }
             }
@@ -665,10 +660,12 @@ impl Lexer {
         let saved_position = self.position;
         let saved_row = self.row;
         let saved_column = self.column;
+        let mut whitespace_content = String::new();
 
         // Collect any whitespace on this line
         while let Some(ch) = self.peek() {
             if ch == ' ' || ch == '\t' {
+                whitespace_content.push(ch);
                 self.advance();
             } else {
                 break;
@@ -682,6 +679,7 @@ impl Lexer {
                 // This is a blank line - consume the newline
                 self.advance(); // Consume \n
                 return Some(Token::BlankLine {
+                    whitespace: whitespace_content,
                     span: SourceSpan {
                         start: start_pos,
                         end: self.current_position(),
@@ -694,6 +692,7 @@ impl Lexer {
                     self.advance(); // Consume \n
                 }
                 return Some(Token::BlankLine {
+                    whitespace: whitespace_content,
                     span: SourceSpan {
                         start: start_pos,
                         end: self.current_position(),
@@ -705,6 +704,7 @@ impl Lexer {
         // Also handle end of file after whitespace-only content
         if self.is_at_end() && self.position > saved_position {
             return Some(Token::BlankLine {
+                whitespace: whitespace_content,
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),

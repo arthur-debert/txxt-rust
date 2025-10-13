@@ -21,6 +21,7 @@ mod inline;
 mod verbatim;
 
 // Bug reproduction tests
+mod blankline_whitespace;
 mod comprehensive_span_audit;
 mod debug_parameters;
 mod debug_underscore;

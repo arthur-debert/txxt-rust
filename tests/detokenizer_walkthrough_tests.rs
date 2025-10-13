@@ -184,7 +184,7 @@ fn test_escaping_special_chars() {
 }
 
 #[test]
-#[ignore = "Blank line whitespace preservation issue - see issue docs"]
+#[ignore = "Verbatim label reconstruction issue - unrelated to blank line preservation"]
 fn test_complex_document_structure() {
     // A more comprehensive test combining multiple elements
     let input = r#":: title :: Complex Document Test

@@ -119,11 +119,9 @@ impl Detokenizer {
             Token::Newline { .. } => {
                 result.push('\n');
             }
-            Token::BlankLine { .. } => {
-                // Ensure we have a blank line
-                if !result.is_empty() && !result.ends_with('\n') {
-                    result.push('\n');
-                }
+            Token::BlankLine { whitespace, .. } => {
+                // Add the whitespace content of the blank line, then newline
+                result.push_str(whitespace);
                 result.push('\n');
             }
             Token::Indent { .. } => {

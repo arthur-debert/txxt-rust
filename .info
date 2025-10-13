@@ -1,6 +1,49 @@
-src/ Source code directory
-Cargo.toml Package configuration  
-README.md Project documentation and setup guide
-.envrc Development environment configuration
-justfile Task automation with just
-scripts/pre-commit Git pre-commit hook for quality checks
+src/parser/mod.rs  Main parser module with phase documentation
+src/parser/pipeline/lexer.rs  Phase 1: Verbatim marking + tokenization (wrapper)
+src/parser/pipeline/block_grouper.rs  Phase 2a: Block grouping logic
+src/parser/pipeline/parser.rs  Phase 2b: Main parsing logic
+src/parser/pipeline/post_processor.rs  Phase 3: Assembly and post-processing
+src/parser/elements/annotation.rs  Annotation parsing
+src/parser/elements/container.rs  Container parsing logic
+src/parser/elements/definition.rs  Definition parsing
+src/parser/elements/labels.rs  Label parsing utilities
+src/parser/elements/list.rs  List parsing
+src/parser/elements/paragraph.rs  Paragraph parsing
+src/parser/elements/parameters.rs  Parameter parsing utilities
+src/parser/elements/session.rs  Session parsing
+src/parser/elements/verbatim.rs  Verbatim block parsing
+src/parser/elements/inlines/formatting.rs  Formatting inline elements
+src/parser/elements/inlines/references/citations.rs  Citation reference parsing
+src/parser/elements/inlines/references/footnote_ref.rs  Footnote reference parsing
+src/parser/elements/inlines/references/page_ref.rs  Page reference parsing
+src/parser/elements/inlines/references/session_ref.rs  Session reference parsing
+src/parser/core/indentation.rs  Indentation handling for parsing
+src/parser/core/line_grouping.rs  Line grouping logic
+src/parser/core/span_utils.rs  Span and position utilities
+src/parser/infrastructure/error.rs  Parser error types and handling
+src/parser/infrastructure/context.rs  Parser context and state management
+src/parser/infrastructure/validation.rs  Validation utilities
+src/parser/detokenizer.rs  Phase 2a output → source reconstruction
+src/ast/mod.rs  Main AST module with type exports
+src/ast/nodes/annotation.rs  Annotation AST nodes
+src/ast/nodes/container.rs  Container AST nodes
+src/ast/nodes/definition.rs  Definition AST nodes
+src/ast/nodes/list.rs  List AST nodes
+src/ast/nodes/paragraph.rs  Paragraph AST nodes
+src/ast/nodes/session.rs  Session AST nodes
+src/ast/nodes/verbatim.rs  Verbatim AST nodes
+src/ast/nodes/inlines/formatting.rs  Formatting inline AST
+src/ast/nodes/inlines/text.rs  Text content AST
+src/ast/nodes/inlines/references/citations.rs  Citation AST
+src/ast/nodes/inlines/references/footnote_ref.rs  Footnote reference AST
+src/ast/nodes/inlines/references/page_ref.rs  Page reference AST
+src/ast/nodes/inlines/references/session_ref.rs  Session reference AST
+src/ast/structure/document.rs  Document-level structure
+src/ast/structure/blocks.rs  Block-level structure
+src/ast/structure/containers.rs  Container structure definitions
+src/ast/tokens/token.rs  Token definitions
+src/ast/tokens/sequence.rs  Token sequences
+src/ast/tokens/span.rs  Token span information
+src/ast/base/traits.rs  Common AST traits
+src/ast/base/visitors.rs  AST visitor patterns
+src/ast/parameters/parameter.rs  Parameter AST nodes

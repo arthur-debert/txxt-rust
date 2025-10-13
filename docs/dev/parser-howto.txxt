@@ -1,142 +1,164 @@
 Parser Implementation Guide
 
-This guide covers the implementation approach for the txxt parser, building on the comprehensive file structure established in Item 5.1.
+    This guide covers the implementation approach for the txxt parser, building on the comprehensive file structure established in Item 5.1.
 
-File Structure Overview
+1. File Structure Overview
 
-The parser implementation follows a three-phase architecture that mirrors the specification structure:
+    The parser implementation follows a three-phase architecture that mirrors the specification structure:
 
-src/parser/
-├── pipeline/           # Three-phase processing pipeline
-│   ├── lexer.rs       # Phase 1: Tokenization wrapper
-│   ├── block_grouper.rs # Phase 2a: Block hierarchy
-│   ├── parser.rs      # Phase 2b: AST generation
-│   └── post_processor.rs # Phase 3: Final assembly
-├── elements/          # Element-specific parsers (mirrors docs/specs/elements/)
-│   ├── paragraph.rs   # Basic text blocks
-│   ├── session.rs     # Hierarchical sections
-│   ├── container.rs   # Content containers
-│   ├── verbatim.rs    # Code and literal blocks
-│   ├── list.rs        # Ordered and unordered lists
-│   ├── definition.rs  # Definition pairs
-│   ├── annotation.rs  # Metadata attachments
-│   └── inlines/       # Inline element parsers
-├── core/              # Shared parsing utilities
-│   ├── indentation.rs # Indentation handling
-│   ├── line_grouping.rs # Line organization
-│   └── span_utils.rs  # Token span management
-└── infrastructure/    # Error handling and validation
+    src/parser/
+    ├── pipeline/           # Three-phase processing pipeline
+    │   ├── lexer.rs       # Phase 1: Tokenization wrapper
+    │   ├── block_grouper.rs # Phase 2a: Block hierarchy
+    │   ├── parser.rs      # Phase 2b: AST generation
+    │   └── post_processor.rs # Phase 3: Final assembly
+    ├── elements/          # Element-specific parsers (mirrors docs/specs/elements/)
+    │   ├── paragraph.rs   # Basic text blocks
+    │   ├── session.rs     # Hierarchical sections
+    │   ├── container.rs   # Content containers
+    │   ├── verbatim.rs    # Code and literal blocks
+    │   ├── list.rs        # Ordered and unordered lists
+    │   ├── definition.rs  # Definition pairs
+    │   ├── annotation.rs  # Metadata attachments
+    │   └── inlines/       # Inline element parsers
+    ├── core/              # Shared parsing utilities
+    │   ├── indentation.rs # Indentation handling
+    │   ├── line_grouping.rs # Line organization
+    │   └── span_utils.rs  # Token span management
+    └── infrastructure/    # Error handling and validation
 
-src/ast/
-├── base.rs           # Core AST types (Document, Block, etc.)
-├── nodes/            # Element-specific AST nodes (mirrors docs/specs/elements/)
-│   ├── paragraph.rs  # Paragraph AST structures
-│   ├── session.rs    # Session AST structures
-│   ├── container.rs  # Container AST structures
-│   └── inlines/      # Inline AST nodes
-└── detokenizer.rs    # AST → source reconstruction
+    src/ast/
+    ├── base.rs           # Core AST types (Document, Block, etc.)
+    ├── nodes/            # Element-specific AST nodes (mirrors docs/specs/elements/)
+    │   ├── paragraph.rs  # Paragraph AST structures
+    │   ├── session.rs    # Session AST structures
+    │   ├── container.rs  # Container AST structures
+    │   └── inlines/      # Inline AST nodes
+    └── detokenizer.rs    # AST → source reconstruction
 
-Core Implementation Principles
 
-AST Specification Alignment
+2. Source Of Truth
 
-Each AST node must precisely reflect its corresponding specification in docs/specs/elements/. The parser validates both syntactic structure and semantic constraints defined in the specs.
+    The only source of truth is the specs: 
+        docs/specs
+            ├── core
+            │   ├── common-processing.txxt
+            │   ├── syntax.txxt
+            │   └── terminology.txxt
+            └── elements
+                ├── annotation.txxt
+                ├── container.txxt
+                ├── definition.txxt
+                ├── inlines
+                │   ├── formatting.txxt
+                │   ├── inlines-general.txxt
+                │   └── references
+                │       ├── citations.txxt
+                │       └── references-general.txxt
+                ├── labels.txxt
+                ├── list.txxt
+                ├── paragraph.txxt
+                ├── parameters.txxt
+                ├── session.txxt
+                └── verbatim.txxt
+    tree:: 
 
-Key requirements:
-- Token-level precision for source reconstruction
-- Parameter validation according to element specs
-- Proper handling of nested structures
-- Annotation attachment using proximity rules
+    For each element you work on it's key that you read docs/specs/core/syntax.txxt the element spec and if needed related ones (as parameters, labels and containters)
 
-Testing with TxxtCorpora
 
-All parser implementations must use the TxxtCorpora testing framework established in tests/corpora.rs and tests/parser_integration.rs.
+    Core Implementation Principles
 
-Testing approach:
-- Use txxt files from txxt-documents-clean/ directory
-- Implement tests for each processing stage: tokenization → block grouping → parsing → post-processing
-- Test both valid cases and error conditions
-- Verify round-trip consistency (source → AST → source)
+    AST Specification Alignment
 
-Example test pattern:
-```rust
-#[rstest]
-#[case::simple("paragraph-basic.txxt")]
-#[case::with_params("paragraph-params.txxt")]
-fn test_paragraph_parsing(#[case] corpus_file: &str) {
-    let corpus = load_corpus(corpus_file);
-    // Test parsing stages...
-}
-```
+        Each AST node must precisely reflect its corresponding specification in docs/specs/elements/. The parser validates both syntactic structure and semantic constraints defined in the specs.
 
-Implementation Order (Item 6.1)
+        Key requirements:
+        - Token-level precision for source reconstruction
+        - Parameter validation according to element specs
+        - Proper handling of nested structures
+        - Annotation attachment using proximity rules
 
-The implementation should proceed in this order for systematic development:
+3. Testing with TxxtCorpora
 
-Phase 1: Foundation
-1. Complete pipeline infrastructure (block_grouper, parser coordination)
-2. Implement core utilities (indentation, line_grouping, span_utils)
-3. Set up error handling and validation framework
+    If you feed invalid txxt sources to your tests, nothing will be correct.
+    Hence it's key that you use only vettoed and verified txxt sources. These 
+    are the ones in the specs, and the TxxtCorpora testing framework established in tests/corpora.rs and tests/parser_integration.rs. will give you one liners to leead them.
 
-Phase 2: Basic Elements (Isolated)
-1. Paragraph parsing - simplest block element
-2. Session parsing - hierarchical structure foundation
-3. Verbatim parsing - literal content handling
-4. Blankline processing - document structure
+    Testing approach:
+    - Use TxxtCorpora::load .
+    - Implement tests for each processing stage: tokenization → block grouping → parsing → post-processing
+    - Test both valid cases and error conditions
 
-Phase 3: Container Elements
-1. Basic containers without nesting
-2. Container nesting and indentation rules
-3. Container parameter handling
+    Example test pattern:
+        #[rstest]
+        #[case::simple("paragraph-basic.txxt")]
+        #[case::with_params("paragraph-params.txxt")]
+        fn test_paragraph_parsing(#[case] corpus_file: &str) {
+            let corpus = load_corpus(corpus_file);
+            // Test parsing stages...
+        }
+    rust ::
 
-Phase 4: Structured Elements
-1. List parsing (ordered/unordered)
-2. Definition parsing (term/description pairs)
-3. Annotation parsing and proximity attachment
+4. Implementation stages.
 
-Phase 5: Inline Elements
-1. Basic inline text processing
-2. Formatting delimiters (emphasis, strong, math)
-3. Reference processing (citations, footnotes, sessions, pages)
+    The sequencing of parsing implementation is key. Being a recursive language, its critical that we can master the isolated documetn first before tackling the recursive versions.
 
-Phase 6: Complex Integration
-1. Multi-element documents
-2. Cross-reference resolution
-3. Annotation proximity rules
-4. Document metadata assembly
+    Inlines are much simpler, since they have no recursion, no indentation and have clear markers. For this reason, inlines will be done last, when all riskier code is working. 
 
-Phase 7: Advanced Features
-1. Error recovery and partial parsing
-2. Performance optimization
-3. Detailed error reporting with source locations
+    The general sequence is to implement: 
+        0. Labels and parameters: other elemetns will use this.
+        1. Simmple forms of paragraphs, annotations, definitions, verbatim blocks, lists.
+        2. More advanced forms of these recursion not withstanding. 
+        3. Content Container: 
+            1. Without Recursion
+            2. With Recusion
+        4. Session Container:
+            1. Withough Recursion
+            2. with Recursion
+        5. Structural edge cases
+        6. Inlines
+        
+    1. Isolation and Flat
+        
+        The first round will be about elements in isolation, in their simple form.
+        You will be given an element and the simple or advanced form.
 
-Testing Strategy for Each Phase
+        1. Read the spec for you element. 
+        2. Choose test cases for the form you are working on .
+        3. Tag them as per the corpora tool. 
+        4. Write the tests.
+        5. ATTENTION: you cannot write new txxt sources. If you feel the examples in the spec are not enough, do the work with what's there and then write your suggestion of new txxt source o include in the pr. 
+        6. Isolation and 
 
-For each element implementation:
+    2. Content Containers: Flat
 
-1. Start with simplest valid cases from corpora
-2. Add parameter variations
-3. Test indentation and nesting
-4. Test error conditions and edge cases
-5. Verify round-trip consistency
-6. Test integration with other elements
+        You will now write the parsing for a content container. 
 
-Development Workflow
+        1. Write an ensable of txxt sources.
+        2. At first no nesting.
+        3. Add one element per test, correct verify
+        4. Until you are able to parse a content container will all nodes. (not sessions) nor inlines
 
-1. Pick next element from implementation order
-2. Study corresponding specification in docs/specs/elements/
-3. Implement AST node in src/ast/nodes/
-4. Implement parser in src/parser/elements/
-5. Write comprehensive tests using TxxtCorpora
-6. Verify all tests pass including existing regression tests
-7. Update documentation if needed
-8. Commit with clear atomic changes
+   3. Content Containers: Nested 
 
-Key Files to Reference
+        Now that you know you can parse a flat container, do the recursive parsing of content continers , which included nested lists, and all other content containers elemetnes (see spec)
 
-- docs/specs/ - Authoritative element specifications
-- src/tokenizer/ - Completed tokenization implementation
-- tests/corpora.rs - TxxtCorpora testing framework
-- tests/parser_integration.rs - Integration test patterns
+   4. Session Contianer: Flat 
+    
+        Now you will imeplement a session continer, with all other elment types (but other sessions)
 
-The goal is systematic, specification-driven implementation that maintains the high quality established in the tokenizer phase.
+    5. Session Container: Nested
+
+        Now you will do the recursive version and impelemnt recursive testing.
+
+        When this is done, all the high complexity code is done, celebrate, and then 
+        we can finilize with the inlines.
+
+    6. Inlines
+
+        Now you can work through inlines. These are much simpler as there is no ambuiguity, the syntax markers are defined explicitly , no indentation and no complicated recursion.
+
+        6.1 Formatters : bold, italic, code, math
+        6.2 References: url, sessions, footnotes, paths, tk, citations.
+
+    The goal is systematic, specification-driven implementation that maintains the high quality established in the tokenizer phase.

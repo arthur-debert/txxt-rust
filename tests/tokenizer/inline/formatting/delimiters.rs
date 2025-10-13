@@ -329,7 +329,7 @@ fn test_inline_delimiter_double_delimiters(#[case] input: &str) {
 fn test_double_math_delimiters() {
     let tokens = tokenize("##");
 
-    // Should produce 2 separate MathDelimiter tokens + EOF (not a MathSpan because empty)
+    // Should produce 2 separate MathDelimiter tokens + EOF
     assert_eq!(tokens.len(), 3);
 
     let math_delimiters: Vec<_> = tokens
@@ -450,7 +450,7 @@ proptest! {
     #[test]
     fn test_inline_delimiter_with_text_properties(
         text in "[a-zA-Z0-9]+",
-        delimiter in r"[*_`]" // Exclude # since it now creates MathSpan tokens
+        delimiter in r"[*_`]" // Exclude # since it now creates MathDelimiter tokens
     ) {
         let input = format!("{}{}{}", delimiter, text, delimiter);
         let tokens = tokenize(&input);

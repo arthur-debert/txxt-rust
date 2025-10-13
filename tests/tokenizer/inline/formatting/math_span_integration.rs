@@ -105,7 +105,7 @@ fn test_math_delimiter_integration_with_text() {
 fn test_math_delimiter_consistency() {
     let tokens = tokenize("#formula#");
 
-    // Should now produce MathDelimiter tokens, not MathSpan
+    // Should now produce MathDelimiter tokens
     let math_delimiters: Vec<_> = tokens
         .iter()
         .filter(|token| matches!(token, Token::MathDelimiter { .. }))

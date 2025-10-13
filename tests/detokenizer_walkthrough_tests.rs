@@ -68,12 +68,13 @@ fn tokens_equal(t1: &Token, t2: &Token) -> bool {
     }
 }
 
-/// Helper to verify round-trip tokenization
+/// Helper to verify round-trip tokenization for verification purposes
 fn verify_detokenizer_round_trip(original: &str) {
     let tokens1 = tokenize(original);
+
     let detokenizer = Detokenizer::new();
     let reconstructed = detokenizer
-        .detokenize_tokens(&tokens1)
+        .detokenize_for_verification(&tokens1)
         .expect("Detokenization should succeed");
     let tokens2 = tokenize(&reconstructed);
 

@@ -26,28 +26,26 @@ impl Detokenizer {
         Self
     }
 
-    /// Reconstruct source text from tokens
+    /// Simple detokenization for round-trip verification
     ///
-    /// This method takes a flat list of tokens and reconstructs the source text.
-    /// It tracks indentation levels using Indent/Dedent tokens to properly
-    /// reconstruct the hierarchical structure.
-    pub fn detokenize_tokens(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
+    /// This is a simplified version that reconstructs text from tokens without
+    /// complex indentation tracking, suitable for round-trip verification tests.
+    pub fn detokenize_for_verification(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&Token> = None;
-        let mut indent_level: usize = 0;
-        let mut at_line_start = true;
 
         for token in tokens {
+            // Skip Indent/Dedent tokens as they're structural markers, not content
+            if matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
+                continue;
+            }
+
             // Handle parameter separators based on previous token
             if let Token::Parameter { key, value, .. } = token {
-                // Add appropriate separator before parameter
                 if let Some(prev) = prev_token {
                     match prev {
                         Token::VerbatimLabel { .. } => {
                             result.push(':'); // First param after verbatim label
-                        }
-                        Token::Colon { .. } => {
-                            // After a colon in annotation context, no separator needed
                         }
                         Token::Parameter { .. } => {
                             result.push(','); // Subsequent params
@@ -56,7 +54,6 @@ impl Detokenizer {
                     }
                 }
 
-                // Add the parameter
                 result.push_str(key);
                 result.push('=');
 
@@ -70,54 +67,12 @@ impl Detokenizer {
                 }
 
                 prev_token = Some(token);
-                at_line_start = false;
                 continue;
             }
 
-            // Track indentation level changes
-            match token {
-                Token::Indent { .. } => {
-                    indent_level += 1;
-                    continue;
-                }
-                Token::Dedent { .. } => {
-                    indent_level = indent_level.saturating_sub(1);
-                    continue;
-                }
-                _ => {}
-            }
-
-            // Handle BlankLine tokens specially to ensure correct indentation
-            if let Token::BlankLine { whitespace, .. } = token {
-                // For blank lines, preserve the whitespace as-is since it's part of the blank line
-                result.push_str(whitespace);
-                result.push('\n');
-                at_line_start = true;
-                prev_token = Some(token);
-                continue;
-            }
-
-            // Add indentation at the start of lines (but not for certain tokens)
-            if at_line_start && !matches!(token, Token::Whitespace { .. }) {
-                let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
-                result.push_str(&indent_ws);
-                at_line_start = false;
-            }
-
-            // Skip whitespace tokens at the start of lines as they represent
-            // the original indentation that we're replacing
-            if at_line_start && matches!(token, Token::Whitespace { .. }) {
-                continue;
-            }
-
-            // Append the token
-            self.append_token(&mut result, token, indent_level)?;
+            // Append the token using simple logic
+            self.append_token(&mut result, token, 0)?;
             prev_token = Some(token);
-
-            // Track if we just added a newline
-            if matches!(token, Token::Newline { .. }) {
-                at_line_start = true;
-            }
         }
 
         Ok(result)

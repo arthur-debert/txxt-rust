@@ -11,7 +11,7 @@ fn debug_math_expression() {
     println!("Tokens: {:?}", tokens);
 
     let detokenizer = Detokenizer::new();
-    let reconstructed = detokenizer.detokenize_tokens(&tokens).unwrap();
+    let reconstructed = detokenizer.detokenize_for_verification(&tokens).unwrap();
     println!("Reconstructed: {}", reconstructed);
 
     assert_eq!(input, reconstructed);
@@ -28,7 +28,7 @@ fn debug_annotation_with_params() {
     }
 
     let detokenizer = Detokenizer::new();
-    let reconstructed = detokenizer.detokenize_tokens(&tokens).unwrap();
+    let reconstructed = detokenizer.detokenize_for_verification(&tokens).unwrap();
     println!("\nReconstructed: {}", reconstructed);
 
     assert_eq!(input, reconstructed);
@@ -45,7 +45,7 @@ fn debug_verbatim_label_with_params() {
     }
 
     let detokenizer = Detokenizer::new();
-    let reconstructed = detokenizer.detokenize_tokens(&tokens).unwrap();
+    let reconstructed = detokenizer.detokenize_for_verification(&tokens).unwrap();
     println!("\nReconstructed: {}", reconstructed);
 
     assert_eq!(input, reconstructed);

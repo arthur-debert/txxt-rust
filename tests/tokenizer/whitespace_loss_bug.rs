@@ -76,7 +76,6 @@ fn test_whitespace_in_parenthesized_list() {
 }
 
 #[test]
-#[ignore = "Whitespace preservation in annotations blocked by parameter integration bug"]
 fn test_whitespace_in_annotation() {
     let input = ":: note ::";
     let mut lexer = Lexer::new(input);

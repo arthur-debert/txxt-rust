@@ -164,7 +164,6 @@ fn audit_inline_delimiters() {
 }
 
 #[test]
-#[ignore = "Parameters need position tracking fix"]
 fn audit_parameter_spans() {
     let input = ":: label:key=value ::";
     let mut lexer = Lexer::new(input);

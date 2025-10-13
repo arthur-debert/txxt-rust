@@ -29,6 +29,7 @@ mod debug_unicode_positions;
 mod debug_whitespace;
 mod parameter_span_bug;
 mod sequence_marker_span_bug;
+mod unicode_regression_tests;
 mod unicode_span_tests;
 mod verbatim_false_positive;
 mod verify_unicode_handling;

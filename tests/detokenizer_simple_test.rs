@@ -15,12 +15,12 @@ fn debug_simple_text() {
         println!("  [{}] {:?}", i, token);
     }
 
-    // Step 2: Detokenize
+    // Step 2: Detokenize for verification
     let detokenizer = Detokenizer::new();
-    let reconstructed = detokenizer.detokenize_tokens(&tokens1).unwrap();
+    let reconstructed = detokenizer.detokenize_for_verification(&tokens1).unwrap();
     println!("\nReconstructed: {:?}", reconstructed);
 
-    // Step 3: Re-tokenize
+    // Step 4: Re-tokenize
     let tokens2 = tokenize(&reconstructed);
     println!("Tokens2 ({}):", tokens2.len());
     for (i, token) in tokens2.iter().enumerate() {
@@ -43,7 +43,7 @@ fn debug_paragraph() {
     }
 
     let detokenizer = Detokenizer::new();
-    let reconstructed = detokenizer.detokenize_tokens(&tokens1).unwrap();
+    let reconstructed = detokenizer.detokenize_for_verification(&tokens1).unwrap();
     println!("\nReconstructed: {:?}", reconstructed);
 
     let tokens2 = tokenize(&reconstructed);

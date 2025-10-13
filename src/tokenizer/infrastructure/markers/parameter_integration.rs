@@ -120,9 +120,12 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                 // Check if this might be a label with parameters
                 if content.contains(':') {
                     // Split at first colon
-                    if let Some(colon_pos) = content.find(':') {
-                        let label = &content[..colon_pos];
-                        let params_str = &content[colon_pos + 1..];
+                    if let Some(colon_byte_pos) = content.find(':') {
+                        let label = &content[..colon_byte_pos];
+                        let params_str = &content[colon_byte_pos + 1..];
+
+                        // Calculate character position of colon
+                        let colon_char_pos = content[..colon_byte_pos].chars().count();
 
                         // Create label token with correct span
                         result.push(Token::Text {
@@ -131,7 +134,7 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                                 start: span.start,
                                 end: Position {
                                     row: span.start.row,
-                                    column: span.start.column + colon_pos,
+                                    column: span.start.column + colon_char_pos,
                                 },
                             },
                         });
@@ -141,11 +144,11 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                             span: SourceSpan {
                                 start: Position {
                                     row: span.start.row,
-                                    column: span.start.column + colon_pos,
+                                    column: span.start.column + colon_char_pos,
                                 },
                                 end: Position {
                                     row: span.start.row,
-                                    column: span.start.column + colon_pos + 1,
+                                    column: span.start.column + colon_char_pos + 1,
                                 },
                             },
                         });
@@ -154,7 +157,7 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                         if !params_str.trim().is_empty() {
                             let param_start = Position {
                                 row: span.start.row,
-                                column: span.start.column + colon_pos + 1,
+                                column: span.start.column + colon_char_pos + 1,
                             };
                             let param_tokens =
                                 parse_parameters_with_position(params_str, param_start);
@@ -227,9 +230,12 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                 // Check if this contains the whole pattern
                 if content.contains(':') {
                     // Split at first colon
-                    if let Some(colon_pos) = content.find(':') {
-                        let term = &content[..colon_pos];
-                        let params_str = &content[colon_pos + 1..];
+                    if let Some(colon_byte_pos) = content.find(':') {
+                        let term = &content[..colon_byte_pos];
+                        let params_str = &content[colon_byte_pos + 1..];
+
+                        // Calculate character position of colon
+                        let colon_char_pos = content[..colon_byte_pos].chars().count();
 
                         // Create term token with correct span
                         result.push(Token::Text {
@@ -238,7 +244,7 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                                 start: span.start,
                                 end: Position {
                                     row: span.start.row,
-                                    column: span.start.column + colon_pos,
+                                    column: span.start.column + colon_char_pos,
                                 },
                             },
                         });
@@ -248,11 +254,11 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                             span: SourceSpan {
                                 start: Position {
                                     row: span.start.row,
-                                    column: span.start.column + colon_pos,
+                                    column: span.start.column + colon_char_pos,
                                 },
                                 end: Position {
                                     row: span.start.row,
-                                    column: span.start.column + colon_pos + 1,
+                                    column: span.start.column + colon_char_pos + 1,
                                 },
                             },
                         });
@@ -261,7 +267,7 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                         if !params_str.trim().is_empty() {
                             let param_start = Position {
                                 row: span.start.row,
-                                column: span.start.column + colon_pos + 1,
+                                column: span.start.column + colon_char_pos + 1,
                             };
                             let param_tokens =
                                 parse_parameters_with_position(params_str, param_start);

@@ -1,0 +1,47 @@
+:: title :: Unicode Span Audit Results
+
+After comprehensive testing, we've verified that the tokenizer handles Unicode correctly.
+
+== Key Findings ==
+
+=== 1. No Unicode Bug in Core Tokenizers ===
+
+The sequence marker code that appears problematic:
+[@ code @]
+column: start_pos.column + marker.len()
+[@@]
+
+Is actually CORRECT because:
+- Column positions count Unicode characters, not bytes
+- `marker.len()` returns character count for ASCII strings like "1.", "a.", "-"
+- The lexer internally handles multi-byte characters properly
+
+=== 2. Real Bugs Found ===
+
+1. **Parameter spans have zero width** (Bug #23)
+   - Parameters are created with start=end positions
+   - Example: span (0,21) to (0,21) for "key=value"
+
+2. **Whitespace loss in tokenization** (Bug #24) 
+   - Fixed by adding Whitespace token variant
+
+3. **Parameter integration issues**
+   - Needs to work with pre-tokenized stream
+   - Must preserve whitespace tokens
+
+=== 3. Test Results ===
+
+Created comprehensive test suite that proves:
+- Text tokens handle "café" correctly (4 characters, not 5 bytes)
+- Sequence markers calculate spans correctly
+- All inline delimiters work with Unicode
+- Position tracking is character-based throughout
+
+== Conclusion ==
+
+The tokenizer's Unicode handling is correct. The column arithmetic that looked suspicious is actually the right approach for ASCII-only tokens like sequence markers.
+
+The remaining work is to:
+1. Fix parameter span width calculation
+2. Complete parameter integration to work with pre-tokenized input
+3. Ensure whitespace preservation in all contexts

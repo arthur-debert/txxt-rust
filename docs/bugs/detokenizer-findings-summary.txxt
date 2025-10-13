@@ -1,0 +1,75 @@
+:: title :: Detokenizer Effort: Bug Analysis and Improvements
+
+This document summarizes the bugs found and fixed during the detokenizer development effort.
+
+== Overview ==
+
+The detokenizer uncovered fundamental bugs in the tokenizer that would have caused issues for:
+- Language server functionality (incorrect source positions)
+- Round-trip fidelity (lost whitespace)
+- Multi-byte character support (incorrect spans)
+
+== Bugs Found and Fixed ==
+
+=== Bug #24: Whitespace Loss ===
+
+Status :: Fixed
+Description :: Tokenizer was skipping whitespace instead of creating Whitespace tokens
+Impact :: Round-trip tests failed, whitespace-sensitive formats would break
+Fix :: Added Whitespace token variant and read_whitespace() method
+
+=== Bug #23: Parameter Span Tracking ===
+
+Status :: Infrastructure created, needs completion
+Description :: Parameter tokens created at position (0,0) instead of actual source position
+Impact :: Language server features would highlight wrong code
+Fix :: Created parameter_integration.rs module with position-aware parsing
+
+=== New Bug: Sequence Marker Spans ===
+
+Status :: Test created, fix pending
+Description :: Sequence markers calculate spans using column + string.len()
+Impact :: Multi-byte characters cause incorrect spans
+Fix :: Need to use lexer position tracking instead of arithmetic
+
+== Common Pattern ==
+
+All span bugs share a common anti-pattern:
+[@ code @]
+// WRONG: Assumes single-byte characters
+end: Position {
+    row: start_pos.row,
+    column: start_pos.column + content.len(),
+}
+
+// CORRECT: Use lexer position tracking
+end: lexer.current_position(),
+[@@]
+
+== Why Existing Tests Missed These ==
+
+1. Tests used ASCII-only input
+2. No round-trip testing
+3. Span positions not verified in most tests
+4. Parameter tests only checked token types, not positions
+
+== Improvements Made ==
+
+1. Added comprehensive whitespace tokenization tests
+2. Created span verification tests for parameters and sequence markers
+3. Documented the common anti-pattern to prevent future bugs
+4. Added infrastructure for position-aware parameter parsing
+
+== Lessons Learned ==
+
+1. **Always test with multi-byte characters** - Unicode support reveals position bugs
+2. **Round-trip testing is essential** - It catches information loss bugs
+3. **Verify spans, not just token types** - Position accuracy matters for tooling
+4. **Common patterns spread bugs** - When one tokenizer has an issue, check others
+
+== Next Steps ==
+
+1. Complete parameter span fix using new infrastructure
+2. Fix sequence marker span calculation
+3. Add Unicode test cases to all tokenizer tests
+4. Consider property-based testing for span verification

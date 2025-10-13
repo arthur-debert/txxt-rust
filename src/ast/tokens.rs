@@ -93,6 +93,9 @@ pub enum Token {
     /// Regular text content (words, sentences, paragraphs)
     Text { content: String, span: SourceSpan },
 
+    /// Whitespace characters (spaces and tabs, but not newlines)
+    Whitespace { content: String, span: SourceSpan },
+
     /// Line break characters
     Newline { span: SourceSpan },
 
@@ -199,6 +202,7 @@ impl Token {
     pub fn span(&self) -> &SourceSpan {
         match self {
             Token::Text { span, .. } => span,
+            Token::Whitespace { span, .. } => span,
             Token::Newline { span } => span,
             Token::BlankLine { span } => span,
             Token::Indent { span } => span,
@@ -236,6 +240,7 @@ impl Token {
     pub fn content(&self) -> &str {
         match self {
             Token::Text { content, .. } => content,
+            Token::Whitespace { content, .. } => content,
             Token::SequenceMarker { marker_type, .. } => marker_type.content(),
             Token::AnnotationMarker { content, .. } => content,
             Token::DefinitionMarker { content, .. } => content,

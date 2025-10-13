@@ -173,11 +173,7 @@ impl Detokenizer {
                 result.push(' ');
             }
             Token::AnnotationMarker { content, .. } => {
-                result.push_str("::");
-                result.push(' ');
                 result.push_str(content);
-                result.push(' ');
-                result.push_str("::");
             }
             Token::DefinitionMarker { content, .. } => {
                 result.push_str(content);

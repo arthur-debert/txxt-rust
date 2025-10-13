@@ -9,7 +9,7 @@ use txxt::tokenizer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
 #[test]
-#[ignore = "Emoji not recognized as text - needs Unicode tokenization fix"]
+#[ignore = "Emoji are now recognized as text, but column position tracking needs Unicode grapheme cluster support"]
 fn test_all_tokenizers_with_emoji() {
     let test_cases = vec![
         // Format: (input, description, expected_tokens_after_emoji)
@@ -313,7 +313,6 @@ fn test_parameter_spans_unicode() {
 
 /// Test mixed Unicode scenarios
 #[test]
-#[ignore = "Emoji not tokenized as text - only recognized as whitespace"]
 fn test_mixed_unicode_content() {
     let input = "🎉 café → résumé";
     let mut lexer = Lexer::new(input);

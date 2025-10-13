@@ -19,6 +19,14 @@ use crate::tokenizer::inline::references::{
 };
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
+/// Check if a character is a special delimiter that should terminate text tokens
+fn is_special_delimiter(ch: char) -> bool {
+    matches!(
+        ch,
+        '*' | '_' | '`' | '#' | '-' | '[' | ']' | '@' | ':' | '(' | ')' | '=' | ',' | '.' | '\\'
+    )
+}
+
 /// Saved lexer state for backtracking
 #[derive(Debug, Clone)]
 pub struct LexerState {
@@ -198,7 +206,7 @@ impl Lexer {
         tokens
     }
 
-    /// Read a text token (alphanumeric characters, underscores that are part of words, and caret)
+    /// Read a text token (any non-whitespace, non-delimiter characters)
     fn read_text(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
         let mut content = String::new();
@@ -240,15 +248,17 @@ impl Lexer {
                     content.push(ch);
                     self.advance();
                 }
-            } else if ch.is_alphanumeric() || ch == '^' {
-                // Include alphanumeric and caret characters
+            } else if (!ch.is_whitespace() && !is_special_delimiter(ch)) || ch == '^' {
+                // Include any non-whitespace, non-delimiter character, plus caret
                 content.push(ch);
                 self.advance();
             } else if ch == '_' {
                 // Only include underscore if it's followed by alphanumeric (not delimiter)
                 let next_pos = self.position + 1;
                 if let Some(&next_ch) = self.input.get(next_pos) {
-                    if next_ch.is_alphanumeric() {
+                    if next_ch.is_alphanumeric()
+                        || (!next_ch.is_whitespace() && !is_special_delimiter(next_ch))
+                    {
                         content.push(ch);
                         self.advance();
                     } else {
@@ -263,9 +273,9 @@ impl Lexer {
                 // Include period if it's part of decimal numbers (e.g., "2.0")
                 let next_pos = self.position + 1;
                 if let Some(&next_ch) = self.input.get(next_pos) {
-                    if next_ch.is_ascii_digit()
+                    if next_ch.is_numeric()
                         && !content.is_empty()
-                        && content.chars().last().unwrap().is_ascii_digit()
+                        && content.chars().last().unwrap().is_numeric()
                     {
                         content.push(ch);
                         self.advance();
@@ -300,16 +310,6 @@ impl Lexer {
         let start_pos = self.current_position();
 
         if self.peek() == Some('-') {
-            // Check if this is part of a sequence marker (already handled earlier)
-            // We only want standalone dashes, not "- " sequence markers
-            let next_pos = self.position + 1;
-            if let Some(&next_ch) = self.input.get(next_pos) {
-                if next_ch == ' ' {
-                    // This is a sequence marker, not a standalone dash
-                    return None;
-                }
-            }
-
             self.advance();
             return Some(Token::Dash {
                 span: SourceSpan {
@@ -335,7 +335,7 @@ impl Lexer {
             let prev_is_digit = if self.position > 0 {
                 self.input
                     .get(self.position - 1)
-                    .is_some_and(|c| c.is_ascii_digit())
+                    .is_some_and(|c| c.is_numeric())
             } else {
                 false
             };
@@ -344,7 +344,7 @@ impl Lexer {
             let next_is_digit = self
                 .input
                 .get(self.position + 1)
-                .is_some_and(|c| c.is_ascii_digit());
+                .is_some_and(|c| c.is_numeric());
 
             // If surrounded by digits, this is part of a decimal number - don't tokenize
             if prev_is_digit && next_is_digit {
@@ -517,14 +517,14 @@ impl Lexer {
 
         // Must start with letter or underscore (but only if underscore is part of a longer identifier)
         if let Some(ch) = self.peek() {
-            if ch.is_ascii_alphabetic() {
+            if ch.is_alphabetic() {
                 content.push(ch);
                 self.advance();
             } else if ch == '_' {
                 // Only start with underscore if followed by alphanumeric (not standalone delimiter)
                 let next_pos = self.position + 1;
                 if let Some(&next_ch) = self.input.get(next_pos) {
-                    if next_ch.is_ascii_alphabetic() || next_ch.is_ascii_digit() || next_ch == '_' {
+                    if next_ch.is_alphabetic() || next_ch.is_numeric() || next_ch == '_' {
                         content.push(ch);
                         self.advance();
                     } else {

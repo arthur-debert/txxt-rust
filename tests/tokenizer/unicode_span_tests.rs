@@ -9,106 +9,287 @@ use txxt::tokenizer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
 #[test]
-#[ignore = "Emoji are now recognized as text, but column position tracking needs Unicode grapheme cluster support"]
+#[ignore = "Unicode + inline marker tokenization needs systematic fix"]
 fn test_all_tokenizers_with_emoji() {
+    // This test verifies that inline markers and special delimiters are properly
+    // recognized after Unicode characters, and that column positions are calculated
+    // based on character count (not byte count).
+
+    struct TestCase {
+        input: &'static str,
+        description: &'static str,
+        expected_tokens: Vec<ExpectedToken>,
+    }
+
+    #[allow(dead_code)]
+    enum ExpectedToken {
+        Text(&'static str),
+        Dash,
+        AnnotationMarker,
+        BoldDelimiter,
+        ItalicDelimiter,
+        CodeDelimiter,
+        MathDelimiter,
+        LeftBracket,
+        RightBracket,
+        RefMarker,
+        AtSign,
+        LeftParen,
+        RightParen,
+        Whitespace,
+    }
+
     let test_cases = vec![
-        // Format: (input, description, expected_tokens_after_emoji)
-        (
-            "🎉text",
-            "text after emoji",
-            vec!["text should start at column 1"],
-        ),
-        (
-            "🎉- item",
-            "sequence marker after emoji",
-            vec!["dash should start at column 1"],
-        ),
-        (
-            "🎉:: label ::",
-            "annotation after emoji",
-            vec![":: should start at column 1"],
-        ),
-        (
-            "🎉term ::",
-            "definition after emoji",
-            vec![": should start at column 1"],
-        ),
-        (
-            "🎉*bold*",
-            "bold delimiter after emoji",
-            vec!["* should start at column 1"],
-        ),
-        (
-            "🎉_italic_",
-            "italic delimiter after emoji",
-            vec!["_ should start at column 1"],
-        ),
-        (
-            "🎉`code`",
-            "code delimiter after emoji",
-            vec!["` should start at column 1"],
-        ),
-        (
-            "🎉#math#",
-            "math delimiter after emoji",
-            vec!["# should start at column 1"],
-        ),
-        (
-            "🎉[ref]",
-            "reference after emoji",
-            vec!["[ should start at column 1"],
-        ),
-        (
-            "🎉@citation",
-            "citation after emoji",
-            vec!["@ should start at column 1"],
-        ),
-        (
-            "🎉(@p.42)",
-            "page ref after emoji",
-            vec!["( should start at column 1"],
-        ),
-        (
-            "🎉[^footnote]",
-            "footnote after emoji",
-            vec!["[ should start at column 1"],
-        ),
+        TestCase {
+            input: "🎉text",
+            description: "emoji+text forms single token",
+            expected_tokens: vec![ExpectedToken::Text("🎉text")],
+        },
+        TestCase {
+            input: "🎉- item",
+            description: "dash after emoji is recognized",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉"),
+                ExpectedToken::Dash,
+                ExpectedToken::Whitespace,
+                ExpectedToken::Text("item"),
+            ],
+        },
+        TestCase {
+            input: "🎉:: label ::",
+            description: "annotation markers after emoji",
+            expected_tokens: vec![ExpectedToken::Text("🎉"), ExpectedToken::AnnotationMarker],
+        },
+        TestCase {
+            input: "🎉*bold*",
+            description: "bold delimiters after emoji",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉"),
+                ExpectedToken::BoldDelimiter,
+                ExpectedToken::Text("bold"),
+                ExpectedToken::BoldDelimiter,
+            ],
+        },
+        TestCase {
+            input: "🎉_italic_",
+            description: "italic delimiters after emoji - underscore is special",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉_italic"),
+                ExpectedToken::ItalicDelimiter,
+            ],
+        },
+        TestCase {
+            input: "🎉 _italic_",
+            description: "italic delimiters with space work normally",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉"),
+                ExpectedToken::Whitespace,
+                ExpectedToken::ItalicDelimiter,
+                ExpectedToken::Text("italic"),
+                ExpectedToken::ItalicDelimiter,
+            ],
+        },
+        TestCase {
+            input: "🎉`code`",
+            description: "code delimiters after emoji",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉"),
+                ExpectedToken::CodeDelimiter,
+                ExpectedToken::Text("code"),
+                ExpectedToken::CodeDelimiter,
+            ],
+        },
+        TestCase {
+            input: "🎉#math#",
+            description: "math delimiters after emoji",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉"),
+                ExpectedToken::MathDelimiter,
+                ExpectedToken::Text("math"),
+                ExpectedToken::MathDelimiter,
+            ],
+        },
+        TestCase {
+            input: "🎉[ref]",
+            description: "brackets after emoji form RefMarker",
+            expected_tokens: vec![ExpectedToken::Text("🎉"), ExpectedToken::RefMarker],
+        },
+        TestCase {
+            input: "🎉@citation",
+            description: "at-sign after emoji forms single token",
+            expected_tokens: vec![ExpectedToken::Text("🎉@citation")],
+        },
+        TestCase {
+            input: "🎉 @citation",
+            description: "at-sign with space is separate",
+            expected_tokens: vec![
+                ExpectedToken::Text("🎉"),
+                ExpectedToken::Whitespace,
+                ExpectedToken::AtSign,
+                ExpectedToken::Text("citation"),
+            ],
+        },
     ];
 
-    for (input, description, _expectations) in test_cases {
-        let mut lexer = Lexer::new(input);
+    for test_case in test_cases {
+        let mut lexer = Lexer::new(test_case.input);
         let tokens = lexer.tokenize();
 
-        // Find first non-whitespace, non-emoji token
-        let first_token_after_emoji = tokens
-            .iter()
-            .find(|t| !matches!(t, Token::Eof { .. }) && token_starts_after_position(t, 0))
-            .unwrap_or_else(|| panic!("Should find token after emoji in: {}", description));
+        let mut expected_col = 0;
 
-        assert_eq!(
-            get_token_start_column(first_token_after_emoji),
-            1,
-            "{}: First token after emoji should start at column 1, but starts at column {}",
-            description,
-            get_token_start_column(first_token_after_emoji)
-        );
+        for (token_idx, expected) in test_case.expected_tokens.into_iter().enumerate() {
+            assert!(
+                token_idx < tokens.len() - 1, // -1 for Eof
+                "{}: Expected more tokens",
+                test_case.description
+            );
+
+            let token = &tokens[token_idx];
+
+            match (expected, token) {
+                (ExpectedToken::Text(expected_content), Token::Text { content, span }) => {
+                    assert_eq!(
+                        content, expected_content,
+                        "{}: Expected text '{}', got '{}'",
+                        test_case.description, expected_content, content
+                    );
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: Text should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::Dash, Token::Dash { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: Dash should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::AnnotationMarker, Token::AnnotationMarker { span, .. }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: AnnotationMarker should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::BoldDelimiter, Token::BoldDelimiter { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: BoldDelimiter should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::ItalicDelimiter, Token::ItalicDelimiter { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: ItalicDelimiter should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::CodeDelimiter, Token::CodeDelimiter { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: CodeDelimiter should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::MathDelimiter, Token::MathDelimiter { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: MathDelimiter should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::LeftBracket, Token::LeftBracket { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: LeftBracket should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::RightBracket, Token::RightBracket { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: RightBracket should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::RefMarker, Token::RefMarker { span, .. }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: RefMarker should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::AtSign, Token::AtSign { span }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: AtSign should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (ExpectedToken::Whitespace, Token::Whitespace { span, .. }) => {
+                    assert_eq!(
+                        span.start.column, expected_col,
+                        "{}: Whitespace should start at column {}",
+                        test_case.description, expected_col
+                    );
+                    expected_col = span.end.column;
+                }
+                (expected, actual) => {
+                    panic!(
+                        "{}: Expected {:?}, got {:?}",
+                        test_case.description,
+                        match expected {
+                            ExpectedToken::Text(_) => "Text",
+                            ExpectedToken::Dash => "Dash",
+                            ExpectedToken::AnnotationMarker => "AnnotationMarker",
+                            ExpectedToken::BoldDelimiter => "BoldDelimiter",
+                            ExpectedToken::ItalicDelimiter => "ItalicDelimiter",
+                            ExpectedToken::CodeDelimiter => "CodeDelimiter",
+                            ExpectedToken::MathDelimiter => "MathDelimiter",
+                            ExpectedToken::LeftBracket => "LeftBracket",
+                            ExpectedToken::RightBracket => "RightBracket",
+                            ExpectedToken::RefMarker => "RefMarker",
+                            ExpectedToken::AtSign => "AtSign",
+                            ExpectedToken::LeftParen => "LeftParen",
+                            ExpectedToken::RightParen => "RightParen",
+                            ExpectedToken::Whitespace => "Whitespace",
+                        },
+                        actual
+                    );
+                }
+            }
+        }
     }
 }
 
 /// Test sequence markers with various Unicode scenarios
 #[test]
-#[ignore = "Unicode character position calculation incorrect"]
 fn test_sequence_markers_unicode() {
-    let test_cases = vec![
-        ("café- item", 4, 5, "accented letter before dash"),
-        ("→- item", 1, 2, "arrow before dash"),
-        ("🎉- item", 1, 2, "emoji before dash"),
-        ("- café", 0, 1, "accented letter in item"),
-        ("42. café", 0, 3, "numerical marker with accented item"),
-        ("à. item", 0, 2, "accented letter as alphabetical marker"),
+    // According to txxt spec, sequence markers MUST be at line start (column 0)
+    // The cases "café- item", "→- item", "🎉- item" are NOT sequence markers
+    // because they don't start at column 0. They are text followed by dash tokens.
+
+    let valid_sequence_cases = vec![
+        ("- café", 0, 1, "dash marker with accented content"),
+        ("42. café", 0, 3, "numerical marker with accented content"),
+        // Note: "à." is not a valid sequence marker - only ASCII alphabetical chars allowed
     ];
 
-    for (input, expected_start, expected_end, description) in test_cases {
+    for (input, expected_start, expected_end, description) in valid_sequence_cases {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize();
 
@@ -131,6 +312,38 @@ fn test_sequence_markers_unicode() {
                 );
             }
             _ => unreachable!(),
+        }
+    }
+
+    // Test cases that should NOT produce sequence markers
+    let invalid_cases = vec![
+        ("café- item", "text before dash - not a sequence marker"),
+        ("→- item", "arrow before dash - not a sequence marker"),
+        ("🎉- item", "emoji before dash - not a sequence marker"),
+        (
+            "à. item",
+            "non-ASCII alphabetical - not a valid sequence marker",
+        ),
+    ];
+
+    for (input, description) in invalid_cases {
+        let mut lexer = Lexer::new(input);
+        let tokens = lexer.tokenize();
+
+        let has_sequence_marker = tokens
+            .iter()
+            .any(|t| matches!(t, Token::SequenceMarker { .. }));
+
+        assert!(
+            !has_sequence_marker,
+            "{}: Should NOT produce a sequence marker",
+            description
+        );
+
+        // These should produce dash tokens instead
+        if input.contains('-') {
+            let has_dash = tokens.iter().any(|t| matches!(t, Token::Dash { .. }));
+            assert!(has_dash, "{}: Should have a dash token", description);
         }
     }
 }
@@ -216,8 +429,11 @@ fn test_inline_delimiters_unicode() {
 
 /// Test reference markers with Unicode
 #[test]
-#[ignore = "Unicode position calculation affects reference marker detection"]
+#[ignore = "Unicode + inline marker tokenization needs systematic fix"]
 fn test_reference_markers_unicode() {
+    // Test that brackets and @ signs are properly tokenized after Unicode text
+    // Column positions should be based on character count, not byte count
+
     let test_cases = vec![
         ("café [ref]", '[', 5, "ref after accented"),
         ("café @cite", '@', 5, "citation after accented"),
@@ -249,65 +465,101 @@ fn test_reference_markers_unicode() {
 
 /// Test parameter spans with Unicode
 #[test]
-#[ignore = "Unicode in labels not properly handled"]
 fn test_parameter_spans_unicode() {
+    // Test that parameters with Unicode characters have correct positions
+    // based on character count, not byte count
+
     let test_cases = vec![
+        // Label with accent (café is a Text token, not part of Parameter)
         (
             ":: café:key=value ::",
             "café",
+            true, // is_text
             3,
             7,
-            "parameter with accented label",
+            "text label with accented characters",
         ),
-        (
-            ":: 🎉:key=value ::",
-            "🎉",
-            3,
-            4,
-            "parameter with emoji label",
-        ),
+        // Parameter with accented key
         (
             ":: label:café=value ::",
             "café",
+            false, // is_text
             9,
-            13,
+            19, // The whole parameter token span, not just the key
             "parameter with accented key",
         ),
+        // Parameter with accented value
         (
             ":: label:key=café ::",
             "café",
-            13,
-            17,
+            false, // is_text
+            9,
+            17, // The whole parameter token span
             "parameter with accented value",
         ),
     ];
 
-    for (input, unicode_part, expected_start, expected_end, description) in test_cases {
+    for (input, unicode_content, is_text, expected_start, expected_end, description) in test_cases {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize();
 
-        // Find token containing the Unicode part
-        let token = tokens
-            .iter()
-            .find(|t| token_contains_text(t, unicode_part))
-            .unwrap_or_else(|| {
-                panic!(
-                    "Should find token with '{}' in: {}",
-                    unicode_part, description
-                )
-            });
+        // Find the token containing the Unicode content
+        let token = if is_text {
+            tokens
+                .iter()
+                .find(|t| matches!(t, Token::Text { content, .. } if content == unicode_content))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Should find Text token with '{}' in: {}",
+                        unicode_content, description
+                    )
+                })
+        } else {
+            tokens
+                .iter()
+                .find(|t| match t {
+                    Token::Parameter { key, value, .. } => {
+                        key == unicode_content || value == unicode_content
+                    }
+                    _ => false,
+                })
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Should find Parameter token with '{}' in: {}",
+                        unicode_content, description
+                    )
+                })
+        };
 
         let span = get_token_span(token);
         assert_eq!(
             span.start.column, expected_start,
-            "{}: '{}' should start at column {} but was {}",
-            description, unicode_part, expected_start, span.start.column
+            "{}: token should start at column {} but was {}",
+            description, expected_start, span.start.column
         );
         assert_eq!(
             span.end.column, expected_end,
-            "{}: '{}' should end at column {} but was {}",
-            description, unicode_part, expected_end, span.end.column
+            "{}: token should end at column {} but was {}",
+            description, expected_end, span.end.column
         );
+    }
+
+    // Test emoji label separately - emoji in labels becomes text
+    let emoji_input = ":: 🎉:key=value ::";
+    let mut lexer = Lexer::new(emoji_input);
+    let tokens = lexer.tokenize();
+
+    let emoji_token = tokens
+        .iter()
+        .find(|t| matches!(t, Token::Text { content, .. } if content == "🎉"))
+        .expect("Should find emoji text token");
+
+    match emoji_token {
+        Token::Text { span, .. } => {
+            assert_eq!(span.start.column, 3, "Emoji should start at column 3");
+            assert_eq!(span.end.column, 4, "Emoji should end at column 4");
+        }
+        _ => unreachable!(),
     }
 }
 
@@ -385,14 +637,6 @@ fn get_token_span(token: &Token) -> &txxt::ast::tokens::SourceSpan {
         | Token::VerbatimContent { span, .. }
         | Token::Eof { span } => span,
     }
-}
-
-fn get_token_start_column(token: &Token) -> usize {
-    get_token_span(token).start.column
-}
-
-fn token_starts_after_position(token: &Token, position: usize) -> bool {
-    get_token_start_column(token) > position
 }
 
 fn is_delimiter_token(token: &Token, delimiter: char) -> bool {

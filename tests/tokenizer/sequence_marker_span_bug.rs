@@ -7,25 +7,55 @@ use txxt::ast::tokens::{SequenceMarkerType, Token};
 use txxt::tokenizer::Lexer;
 
 #[test]
-#[ignore = "Unicode span calculation needs fixing - emoji takes 4 bytes but 1 character"]
 fn test_sequence_marker_span_with_unicode() {
-    // Test with emoji before sequence marker
+    // According to txxt spec, sequence markers MUST be at line start.
+    // "🎉- item" does NOT produce a sequence marker, only a dash token.
     let input = "🎉- item";
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
 
-    // Find the sequence marker
+    // Should NOT find sequence marker
+    let has_marker = tokens
+        .iter()
+        .any(|t| matches!(t, Token::SequenceMarker { .. }));
+
+    assert!(
+        !has_marker,
+        "Should NOT find sequence marker when dash is not at column 0"
+    );
+
+    // Should find dash token instead
+    let dash = tokens
+        .iter()
+        .find(|t| matches!(t, Token::Dash { .. }))
+        .expect("Should find dash token");
+
+    match dash {
+        Token::Dash { span } => {
+            // The emoji takes 1 character position
+            assert_eq!(
+                span.start.column, 1,
+                "Dash should start at column 1 after emoji"
+            );
+            assert_eq!(span.end.column, 2, "Dash should end at column 2");
+        }
+        _ => unreachable!(),
+    }
+
+    // Test actual sequence marker at line start with Unicode content
+    let valid_input = "- 🎉item";
+    let mut lexer = Lexer::new(valid_input);
+    let tokens = lexer.tokenize();
+
     let marker = tokens
         .iter()
         .find(|t| matches!(t, Token::SequenceMarker { .. }))
-        .expect("Should find sequence marker");
+        .expect("Should find sequence marker at column 0");
 
     match marker {
         Token::SequenceMarker { span, .. } => {
-            // The emoji takes 4 bytes but is 1 character
-            // So the marker should start at column 1, not column 4
-            assert_eq!(span.start.column, 1, "Marker should start after emoji");
-            assert_eq!(span.end.column, 2, "Marker should end at column 2");
+            assert_eq!(span.start.column, 0, "Sequence marker at line start");
+            assert_eq!(span.end.column, 1, "Plain dash marker is 1 char");
         }
         _ => unreachable!(),
     }

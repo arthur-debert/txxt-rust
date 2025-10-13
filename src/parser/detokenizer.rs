@@ -97,6 +97,11 @@ impl Detokenizer {
                 result.push(' ');
             }
             
+            // Space after right paren before text (for "(1) Item" format)
+            (RightParen { .. }, Text { .. }) => {
+                result.push(' ');
+            }
+            
             // Space between text and inline delimiters
             (Text { .. }, BoldDelimiter { .. }) |
             (Text { .. }, ItalicDelimiter { .. }) |

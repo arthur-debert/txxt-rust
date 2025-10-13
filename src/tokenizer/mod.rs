@@ -56,9 +56,8 @@ pub use parameters::{parse_parameters, ParameterLexer};
 
 // Re-export inline functionality
 pub use inline::{
-    read_citation_ref, read_inline_delimiter, read_math_span, read_page_ref, read_session_ref,
-    CitationRefLexer, InlineDelimiterLexer, MathSpanLexer, PageRefLexer, ReferenceLexer,
-    SessionRefLexer,
+    read_citation_ref, read_inline_delimiter, read_page_ref, read_session_ref, CitationRefLexer,
+    InlineDelimiterLexer, PageRefLexer, ReferenceLexer, SessionRefLexer,
 };
 
 // Re-export new AST token types

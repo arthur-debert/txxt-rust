@@ -63,28 +63,32 @@ fn test_ref_marker_section_passing(#[case] input: &str, #[case] expected_content
 }
 
 // =============================================================================
-// RefMarker Token - Footnote Tests (rstest)
+// FootnoteRef Token - Footnote Tests (rstest)
 // =============================================================================
 
 #[rstest]
-#[case("[1]", "1")]
-#[case("[2]", "2")]
-#[case("[42]", "42")]
-#[case("[123]", "123")]
-fn test_ref_marker_footnote_passing(#[case] input: &str, #[case] expected_content: &str) {
+#[case("[1]", 1)]
+#[case("[2]", 2)]
+#[case("[42]", 42)]
+#[case("[123]", 123)]
+fn test_ref_marker_footnote_passing(#[case] input: &str, #[case] expected_number: u32) {
     let tokens = tokenize(input);
 
-    assert_eq!(tokens.len(), 2); // REF_MARKER + EOF
+    assert_eq!(tokens.len(), 2); // FOOTNOTE_REF + EOF
 
     match &tokens[0] {
-        Token::RefMarker { content, span } => {
-            assert_eq!(content, expected_content);
+        Token::FootnoteRef {
+            footnote_type,
+            span,
+        } => {
+            use txxt::tokenizer::inline::references::footnote_ref::FootnoteType;
+            assert_eq!(footnote_type, &FootnoteType::Naked(expected_number));
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
             assert_eq!(span.end.column, input.len());
         }
-        _ => panic!("Expected RefMarker token, got {:?}", tokens[0]),
+        _ => panic!("Expected FootnoteRef token, got {:?}", tokens[0]),
     }
 }
 
@@ -327,18 +331,18 @@ proptest! {
         let input = format!("[{}]", number);
         let tokens = tokenize(&input);
 
-        // Should have exactly 1 REF_MARKER token + EOF
+        // Should have exactly 1 FOOTNOTE_REF token + EOF
         prop_assert_eq!(tokens.len(), 2);
 
         match &tokens[0] {
-            Token::RefMarker { content, span } => {
-                let expected_content = number.to_string();
-                prop_assert_eq!(content, &expected_content);
+            Token::FootnoteRef { footnote_type, span } => {
+                use txxt::tokenizer::inline::references::footnote_ref::FootnoteType;
+                prop_assert_eq!(footnote_type, &FootnoteType::Naked(number));
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, input.len());
             }
-            _ => prop_assert!(false, "Expected RefMarker token"),
+            _ => prop_assert!(false, "Expected FootnoteRef token"),
         }
     }
 

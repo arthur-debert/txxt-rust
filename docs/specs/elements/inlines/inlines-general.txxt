@@ -53,7 +53,7 @@ Foundation specification for inline elements - the general token-based syntax pa
     3.3. Reference Elements
 
         Links and cross-references:
-        - General references, Citations, Footnotes
+        - General references, Citations, Session references, Footnotes
         - See [references/] specifications for complete details
 
 4. Universal Grammar
@@ -73,6 +73,7 @@ Foundation specification for inline elements - the general token-based syntax pa
             <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
             <page-ref> = <left-bracket> <page-locator> <right-bracket>
             <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
+            <footnote-ref> = <footnote-naked> | <footnote-labeled>
         :: grammar
 
     4.2. Content Rules

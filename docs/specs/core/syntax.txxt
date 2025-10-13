@@ -60,6 +60,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <left-paren> = (
             <right-paren> = )
             <at-sign> = @
+            <caret> = ^
         (grammar)
 
     1.3. txxt Marker
@@ -140,6 +141,14 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
         (grammar)
 
+        Footnote reference:
+            <footnote-number> = <digit>+
+            <footnote-label> = <identifier>
+            <footnote-naked> = <left-bracket> <footnote-number> <right-bracket>
+            <footnote-labeled> = <left-bracket> ^ <footnote-label> <right-bracket>
+            <footnote-ref> = <footnote-naked> | <footnote-labeled>
+        (grammar)
+
 3. Line Elements
 
     Complete lines that form the building blocks of document structure:
@@ -148,7 +157,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Lines containing span elements:
 
-        <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span> | <page-ref> | <session-ref>
+        <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span> | <page-ref> | <session-ref> | <footnote-ref>
         <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
         (grammar)
 

@@ -3,7 +3,6 @@
 //! Converts TXXT source text into Token enum variants with precise SourceSpan
 //! positioning for language server support.
 
-use crate::ast::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
 use crate::tokenizer::infrastructure::markers::{
     sequence::read_sequence_marker,
@@ -12,9 +11,10 @@ use crate::tokenizer::infrastructure::markers::{
         read_definition_marker,
     },
 };
-use crate::tokenizer::inline::{
-    read_citation_ref, read_inline_delimiter, read_math_span, read_page_ref, read_session_ref,
-    CitationRefLexer, MathSpanLexer, PageRefLexer, ReferenceLexer, SessionRefLexer,
+use crate::tokenizer::inline::read_inline_delimiter;
+use crate::tokenizer::inline::references::{
+    citations::read_citation_ref, footnote_ref::read_footnote_ref, page_ref::read_page_ref,
+    session_ref::read_session_ref,
 };
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
@@ -32,8 +32,6 @@ pub struct Lexer {
     pub(crate) position: usize,
     pub(crate) row: usize,
     pub(crate) column: usize,
-    // Reference classifier for basic validation
-    ref_classifier: ReferenceClassifier,
 }
 
 impl Lexer {
@@ -44,8 +42,6 @@ impl Lexer {
             position: 0,
             row: 0,
             column: 0,
-            // Reference classifier for basic validation only
-            ref_classifier: ReferenceClassifier::new(),
         }
     }
 
@@ -116,19 +112,36 @@ impl Lexer {
                 tokens.push(token);
             } else if let Some(token) = read_annotation_marker(&mut *self) {
                 tokens.push(token);
-            } else if let Some(token) = read_math_span(self) {
-                tokens.push(token);
+            // TODO: Update these to work with atomic tokens from parser level
             } else if let Some(token) = read_citation_ref(self) {
                 tokens.push(token);
             } else if let Some(token) = read_page_ref(self) {
                 tokens.push(token);
             } else if let Some(token) = read_session_ref(self) {
                 tokens.push(token);
-            } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
+            } else if let Some(token) = read_footnote_ref(self) {
+                tokens.push(token);
+            } else if let Some(token) =
+                crate::tokenizer::inline::references::ReferenceLexer::read_ref_marker(self)
+            {
+                tokens.push(token);
+            } else if let Some(token) = self.read_left_bracket() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_right_bracket() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_at_sign() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_left_paren() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_right_paren() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_colon() {
                 tokens.push(token);
             } else if let Some(token) = read_inline_delimiter(self) {
                 tokens.push(token);
             } else if let Some(token) = self.read_dash() {
+                tokens.push(token);
+            } else if let Some(token) = self.read_period() {
                 tokens.push(token);
             } else if let Some(token) = self.read_text() {
                 tokens.push(token);
@@ -188,6 +201,24 @@ impl Lexer {
                     // At end of input, stop here
                     break;
                 }
+            } else if ch == '.' {
+                // Include period if it's part of decimal numbers (e.g., "2.0")
+                let next_pos = self.position + 1;
+                if let Some(&next_ch) = self.input.get(next_pos) {
+                    if next_ch.is_ascii_digit()
+                        && !content.is_empty()
+                        && content.chars().last().unwrap().is_ascii_digit()
+                    {
+                        content.push(ch);
+                        self.advance();
+                    } else {
+                        // Period is structural, not part of text
+                        break;
+                    }
+                } else {
+                    // Period at end of input, stop here
+                    break;
+                }
             } else {
                 break;
             }
@@ -223,6 +254,190 @@ impl Lexer {
 
             self.advance();
             return Some(Token::Dash {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a period token (standalone .)
+    /// Only tokenizes periods that are structural markers, not those within text content
+    fn read_period(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('.') {
+            // Check context to determine if this should be a standalone period token
+            // Periods within numeric text (like "2.0") should not be tokenized separately
+
+            // Look at previous character if available
+            let prev_is_digit = if self.position > 0 {
+                self.input
+                    .get(self.position - 1)
+                    .is_some_and(|c| c.is_ascii_digit())
+            } else {
+                false
+            };
+
+            // Look at next character
+            let next_is_digit = self
+                .input
+                .get(self.position + 1)
+                .is_some_and(|c| c.is_ascii_digit());
+
+            // If surrounded by digits, this is part of a decimal number - don't tokenize
+            if prev_is_digit && next_is_digit {
+                return None;
+            }
+
+            self.advance();
+            return Some(Token::Period {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a left bracket token ([)
+    fn read_left_bracket(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('[') {
+            self.advance();
+            return Some(Token::LeftBracket {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a right bracket token (])
+    fn read_right_bracket(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(']') {
+            self.advance();
+            return Some(Token::RightBracket {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read an at-sign token (@)
+    fn read_at_sign(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('@') {
+            self.advance();
+            return Some(Token::AtSign {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a left parenthesis token (()
+    fn read_left_paren(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some('(') {
+            self.advance();
+            return Some(Token::LeftParen {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a right parenthesis token ())
+    fn read_right_paren(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(')') {
+            self.advance();
+            return Some(Token::RightParen {
+                span: SourceSpan {
+                    start: start_pos,
+                    end: self.current_position(),
+                },
+            });
+        }
+
+        None
+    }
+
+    /// Read a colon token (:)
+    /// Only tokenizes structural colons, not those used in parameter syntax
+    fn read_colon(&mut self) -> Option<Token> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(':') {
+            // Check if this is part of a double colon (::)
+            let next_pos = self.position + 1;
+            if let Some(&next_ch) = self.input.get(next_pos) {
+                if next_ch == ':' {
+                    // This is part of a double colon, don't tokenize as single colon
+                    return None;
+                }
+            }
+
+            // Check if this colon is likely part of parameter syntax
+            // Look backwards for alphanumeric content (term before colon)
+            if self.position > 0 {
+                if let Some(&prev_ch) = self.input.get(self.position - 1) {
+                    if prev_ch.is_alphanumeric() {
+                        // Look ahead for parameter-like content (key=value)
+                        let mut lookahead_pos = next_pos;
+                        while lookahead_pos < self.input.len() {
+                            if let Some(&ch) = self.input.get(lookahead_pos) {
+                                if ch == '=' {
+                                    // Found = after colon following alphanumeric, likely parameter
+                                    return None;
+                                } else if ch == ' '
+                                    || ch == '\t'
+                                    || ch.is_alphanumeric()
+                                    || ch == '_'
+                                {
+                                    lookahead_pos += 1;
+                                    continue;
+                                } else {
+                                    // Hit non-parameter character, break
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            self.advance();
+            return Some(Token::Colon {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -456,109 +671,8 @@ impl VerbatimLexer for Lexer {
     }
 }
 
-impl ReferenceLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn column(&self) -> usize {
-        self.column
-    }
-
-    fn position(&self) -> usize {
-        self.position
-    }
-
-    fn input(&self) -> &[char] {
-        &self.input
-    }
-
-    fn ref_classifier(&self) -> &ReferenceClassifier {
-        &self.ref_classifier
-    }
-
-    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
-        self.position = position;
-        self.row = row;
-        self.column = column;
-    }
-}
-
-impl MathSpanLexer for Lexer {
-    fn current_position(&self) -> Position {
-        Position {
-            row: self.row,
-            column: self.column,
-        }
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.input.get(self.position).copied()
-    }
-
-    fn peek_at(&self, offset: usize) -> Option<char> {
-        self.input.get(self.position + offset).copied()
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
-    }
-
-    fn row(&self) -> usize {
-        self.row
-    }
-
-    fn column(&self) -> usize {
-        self.column
-    }
-
-    fn position(&self) -> usize {
-        self.position
-    }
-
-    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
-        self.position = position;
-        self.row = row;
-        self.column = column;
-    }
-}
+// Trait implementations for reference lexing
+use crate::tokenizer::inline::references::{CitationRefLexer, PageRefLexer};
 
 impl CitationRefLexer for Lexer {
     fn current_position(&self) -> Position {
@@ -577,18 +691,7 @@ impl CitationRefLexer for Lexer {
     }
 
     fn advance(&mut self) -> Option<char> {
-        if let Some(ch) = self.input.get(self.position).copied() {
-            self.position += 1;
-            if ch == '\n' {
-                self.row += 1;
-                self.column = 0;
-            } else {
-                self.column += 1;
-            }
-            Some(ch)
-        } else {
-            None
-        }
+        self.advance()
     }
 
     fn row(&self) -> usize {
@@ -627,6 +730,45 @@ impl PageRefLexer for Lexer {
     }
 
     fn advance(&mut self) -> Option<char> {
+        self.advance()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl crate::tokenizer::inline::references::session_ref::SessionRefLexer for Lexer {
+    fn current_position(&self) -> crate::ast::tokens::Position {
+        crate::ast::tokens::Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
         if let Some(ch) = self.input.get(self.position).copied() {
             self.position += 1;
             if ch == '\n' {
@@ -660,7 +802,7 @@ impl PageRefLexer for Lexer {
     }
 }
 
-impl SessionRefLexer for Lexer {
+impl crate::tokenizer::inline::references::ReferenceLexer for Lexer {
     fn current_position(&self) -> Position {
         Position {
             row: self.row,
@@ -668,12 +810,50 @@ impl SessionRefLexer for Lexer {
         }
     }
 
+    fn advance(&mut self) -> Option<char> {
+        self.advance()
+    }
+
     fn peek(&self) -> Option<char> {
         self.input.get(self.position).copied()
     }
 
-    fn peek_at(&self, offset: usize) -> Option<char> {
-        self.input.get(self.position + offset).copied()
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn input(&self) -> &[char] {
+        &self.input
+    }
+
+    fn ref_classifier(&self) -> &crate::ast::reference_types::ReferenceClassifier {
+        // Create a static classifier instance
+        static CLASSIFIER: std::sync::OnceLock<crate::ast::reference_types::ReferenceClassifier> =
+            std::sync::OnceLock::new();
+        CLASSIFIER.get_or_init(crate::ast::reference_types::ReferenceClassifier::new)
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl crate::tokenizer::inline::references::footnote_ref::FootnoteRefLexer for Lexer {
+    fn current_position(&self) -> crate::ast::tokens::Position {
+        crate::ast::tokens::Position {
+            row: self.row,
+            column: self.column,
+        }
     }
 
     fn advance(&mut self) -> Option<char> {
@@ -689,6 +869,14 @@ impl SessionRefLexer for Lexer {
         } else {
             None
         }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
     }
 
     fn row(&self) -> usize {

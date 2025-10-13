@@ -24,10 +24,10 @@ mod tests {
             ("[#-1]", true, "negative section index"),
             ("[#1.-1.2]", true, "mixed positive/negative"),
             ("[#]", false, "invalid section - no number"),
-            // Footnote patterns
+            // Footnote patterns - now handled by FootnoteRef tokens
             ("[1]", true, "simple footnote"),
             ("[42]", true, "multi-digit footnote"),
-            ("[0]", true, "zero footnote"),
+            ("[0]", false, "zero footnote"), // Zero not allowed for footnotes
             // URL patterns
             ("[https://example.com]", true, "https url"),
             ("[http://test.org]", true, "http url"),
@@ -91,8 +91,39 @@ mod tests {
                 }
             } else {
                 // Non-citation patterns should produce appropriate reference tokens
-                // Check if this is a session reference pattern
-                if input.starts_with("[#")
+                // Check if this is a footnote reference pattern
+                if description.contains("footnote") {
+                    // Footnote reference - should produce FootnoteRef token
+                    let footnote_refs: Vec<_> = tokens
+                        .iter()
+                        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+                        .collect();
+
+                    if should_be_valid {
+                        assert_eq!(
+                            footnote_refs.len(),
+                            1,
+                            "Expected 1 FootnoteRef for valid {}, but got {}: {:?}",
+                            description,
+                            footnote_refs.len(),
+                            footnote_refs
+                        );
+
+                        if let Token::FootnoteRef { footnote_type, .. } = &footnote_refs[0] {
+                            println!("  ✅ Valid FootnoteRef: {:?}", footnote_type);
+                        }
+                    } else {
+                        assert_eq!(
+                            footnote_refs.len(),
+                            0,
+                            "Expected 0 FootnoteRefs for invalid {}, but got {}: {:?}",
+                            description,
+                            footnote_refs.len(),
+                            footnote_refs
+                        );
+                        println!("  ✅ Correctly rejected");
+                    }
+                } else if input.starts_with("[#")
                     && input
                         .chars()
                         .nth(2)
@@ -211,8 +242,21 @@ mod tests {
                 );
             } else {
                 // Other references should produce appropriate reference tokens
-                // Check if this is a session reference pattern
-                if input.starts_with("[#")
+                // Check if this is a footnote reference pattern
+                if ref_type == "footnote" {
+                    // Footnote reference - should produce FootnoteRef token
+                    let footnote_tokens: Vec<_> = tokens
+                        .iter()
+                        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+                        .collect();
+
+                    assert_eq!(
+                        footnote_tokens.len(),
+                        1,
+                        "Should find exactly 1 FootnoteRef for {}",
+                        input
+                    );
+                } else if input.starts_with("[#")
                     && input
                         .chars()
                         .nth(2)

@@ -229,34 +229,56 @@ fn test_inline_delimiter_mixed_content(
 }
 
 #[test]
-fn test_math_span_integration() {
+fn test_math_delimiter_integration() {
     let tokens = tokenize("#math#");
 
-    // Should have: MathSpan, Eof (not delimiters)
-    assert_eq!(tokens.len(), 2);
+    // Should have: MathDelimiter, Text, MathDelimiter, Eof (delimiter approach)
+    assert_eq!(tokens.len(), 4);
 
     match &tokens[0] {
-        Token::MathSpan { content, .. } => {
+        Token::MathDelimiter { .. } => {}
+        _ => panic!("Expected MathDelimiter token, got {:?}", tokens[0]),
+    }
+
+    match &tokens[1] {
+        Token::Text { content, .. } => {
             assert_eq!(content, "math");
         }
-        _ => panic!("Expected MathSpan token, got {:?}", tokens[0]),
+        _ => panic!("Expected Text token, got {:?}", tokens[1]),
+    }
+
+    match &tokens[2] {
+        Token::MathDelimiter { .. } => {}
+        _ => panic!("Expected MathDelimiter token, got {:?}", tokens[2]),
     }
 }
 
 #[test]
-fn test_math_span_mixed_content() {
+fn test_math_delimiter_mixed_content() {
     let tokens = tokenize("prefix #math# suffix");
 
-    // Should have: Text("prefix"), MathSpan("math"), Text("suffix"), Eof
-    assert!(tokens.len() >= 4);
+    // Should have: Text("prefix"), MathDelimiter, Text("math"), MathDelimiter, Text("suffix"), Eof
+    assert!(tokens.len() >= 6);
 
-    let math_span = tokens
+    let math_delimiters: Vec<_> = tokens
         .iter()
-        .find(|token| matches!(token, Token::MathSpan { .. }))
-        .expect("Should find MathSpan token");
+        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .collect();
+    assert_eq!(math_delimiters.len(), 2);
 
-    match math_span {
-        Token::MathSpan { content, .. } => {
+    let math_content = tokens
+        .iter()
+        .find(|token| {
+            if let Token::Text { content, .. } = token {
+                content == "math"
+            } else {
+                false
+            }
+        })
+        .expect("Should find math content token");
+
+    match math_content {
+        Token::Text { content, .. } => {
             assert_eq!(content, "math");
         }
         _ => unreachable!(),
@@ -307,7 +329,7 @@ fn test_inline_delimiter_double_delimiters(#[case] input: &str) {
 fn test_double_math_delimiters() {
     let tokens = tokenize("##");
 
-    // Should produce 2 separate MathDelimiter tokens + EOF (not a MathSpan because empty)
+    // Should produce 2 separate MathDelimiter tokens + EOF
     assert_eq!(tokens.len(), 3);
 
     let math_delimiters: Vec<_> = tokens
@@ -321,17 +343,7 @@ fn test_double_math_delimiters() {
         "Should produce 2 MathDelimiter tokens"
     );
 
-    // Should not have any MathSpan tokens
-    let math_spans: Vec<_> = tokens
-        .iter()
-        .filter(|token| matches!(token, Token::MathSpan { .. }))
-        .collect();
-
-    assert_eq!(
-        math_spans.len(),
-        0,
-        "Should not produce any MathSpan tokens"
-    );
+    // Verification that delimiters work consistently
 }
 
 #[rstest]
@@ -438,7 +450,7 @@ proptest! {
     #[test]
     fn test_inline_delimiter_with_text_properties(
         text in "[a-zA-Z0-9]+",
-        delimiter in r"[*_`]" // Exclude # since it now creates MathSpan tokens
+        delimiter in r"[*_`]" // Exclude # since it now creates MathDelimiter tokens
     ) {
         let input = format!("{}{}{}", delimiter, text, delimiter);
         let tokens = tokenize(&input);
@@ -469,31 +481,31 @@ proptest! {
     }
 
     #[test]
-    fn test_math_span_properties(
+    fn test_math_delimiter_properties(
         content in "[a-zA-Z0-9]+",
     ) {
         let input = format!("#{content}#");
         let tokens = tokenize(&input);
 
-        // Should have: MathSpan, EOF
-        prop_assert_eq!(tokens.len(), 2, "Math span should produce exactly 2 tokens (MathSpan + EOF)");
+        // Should have: MathDelimiter, Text, MathDelimiter, EOF
+        prop_assert_eq!(tokens.len(), 4, "Math delimiters should produce exactly 4 tokens");
 
-        // Should find exactly 1 math span token
-        let math_spans: Vec<_> = tokens.iter()
-            .filter_map(|token| match token {
-                Token::MathSpan { content: span_content, .. } if span_content == &content => Some(span_content),
-                _ => None,
-            })
-            .collect();
-
-        prop_assert_eq!(math_spans.len(), 1, "Should find exactly 1 MathSpan token with expected content");
-
-        // Should not find any delimiter tokens
+        // Should find exactly 2 math delimiter tokens
         let delimiter_count = tokens.iter()
             .filter(|token| matches!(token, Token::MathDelimiter { .. }))
             .count();
 
-        prop_assert_eq!(delimiter_count, 0, "Math spans should not produce MathDelimiter tokens");
+        prop_assert_eq!(delimiter_count, 2, "Should find exactly 2 MathDelimiter tokens");
+
+        // Should find exactly 1 text token with expected content
+        let text_tokens: Vec<_> = tokens.iter()
+            .filter_map(|token| match token {
+                Token::Text { content: text_content, .. } if text_content == &content => Some(text_content),
+                _ => None,
+            })
+            .collect();
+
+        prop_assert_eq!(text_tokens.len(), 1, "Should find exactly 1 Text token with expected content");
     }
 }
 

@@ -85,12 +85,23 @@ Complete specification for the general reference system - the foundation for lin
 
     3.5. Footnote References
 
-        Footnote and annotation links:
+        Footnote and annotation links support two formats:
+
+        Naked numerical format:
+            [1]
+            [2]
+            [42]
+        :: footnote-naked
+
+        Labeled format with caret prefix:
             [^note1]
             [^detailed-explanation]
-        :: footnote-references
+            [^methodology-note]
+        :: footnote-labeled
 
         Purpose: Footnotes and supplementary information
+        
+        The caret (^) prefix distinguishes labeled footnotes from naked numerical footnotes and other reference types.
 
     3.6. TK (To Come) References
 
@@ -160,6 +171,11 @@ Complete specification for the general reference system - the foundation for lin
 
         Session reference:
             <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
+
+        Footnote reference:
+            <footnote-ref> = <footnote-naked> | <footnote-labeled>
+            <footnote-naked> = <left-bracket> <footnote-number> <right-bracket>
+            <footnote-labeled> = <left-bracket> <caret> <footnote-label> <right-bracket>
         :: grammar
 
 6. AST Structure
@@ -181,7 +197,8 @@ Complete specification for the general reference system - the foundation for lin
         │   ├── File(PathData)
         │   ├── Session(SessionRef)
         │   ├── Citation(CitationData)
-        │   ├── Footnote(FootnoteRef)
+        │   ├── FootnoteNaked(u32)
+        │   ├── FootnoteLabeled(String)
         │   ├── TK(TKData)
         │   ├── NotSure(String)
         │   └── General(String)
@@ -201,11 +218,12 @@ Complete specification for the general reference system - the foundation for lin
         Reference type determination order:
         1. TK patterns (`TK` or `TK-identifier`)
         2. Citation patterns (`@key`)
-        3. Footnote patterns (`^id`)
-        4. URL patterns (protocol or domain)
-        5. File patterns (starts with `.` or `/`)
-        6. Session patterns (`#number`)
-        7. Not Sure (default fallback)
+        3. Footnote labeled patterns (`^id`)
+        4. Session patterns (`#number`)
+        5. URL patterns (protocol or domain)
+        6. File patterns (starts with `.` or `/`)
+        7. Footnote naked patterns (pure digits)
+        8. Not Sure (default fallback)
 
     7.3. Validation Rules
 

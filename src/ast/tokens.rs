@@ -17,6 +17,50 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Rich semantic information for sequence markers
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum SequenceMarkerType {
+    /// Plain markers like "-", "*"
+    Plain(String),
+    /// Numerical markers like "1.", "42)" with parsed number and original string
+    Numerical(u64, String),
+    /// Alphabetical markers like "a.", "Z)" with parsed letter and original string  
+    Alphabetical(char, String),
+    /// Roman numeral markers like "i.", "IV)" with parsed value and original string
+    Roman(u64, String),
+}
+
+impl SequenceMarkerType {
+    /// Get the original string representation of this sequence marker
+    pub fn content(&self) -> &str {
+        match self {
+            SequenceMarkerType::Plain(s) => s,
+            SequenceMarkerType::Numerical(_, s) => s,
+            SequenceMarkerType::Alphabetical(_, s) => s,
+            SequenceMarkerType::Roman(_, s) => s,
+        }
+    }
+
+    /// Get the semantic value as a number (for ordered lists)
+    pub fn numeric_value(&self) -> Option<u64> {
+        match self {
+            SequenceMarkerType::Plain(_) => None,
+            SequenceMarkerType::Numerical(n, _) => Some(*n),
+            SequenceMarkerType::Alphabetical(c, _) => {
+                // Convert a-z to 1-26, A-Z to 1-26
+                if c.is_ascii_lowercase() {
+                    Some((*c as u8 - b'a' + 1) as u64)
+                } else if c.is_ascii_uppercase() {
+                    Some((*c as u8 - b'A' + 1) as u64)
+                } else {
+                    None
+                }
+            }
+            SequenceMarkerType::Roman(n, _) => Some(*n),
+        }
+    }
+}
+
 /// Precise source position for character-level language server support
 ///
 /// Unlike traditional AST source spans, we need both start and end positions
@@ -61,8 +105,11 @@ pub enum Token {
     /// Indentation decrease  
     Dedent { span: SourceSpan },
 
-    /// List/sequence markers (1., -, a), etc.)
-    SequenceMarker { content: String, span: SourceSpan },
+    /// List/sequence markers (1., -, a), etc.) with rich semantic information
+    SequenceMarker {
+        marker_type: SequenceMarkerType,
+        span: SourceSpan,
+    },
 
     /// Annotation markers (:: label ::)
     AnnotationMarker { content: String, span: SourceSpan },
@@ -73,14 +120,38 @@ pub enum Token {
     /// Dash character (-)
     Dash { span: SourceSpan },
 
+    /// Period character (.)
+    Period { span: SourceSpan },
+
+    /// Left bracket character ([)
+    LeftBracket { span: SourceSpan },
+
+    /// Right bracket character (])
+    RightBracket { span: SourceSpan },
+
+    /// At-sign character (@)
+    AtSign { span: SourceSpan },
+
+    /// Left parenthesis character (()
+    LeftParen { span: SourceSpan },
+
+    /// Right parenthesis character ())
+    RightParen { span: SourceSpan },
+
+    /// Colon character (:)
+    Colon { span: SourceSpan },
+
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
     /// Reference markers ([text], [@citation], [#section])
     RefMarker { content: String, span: SourceSpan },
 
-    /// Footnote numbers ([1], [2])
-    FootnoteNumber { content: String, span: SourceSpan },
+    /// Footnote references ([1], [2], [^label])
+    FootnoteRef {
+        footnote_type: crate::tokenizer::inline::references::footnote_ref::FootnoteType,
+        span: SourceSpan,
+    },
 
     /// Verbatim block title (title:)
     VerbatimTitle { content: String, span: SourceSpan },
@@ -110,9 +181,6 @@ pub enum Token {
     /// Math text delimiter (#)
     MathDelimiter { span: SourceSpan },
 
-    /// Math expression span (#content#)
-    MathSpan { content: String, span: SourceSpan },
-
     /// Citation reference ([@key])
     CitationRef { content: String, span: SourceSpan },
 
@@ -139,9 +207,16 @@ impl Token {
             Token::AnnotationMarker { span, .. } => span,
             Token::DefinitionMarker { span, .. } => span,
             Token::Dash { span } => span,
+            Token::Period { span } => span,
+            Token::LeftBracket { span } => span,
+            Token::RightBracket { span } => span,
+            Token::AtSign { span } => span,
+            Token::LeftParen { span } => span,
+            Token::RightParen { span } => span,
+            Token::Colon { span } => span,
             Token::Identifier { span, .. } => span,
             Token::RefMarker { span, .. } => span,
-            Token::FootnoteNumber { span, .. } => span,
+            Token::FootnoteRef { span, .. } => span,
             Token::VerbatimTitle { span, .. } => span,
             Token::VerbatimContent { span, .. } => span,
             Token::VerbatimLabel { span, .. } => span,
@@ -150,7 +225,6 @@ impl Token {
             Token::ItalicDelimiter { span } => span,
             Token::CodeDelimiter { span } => span,
             Token::MathDelimiter { span } => span,
-            Token::MathSpan { span, .. } => span,
             Token::CitationRef { span, .. } => span,
             Token::PageRef { span, .. } => span,
             Token::SessionRef { span, .. } => span,
@@ -162,12 +236,12 @@ impl Token {
     pub fn content(&self) -> &str {
         match self {
             Token::Text { content, .. } => content,
-            Token::SequenceMarker { content, .. } => content,
+            Token::SequenceMarker { marker_type, .. } => marker_type.content(),
             Token::AnnotationMarker { content, .. } => content,
             Token::DefinitionMarker { content, .. } => content,
             Token::Identifier { content, .. } => content,
             Token::RefMarker { content, .. } => content,
-            Token::FootnoteNumber { content, .. } => content,
+            Token::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
             Token::VerbatimTitle { content, .. } => content,
             Token::VerbatimContent { content, .. } => content,
             Token::VerbatimLabel { content, .. } => content,
@@ -176,7 +250,6 @@ impl Token {
             Token::ItalicDelimiter { .. } => "_",
             Token::CodeDelimiter { .. } => "`",
             Token::MathDelimiter { .. } => "#",
-            Token::MathSpan { content, .. } => content,
             Token::CitationRef { content, .. } => content,
             Token::PageRef { content, .. } => content,
             Token::SessionRef { content, .. } => content,
@@ -185,6 +258,13 @@ impl Token {
             Token::Indent { .. } => "",
             Token::Dedent { .. } => "",
             Token::Dash { .. } => "-",
+            Token::Period { .. } => ".",
+            Token::LeftBracket { .. } => "[",
+            Token::RightBracket { .. } => "]",
+            Token::AtSign { .. } => "@",
+            Token::LeftParen { .. } => "(",
+            Token::RightParen { .. } => ")",
+            Token::Colon { .. } => ":",
             Token::Eof { .. } => "",
         }
     }
@@ -193,6 +273,24 @@ impl Token {
     pub fn parameter_value(&self) -> Option<&str> {
         match self {
             Token::Parameter { value, .. } => Some(value),
+            _ => None,
+        }
+    }
+
+    /// Get the semantic sequence marker information (only valid for SequenceMarker tokens)
+    pub fn sequence_marker_type(&self) -> Option<&SequenceMarkerType> {
+        match self {
+            Token::SequenceMarker { marker_type, .. } => Some(marker_type),
+            _ => None,
+        }
+    }
+
+    /// Get the footnote type information (only valid for FootnoteRef tokens)
+    pub fn footnote_type(
+        &self,
+    ) -> Option<&crate::tokenizer::inline::references::footnote_ref::FootnoteType> {
+        match self {
+            Token::FootnoteRef { footnote_type, .. } => Some(footnote_type),
             _ => None,
         }
     }

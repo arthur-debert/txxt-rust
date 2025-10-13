@@ -39,6 +39,6 @@ pub mod parser;
 pub mod post_processor;
 
 // Re-export main interfaces
-pub use block_grouper::BlockGrouper;
+pub use block_grouper::{BlockGroup, BlockGrouper};
 pub use parser::Parser;
 pub use post_processor::PostProcessor;

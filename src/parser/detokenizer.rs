@@ -32,8 +32,24 @@ impl Detokenizer {
     pub fn detokenize_tokens(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&Token> = None;
+        let mut current_indent_level: usize = 0;
 
         for token in tokens {
+            // Track indent level
+            match token {
+                Token::Indent { .. } => current_indent_level += 1,
+                Token::Dedent { .. } => current_indent_level = current_indent_level.saturating_sub(1),
+                _ => {}
+            }
+            
+            // Add indentation at start of lines (after newline)
+            if let Some(Token::Newline { .. }) = prev_token {
+                if !matches!(token, Token::Newline { .. } | Token::BlankLine { .. } | Token::Indent { .. } | Token::Dedent { .. } | Token::Eof { .. }) {
+                    // Add indentation before this token
+                    result.push_str(&"    ".repeat(current_indent_level));
+                }
+            }
+            
             // Add appropriate spacing between tokens
             if let Some(prev) = prev_token {
                 self.add_spacing(&mut result, prev, token);

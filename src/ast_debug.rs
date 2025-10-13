@@ -101,10 +101,10 @@ impl AstTreeVisualizer {
         }
 
         // Show document blocks
-        writeln!(output, "├─ Blocks: {} items", doc.blocks.len()).unwrap();
+        writeln!(output, "├─ Blocks: {} items", doc.content.content.len()).unwrap();
 
-        for (i, block) in doc.blocks.iter().enumerate() {
-            let is_last = i == doc.blocks.len() - 1;
+        for (i, block) in doc.content.content.iter().enumerate() {
+            let is_last = i == doc.content.content.len() - 1;
             let prefix = if is_last { "└─" } else { "├─" };
             let indent = if is_last { "   " } else { "│  " };
 
@@ -228,17 +228,23 @@ impl AstTreeVisualizer {
             }
 
             Block::VerbatimBlock(verbatim) => {
-                let format_info = verbatim
-                    .format_hint
-                    .as_ref()
-                    .map(|f| format!(" ({})", f))
-                    .unwrap_or_default();
+                let format_info = if !verbatim.label.is_empty() {
+                    format!(" ({})", verbatim.label)
+                } else {
+                    String::new()
+                };
 
                 writeln!(output, "{} Verbatim{}", prefix, format_info).unwrap();
 
                 if !self.config.compact {
-                    let lines = verbatim.raw.lines().count();
-                    let chars = verbatim.raw.len();
+                    let lines =
+                        verbatim.content.ignore_lines.len() + verbatim.content.blank_lines.len();
+                    let chars: usize = verbatim
+                        .content
+                        .ignore_lines
+                        .iter()
+                        .map(|line| line.content.len())
+                        .sum();
                     writeln!(output, "{}   └─ {} lines, {} chars", indent, lines, chars).unwrap();
 
                     if self.config.show_parameters && !verbatim.parameters.map.is_empty() {
@@ -337,11 +343,11 @@ impl AstComparator {
         let mut differences = Vec::new();
 
         // Compare block counts
-        if left.blocks.len() != right.blocks.len() {
+        if left.content.content.len() != right.content.content.len() {
             differences.push(format!(
                 "Block count differs: {} vs {}",
-                left.blocks.len(),
-                right.blocks.len()
+                left.content.content.len(),
+                right.content.content.len()
             ));
         }
 
@@ -359,9 +365,10 @@ impl AstComparator {
         }
 
         // Compare blocks pairwise
-        let min_blocks = left.blocks.len().min(right.blocks.len());
+        let min_blocks = left.content.content.len().min(right.content.content.len());
         for i in 0..min_blocks {
-            let block_diffs = Self::compare_blocks(&left.blocks[i], &right.blocks[i]);
+            let block_diffs =
+                Self::compare_blocks(&left.content.content[i], &right.content.content[i]);
             for diff in block_diffs {
                 differences.push(format!("Block {}: {}", i, diff));
             }
@@ -404,11 +411,11 @@ impl AstComparator {
                 }
             }
             (Block::VerbatimBlock(l), Block::VerbatimBlock(r)) => {
-                if l.raw != r.raw {
+                if l.content.ignore_lines != r.content.ignore_lines {
                     differences.push("Verbatim content differs".to_string());
                 }
-                if l.format_hint != r.format_hint {
-                    differences.push("Verbatim format hint differs".to_string());
+                if l.label != r.label {
+                    differences.push("Verbatim label differs".to_string());
                 }
             }
             (l, r) => {
@@ -463,7 +470,7 @@ impl AstStatistics {
             total_characters: 0,
         };
 
-        for block in &doc.blocks {
+        for block in &doc.content.content {
             stats.collect_from_block(block, 1);
         }
 
@@ -504,7 +511,12 @@ impl AstStatistics {
             }
             Block::VerbatimBlock(verbatim) => {
                 self.verbatim_count += 1;
-                self.total_characters += verbatim.raw.len();
+                self.total_characters += verbatim
+                    .content
+                    .ignore_lines
+                    .iter()
+                    .map(|line| line.content.len())
+                    .sum::<usize>();
             }
             Block::Definition(def) => {
                 self.definition_count += 1;

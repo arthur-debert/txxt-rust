@@ -67,21 +67,28 @@ pub enum Block {
 /// TXXT processing. They're essential for including code, configuration,
 /// or other formats within TXXT documents.
 ///
-/// Two types exist:
-/// - In-flow: Integrated with regular content flow
-/// - Stretched: Separate block with clear boundaries
+/// Structure according to spec:
+/// - Title: Optional descriptive text (can contain inline formatting)
+/// - Content: Preserved exactly in IgnoreContainer
+/// - Label: Mandatory format identifier
+/// - Two modes: In-flow and Stretched (determined automatically)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VerbatimBlock {
-    /// Raw content, no parsing or transforms applied  
-    /// This content is sacred - no modification allowed
-    pub raw: String,
+    /// Title content with inline formatting support
+    /// Can be empty for minimal form (just ":")
+    pub title: Vec<Inline>,
+
+    /// Verbatim content preserved exactly using IgnoreContainer
+    /// Follows container architecture with ignore-lines and blank-lines
+    pub content: super::structure::IgnoreContainer,
+
+    /// Mandatory label for format identification
+    /// Used by syntax highlighters and other tooling
+    pub label: String,
 
     /// Type of verbatim block (in-flow vs stretched)
+    /// Determined automatically during parsing
     pub verbatim_type: VerbatimType,
-
-    /// Optional format hint (e.g., "rust", "json", "html")
-    /// Used by syntax highlighters and other tooling
-    pub format_hint: Option<String>,
 
     /// Parameters from verbatim block declaration
     /// Supports arbitrary key-value metadata including ref= for named anchors

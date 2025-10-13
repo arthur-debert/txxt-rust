@@ -23,24 +23,24 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::{annotations::Annotation, blocks::Block};
+use super::{
+    blocks::Block,
+    structure::{Container, ContainerType},
+};
 
 /// Top-level document structure
 ///
 /// Represents a complete TXXT document after parsing and assembly phases.
-/// Annotations can be attached directly to the document itself (when they
-/// appear at the beginning of the document before any other content).
+/// The document root is a SessionContainer that can hold any blocks including
+/// sessions, providing the hierarchical document structure.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Document {
     /// Document metadata (frontmatter-style information)
     pub meta: Meta,
 
-    /// Main document content blocks
-    pub blocks: Vec<Block>,
-
-    /// Annotations attached to the document itself
-    /// (from the beginning of the document before any content)
-    pub annotations: Vec<Annotation>,
+    /// Main document content in a SessionContainer
+    /// Root container can hold sessions and any other blocks
+    pub content: Container,
 
     /// Assembly metadata added during document processing
     pub assembly_info: AssemblyInfo,
@@ -125,8 +125,11 @@ impl Document {
     pub fn new(source: String) -> Self {
         Self {
             meta: Meta::default(),
-            blocks: Vec::new(),
-            annotations: Vec::new(),
+            content: Container {
+                container_type: ContainerType::Session,
+                content: Vec::new(),
+                annotations: Vec::new(),
+            },
             assembly_info: AssemblyInfo {
                 source_path: Some(source),
                 ..AssemblyInfo::default()

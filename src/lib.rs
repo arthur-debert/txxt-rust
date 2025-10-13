@@ -1,3 +1,22 @@
+//! TXXT Parser and Processor
+//!
+//! # For Parser Developers
+//!
+//! When writing tests for parser components, use the `TxxtCorpora` utility for
+//! specification-driven testing. This ensures your implementation matches the
+//! authoritative specification.
+//!
+//! ```rust,ignore
+//! // In your test files:
+//! use tests::corpora::{TxxtCorpora, ProcessingStage};
+//!
+//! let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
+//! let ast = your_parser::parse(&corpus.source_text)?;
+//! insta::assert_yaml_snapshot!(ast);
+//! ```
+//!
+//! See `tests/README.md` for complete documentation and `CLAUDE.md` for requirements.
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

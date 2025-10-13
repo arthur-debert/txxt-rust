@@ -27,12 +27,18 @@ impl DocumentParser {
     /// - Convert to typed AST nodes (Phase 2b)
     pub fn parse(&self, _tokens: &[crate::ast::tokens::Token]) -> Document {
         // STUB: Return minimal document until real implementation
-        use crate::ast::base::{AssemblyInfo, Meta};
+        use crate::ast::{
+            base::{AssemblyInfo, Meta},
+            structure::{Container, ContainerType},
+        };
 
         Document {
-            blocks: Vec::new(),
-            annotations: Vec::new(),
             meta: Meta::default(),
+            content: Container {
+                container_type: ContainerType::Session,
+                content: Vec::new(),
+                annotations: Vec::new(),
+            },
             assembly_info: AssemblyInfo {
                 parser_version: env!("CARGO_PKG_VERSION").to_string(),
                 source_path: Some(self.source.clone()),

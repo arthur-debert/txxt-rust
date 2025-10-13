@@ -29,7 +29,22 @@ use serde::{Deserialize, Serialize};
 
 use super::{annotations::Annotation, inlines::Inline, tokens::TokenSequence};
 
-/// Container for indented block content
+/// Container type for type safety according to spec
+///
+/// Different container types enforce content restrictions:
+/// - ContentContainer: Cannot contain sessions (list items, definitions, etc.)
+/// - SessionContainer: Can contain sessions (document root, session content)
+/// - IgnoreContainer: Verbatim content only (separate structure)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ContainerType {
+    /// Content container: holds any blocks except sessions
+    Content,
+
+    /// Session container: holds any blocks including sessions  
+    Session,
+}
+
+/// Container for indented block content with type safety
 ///
 /// The key architectural insight: containers are what get indented, not their
 /// parent elements. This explains why flat lists don't need indentation -
@@ -38,11 +53,15 @@ use super::{annotations::Annotation, inlines::Inline, tokens::TokenSequence};
 /// Level is computed via tree traversal, never stored as an attribute.
 /// This prevents synchronization issues and supports arbitrary nesting depth.
 ///
+/// Type safety ensures proper content restrictions per spec:
+/// - Content containers cannot hold sessions
+/// - Session containers can hold any blocks including sessions
+///
 /// Example:
 /// ```txxt
 /// - Item 1
 /// - Item 2
-///   - Nested item    // This creates a Container
+///   - Nested item    // This creates a ContentContainer
 /// ```
 ///
 /// AST:
@@ -50,12 +69,15 @@ use super::{annotations::Annotation, inlines::Inline, tokens::TokenSequence};
 /// List
 /// ├── ListItem("Item 1")
 /// ├── ListItem("Item 2")
-/// └── Container
+/// └── Container(Content)
 ///     └── List
 ///         └── ListItem("Nested item")
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Container {
+    /// Container type for content restrictions
+    pub container_type: ContainerType,
+
     /// Nested blocks at this indentation level
     pub content: Vec<super::blocks::Block>,
 

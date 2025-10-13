@@ -101,10 +101,10 @@ impl AstTreeVisualizer {
         }
 
         // Show document blocks
-        writeln!(output, "├─ Blocks: {} items", doc.blocks.len()).unwrap();
+        writeln!(output, "├─ Blocks: {} items", doc.content.content.len()).unwrap();
 
-        for (i, block) in doc.blocks.iter().enumerate() {
-            let is_last = i == doc.blocks.len() - 1;
+        for (i, block) in doc.content.content.iter().enumerate() {
+            let is_last = i == doc.content.content.len() - 1;
             let prefix = if is_last { "└─" } else { "├─" };
             let indent = if is_last { "   " } else { "│  " };
 
@@ -343,11 +343,11 @@ impl AstComparator {
         let mut differences = Vec::new();
 
         // Compare block counts
-        if left.blocks.len() != right.blocks.len() {
+        if left.content.content.len() != right.content.content.len() {
             differences.push(format!(
                 "Block count differs: {} vs {}",
-                left.blocks.len(),
-                right.blocks.len()
+                left.content.content.len(),
+                right.content.content.len()
             ));
         }
 
@@ -365,9 +365,10 @@ impl AstComparator {
         }
 
         // Compare blocks pairwise
-        let min_blocks = left.blocks.len().min(right.blocks.len());
+        let min_blocks = left.content.content.len().min(right.content.content.len());
         for i in 0..min_blocks {
-            let block_diffs = Self::compare_blocks(&left.blocks[i], &right.blocks[i]);
+            let block_diffs =
+                Self::compare_blocks(&left.content.content[i], &right.content.content[i]);
             for diff in block_diffs {
                 differences.push(format!("Block {}: {}", i, diff));
             }
@@ -469,7 +470,7 @@ impl AstStatistics {
             total_characters: 0,
         };
 
-        for block in &doc.blocks {
+        for block in &doc.content.content {
             stats.collect_from_block(block, 1);
         }
 

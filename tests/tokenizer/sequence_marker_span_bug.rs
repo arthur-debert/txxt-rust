@@ -7,7 +7,7 @@ use txxt::ast::tokens::{SequenceMarkerType, Token};
 use txxt::tokenizer::Lexer;
 
 #[test]
-#[ignore = "Sequence marker spans are calculated incorrectly"]
+#[ignore = "Unicode span calculation needs fixing - emoji takes 4 bytes but 1 character"]
 fn test_sequence_marker_span_with_unicode() {
     // Test with emoji before sequence marker
     let input = "🎉- item";

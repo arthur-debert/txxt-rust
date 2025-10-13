@@ -9,7 +9,7 @@ use txxt::tokenizer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
 #[test]
-#[ignore = "Test expectations need adjustment - emoji is not tokenized as text"]
+#[ignore = "Emoji not recognized as text - needs Unicode tokenization fix"]
 fn test_all_tokenizers_with_emoji() {
     let test_cases = vec![
         // Format: (input, description, expected_tokens_after_emoji)
@@ -97,7 +97,7 @@ fn test_all_tokenizers_with_emoji() {
 
 /// Test sequence markers with various Unicode scenarios
 #[test]
-#[ignore = "Sequence marker spans need fixing"]
+#[ignore = "Unicode character position calculation incorrect"]
 fn test_sequence_markers_unicode() {
     let test_cases = vec![
         ("café- item", 4, 5, "accented letter before dash"),
@@ -216,7 +216,7 @@ fn test_inline_delimiters_unicode() {
 
 /// Test reference markers with Unicode
 #[test]
-#[ignore = "Need to fix test expectations"]
+#[ignore = "Unicode position calculation affects reference marker detection"]
 fn test_reference_markers_unicode() {
     let test_cases = vec![
         ("café [ref]", '[', 5, "ref after accented"),
@@ -249,7 +249,7 @@ fn test_reference_markers_unicode() {
 
 /// Test parameter spans with Unicode
 #[test]
-#[ignore = "Parameter spans need fixing"]
+#[ignore = "Unicode in labels not properly handled"]
 fn test_parameter_spans_unicode() {
     let test_cases = vec![
         (
@@ -313,7 +313,7 @@ fn test_parameter_spans_unicode() {
 
 /// Test mixed Unicode scenarios
 #[test]
-#[ignore = "Emoji is not tokenized as text"]
+#[ignore = "Emoji not tokenized as text - only recognized as whitespace"]
 fn test_mixed_unicode_content() {
     let input = "🎉 café → résumé";
     let mut lexer = Lexer::new(input);

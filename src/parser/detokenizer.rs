@@ -31,37 +31,11 @@ impl Detokenizer {
     /// The output may differ from the original source in non-tokenized content.
     pub fn detokenize_tokens(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
-        let mut prev_token: Option<&Token> = None;
-        let mut current_indent_level: usize = 0;
 
         for token in tokens {
-            // Track indent level
-            match token {
-                Token::Indent { .. } => current_indent_level += 1,
-                Token::Dedent { .. } => current_indent_level = current_indent_level.saturating_sub(1),
-                _ => {}
-            }
-            
-            // Add indentation at start of lines (after newline)
-            if let Some(Token::Newline { .. }) = prev_token {
-                if !matches!(token, Token::Newline { .. } | Token::BlankLine { .. } | Token::Indent { .. } | Token::Dedent { .. } | Token::Eof { .. }) {
-                    // Add indentation before this token
-                    result.push_str(&"    ".repeat(current_indent_level));
-                }
-            }
-            
-            // Add appropriate spacing between tokens
-            if let Some(prev) = prev_token {
-                self.add_spacing(&mut result, prev, token);
-            }
-
-            // Append the token content
+            // With explicit Whitespace tokens, we don't need to track indent levels
+            // or add spacing heuristics - just append each token
             self.append_token(&mut result, token)?;
-
-            // Remember this token for spacing decisions
-            if !matches!(token, Token::Eof { .. }) {
-                prev_token = Some(token);
-            }
         }
 
         Ok(result)
@@ -77,124 +51,23 @@ impl Detokenizer {
         Ok(result)
     }
 
-    /// Add appropriate spacing between tokens
-    /// 
-    /// TODO: This is a workaround for issue #24 - tokenizer drops whitespace
-    /// We use heuristics to add spaces where they likely should be.
-    fn add_spacing(&self, result: &mut String, prev: &Token, curr: &Token) {
-        use Token::*;
-
-        match (prev, curr) {
-            // Newline handling
-            (Newline { .. }, _) => {
-                // Newline already added by prev token
-            }
-            (BlankLine { .. }, _) => {
-                // BlankLine already added newlines
-            }
-
-            // No space before punctuation
-            (_, Period { .. }) | (_, RightBracket { .. }) | (_, RightParen { .. }) => {
-                // No space
-            }
-
-            // No space after opening brackets/parens
-            (LeftBracket { .. }, _) | (LeftParen { .. }, _) | (AtSign { .. }, _) => {
-                // No space
-            }
-
-            // Space after punctuation (except brackets/parens)
-            (Period { .. }, _) | (Colon { .. }, _) => {
-                result.push(' ');
-            }
-
-            // Space between text tokens
-            (Text { .. }, Text { .. }) => {
-                result.push(' ');
-            }
-            
-            // Space after right paren before text (for "(1) Item" format)
-            (RightParen { .. }, Text { .. }) => {
-                result.push(' ');
-            }
-            
-            // Space between text and inline delimiters
-            (Text { .. }, BoldDelimiter { .. }) |
-            (Text { .. }, ItalicDelimiter { .. }) |
-            (Text { .. }, CodeDelimiter { .. }) |
-            (Text { .. }, MathDelimiter { .. }) |
-            (BoldDelimiter { .. }, Text { .. }) |
-            (ItalicDelimiter { .. }, Text { .. }) |
-            (CodeDelimiter { .. }, Text { .. }) |
-            (MathDelimiter { .. }, Text { .. }) => {
-                result.push(' ');
-            }
-
-            // Space after sequence markers
-            (SequenceMarker { .. }, _) => {
-                // Space already included in sequence marker
-            }
-            
-            // Space before definition marker
-            (Text { .. }, DefinitionMarker { .. }) => {
-                result.push(' ');
-            }
-            
-            // Space after definition marker when followed by text
-            (DefinitionMarker { .. }, Text { .. }) => {
-                result.push(' ');
-            }
-            
-            // Space after annotation marker
-            (AnnotationMarker { .. }, Text { .. }) => {
-                result.push(' ');
-            }
-            
-            // Space before closing annotation marker  
-            (Text { .. }, AnnotationMarker { .. }) | (Parameter { .. }, AnnotationMarker { .. }) => {
-                result.push(' ');
-            }
-
-            // Default: no space
-            _ => {}
-        }
-    }
-
     /// Recursively append a block group to the result
     fn append_block_group(
         &self,
         result: &mut String,
         block: &BlockGroup,
-        indent_level: usize,
+        _indent_level: usize,
     ) -> Result<(), DetokenizeError> {
-        let mut prev_token: Option<&Token> = None;
-
         // First, append all tokens at this level
         for token in &block.tokens {
-            // Add indentation at the start of lines
-            if (result.is_empty() || result.ends_with('\n'))
-                && !matches!(
-                    token,
-                    Token::Newline { .. } | Token::BlankLine { .. } | Token::Eof { .. }
-                ) {
-                    result.push_str(&"    ".repeat(indent_level));
-                }
-
-            // Add spacing between tokens
-            if let Some(prev) = prev_token {
-                self.add_spacing(result, prev, token);
-            }
-
+            // With explicit Whitespace tokens, we don't need to add indentation
             self.append_token(result, token)?;
-
-            if !matches!(token, Token::Eof { .. }) {
-                prev_token = Some(token);
-            }
         }
 
-        // Then, process each child with increased indentation
+        // Then, process each child
         for child in &block.children {
-            self.append_block_group(result, child, indent_level + 1)?;
+            // Note: indent_level is no longer needed with explicit Whitespace tokens
+            self.append_block_group(result, child, 0)?;
         }
 
         Ok(())
@@ -216,11 +89,9 @@ impl Detokenizer {
                 }
                 result.push('\n');
             }
-            Token::Indent { span, .. } => {
-                // When detokenizing from a flat list, we need to reconstruct the indentation
-                // The span tells us how many columns of indentation there were
-                let indent_size = span.end.column - span.start.column;
-                result.push_str(&" ".repeat(indent_size));
+            Token::Indent { .. } => {
+                // Indent tokens track indent level changes, not actual whitespace
+                // The whitespace is handled by Whitespace tokens
             }
             Token::Dedent { .. } => {
                 // Dedent tokens are consumed during block grouping
@@ -287,9 +158,11 @@ impl Detokenizer {
             Token::VerbatimTitle { content, .. } => {
                 result.push_str(content);
                 result.push(':');
+                result.push('\n');
             }
             Token::VerbatimContent { content, .. } => {
                 result.push_str(content);
+                result.push('\n');
             }
             Token::VerbatimLabel { content, .. } => {
                 result.push_str("::");
@@ -336,6 +209,9 @@ impl Detokenizer {
                 result.push_str("[#");
                 result.push_str(content);
                 result.push(']');
+            }
+            Token::Whitespace { content, .. } => {
+                result.push_str(content);
             }
             Token::Eof { .. } => {
                 // EOF doesn't produce output

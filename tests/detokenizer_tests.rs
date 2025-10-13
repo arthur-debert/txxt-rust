@@ -11,25 +11,34 @@ use txxt::tokenizer::tokenize;
 fn verify_round_trip(original: &str) {
     // Step 1: Tokenize
     let tokens1 = tokenize(original);
-    
+
     // Step 2: Detokenize
     let detokenizer = Detokenizer::new();
     let reconstructed = detokenizer
         .detokenize_tokens(&tokens1)
         .expect("Detokenization should succeed");
-    
+
     // Step 3: Re-tokenize
     let tokens2 = tokenize(&reconstructed);
-    
+
     // Step 4: Compare tokens (not strings)
-    assert_eq!(tokens1.len(), tokens2.len(), 
-        "Token count mismatch for input: {}\nReconstructed: {}", 
-        original, reconstructed);
-    
+    assert_eq!(
+        tokens1.len(),
+        tokens2.len(),
+        "Token count mismatch for input: {}\nReconstructed: {}",
+        original,
+        reconstructed
+    );
+
     for (i, (t1, t2)) in tokens1.iter().zip(tokens2.iter()).enumerate() {
-        assert!(tokens_equal(t1, t2), 
-            "Token mismatch at position {} for input: {}\nExpected: {:?}\nGot: {:?}", 
-            i, original, t1, t2);
+        assert!(
+            tokens_equal(t1, t2),
+            "Token mismatch at position {} for input: {}\nExpected: {:?}\nGot: {:?}",
+            i,
+            original,
+            t1,
+            t2
+        );
     }
 }
 
@@ -88,6 +97,7 @@ fn tokens_equal(t1: &Token, t2: &Token) -> bool {
         (CitationRef { content: c1, .. }, CitationRef { content: c2, .. }) => c1 == c2,
         (PageRef { content: c1, .. }, PageRef { content: c2, .. }) => c1 == c2,
         (SessionRef { content: c1, .. }, SessionRef { content: c2, .. }) => c1 == c2,
+        (Whitespace { content: c1, .. }, Whitespace { content: c2, .. }) => c1 == c2,
         (Eof { .. }, Eof { .. }) => true,
         _ => false,
     }

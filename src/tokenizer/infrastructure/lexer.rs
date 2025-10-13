@@ -203,7 +203,7 @@ impl Lexer {
         tokens
     }
 
-    /// Read a text token (alphanumeric characters and underscores that are part of words)
+    /// Read a text token (alphanumeric characters, underscores that are part of words, and caret)
     fn read_text(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
         let mut content = String::new();
@@ -216,7 +216,8 @@ impl Lexer {
         }
 
         while let Some(ch) = self.peek() {
-            if ch.is_alphanumeric() {
+            if ch.is_alphanumeric() || ch == '^' {
+                // Include alphanumeric and caret characters
                 content.push(ch);
                 self.advance();
             } else if ch == '_' {
@@ -737,37 +738,60 @@ impl Lexer {
             return false;
         }
 
-        // We need to be immediately after an Indent token with valid indentation
-        // and any following whitespace
-        let mut found_valid_indent = false;
-        let only_whitespace_since = true;
+        // We need to handle two cases:
+        // 1. Just after an Indent token (possibly with following whitespace)
+        // 2. After Newline + valid indentation whitespace (for continued indented lines)
+
+        // Look at the last few tokens in reverse order
+        let mut tokens_checked = 0;
+        let mut saw_whitespace = false;
 
         for token in tokens.iter().rev() {
+            tokens_checked += 1;
+            if tokens_checked > 5 {
+                break; // Don't look too far back
+            }
+
             match token {
                 Token::Whitespace { .. } => {
-                    // Continue looking back through whitespace
-                    continue;
+                    if !saw_whitespace {
+                        saw_whitespace = true;
+                        // If this is the first token we see (most recent),
+                        // continue to check what's before it
+                        continue;
+                    }
                 }
                 Token::Indent { span, .. } => {
-                    // Check if this is a valid indentation level (multiple of 4)
+                    // We found an Indent token
+                    // Check if the indent itself is valid (multiple of 4)
                     let indent_level = span.end.column - span.start.column;
-                    if is_valid_indentation_level(indent_level) && only_whitespace_since {
-                        found_valid_indent = true;
+                    if is_valid_indentation_level(indent_level) {
+                        // Valid if we've only seen at most one whitespace token since
+                        return tokens_checked <= 2;
                     }
-                    break;
+                    return false;
                 }
-                Token::Newline { .. } | Token::BlankLine { .. } => {
-                    // We're at the start of a line, but no indent
-                    break;
+                Token::Newline { .. } => {
+                    // We found a newline
+                    // Valid if the next token (going forward) is whitespace with valid indentation
+                    if saw_whitespace {
+                        // Get the whitespace token that came after this newline
+                        if let Some(Token::Whitespace { content, .. }) =
+                            tokens.iter().rev().nth(tokens_checked - 2)
+                        {
+                            return is_valid_indentation_level(content.len());
+                        }
+                    }
+                    return false;
                 }
                 _ => {
-                    // Some other token, not immediately after indent
-                    break;
+                    // Any other token means we're not at a valid position
+                    return false;
                 }
             }
         }
 
-        found_valid_indent
+        false
     }
 
     // Debug methods (for testing)

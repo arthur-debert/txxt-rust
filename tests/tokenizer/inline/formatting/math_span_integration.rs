@@ -42,7 +42,7 @@ fn test_math_delimiter_integration_simple() {
 fn test_math_delimiter_integration_with_text() {
     let tokens = tokenize("The formula #E=mc^2# is famous");
 
-    // Should have: Text, MathDelimiter, Text, MathDelimiter, Text, Eof
+    // Should have: Text, Whitespace, Text, Whitespace, MathDelimiter, Text (E), Text (=), Text (mc^2), MathDelimiter, Whitespace, Text, Whitespace, Text, Eof
     assert!(tokens.len() >= 6);
 
     // Find the math delimiters and content
@@ -52,7 +52,7 @@ fn test_math_delimiter_integration_with_text() {
         .collect();
     assert_eq!(math_delimiters.len(), 2);
 
-    // Find the text tokens with "E", "mc", "2" (math content is broken into multiple tokens)
+    // Find the text tokens with "E" and "mc^2" (caret is now preserved in text)
     let e_token = tokens
         .iter()
         .find(|token| {
@@ -64,39 +64,40 @@ fn test_math_delimiter_integration_with_text() {
         })
         .expect("Should find 'E' token");
 
-    let mc_token = tokens
+    let mc_squared_token = tokens
         .iter()
         .find(|token| {
             if let Token::Text { content, .. } = token {
-                content == "mc"
+                content == "mc^2"
             } else {
                 false
             }
         })
-        .expect("Should find 'mc' token");
+        .expect("Should find 'mc^2' token");
 
-    let two_token = tokens
+    // Also find the equals sign token
+    let equals_token = tokens
         .iter()
         .find(|token| {
             if let Token::Text { content, .. } = token {
-                content == "2"
+                content == "="
             } else {
                 false
             }
         })
-        .expect("Should find '2' token");
+        .expect("Should find '=' token");
 
     // Verify the tokens have correct content
     match e_token {
         Token::Text { content, .. } => assert_eq!(content, "E"),
         _ => unreachable!(),
     }
-    match mc_token {
-        Token::Text { content, .. } => assert_eq!(content, "mc"),
+    match equals_token {
+        Token::Text { content, .. } => assert_eq!(content, "="),
         _ => unreachable!(),
     }
-    match two_token {
-        Token::Text { content, .. } => assert_eq!(content, "2"),
+    match mc_squared_token {
+        Token::Text { content, .. } => assert_eq!(content, "mc^2"),
         _ => unreachable!(),
     }
 }

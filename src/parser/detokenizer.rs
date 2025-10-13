@@ -93,6 +93,18 @@ impl Detokenizer {
             (Text { .. }, Text { .. }) => {
                 result.push(' ');
             }
+            
+            // Space between text and inline delimiters
+            (Text { .. }, BoldDelimiter { .. }) |
+            (Text { .. }, ItalicDelimiter { .. }) |
+            (Text { .. }, CodeDelimiter { .. }) |
+            (Text { .. }, MathDelimiter { .. }) |
+            (BoldDelimiter { .. }, Text { .. }) |
+            (ItalicDelimiter { .. }, Text { .. }) |
+            (CodeDelimiter { .. }, Text { .. }) |
+            (MathDelimiter { .. }, Text { .. }) => {
+                result.push(' ');
+            }
 
             // Space after sequence markers
             (SequenceMarker { .. }, _) => {

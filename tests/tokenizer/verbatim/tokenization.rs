@@ -15,13 +15,9 @@ use txxt::tokenizer::tokenize;
 #[case(
     "simple title:\n    content line\n:: label\n",
     "simple title",
-    "    content line"
+    "content line"
 )]
-#[case(
-    "test:\n    line 1\n    line 2\n:: block\n",
-    "test",
-    "    line 1\n    line 2"
-)]
+#[case("test:\n    line 1\n    line 2\n:: block\n", "test", "line 1\nline 2")]
 fn test_verbatim_block_basic(
     #[case] input: &str,
     #[case] expected_title: &str,

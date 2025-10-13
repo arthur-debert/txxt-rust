@@ -619,7 +619,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
         }
 
         tokens.push(Token::VerbatimTitle {
-            content: title_content,
+            content: title_content.trim_start().to_string(),
             span: SourceSpan {
                 start: title_start_pos,
                 end: self.current_position(),
@@ -630,13 +630,40 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
         let content_start_pos = self.current_position();
         let mut content = String::new();
 
+        // Calculate the wall position for in-flow verbatim blocks
+        let wall_indent = match block.block_type {
+            VerbatimType::Normal => block.title_indent + INDENT_SIZE,
+            VerbatimType::Stretched => 0,
+            VerbatimType::Empty => 0,
+        };
+
         // Advance through all content lines until terminator
         let mut current_line = self.row();
         while current_line < (block.block_end - 1) {
             // Convert 1-based to 0-based
+            let mut line_content = String::new();
+
             // Read the entire line
             while let Some(ch) = self.peek() {
                 if ch == '\n' || ch == '\r' {
+                    // Add the line content (after stripping wall indentation)
+                    if block.block_type == VerbatimType::Normal {
+                        // For in-flow verbatim, strip the wall indentation
+                        let mut stripped_line = String::new();
+                        let mut col = 0;
+                        for ch in line_content.chars() {
+                            if col >= wall_indent {
+                                stripped_line.push(ch);
+                            }
+                            col += if ch == '\t' { 4 } else { 1 };
+                        }
+                        content.push_str(&stripped_line);
+                    } else {
+                        // For stretched verbatim, keep the entire line
+                        content.push_str(&line_content);
+                    }
+
+                    // Add the newline
                     content.push(ch);
                     self.advance();
                     if ch == '\r' && self.peek() == Some('\n') {
@@ -645,7 +672,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
                     }
                     break;
                 } else {
-                    content.push(ch);
+                    line_content.push(ch);
                     self.advance();
                 }
             }

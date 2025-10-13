@@ -261,7 +261,6 @@ fn test_escaping_special_chars() {
 }
 
 #[test]
-#[ignore = "Verbatim label reconstruction issue - unrelated to blank line preservation"]
 fn test_complex_document_structure() {
     // A more comprehensive test combining multiple elements
     let input = r#":: title :: Complex Document Test

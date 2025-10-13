@@ -111,7 +111,7 @@ impl Detokenizer {
             }
 
             // Append the token
-            self.append_token(&mut result, token)?;
+            self.append_token(&mut result, token, indent_level)?;
             prev_token = Some(token);
 
             // Track if we just added a newline
@@ -207,7 +207,7 @@ impl Detokenizer {
             }
 
             // Append the token
-            self.append_token(result, token)?;
+            self.append_token(result, token, indent_level)?;
             prev_token = Some(token);
 
             // Track if we just added a newline
@@ -225,7 +225,12 @@ impl Detokenizer {
     }
 
     /// Append a single token to the result string
-    fn append_token(&self, result: &mut String, token: &Token) -> Result<(), DetokenizeError> {
+    fn append_token(
+        &self,
+        result: &mut String,
+        token: &Token,
+        current_indent_level: usize,
+    ) -> Result<(), DetokenizeError> {
         match token {
             Token::Text { content, .. } => {
                 result.push_str(content);
@@ -310,7 +315,19 @@ impl Detokenizer {
                 result.push('\n');
             }
             Token::VerbatimContent { content, .. } => {
-                result.push_str(content);
+                // For verbatim content, we need to add the wall indentation back
+                // Split content into lines and add proper indentation to each
+                let lines: Vec<&str> = content.split('\n').collect();
+                for (i, line) in lines.iter().enumerate() {
+                    if i > 0 {
+                        result.push('\n');
+                    }
+                    // Add current indentation plus one extra level for the wall
+                    if !line.is_empty() {
+                        result.push_str(&" ".repeat((current_indent_level + 1) * INDENT_SIZE));
+                        result.push_str(line);
+                    }
+                }
                 result.push('\n');
             }
             Token::VerbatimLabel { content, .. } => {

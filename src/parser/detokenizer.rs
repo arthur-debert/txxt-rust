@@ -192,9 +192,11 @@ impl Detokenizer {
                 }
                 result.push('\n');
             }
-            Token::Indent { .. } => {
-                // Indent tokens are consumed during block grouping
-                // They don't produce output directly
+            Token::Indent { span, .. } => {
+                // When detokenizing from a flat list, we need to reconstruct the indentation
+                // The span tells us how many columns of indentation there were
+                let indent_size = span.end.column - span.start.column;
+                result.push_str(&" ".repeat(indent_size));
             }
             Token::Dedent { .. } => {
                 // Dedent tokens are consumed during block grouping

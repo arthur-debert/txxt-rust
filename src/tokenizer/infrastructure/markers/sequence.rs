@@ -23,6 +23,9 @@ fn roman_to_number(roman: &str) -> u64 {
         "viii" => 8,
         "ix" => 9,
         "x" => 10,
+        "xi" => 11,
+        "xii" => 12,
+        "xiii" => 13,
         _ => 0, // Default for unknown patterns
     }
 }
@@ -101,41 +104,13 @@ where
         return None;
     }
 
-    // 3. Alphabetical markers: "a. ", "b) ", "A. ", "Z) "
-    if let Some(ch) = lexer.peek() {
-        if ch.is_ascii_alphabetic() {
-            let letter = ch;
-            lexer.advance();
-
-            // Check for . or )
-            if let Some(punct) = lexer.peek() {
-                if punct == '.' || punct == ')' {
-                    lexer.advance();
-                    if lexer.peek() == Some(' ') {
-                        lexer.advance();
-                        let marker = format!("{}{}", letter, punct);
-                        return Some(Token::SequenceMarker {
-                            marker_type: SequenceMarkerType::Alphabetical(letter, marker.clone()),
-                            span: SourceSpan {
-                                start: start_pos,
-                                end: Position {
-                                    row: start_pos.row,
-                                    column: start_pos.column + marker.len(),
-                                },
-                            },
-                        });
-                    }
-                }
-            }
-        }
-    }
-
-    // 4. Roman numeral markers: "i. ", "ii) ", "I. ", "III) "
+    // 3. Roman numeral markers: "i. ", "ii) ", "I. ", "III) " - check before alphabetical
     lexer.restore_state(saved_state.clone());
 
     let roman_patterns = [
-        "iii", "ii", "i", "iv", "v", "vi", "vii", "viii", "ix", "x", "III", "II", "I", "IV", "V",
-        "VI", "VII", "VIII", "IX", "X",
+        // Longer patterns first to avoid partial matches
+        "xiii", "xii", "xi", "viii", "vii", "iii", "ii", "iv", "vi", "ix", "i", "v", "x", "XIII",
+        "XII", "XI", "VIII", "VII", "III", "II", "IV", "VI", "IX", "I", "V", "X",
     ];
 
     for pattern in &roman_patterns {
@@ -168,6 +143,39 @@ where
             }
 
             // Not a valid marker, backtrack and try next pattern
+            lexer.restore_state(saved_state.clone());
+        }
+    }
+
+    // 4. Alphabetical markers: "a. ", "b) ", "A. ", "Z) " - check after roman numerals
+    lexer.restore_state(saved_state.clone());
+    if let Some(ch) = lexer.peek() {
+        if ch.is_ascii_alphabetic() {
+            let letter = ch;
+            lexer.advance();
+
+            // Check for . or )
+            if let Some(punct) = lexer.peek() {
+                if punct == '.' || punct == ')' {
+                    lexer.advance();
+                    if lexer.peek() == Some(' ') {
+                        lexer.advance();
+                        let marker = format!("{}{}", letter, punct);
+                        return Some(Token::SequenceMarker {
+                            marker_type: SequenceMarkerType::Alphabetical(letter, marker.clone()),
+                            span: SourceSpan {
+                                start: start_pos,
+                                end: Position {
+                                    row: start_pos.row,
+                                    column: start_pos.column + marker.len(),
+                                },
+                            },
+                        });
+                    }
+                }
+            }
+
+            // Not a valid alphabetical marker, backtrack
             lexer.restore_state(saved_state.clone());
         }
     }

@@ -12,6 +12,9 @@ use crate::tokenizer::infrastructure::markers::{
     },
 };
 use crate::tokenizer::inline::read_inline_delimiter;
+use crate::tokenizer::inline::references::{
+    citations::read_citation_ref, page_ref::read_page_ref, session_ref::read_session_ref,
+};
 use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
 /// Saved lexer state for backtracking
@@ -109,14 +112,16 @@ impl Lexer {
             } else if let Some(token) = read_annotation_marker(&mut *self) {
                 tokens.push(token);
             // TODO: Update these to work with atomic tokens from parser level
-            // } else if let Some(token) = read_citation_ref(self) {
-            //     tokens.push(token);
-            // } else if let Some(token) = read_page_ref(self) {
-            //     tokens.push(token);
-            // } else if let Some(token) = read_session_ref(self) {
-            //     tokens.push(token);
-            // } else if let Some(token) = ReferenceLexer::read_ref_marker(self) {
-            //     tokens.push(token);
+            } else if let Some(token) = read_citation_ref(self) {
+                tokens.push(token);
+            } else if let Some(token) = read_page_ref(self) {
+                tokens.push(token);
+            } else if let Some(token) = read_session_ref(self) {
+                tokens.push(token);
+            } else if let Some(token) =
+                crate::tokenizer::inline::references::ReferenceLexer::read_ref_marker(self)
+            {
+                tokens.push(token);
             } else if let Some(token) = self.read_left_bracket() {
                 tokens.push(token);
             } else if let Some(token) = self.read_right_bracket() {
@@ -383,7 +388,7 @@ impl Lexer {
     }
 
     /// Read a colon token (:)
-    /// Only tokenizes single colons, not double colons (::) which are handled by annotation/definition markers
+    /// Only tokenizes structural colons, not those used in parameter syntax
     fn read_colon(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
 
@@ -394,6 +399,37 @@ impl Lexer {
                 if next_ch == ':' {
                     // This is part of a double colon, don't tokenize as single colon
                     return None;
+                }
+            }
+
+            // Check if this colon is likely part of parameter syntax
+            // Look backwards for alphanumeric content (term before colon)
+            if self.position > 0 {
+                if let Some(&prev_ch) = self.input.get(self.position - 1) {
+                    if prev_ch.is_alphanumeric() {
+                        // Look ahead for parameter-like content (key=value)
+                        let mut lookahead_pos = next_pos;
+                        while lookahead_pos < self.input.len() {
+                            if let Some(&ch) = self.input.get(lookahead_pos) {
+                                if ch == '=' {
+                                    // Found = after colon following alphanumeric, likely parameter
+                                    return None;
+                                } else if ch == ' '
+                                    || ch == '\t'
+                                    || ch.is_alphanumeric()
+                                    || ch == '_'
+                                {
+                                    lookahead_pos += 1;
+                                    continue;
+                                } else {
+                                    // Hit non-parameter character, break
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -704,6 +740,102 @@ impl PageRefLexer for Lexer {
 
     fn position(&self) -> usize {
         self.position
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl crate::tokenizer::inline::references::session_ref::SessionRefLexer for Lexer {
+    fn current_position(&self) -> crate::ast::tokens::Position {
+        crate::ast::tokens::Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn peek_at(&self, offset: usize) -> Option<char> {
+        self.input.get(self.position + offset).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn backtrack(&mut self, position: usize, row: usize, column: usize) {
+        self.position = position;
+        self.row = row;
+        self.column = column;
+    }
+}
+
+impl crate::tokenizer::inline::references::ReferenceLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        self.advance()
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn row(&self) -> usize {
+        self.row
+    }
+
+    fn column(&self) -> usize {
+        self.column
+    }
+
+    fn position(&self) -> usize {
+        self.position
+    }
+
+    fn input(&self) -> &[char] {
+        &self.input
+    }
+
+    fn ref_classifier(&self) -> &crate::ast::reference_types::ReferenceClassifier {
+        // Create a static classifier instance
+        static CLASSIFIER: std::sync::OnceLock<crate::ast::reference_types::ReferenceClassifier> =
+            std::sync::OnceLock::new();
+        CLASSIFIER.get_or_init(crate::ast::reference_types::ReferenceClassifier::new)
     }
 
     fn backtrack(&mut self, position: usize, row: usize, column: usize) {

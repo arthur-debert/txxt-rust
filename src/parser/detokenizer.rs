@@ -31,11 +31,48 @@ impl Detokenizer {
     /// The output may differ from the original source in non-tokenized content.
     pub fn detokenize_tokens(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
+        let mut prev_token: Option<&Token> = None;
 
         for token in tokens {
+            // Handle parameter separators based on previous token
+            if let Token::Parameter { key, value, .. } = token {
+                // Add appropriate separator before parameter
+                if let Some(prev) = prev_token {
+                    match prev {
+                        Token::VerbatimLabel { .. } => {
+                            result.push(':'); // First param after verbatim label
+                        }
+                        Token::Colon { .. } => {
+                            // After a colon in annotation context, no separator needed
+                        }
+                        Token::Parameter { .. } => {
+                            result.push(','); // Subsequent params
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Add the parameter
+                result.push_str(key);
+                result.push('=');
+
+                // Check if value needs quotes
+                if value.contains(' ') || value.contains(',') || value.contains('=') {
+                    result.push('"');
+                    result.push_str(value);
+                    result.push('"');
+                } else {
+                    result.push_str(value);
+                }
+
+                prev_token = Some(token);
+                continue;
+            }
+
             // With explicit Whitespace tokens, we don't need to track indent levels
             // or add spacing heuristics - just append each token
             self.append_token(&mut result, token)?;
+            prev_token = Some(token);
         }
 
         Ok(result)
@@ -169,19 +206,12 @@ impl Detokenizer {
                 result.push(' ');
                 result.push_str(content);
             }
-            Token::Parameter { key, value, .. } => {
-                // TODO: Once issue #23 is fixed, Parameter tokens will have proper spans
-                // Currently they have zero-width spans, so we reconstruct from key/value
-                result.push_str(key);
-                result.push('=');
-                // Check if value needs quotes
-                if value.contains(' ') || value.contains(',') || value.contains('=') {
-                    result.push('"');
-                    result.push_str(value);
-                    result.push('"');
-                } else {
-                    result.push_str(value);
-                }
+            Token::Parameter { .. } => {
+                // Parameters are handled specially in detokenize_tokens
+                // to manage separators correctly
+                return Err(DetokenizeError::InvalidBlockStructure(
+                    "Parameter tokens should be handled in detokenize_tokens".to_string(),
+                ));
             }
             Token::BoldDelimiter { .. } => {
                 result.push('*');

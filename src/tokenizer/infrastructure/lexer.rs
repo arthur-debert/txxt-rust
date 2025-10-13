@@ -203,7 +203,7 @@ impl Lexer {
         tokens
     }
 
-    /// Read a text token (alphanumeric characters and underscores that are part of words)
+    /// Read a text token (alphanumeric characters, underscores that are part of words, and caret)
     fn read_text(&mut self) -> Option<Token> {
         let start_pos = self.current_position();
         let mut content = String::new();
@@ -216,7 +216,8 @@ impl Lexer {
         }
 
         while let Some(ch) = self.peek() {
-            if ch.is_alphanumeric() {
+            if ch.is_alphanumeric() || ch == '^' {
+                // Include alphanumeric and caret characters
                 content.push(ch);
                 self.advance();
             } else if ch == '_' {

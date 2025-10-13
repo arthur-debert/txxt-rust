@@ -273,18 +273,15 @@ pub fn integrate_annotation_parameters<L: ParameterLexer>(
                             span: first_token.span().clone(),
                         });
                     }
-                    
+
                     // Add colon token to separate label from parameters
                     result.push(Token::Colon {
                         span: SourceSpan {
-                            start: Position { 
+                            start: Position {
                                 row: 0, // This is a synthetic token, position isn't exact
-                                column: 0 
+                                column: 0,
                             },
-                            end: Position { 
-                                row: 0, 
-                                column: 0 
-                            },
+                            end: Position { row: 0, column: 0 },
                         },
                     });
 

@@ -138,8 +138,7 @@
 // NEW: Spec-aligned element structure (replaces nodes/)
 pub mod elements;
 
-// LEGACY: Element-specific AST nodes (being migrated to elements/)
-pub mod nodes;
+// REMOVED: Legacy nodes/ structure - replaced by spec-aligned elements/
 
 // Re-export spec-aligned element types as the canonical AST
 pub use elements::{

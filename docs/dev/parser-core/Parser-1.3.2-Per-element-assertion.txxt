@@ -1,0 +1,349 @@
+Parser 1.3.2 Per-Element Assertion Specifications
+
+Element-specific Expected structs and validation logic using builder-pattern approach.
+
+1. Paragraph Assertions
+
+    ParagraphExpected struct:
+        #[derive(Default)]
+        pub struct ParagraphExpected<'a> {
+            pub text: Option<&'a str>,              // Exact text match
+            pub text_contains: Option<&'a str>,     // Contains substring
+            pub text_matches: Option<&'a str>,      // Regex pattern
+            pub has_formatting: Option<bool>,       // Has non-Identity transforms
+            pub annotation_count: Option<usize>,    // Number of annotations
+            pub has_annotation: Option<&'a str>,    // Has specific label
+        }
+        
+    Function signature:
+        pub fn assert_paragraph<'a>(
+            element: &SessionContainerElement,
+            expected: ParagraphExpected<'a>
+        ) -> &ParagraphBlock
+        
+    Example:
+        assert_paragraph(&element, ParagraphExpected {
+            text_contains: Some("This is a paragraph"),
+            has_formatting: Some(true),
+            ..Default::default()
+        });
+
+2. List Assertions
+
+    ListExpected struct:
+        #[derive(Default)]
+        pub struct ListExpected<'a> {
+            pub style: Option<NumberingStyle>,      // Plain, Numerical, Alphabetical, Roman
+            pub item_count: Option<usize>,          // Number of items
+            pub item_text: Option<Vec<&'a str>>,    // Text of each item (in order)
+            pub has_nested: Option<Vec<bool>>,      // Which items have nesting
+            pub annotation_count: Option<usize>,
+            pub has_annotation: Option<&'a str>,
+        }
+        
+    Function signature:
+        pub fn assert_list<'a>(
+            element: &SessionContainerElement,
+            expected: ListExpected<'a>
+        ) -> &ListBlock
+        
+    Example:
+        assert_list(&element, ListExpected {
+            style: Some(NumberingStyle::Plain),
+            item_count: Some(3),
+            item_text: Some(vec!["First item", "Second item", "Third item"]),
+            ..Default::default()
+        });
+
+3. Definition Assertions
+
+    DefinitionExpected struct:
+        #[derive(Default)]
+        pub struct DefinitionExpected<'a> {
+            pub term: Option<&'a str>,              // Exact term text
+            pub term_contains: Option<&'a str>,     // Term contains substring
+            pub content_count: Option<usize>,       // Elements in content
+            pub has_content: Option<bool>,          // Non-empty content
+            pub content_types: Option<Vec<ElementType>>, // Child types in order
+            pub annotation_count: Option<usize>,
+        }
+        
+    Function signature:
+        pub fn assert_definition<'a>(
+            element: &SessionContainerElement,
+            expected: DefinitionExpected<'a>
+        ) -> &DefinitionBlock
+        
+    Example:
+        assert_definition(&element, DefinitionExpected {
+            term: Some("Parser"),
+            has_content: Some(true),
+            content_count: Some(2),
+            ..Default::default()
+        });
+
+4. Session Assertions
+
+    SessionExpected struct:
+        #[derive(Default)]
+        pub struct SessionExpected<'a> {
+            pub title: Option<&'a str>,             // Exact title text
+            pub title_contains: Option<&'a str>,    // Title contains substring
+            pub numbering: Option<&'a str>,         // Numbering marker (e.g., "1.", "1.1.")
+            pub is_numbered: Option<bool>,          // Has any numbering
+            pub child_count: Option<usize>,         // Number of children
+            pub has_subsession: Option<bool>,       // Contains nested session
+            pub child_types: Option<Vec<ElementType>>, // Child element types
+            pub annotation_count: Option<usize>,
+        }
+        
+    Function signature:
+        pub fn assert_session<'a>(
+            element: &SessionContainerElement,
+            expected: SessionExpected<'a>
+        ) -> &SessionBlock
+        
+    Example:
+        assert_session(&element, SessionExpected {
+            title: Some("Introduction"),
+            numbering: Some("1."),
+            child_count: Some(2),
+            has_subsession: Some(false),
+            ..Default::default()
+        });
+
+5. Verbatim Assertions
+
+    VerbatimExpected struct:
+        #[derive(Default)]
+        pub struct VerbatimExpected<'a> {
+            pub mode: Option<VerbatimType>,         // InFlow or Stretched
+            pub label: Option<&'a str>,             // Exact label
+            pub label_starts_with: Option<&'a str>, // Label prefix
+            pub title: Option<&'a str>,             // Title text
+            pub title_contains: Option<&'a str>,    // Title contains substring
+            pub line_count: Option<usize>,          // Content line count
+            pub content_contains: Option<&'a str>,  // Content has substring
+            pub parameters: Option<HashMap<&'a str, &'a str>>, // All parameters
+            pub has_parameter: Option<(&'a str, &'a str)>, // Specific parameter
+            pub annotation_count: Option<usize>,
+        }
+        
+    Function signature:
+        pub fn assert_verbatim<'a>(
+            element: &SessionContainerElement,
+            expected: VerbatimExpected<'a>
+        ) -> &VerbatimBlock
+        
+    Example:
+        assert_verbatim(&element, VerbatimExpected {
+            mode: Some(VerbatimType::InFlow),
+            label: Some("python"),
+            line_count: Some(3),
+            has_parameter: Some(("version", "3.11")),
+            content_contains: Some("def "),
+            ..Default::default()
+        });
+
+6. Annotation Assertions
+
+    AnnotationExpected struct:
+        #[derive(Default)]
+        pub struct AnnotationExpected<'a> {
+            pub label: Option<&'a str>,             // Label value
+            pub content_type: Option<AnnotationContentType>, // Inline or Block
+            pub has_content: Option<bool>,          // Non-empty content
+            pub content_text: Option<&'a str>,      // Content text
+            pub content_contains: Option<&'a str>,  // Content substring
+            pub parameters: Option<HashMap<&'a str, &'a str>>,
+            pub has_parameter: Option<(&'a str, &'a str)>,
+        }
+        
+    Function signature:
+        pub fn assert_annotation<'a>(
+            element: &SessionContainerElement,
+            expected: AnnotationExpected<'a>
+        ) -> &AnnotationBlock
+        
+    Example:
+        assert_annotation(&element, AnnotationExpected {
+            label: Some("warning"),
+            has_parameter: Some(("severity", "high")),
+            has_content: Some(true),
+            ..Default::default()
+        });
+
+7. Container Assertions
+
+    ContentContainerExpected struct:
+        #[derive(Default)]
+        pub struct ContentContainerExpected {
+            pub element_count: Option<usize>,       // Total elements
+            pub element_types: Option<Vec<ElementType>>, // Types in order
+            pub has_element_type: Option<ElementType>, // Contains at least one
+            pub all_same_type: Option<ElementType>, // All children same type
+        }
+        
+    SessionContainerExpected struct:
+        #[derive(Default)]
+        pub struct SessionContainerExpected {
+            pub element_count: Option<usize>,
+            pub element_types: Option<Vec<ElementType>>,
+            pub has_session: Option<bool>,          // Contains nested session
+            pub session_count: Option<usize>,       // Number of sessions
+        }
+        
+    Functions:
+        pub fn assert_content_container<'a>(
+            container: &ContentContainer,
+            expected: ContentContainerExpected
+        ) -> &ContentContainer
+        
+        pub fn assert_session_container<'a>(
+            container: &SessionContainer,
+            expected: SessionContainerExpected
+        ) -> &SessionContainer
+        
+    Example:
+        assert_content_container(&definition.content, ContentContainerExpected {
+            element_count: Some(3),
+            element_types: Some(vec![
+                ElementType::Block,  // Paragraph
+                ElementType::Block,  // List
+                ElementType::Block   // Another paragraph
+            ]),
+            ..Default::default()
+        });
+
+8. Inline Element Assertions
+
+    InlineContentExpected struct:
+        #[derive(Default)]
+        pub struct InlineContentExpected {
+            pub has_bold: Option<bool>,             // Has Bold spans
+            pub has_italic: Option<bool>,           // Has Italic spans
+            pub has_code: Option<bool>,             // Has Code spans
+            pub has_math: Option<bool>,             // Has Math spans
+            pub has_reference: Option<ReferenceType>, // Has specific reference type
+            pub transform_count: Option<usize>,     // Number of transforms
+        }
+        
+    Function signature:
+        pub fn assert_inline_content(
+            content: &[TextTransform],
+            expected: InlineContentExpected
+        )
+        
+    Example:
+        assert_inline_content(&paragraph.content, InlineContentExpected {
+            has_bold: Some(true),
+            has_reference: Some(ReferenceType::Url),
+            ..Default::default()
+        });
+
+9. Document Assertions
+
+    DocumentExpected struct:
+        #[derive(Default)]
+        pub struct DocumentExpected {
+            pub element_count: Option<usize>,       // Top-level elements
+            pub has_title: Option<bool>,            // Has title annotation
+            pub title: Option<&'a str>,             // Title text
+            pub session_count: Option<usize>,       // Number of sessions
+            pub max_depth: Option<usize>,           // Maximum nesting depth
+            pub has_annotations: Option<bool>,      // Has document annotations
+        }
+        
+    Function signature:
+        pub fn assert_document<'a>(
+            doc: &Document,
+            expected: DocumentExpected<'a>
+        ) -> &Document
+        
+    Example:
+        assert_document(&doc, DocumentExpected {
+            has_title: Some(true),
+            title: Some("Technical Documentation"),
+            session_count: Some(3),
+            max_depth: Some(2),
+            ..Default::default()
+        });
+
+10. Shared Validation Helpers
+
+    Reusable functions called by all assertion functions:
+    
+    validate_parameters(actual: &Parameters, expected: &HashMap<&str, &str>)
+        Check all expected key-value pairs exist and match
+        
+    validate_annotations(element: &dyn TxxtElement, count, label)
+        Check annotation count and/or specific label presence
+        
+    validate_text_extract(transforms: &[TextTransform], text, contains, matches)
+        Extract text and validate against expectations
+        
+    extract_all_text(transforms: &[TextTransform]) -> String
+        Recursively concatenate all text content
+        
+    These helpers ensure consistent validation logic across all elements.
+
+11. Complete Usage Example
+
+    Test with corpus:
+        #[test]
+        fn test_verbatim_comprehensive() {
+            // Load test data
+            let corpus = TxxtCorpora::load(
+                "txxt.core.spec.verbatim.valid.with-parameters"
+            ).unwrap();
+            
+            // Parse
+            let result = parse_verbatim(&corpus.source_text);
+            assert!(result.is_ok());
+            let element = result.unwrap();
+            
+            // Validate with one call - tests multiple properties
+            assert_verbatim(&element, VerbatimExpected {
+                mode: Some(VerbatimType::InFlow),
+                label: Some("python"),
+                title_contains: Some("Algorithm"),
+                line_count: Some(9),
+                content_contains: Some("def quicksort"),
+                has_parameter: Some(("style", "functional")),
+                annotation_count: Some(0),
+                ..Default::default()
+            });
+            
+            // Can still do additional checks if needed
+            assert!(element.content.blank_lines.is_empty());
+        }
+
+12. Implementation Priority
+
+    Order of implementation:
+    
+    1. ParagraphExpected + assert_paragraph (simplest)
+    2. ListExpected + assert_list
+    3. DefinitionExpected + assert_definition
+    4. SessionExpected + assert_session
+    5. VerbatimExpected + assert_verbatim
+    6. AnnotationExpected + assert_annotation
+    7. Container assertions
+    8. Document assertions
+    9. Inline content assertions
+    
+    Implement shared validators early, reuse across all elements.
+
+13. Testing the Assertions
+
+    The assertion library itself needs tests:
+        - Valid properties pass without panic
+        - Invalid properties panic with descriptive messages
+        - Optional fields work correctly (Some validates, None skips)
+        - Shared validators work consistently
+        - Error messages are helpful
+        
+    Test file: tests/assertions_tests.rs
+
+:: note :: This builder-pattern approach with Expected structs provides the perfect balance: ergonomic for simple cases (one property), comprehensive for complex cases (many properties), and maintainable with shared validation logic.
+

@@ -53,7 +53,7 @@ Complete specification for annotations - metadata elements that attach informati
 
             1. First Section
                 Content begins here
-        (example)
+        :: txxt.core.spec.annotation.valid.document-level ::
 
 3. Grammar
 
@@ -133,7 +133,7 @@ Complete specification for annotations - metadata elements that attach informati
             :: note :: This explains the following paragraph
             
             This paragraph receives the note annotation.
-        (attachment)
+        :: txxt.core.spec.annotation.valid.next-element-attachment ::
 
         Multiple annotations:
             :: warning :: Be careful here

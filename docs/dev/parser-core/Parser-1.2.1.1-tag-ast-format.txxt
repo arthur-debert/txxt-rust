@@ -1,3 +1,4 @@
+
 We will create a rust code that serializer abritrary objecs (like json encodable) into an xml like tree syntax, for example: 
 
 {

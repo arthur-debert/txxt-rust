@@ -1,0 +1,25 @@
+:: title :: Technical Documentation Example
+:: author :: txxt Documentation Team
+:: version :: 1.0
+:: date :: 2025-01-15
+
+1. Introduction
+
+    This document demonstrates document-level annotations. The annotations at the top provide metadata about the entire document.
+    
+    :: note :: This annotation applies to the introduction section
+    
+    Annotations can also be attached to specific elements within the document, as shown above.
+
+2. Content Section
+
+    :: status :: draft
+    
+    This section has its own annotation indicating its draft status. Annotations provide a flexible way to add metadata anywhere in the document.
+    
+    Key features of annotations:
+    - Attached to document or specific elements
+    - Use double colon marker (::)
+    - Support parameters for rich metadata
+    - Don't interrupt content flow
+

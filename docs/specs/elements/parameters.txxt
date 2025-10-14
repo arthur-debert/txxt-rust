@@ -22,7 +22,7 @@ Complete specification for the txxt parameter system used across annotations, ve
 
         Multiple parameters:
             version=3.11,style=functional,author="Jane Doe"
-        (form)
+        :: txxt.core.spec.parameter.valid.multiple-params ::
 
     2.2. Integration Patterns
 
@@ -83,7 +83,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             message="She said, \"Hello!\""
             path="C:\\Users\\Name\\Documents"
             multiline="Line 1\nLine 2"
-        (escaping)
+        :: txxt.core.spec.parameter.valid.escaped-quotes ::
 
     4.3. Boolean Values
 

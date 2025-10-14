@@ -18,7 +18,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 
-use txxt::ast::treeviz::{
+use txxt::tools::treeviz::{
     renderer::{notation_data_to_json, render_with_options, RenderOptions, TreeChars},
     icons::{IconConfig, DEFAULT_ICON_CONFIG},
     converter::create_demo_notation_data,

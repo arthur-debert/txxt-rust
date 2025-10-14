@@ -4,16 +4,16 @@
 //! including data structure creation, icon mapping, content extraction,
 //! and tree rendering.
 
-use super::*;
-use crate::ast::elements::core::ElementNode;
-use crate::ast::elements::containers::SessionContainer;
-use crate::ast::tokens::TokenSequence;
-use crate::ast::parameters::Parameters;
+use txxt::tools::treeviz::*;
+use txxt::ast::elements::core::ElementNode;
+use txxt::ast::elements::containers::SessionContainer;
+use txxt::ast::tokens::TokenSequence;
+use txxt::ast::parameters::Parameters;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::treeviz::{
+    use txxt::tools::treeviz::{
         icons::{ContentExtractor, get_node_type_name, extract_content_from_node},
         converter::create_demo_notation_data,
         renderer::{notation_data_to_json, render_with_options, RenderOptions, TreeChars},
@@ -265,7 +265,7 @@ mod tests {
             
             // Simple elements
             (ElementNode::BlankLine(
-                crate::ast::elements::core::BlankLine {
+                txxt::ast::elements::core::BlankLine {
                     tokens: TokenSequence::new()
                 }
             ), "BlankLine", "◦"), // Uses fallback icon
@@ -292,13 +292,13 @@ mod tests {
     #[test]
     fn test_basic_inline_elements() {
         // Test simple inline elements that can be easily created
-        use crate::ast::elements::inlines::TextSpan;
+        use txxt::ast::elements::inlines::TextSpan;
         
         let simple_test_cases = vec![
             (ElementNode::TextSpan(TextSpan::simple("sample text")), "TextSpan", "◦"),
             
             (ElementNode::BlankLine(
-                crate::ast::elements::core::BlankLine {
+                txxt::ast::elements::core::BlankLine {
                     tokens: TokenSequence::new()
                 }
             ), "BlankLine", "◦"), // No specific icon, uses fallback
@@ -326,14 +326,14 @@ mod tests {
         assert_eq!(get_node_type_name(&session_container), "SessionContainer");
         
         let blank_line = ElementNode::BlankLine(
-            crate::ast::elements::core::BlankLine {
+            txxt::ast::elements::core::BlankLine {
                 tokens: TokenSequence::new()
             }
         );
         assert_eq!(get_node_type_name(&blank_line), "BlankLine");
         
         let text_span = ElementNode::TextSpan(
-            crate::ast::elements::inlines::TextSpan::simple("test")
+            txxt::ast::elements::inlines::TextSpan::simple("test")
         );
         assert_eq!(get_node_type_name(&text_span), "TextSpan");
     }
@@ -515,7 +515,7 @@ mod tests {
 
         // Test single node tree
         let single_node = ElementNode::BlankLine(
-            crate::ast::elements::core::BlankLine {
+            txxt::ast::elements::core::BlankLine {
                 tokens: TokenSequence::new()
             }
         );
@@ -577,7 +577,7 @@ mod tests {
         
         // Test formatting in actual extraction (this tests the fallback behavior)
         let node = ElementNode::BlankLine(
-            crate::ast::elements::core::BlankLine {
+            txxt::ast::elements::core::BlankLine {
                 tokens: TokenSequence::new()
             }
         );
@@ -625,7 +625,7 @@ mod tests {
         
         // Create a synthetic AST using simple constructors
         let text_span = ElementNode::TextSpan(
-            crate::ast::elements::inlines::TextSpan::simple("Hello World")
+            txxt::ast::elements::inlines::TextSpan::simple("Hello World")
         );
         
         // Test the three-function API exactly as specified in the GitHub issue

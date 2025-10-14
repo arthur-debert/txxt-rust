@@ -27,6 +27,7 @@ pub mod ast_debug;
 pub mod commands;
 pub mod parser;
 pub mod tokenizer;
+pub mod tools;
 pub mod tree;
 pub mod validator;
 

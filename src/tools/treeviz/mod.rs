@@ -81,8 +81,6 @@ pub mod converter;
 pub mod icons;
 pub mod renderer;
 
-#[cfg(test)]
-mod tests;
 
 pub use converter::{ast_to_notation_data, ast_to_tree_notation};
 pub use icons::{IconConfig, DEFAULT_ICON_CONFIG};

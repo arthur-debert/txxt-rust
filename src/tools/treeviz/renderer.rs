@@ -267,7 +267,7 @@ pub fn notation_data_to_compact_json(data: &NotationData) -> TreeVizResult<Strin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::treeviz::converter::create_demo_notation_data;
+    use crate::tools::treeviz::converter::create_demo_notation_data;
     
     #[test]
     fn test_basic_rendering() {

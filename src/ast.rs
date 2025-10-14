@@ -176,5 +176,3 @@ pub mod traversal;
 // Advanced query and traversal API (Unist-compatible) - temporarily disabled
 // pub mod query;
 
-// Tree visualization for AST inspection and debugging
-pub mod treeviz;

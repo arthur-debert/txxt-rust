@@ -1133,8 +1133,274 @@ impl XPathParser {
     }
 }
 
-// TODO: We need to implement Send + Sync for our AST elements to store them in ego-tree
-// This might require some refactoring of the element trait hierarchy
+/// Traversable trait for uniform tree navigation interface
+///
+/// This trait provides a common interface for tree traversal operations
+/// that can be implemented by different tree representations.
+pub trait Traversable {
+    type Node;
+    type Error;
+
+    /// Get the root node of the tree
+    fn root(&self) -> Self::Node;
+
+    /// Get parent of a node
+    fn parent(&self, node: &Self::Node) -> Option<Self::Node>;
+
+    /// Get children of a node
+    fn children(&self, node: &Self::Node) -> Vec<Self::Node>;
+
+    /// Get next sibling of a node
+    fn next_sibling(&self, node: &Self::Node) -> Option<Self::Node>;
+
+    /// Get previous sibling of a node
+    fn prev_sibling(&self, node: &Self::Node) -> Option<Self::Node>;
+
+    /// Get all descendants of a node (depth-first)
+    fn descendants(&self, node: &Self::Node) -> Vec<Self::Node>;
+
+    /// Get all ancestors of a node (from parent to root)
+    fn ancestors(&self, node: &Self::Node) -> Vec<Self::Node>;
+
+    /// Find nodes matching a predicate
+    fn find<F>(&self, predicate: F) -> Vec<Self::Node>
+    where
+        F: Fn(&Self::Node) -> bool;
+
+    /// Execute XPath-like query
+    fn xpath(&self, selector: &str) -> Result<Vec<Self::Node>, Self::Error>;
+}
+
+impl<'a> Traversable for &'a TraversableDocument {
+    type Node = NodeRef<'a, ElementWrapper>;
+    type Error = XPathError;
+
+    fn root(&self) -> Self::Node {
+        self.tree.root()
+    }
+
+    fn parent(&self, node: &Self::Node) -> Option<Self::Node> {
+        node.parent()
+    }
+
+    fn children(&self, node: &Self::Node) -> Vec<Self::Node> {
+        node.children().collect()
+    }
+
+    fn next_sibling(&self, node: &Self::Node) -> Option<Self::Node> {
+        node.next_sibling()
+    }
+
+    fn prev_sibling(&self, node: &Self::Node) -> Option<Self::Node> {
+        node.prev_sibling()
+    }
+
+    fn descendants(&self, node: &Self::Node) -> Vec<Self::Node> {
+        node.traverse()
+            .filter_map(|edge| match edge {
+                ego_tree::iter::Edge::Open(n) => Some(n),
+                ego_tree::iter::Edge::Close(_) => None,
+            })
+            .skip(1) // Skip the node itself
+            .collect()
+    }
+
+    fn ancestors(&self, node: &Self::Node) -> Vec<Self::Node> {
+        let mut ancestors = Vec::new();
+        let mut current = node.parent();
+        while let Some(ancestor) = current {
+            ancestors.push(ancestor);
+            current = ancestor.parent();
+        }
+        ancestors
+    }
+
+    fn find<F>(&self, predicate: F) -> Vec<Self::Node>
+    where
+        F: Fn(&Self::Node) -> bool,
+    {
+        self.root()
+            .traverse()
+            .filter_map(|edge| match edge {
+                ego_tree::iter::Edge::Open(node) => Some(node),
+                ego_tree::iter::Edge::Close(_) => None,
+            })
+            .filter(predicate)
+            .collect()
+    }
+
+    fn xpath(&self, selector: &str) -> Result<Vec<Self::Node>, Self::Error> {
+        TraversableDocument::xpath(self, selector)
+    }
+}
+
+/// Visitor pattern for extensible element processing
+///
+/// This trait allows for type-safe, extensible processing of AST elements
+/// without requiring modification of the core AST types.
+pub trait ElementVisitor {
+    type Result;
+    type Error;
+
+    /// Visit any element (default implementation)
+    fn visit_element(&mut self, element: &dyn TxxtElement) -> Result<Self::Result, Self::Error>;
+
+    /// Visit a paragraph block
+    fn visit_paragraph(
+        &mut self,
+        paragraph: &crate::ast::elements::paragraph::ParagraphBlock,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(paragraph)
+    }
+
+    /// Visit a list block
+    fn visit_list(
+        &mut self,
+        list: &crate::ast::elements::list::ListBlock,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(list)
+    }
+
+    /// Visit a definition block
+    fn visit_definition(
+        &mut self,
+        definition: &crate::ast::elements::definition::DefinitionBlock,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(definition)
+    }
+
+    /// Visit a verbatim block
+    fn visit_verbatim(
+        &mut self,
+        verbatim: &crate::ast::elements::verbatim::VerbatimBlock,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(verbatim)
+    }
+
+    /// Visit an annotation block
+    fn visit_annotation(
+        &mut self,
+        annotation: &crate::ast::elements::annotation::AnnotationBlock,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(annotation)
+    }
+
+    /// Visit a session block
+    fn visit_session(
+        &mut self,
+        session: &crate::ast::elements::session::SessionBlock,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(session)
+    }
+
+    /// Visit a content container
+    fn visit_content_container(
+        &mut self,
+        container: &ContentContainer,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(container)
+    }
+
+    /// Visit a session container
+    fn visit_session_container(
+        &mut self,
+        container: &SessionContainer,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(container)
+    }
+
+    /// Visit a blank line
+    fn visit_blank_line(
+        &mut self,
+        blank_line: &crate::ast::elements::core::BlankLine,
+    ) -> Result<Self::Result, Self::Error> {
+        self.visit_element(blank_line)
+    }
+}
+
+/// Visitor dispatcher for ElementAdapter
+impl ElementAdapter {
+    /// Accept a visitor and dispatch to the appropriate visit method
+    pub fn accept<V: ElementVisitor>(&self, visitor: &mut V) -> Result<V::Result, V::Error> {
+        match self {
+            ElementAdapter::Paragraph(p) => visitor.visit_paragraph(p),
+            ElementAdapter::List(l) => visitor.visit_list(l),
+            ElementAdapter::Definition(d) => visitor.visit_definition(d),
+            ElementAdapter::Verbatim(v) => visitor.visit_verbatim(v),
+            ElementAdapter::Annotation(a) => visitor.visit_annotation(a),
+            ElementAdapter::Session(s) => visitor.visit_session(s),
+            ElementAdapter::ContentContainer(c) => visitor.visit_content_container(c),
+            ElementAdapter::SessionContainer(s) => visitor.visit_session_container(s),
+            ElementAdapter::BlankLine(b) => visitor.visit_blank_line(b),
+        }
+    }
+}
+
+/// Traversal utilities for working with the tree
+impl TraversableDocument {
+    /// Walk the tree with a visitor
+    pub fn walk<V: ElementVisitor>(&self, visitor: &mut V) -> Result<Vec<V::Result>, V::Error> {
+        let mut results = Vec::new();
+
+        for node in self.root().traverse().filter_map(|edge| match edge {
+            ego_tree::iter::Edge::Open(node) => Some(node),
+            ego_tree::iter::Edge::Close(_) => None,
+        }) {
+            let result = visitor.visit_element(&*node.value().element)?;
+            results.push(result);
+        }
+
+        Ok(results)
+    }
+
+    /// Walk specific nodes with a visitor
+    pub fn walk_nodes<V: ElementVisitor>(
+        &self,
+        nodes: &[NodeRef<'_, ElementWrapper>],
+        visitor: &mut V,
+    ) -> Result<Vec<V::Result>, V::Error> {
+        let mut results = Vec::new();
+
+        for node in nodes {
+            let result = visitor.visit_element(&*node.value().element)?;
+            results.push(result);
+        }
+
+        Ok(results)
+    }
+
+    /// Get element type distribution in the document
+    pub fn element_type_stats(&self) -> std::collections::HashMap<ElementType, usize> {
+        let mut stats = std::collections::HashMap::new();
+
+        for node in self.root().traverse().filter_map(|edge| match edge {
+            ego_tree::iter::Edge::Open(node) => Some(node),
+            ego_tree::iter::Edge::Close(_) => None,
+        }) {
+            *stats.entry(node.value().element_type.clone()).or_insert(0) += 1;
+        }
+
+        stats
+    }
+
+    /// Get tree depth (maximum nesting level)
+    pub fn tree_depth(&self) -> usize {
+        fn depth_recursive(node: NodeRef<'_, ElementWrapper>) -> usize {
+            if node.children().count() == 0 {
+                1
+            } else {
+                1 + node.children().map(depth_recursive).max().unwrap_or(0)
+            }
+        }
+
+        depth_recursive(self.root())
+    }
+
+    /// Get all leaf nodes (nodes with no children)
+    pub fn leaf_nodes(&self) -> Vec<NodeRef<'_, ElementWrapper>> {
+        self.find(|node| node.children().count() == 0)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -1478,5 +1744,174 @@ mod tests {
 
         // Test unknown element type
         assert!(parser.parse("//InvalidType").is_err());
+    }
+
+    #[test]
+    fn test_traversable_trait() {
+        use crate::ast::elements::paragraph::ParagraphBlock;
+
+        // Create a document with some content
+        let paragraph = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let document = Document {
+            meta: Meta {
+                title: Some(crate::ast::base::MetaValue::String(
+                    "Test Document".to_string(),
+                )),
+                ..Meta::default()
+            },
+            content: SessionContainer {
+                content: vec![SessionContainerElement::Paragraph(paragraph)],
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            assembly_info: AssemblyInfo {
+                parser_version: "test".to_string(),
+                source_path: None,
+                processed_at: None,
+                stats: crate::ast::base::ProcessingStats::default(),
+            },
+        };
+
+        let traversable = TraversableDocument::from_document(&document);
+
+        // Test Traversable trait methods via reference
+        let traversable_ref = &traversable;
+        let root = traversable_ref.root();
+        assert_eq!(root.value().element_type, ElementType::Container);
+
+        let children = traversable_ref.children(&root);
+        assert_eq!(children.len(), 1); // Should have one paragraph child
+
+        let descendants = traversable_ref.descendants(&root);
+        assert_eq!(descendants.len(), 1); // Should have one descendant (the paragraph)
+
+        let ancestors = traversable_ref.ancestors(&children[0]);
+        assert_eq!(ancestors.len(), 1); // Paragraph should have root as ancestor
+
+        // Test find method
+        let blocks = traversable_ref.find(|node| node.value().element_type == ElementType::Block);
+        assert_eq!(blocks.len(), 1); // Should find one block (paragraph)
+
+        // Test XPath via trait
+        let xpath_blocks = traversable_ref.xpath("//Block").unwrap();
+        assert_eq!(xpath_blocks.len(), 1); // Should find one block via XPath
+    }
+
+    #[test]
+    fn test_visitor_pattern() {
+        use crate::ast::elements::paragraph::ParagraphBlock;
+
+        // Create a simple visitor that counts element types
+        struct ElementCounter {
+            counts: std::collections::HashMap<String, usize>,
+        }
+
+        impl ElementCounter {
+            fn new() -> Self {
+                Self {
+                    counts: std::collections::HashMap::new(),
+                }
+            }
+        }
+
+        impl ElementVisitor for ElementCounter {
+            type Result = ();
+            type Error = ();
+
+            fn visit_element(
+                &mut self,
+                element: &dyn TxxtElement,
+            ) -> Result<Self::Result, Self::Error> {
+                let type_name = format!("{:?}", element.element_type());
+                *self.counts.entry(type_name).or_insert(0) += 1;
+                Ok(())
+            }
+        }
+
+        // Create a document with content
+        let paragraph = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let document = Document {
+            meta: Meta::default(),
+            content: SessionContainer {
+                content: vec![SessionContainerElement::Paragraph(paragraph)],
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            assembly_info: AssemblyInfo {
+                parser_version: "test".to_string(),
+                source_path: None,
+                processed_at: None,
+                stats: crate::ast::base::ProcessingStats::default(),
+            },
+        };
+
+        let traversable = TraversableDocument::from_document(&document);
+        let mut visitor = ElementCounter::new();
+
+        // Walk the tree with visitor
+        let _results = traversable.walk(&mut visitor).unwrap();
+
+        // Check counts
+        assert_eq!(visitor.counts.get("Container"), Some(&1)); // Document root
+        assert_eq!(visitor.counts.get("Block"), Some(&1)); // Paragraph block
+    }
+
+    #[test]
+    fn test_tree_utilities() {
+        use crate::ast::elements::paragraph::ParagraphBlock;
+
+        // Create a document with content
+        let paragraph = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let document = Document {
+            meta: Meta::default(),
+            content: SessionContainer {
+                content: vec![SessionContainerElement::Paragraph(paragraph)],
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            assembly_info: AssemblyInfo {
+                parser_version: "test".to_string(),
+                source_path: None,
+                processed_at: None,
+                stats: crate::ast::base::ProcessingStats::default(),
+            },
+        };
+
+        let traversable = TraversableDocument::from_document(&document);
+
+        // Test element type statistics
+        let stats = traversable.element_type_stats();
+        assert_eq!(stats.get(&ElementType::Container), Some(&1));
+        assert_eq!(stats.get(&ElementType::Block), Some(&1));
+
+        // Test tree depth
+        let depth = traversable.tree_depth();
+        assert_eq!(depth, 2); // Root -> Paragraph
+
+        // Test leaf nodes
+        let leaves = traversable.leaf_nodes();
+        assert_eq!(leaves.len(), 1); // Only the paragraph should be a leaf
+        assert_eq!(leaves[0].value().element_type, ElementType::Block);
     }
 }

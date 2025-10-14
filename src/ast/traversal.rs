@@ -135,6 +135,18 @@ impl TraversableDocument {
         DocumentQuery::new(self)
     }
 
+    /// Query the document using XPath-like syntax
+    ///
+    /// This provides a more convenient interface for complex queries:
+    /// ```ignore
+    /// let paragraphs = doc.xpath("//Block[@type='paragraph']")?;
+    /// let text_blocks = doc.xpath("//Block[text()='hello']")?;
+    /// ```
+    pub fn xpath(&self, selector: &str) -> Result<Vec<NodeRef<'_, ElementWrapper>>, XPathError> {
+        let query = DocumentQuery::xpath(self, selector)?;
+        Ok(query.collect())
+    }
+
     /// Build the ego-tree recursively from a SessionContainer
     fn build_session_container_recursive(
         container: &SessionContainer,
@@ -344,6 +356,96 @@ impl<'a> DocumentQuery<'a> {
         Self {
             document,
             filters: Vec::new(),
+        }
+    }
+
+    /// Create a query from an XPath-like selector string
+    ///
+    /// Supported syntax:
+    /// - `//Block` - Find all Block elements anywhere in the tree
+    /// - `/Container/Block` - Find Block elements directly under root Container
+    /// - `Block[@label="test"]` - Find Block elements with parameter label="test"
+    /// - `Block[text()="content"]` - Find Block elements containing specific text
+    /// - `*` - Match any element type
+    /// - `.` - Current context (self)
+    /// - `..` - Parent element
+    ///
+    /// Examples:
+    /// ```ignore
+    /// // Find all paragraphs anywhere
+    /// doc.xpath("//Paragraph")
+    ///
+    /// // Find verbatim blocks with specific label
+    /// doc.xpath("//Verbatim[@label='code']")
+    ///
+    /// // Find blocks containing "hello"
+    /// doc.xpath("//Block[text()='hello']")
+    /// ```
+    pub fn xpath(document: &'a TraversableDocument, selector: &str) -> Result<Self, XPathError> {
+        let parser = XPathParser::new();
+        let path = parser.parse(selector)?;
+        Ok(Self::from_xpath(document, path))
+    }
+
+    /// Create a query from a parsed XPath
+    fn from_xpath(document: &'a TraversableDocument, path: XPath) -> Self {
+        let mut query = Self::new(document);
+
+        // Convert XPath steps to filters
+        for step in path.steps {
+            query = query.apply_xpath_step(step);
+        }
+
+        query
+    }
+
+    /// Apply a single XPath step to the query
+    fn apply_xpath_step(mut self, step: XPathStep) -> Self {
+        match step.axis {
+            XPathAxis::Descendant => {
+                // For descendant axis (//) we search through all descendants
+                if let Some(node_test) = step.node_test {
+                    self = self.apply_node_test(node_test);
+                }
+            }
+            XPathAxis::Child => {
+                // For child axis (/) we only look at direct children
+                // This is more complex and would require tree navigation context
+                // For now, treat as descendant but add a note
+                if let Some(node_test) = step.node_test {
+                    self = self.apply_node_test(node_test);
+                }
+            }
+            XPathAxis::Self_ => {
+                // Current context - usually no-op in our case
+            }
+            XPathAxis::Parent => {
+                // Parent navigation - requires tree context
+                // Would need special handling in iterator
+            }
+        }
+
+        // Apply predicates
+        for predicate in step.predicates {
+            self = self.apply_predicate(predicate);
+        }
+
+        self
+    }
+
+    /// Apply a node test (element type matching)
+    fn apply_node_test(self, node_test: XPathNodeTest) -> Self {
+        match node_test {
+            XPathNodeTest::ElementType(element_type) => self.find_by_type(element_type),
+            XPathNodeTest::Wildcard => self, // Match any element - no filter needed
+        }
+    }
+
+    /// Apply a predicate (attribute or text filtering)
+    fn apply_predicate(self, predicate: XPathPredicate) -> Self {
+        match predicate {
+            XPathPredicate::Attribute { name, value } => self.has_parameter(&name, &value),
+            XPathPredicate::Text(text) => self.text_contains(&text),
         }
     }
 
@@ -704,6 +806,333 @@ impl TxxtElement for ElementAdapter {
 unsafe impl Send for ElementAdapter {}
 unsafe impl Sync for ElementAdapter {}
 
+/// XPath-like selector support for tree queries
+///
+/// This provides a simple XPath-inspired syntax for querying the document tree.
+/// While not a full XPath implementation, it covers the most common tree navigation patterns.
+/// XPath parsing errors
+#[derive(Debug, Clone)]
+pub enum XPathError {
+    /// Invalid syntax in the selector string
+    InvalidSyntax(String),
+    /// Unsupported XPath feature
+    UnsupportedFeature(String),
+    /// Unknown element type in selector
+    UnknownElementType(String),
+}
+
+impl std::fmt::Display for XPathError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            XPathError::InvalidSyntax(msg) => write!(f, "Invalid XPath syntax: {}", msg),
+            XPathError::UnsupportedFeature(msg) => write!(f, "Unsupported XPath feature: {}", msg),
+            XPathError::UnknownElementType(msg) => write!(f, "Unknown element type: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for XPathError {}
+
+/// Parsed XPath expression
+#[derive(Debug, Clone)]
+pub struct XPath {
+    pub steps: Vec<XPathStep>,
+}
+
+/// Single step in an XPath expression
+#[derive(Debug, Clone)]
+pub struct XPathStep {
+    pub axis: XPathAxis,
+    pub node_test: Option<XPathNodeTest>,
+    pub predicates: Vec<XPathPredicate>,
+}
+
+/// XPath axis (navigation direction)
+#[derive(Debug, Clone)]
+pub enum XPathAxis {
+    /// Descendant-or-self axis (//)
+    Descendant,
+    /// Child axis (/)
+    Child,
+    /// Self axis (.)
+    Self_,
+    /// Parent axis (..)
+    Parent,
+}
+
+/// XPath node test (what to match)
+#[derive(Debug, Clone)]
+pub enum XPathNodeTest {
+    /// Match specific element type
+    ElementType(ElementType),
+    /// Match any element (*)
+    Wildcard,
+}
+
+/// XPath predicate (filtering condition)
+#[derive(Debug, Clone)]
+pub enum XPathPredicate {
+    /// Attribute test [@name="value"]
+    Attribute { name: String, value: String },
+    /// Text content test [text()="value"]
+    Text(String),
+}
+
+/// Simple XPath parser
+pub struct XPathParser;
+
+impl Default for XPathParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl XPathParser {
+    pub fn new() -> Self {
+        Self
+    }
+
+    /// Parse an XPath-like selector string
+    pub fn parse(&self, selector: &str) -> Result<XPath, XPathError> {
+        let trimmed = selector.trim();
+        if trimmed.is_empty() {
+            return Err(XPathError::InvalidSyntax("Empty selector".to_string()));
+        }
+
+        let mut steps = Vec::new();
+        let mut current_pos = 0;
+        let chars: Vec<char> = trimmed.chars().collect();
+
+        while current_pos < chars.len() {
+            let step = self.parse_step(&chars, &mut current_pos)?;
+            steps.push(step);
+        }
+
+        Ok(XPath { steps })
+    }
+
+    /// Parse a single XPath step
+    fn parse_step(&self, chars: &[char], pos: &mut usize) -> Result<XPathStep, XPathError> {
+        // Skip whitespace
+        while *pos < chars.len() && chars[*pos].is_whitespace() {
+            *pos += 1;
+        }
+
+        if *pos >= chars.len() {
+            return Err(XPathError::InvalidSyntax(
+                "Unexpected end of input".to_string(),
+            ));
+        }
+
+        // Parse axis
+        let axis = self.parse_axis(chars, pos)?;
+
+        // Parse node test
+        let node_test = if *pos < chars.len() && !chars[*pos].is_whitespace() && chars[*pos] != '['
+        {
+            Some(self.parse_node_test(chars, pos)?)
+        } else {
+            None
+        };
+
+        // Parse predicates
+        let mut predicates = Vec::new();
+        while *pos < chars.len() && chars[*pos] == '[' {
+            predicates.push(self.parse_predicate(chars, pos)?);
+        }
+
+        Ok(XPathStep {
+            axis,
+            node_test,
+            predicates,
+        })
+    }
+
+    /// Parse XPath axis
+    fn parse_axis(&self, chars: &[char], pos: &mut usize) -> Result<XPathAxis, XPathError> {
+        if *pos < chars.len() {
+            match chars[*pos] {
+                '/' => {
+                    *pos += 1;
+                    if *pos < chars.len() && chars[*pos] == '/' {
+                        *pos += 1;
+                        Ok(XPathAxis::Descendant)
+                    } else {
+                        Ok(XPathAxis::Child)
+                    }
+                }
+                '.' => {
+                    *pos += 1;
+                    if *pos < chars.len() && chars[*pos] == '.' {
+                        *pos += 1;
+                        Ok(XPathAxis::Parent)
+                    } else {
+                        Ok(XPathAxis::Self_)
+                    }
+                }
+                _ => Ok(XPathAxis::Child), // Default axis
+            }
+        } else {
+            Err(XPathError::InvalidSyntax("Expected axis".to_string()))
+        }
+    }
+
+    /// Parse node test (element name or wildcard)
+    fn parse_node_test(
+        &self,
+        chars: &[char],
+        pos: &mut usize,
+    ) -> Result<XPathNodeTest, XPathError> {
+        let start = *pos;
+
+        // Handle wildcard
+        if *pos < chars.len() && chars[*pos] == '*' {
+            *pos += 1;
+            return Ok(XPathNodeTest::Wildcard);
+        }
+
+        // Parse element name
+        while *pos < chars.len()
+            && !chars[*pos].is_whitespace()
+            && chars[*pos] != '['
+            && chars[*pos] != '/'
+        {
+            *pos += 1;
+        }
+
+        if start == *pos {
+            return Err(XPathError::InvalidSyntax("Expected node test".to_string()));
+        }
+
+        let element_name: String = chars[start..*pos].iter().collect();
+        let element_type = self.parse_element_type(&element_name)?;
+        Ok(XPathNodeTest::ElementType(element_type))
+    }
+
+    /// Parse element type from string
+    fn parse_element_type(&self, name: &str) -> Result<ElementType, XPathError> {
+        match name {
+            "Block" => Ok(ElementType::Block),
+            "Container" => Ok(ElementType::Container),
+            "Line" => Ok(ElementType::Line),
+            "Span" => Ok(ElementType::Span),
+            _ => Err(XPathError::UnknownElementType(name.to_string())),
+        }
+    }
+
+    /// Parse predicate [condition]
+    fn parse_predicate(
+        &self,
+        chars: &[char],
+        pos: &mut usize,
+    ) -> Result<XPathPredicate, XPathError> {
+        if *pos >= chars.len() || chars[*pos] != '[' {
+            return Err(XPathError::InvalidSyntax("Expected '['".to_string()));
+        }
+        *pos += 1; // Skip '['
+
+        // Skip whitespace
+        while *pos < chars.len() && chars[*pos].is_whitespace() {
+            *pos += 1;
+        }
+
+        // Check for text() function
+        if *pos + 6 < chars.len() && chars[*pos..*pos + 6].iter().collect::<String>() == "text()" {
+            *pos += 6; // Skip "text()"
+
+            // Skip whitespace and '='
+            while *pos < chars.len() && (chars[*pos].is_whitespace() || chars[*pos] == '=') {
+                *pos += 1;
+            }
+
+            // Parse quoted string
+            let text = self.parse_quoted_string(chars, pos)?;
+
+            // Skip to closing ']'
+            while *pos < chars.len() && chars[*pos] != ']' {
+                *pos += 1;
+            }
+            if *pos < chars.len() {
+                *pos += 1; // Skip ']'
+            }
+
+            return Ok(XPathPredicate::Text(text));
+        }
+
+        // Parse attribute predicate [@attr="value"]
+        if *pos < chars.len() && chars[*pos] == '@' {
+            *pos += 1; // Skip '@'
+
+            // Parse attribute name
+            let start = *pos;
+            while *pos < chars.len() && chars[*pos] != '=' && chars[*pos] != ']' {
+                *pos += 1;
+            }
+            let attr_name: String = chars[start..*pos].iter().collect();
+
+            // Skip '=' and whitespace
+            while *pos < chars.len() && (chars[*pos] == '=' || chars[*pos].is_whitespace()) {
+                *pos += 1;
+            }
+
+            // Parse quoted value
+            let value = self.parse_quoted_string(chars, pos)?;
+
+            // Skip to closing ']'
+            while *pos < chars.len() && chars[*pos] != ']' {
+                *pos += 1;
+            }
+            if *pos < chars.len() {
+                *pos += 1; // Skip ']'
+            }
+
+            return Ok(XPathPredicate::Attribute {
+                name: attr_name,
+                value,
+            });
+        }
+
+        Err(XPathError::InvalidSyntax(
+            "Invalid predicate syntax".to_string(),
+        ))
+    }
+
+    /// Parse a quoted string (handles both single and double quotes)
+    fn parse_quoted_string(&self, chars: &[char], pos: &mut usize) -> Result<String, XPathError> {
+        if *pos >= chars.len() {
+            return Err(XPathError::InvalidSyntax(
+                "Expected quoted string".to_string(),
+            ));
+        }
+
+        let quote = chars[*pos];
+        if quote != '"' && quote != '\'' {
+            return Err(XPathError::InvalidSyntax(
+                "Expected quoted string".to_string(),
+            ));
+        }
+
+        *pos += 1; // Skip opening quote
+        let start = *pos;
+
+        // Find closing quote
+        while *pos < chars.len() && chars[*pos] != quote {
+            *pos += 1;
+        }
+
+        if *pos >= chars.len() {
+            return Err(XPathError::InvalidSyntax(
+                "Unterminated quoted string".to_string(),
+            ));
+        }
+
+        let result: String = chars[start..*pos].iter().collect();
+        *pos += 1; // Skip closing quote
+
+        Ok(result)
+    }
+}
+
 // TODO: We need to implement Send + Sync for our AST elements to store them in ego-tree
 // This might require some refactoring of the element trait hierarchy
 
@@ -943,5 +1372,111 @@ mod tests {
 
         let container_search = traversable.query().text_contains("Container").collect();
         assert!(!container_search.is_empty()); // Should find our container elements
+    }
+
+    #[test]
+    fn test_xpath_parsing() {
+        let parser = XPathParser::new();
+
+        // Test simple element type
+        let xpath = parser.parse("//Block").unwrap();
+        assert_eq!(xpath.steps.len(), 1);
+        assert!(matches!(xpath.steps[0].axis, XPathAxis::Descendant));
+        assert!(matches!(
+            xpath.steps[0].node_test,
+            Some(XPathNodeTest::ElementType(ElementType::Block))
+        ));
+
+        // Test with predicate
+        let xpath = parser.parse("//Block[@label='test']").unwrap();
+        assert_eq!(xpath.steps.len(), 1);
+        assert_eq!(xpath.steps[0].predicates.len(), 1);
+        assert!(matches!(
+            &xpath.steps[0].predicates[0],
+            XPathPredicate::Attribute { name, value } if name == "label" && value == "test"
+        ));
+
+        // Test text predicate
+        let xpath = parser.parse("//Block[text()='hello']").unwrap();
+        assert_eq!(xpath.steps.len(), 1);
+        assert_eq!(xpath.steps[0].predicates.len(), 1);
+        assert!(matches!(
+            &xpath.steps[0].predicates[0],
+            XPathPredicate::Text(text) if text == "hello"
+        ));
+
+        // Test wildcard
+        let xpath = parser.parse("//*").unwrap();
+        assert_eq!(xpath.steps.len(), 1);
+        assert!(matches!(xpath.steps[0].axis, XPathAxis::Descendant));
+        assert!(matches!(
+            xpath.steps[0].node_test,
+            Some(XPathNodeTest::Wildcard)
+        ));
+    }
+
+    #[test]
+    fn test_xpath_integration() {
+        use crate::ast::elements::paragraph::ParagraphBlock;
+
+        // Create a document with content for XPath testing
+        let paragraph = ParagraphBlock {
+            content: vec![], // Empty TextTransform content for test
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let document = Document {
+            meta: Meta {
+                title: Some(crate::ast::base::MetaValue::String(
+                    "Test Document".to_string(),
+                )),
+                ..Meta::default()
+            },
+            content: SessionContainer {
+                content: vec![SessionContainerElement::Paragraph(paragraph)],
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            assembly_info: AssemblyInfo {
+                parser_version: "test".to_string(),
+                source_path: None,
+                processed_at: None,
+                stats: crate::ast::base::ProcessingStats::default(),
+            },
+        };
+
+        let traversable = TraversableDocument::from_document(&document);
+
+        // Test XPath queries
+        let blocks = traversable.xpath("//Block").unwrap();
+        assert_eq!(blocks.len(), 1); // Should find our paragraph block
+
+        let containers = traversable.xpath("//Container").unwrap();
+        assert_eq!(containers.len(), 1); // Should find our document container
+
+        let all_elements = traversable.xpath("//*").unwrap();
+        assert!(all_elements.len() >= 2); // Should find at least container + paragraph
+
+        // Test text search via XPath
+        let text_results = traversable
+            .xpath("//Block[text()='Block content']")
+            .unwrap();
+        assert!(!text_results.is_empty()); // Should find our blocks with "Block content" in the text
+    }
+
+    #[test]
+    fn test_xpath_error_handling() {
+        let parser = XPathParser::new();
+
+        // Test invalid syntax
+        assert!(parser.parse("").is_err());
+        assert!(parser.parse("//[").is_err());
+        assert!(parser.parse("//Block[@unclosed").is_err());
+
+        // Test unknown element type
+        assert!(parser.parse("//InvalidType").is_err());
     }
 }

@@ -1,0 +1,33 @@
+AST Capabilities 
+
+It's key to make sure the AST matches the capabilities we want now and in the future steps.
+
+A) Spec and Syntax Alignment
+
+    AST Must reflect terminology as in docs/specs/core/syntax.txxt
+docs/specs/core/terminology.txxt
+
+    This does not have to guide core modeling, i.e. dictate what are nodes and what isn't. But it does mean, for example that nodes must formalized container, block and line elements.
+
+b) Tree Traversal
+
+    Manual tree traversal is error prone, brittle and tedious.
+    We will create a small, but flexible core tree traversal api that is generic , and can power 
+    future uses, (like language server)
+    The task for now is to validate the initial design: 
+
+
+    Why Not Existing Libraries?
+        - Markdown libraries (pulldown-cmark, comrak) are optimized for CommonMark/GFM, not extensible text formats
+        - Generic tree libraries lack domain-specific semantics for text processing
+        - Pandoc's Haskell AST provides excellent design patterns but needs Rust-native implementation
+    Rowan-Inspired Red-Green Trees + Type safety
+        - Red-green pattern: Inspired by rowan (used by rust-analyzer) for efficient tree operations
+        - Structural sharing: Memory efficiency through shared immutable nodes  
+        - Lossless representation: Preserves all source information including whitespace
+        - Incremental updates: Foundation for future language server incremental parsing
+        - Enum-based nodes: Compile-time verification of AST structure
+
+    Then implementing the core find and get nodes that can take flexible queries both in node content (i.e. type=Verbatim::STRECTHED), tree (xpath / tree path like) and document (text__contains.. etc)
+
+    

@@ -1,0 +1,37 @@
+We will create a rust code that serializer abritrary objecs (like json encodable) into an xml like tree syntax, for example: 
+
+{
+    "information": { 
+        "firstname": "John",
+         age: 43
+  }, "work": {
+    "company": {
+        "name": "Megacorp",
+        "position": "SalaryMan"
+    }
+  }
+
+<document>
+    <information age="45" firstname="john">
+    <work>
+        <company name="Megacorp" , position="SalaryMan">
+    </work>
+</document>
+
+
+That is: 
+    It should produce well formed xml and be parsable by xml libs
+    Simple types are a node's atrributes, complex types are new nodes.
+
+This however, constrains us to all data being in an atrribute. 
+
+So the api should have a mapping that: 
+
+key: object type-> hash "content"; 
+ParagraphNode: {
+    "content": "label" -> tell you this object attribute should be used as tag content
+    "nodes": "children" -> na
+}
+<paragraph>Hello World<
+
+

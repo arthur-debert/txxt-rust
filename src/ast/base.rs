@@ -24,8 +24,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use super::{
-    blocks::Block,
-    structure::{Container, ContainerType},
+    blocks::Block, elements::containers::SessionContainer, parameters::Parameters,
+    tokens::TokenSequence,
 };
 
 /// Top-level document structure
@@ -40,7 +40,7 @@ pub struct Document {
 
     /// Main document content in a SessionContainer
     /// Root container can hold sessions and any other blocks
-    pub content: Container,
+    pub content: SessionContainer,
 
     /// Assembly metadata added during document processing
     pub assembly_info: AssemblyInfo,
@@ -125,11 +125,12 @@ impl Document {
     pub fn new(source: String) -> Self {
         Self {
             meta: Meta::default(),
-            content: Container {
-                container_type: ContainerType::Session,
-                content: Vec::new(),
-                annotations: Vec::new(),
-            },
+            content: SessionContainer::new(
+                Vec::new(),
+                Vec::new(),
+                Parameters::default(),
+                TokenSequence::new(),
+            ),
             assembly_info: AssemblyInfo {
                 source_path: Some(source),
                 ..AssemblyInfo::default()

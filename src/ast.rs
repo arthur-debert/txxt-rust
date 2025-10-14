@@ -172,3 +172,6 @@ pub mod tokens;
 
 // Tree traversal API using ego-tree
 pub mod traversal;
+
+// Advanced query and traversal API (Unist-compatible) - temporarily disabled
+// pub mod query;

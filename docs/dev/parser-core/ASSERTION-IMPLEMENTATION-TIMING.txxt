@@ -1,0 +1,198 @@
+Assertion Implementation Timing Decision
+
+Analysis of when to implement AST assertions relative to parser implementation.
+
+1. The Question
+
+    Should assertions be:
+    - A) Created upfront before any parser work (milestone 1.3)
+    - B) Created by each developer when parsing their first element
+    - C) Hybrid approach
+
+2. Option A: Assertions First (Upfront)
+
+    Implement all assertion helpers before Parser 2.1:
+    
+    Pros:
+        ✅ TDD approach - write tests first
+        ✅ Forces thinking about validation upfront
+        ✅ Consistent assertion API from day one
+        ✅ All developers use same patterns
+        ✅ Follows master plan ordering (1.3 before 2.1)
+        ✅ No rushing assertions to move forward
+        
+    Cons:
+        ❌ Might design for AST structure that changes
+        ❌ Could create unused abstractions
+        ❌ Overhead before seeing value
+        ❌ Risk of over-engineering without real usage
+        ❌ Delays actual parser implementation
+
+3. Option B: Assertions During (As-Needed)
+
+    Each developer creates assertions when implementing their element:
+    
+    Pros:
+        ✅ Learn what's actually needed
+        ✅ Design based on real usage
+        ✅ No wasted effort
+        ✅ Natural evolution with parser
+        ✅ Faster to first parser milestone
+        ✅ Assertions perfectly fit actual AST structure
+        
+    Cons:
+        ❌ Risk of inconsistent patterns
+        ❌ Might rush assertion quality
+        ❌ Each developer reinvents similar code
+        ❌ Harder to refactor later
+        ❌ Violates "no skipping steps" principle
+
+4. Option C: Hybrid (Recommended)
+
+    Implement minimal framework first, evolve during parsing:
+    
+    Phase 1 (Before Parser 2.1.1):
+        - Create Expected structs for ALL elements
+        - Implement shared validators (parameters, annotations, text)
+        - Implement ONE complete example (assert_paragraph)
+        - Write tests for assertion framework itself
+        - Document the pattern clearly
+        
+    Phase 2 (During Parser 2.1.1 - Paragraphs):
+        - Use assert_paragraph in tests
+        - Validate the pattern works
+        - Refine if needed
+        - Document any learnings
+        
+    Phase 3 (During Parser 2.1.2+ - Other Elements):
+        - Each developer implements assert_<their_element>
+        - Follows established pattern from assert_paragraph
+        - Reuses shared validators
+        - Adds element-specific logic as needed
+        
+    Benefits:
+        ✅ Structure without over-engineering
+        ✅ Proven pattern before wide use
+        ✅ Consistency via template
+        ✅ Flexibility for element-specific needs
+        ✅ Follows plan (1.3 creates foundation)
+        ✅ Fast iteration (minimal upfront)
+        ✅ Quality maintained (shared validators)
+
+5. Detailed Hybrid Approach
+
+    5.1. Milestone 1.3 Implementation (Before Parser Work)
+    
+        Create infrastructure only:
+        
+        Step 1: Define all Expected structs
+            File: tests/assertions/expected.rs
+            - ParagraphExpected
+            - ListExpected  
+            - DefinitionExpected
+            - SessionExpected
+            - VerbatimExpected
+            - AnnotationExpected
+            - All with #[derive(Default)]
+            - All fields documented
+            
+        Step 2: Implement shared validators
+            File: tests/assertions/validators.rs
+            - validate_parameters()
+            - validate_annotations()
+            - extract_all_text()
+            - validate_text_content()
+            
+        Step 3: Implement ONE complete example
+            File: tests/assertions/mod.rs
+            - assert_paragraph() - fully implemented
+            - Tests for assert_paragraph
+            - Template for other elements
+            
+        Step 4: Documentation
+            - Update assertion specs with implementation notes
+            - Add usage examples to assertion module docs
+            - Reference from developer cheatsheet
+            
+        Effort: ~1-2 days
+        Value: Proven pattern + reusable infrastructure
+        
+    5.2. During Parser Implementation (Parser 2.1.x)
+    
+        Each developer implements their element's assertion:
+        
+        When implementing Parser 2.1.2 (Lists):
+            1. Copy assert_paragraph as template
+            2. Adapt for ListExpected
+            3. Implement list-specific validation
+            4. Reuse shared validators
+            5. Add tests
+            
+        When implementing Parser 2.1.3 (Definitions):
+            Same pattern...
+            
+        Effort per element: ~30 minutes
+        Value: Element-specific validation ready immediately
+
+6. Recommendation
+
+    **Use Hybrid Approach (Option C)**
+    
+    Reasoning:
+    - Master plan says 1.3 is "TO PLAN" (design done, minimal implementation)
+    - Creates structure without over-commitment
+    - Proven pattern via assert_paragraph example
+    - Shared code prevents duplication
+    - Each developer owns their assertion
+    - Balances upfront structure with learning from usage
+    
+    Modified master plan ordering:
+        1.3 Tooling for assertions (1-2 days)
+            1.3.1 Base ast assertion code: Expected structs + shared validators
+            1.3.2 Example implementation: assert_paragraph + tests
+            1.3.3 Illustrated test examples: Using assertions
+            
+        2.1.1 Paragraphs (uses existing assert_paragraph)
+        2.1.2 Lists (developer implements assert_list)
+        2.1.3 Definitions (developer implements assert_definition)
+        etc.
+
+7. Workflow for Developers
+
+    7.1. First Element (Paragraphs)
+    
+        Assertion already exists:
+            #[test]
+            fn test_paragraph() {
+                let corpus = TxxtCorpora::load("...").unwrap();
+                let para = parse_paragraph(&corpus.source_text).unwrap();
+                
+                assert_paragraph(&para, ParagraphExpected {
+                    text_contains: Some("expected"),
+                    ..Default::default()
+                });
+            }
+    
+    7.2. Subsequent Elements (Lists, Definitions, etc.)
+    
+        Developer creates assertion:
+            Step 1: Copy tests/assertions/mod.rs::assert_paragraph
+            Step 2: Rename to assert_list
+            Step 3: Change ParagraphExpected to ListExpected
+            Step 4: Implement list-specific validation
+            Step 5: Use in tests immediately
+            
+        Takes ~30 minutes, follows proven pattern
+
+8. Why This Works
+
+    - Shared validators prevent duplication (parameters, annotations, text)
+    - Expected struct already defined (just implement validation)
+    - Template exists (assert_paragraph)
+    - Pattern proven before widespread use
+    - Each developer still owns their assertion
+    - No delay to parser implementation
+    - Maintains consistency via shared infrastructure
+
+:: conclusion :: Implement minimal assertion framework in milestone 1.3 (Expected structs + shared validators + assert_paragraph example), then each parser milestone implements its element's assertion. Best balance of structure and pragmatism.
+

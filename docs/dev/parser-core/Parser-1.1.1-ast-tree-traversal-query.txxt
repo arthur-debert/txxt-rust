@@ -1,4 +1,4 @@
-Specification for implementing a comprehensive tree traversal and query system for the TXXT AST, enabling efficient navigation and flexible querying needed for language server features.
+Parser 1.1.1 AST Prep: Tree Traversal
 
 1. Overview
 

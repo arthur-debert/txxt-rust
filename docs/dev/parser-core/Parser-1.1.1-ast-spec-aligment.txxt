@@ -1,5 +1,4 @@
-Specification for implementing a complete AST restructure that mirrors the specification taxonomy defined in [docs/specs/elements/].
-
+Parser 1.1.1 AST Prep: Spec Alignment
 1. Overview
 
     Redesign the AST element structure to precisely align with the element taxonomy in the specification documents. The existing AST had evolved organically and diverged from the spec terminology and hierarchy, making it harder to reason about and maintain.

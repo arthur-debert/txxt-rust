@@ -1,0 +1,16 @@
+1. Main Topic
+
+    This is the introduction to the main topic. It provides an overview before diving into specific subtopics.
+
+    1.1. First Subtopic
+    
+        This subsection explores the first aspect of the main topic in detail. Notice how it is indented one level deeper than the main section.
+        
+    1.2. Second Subtopic
+    
+        This subsection covers the second aspect. The hierarchical numbering (1.1, 1.2) makes the structure clear.
+
+2. Another Main Topic
+
+    This second main topic is at the same level as the first, demonstrating how nested and flat structures can combine.
+

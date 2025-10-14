@@ -1,0 +1,37 @@
+1. Complex Document Structure
+
+    This document demonstrates deep nesting with multiple element types at various levels.
+
+    1.1. First Major Subsection
+    
+        This subsection contains a nested list with its own content:
+        
+        - Top level list item with nested content
+            - First nested item
+            - Second nested item
+                1. Numbered sub-item
+                2. Another numbered sub-item
+        - Second top level item
+        
+        Following the list, we have a definition:
+        
+        Nested Definition ::
+            This definition appears within a subsection, showing how definitions can be placed at any level of the document hierarchy.
+            
+    1.2. Second Major Subsection
+    
+        This subsection demonstrates even deeper nesting.
+        
+        1.2.1. Third Level Section
+        
+            Content at the third level of nesting. This shows that txxt supports arbitrary nesting depth.
+            
+            Key concepts:
+            - Depth is indicated by indentation
+            - Each level is exactly 4 spaces deeper
+            - Structure remains clear even at deep levels
+
+2. Conclusion
+
+    This final section wraps up the complex document, demonstrating how flat and nested structures coexist.
+

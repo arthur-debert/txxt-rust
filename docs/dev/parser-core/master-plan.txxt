@@ -21,6 +21,8 @@ Test suite must be passing at all times.
 No peeking (antecipating and implementatin future work, especially broken parital ones.)
 1. Preparatory Work
     1.1. Ast Capabilities
+        1.1.1 aligning the ast tree to the specs
+        1.1.2 Implement Tree Traversal
     1.2 Inpection: 
         1.2.1.1 tree-view format
     1.3 Tooling for assertions

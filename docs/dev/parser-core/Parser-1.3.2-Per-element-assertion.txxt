@@ -1,0 +1,263 @@
+Parser 1.3.2 Per-Element Assertion Specifications
+
+Element-specific assertion helpers that understand each element's unique properties.
+
+1. Paragraph Assertions
+
+    assert_paragraph_text(para: &ParagraphBlock, expected: &str)
+        Validates paragraph text content matches expected
+        
+    assert_paragraph_line_count(para: &ParagraphBlock, expected: usize)
+        Validates source had expected number of lines
+        
+    assert_paragraph_has_formatting(para: &ParagraphBlock)
+        Validates paragraph contains TextTransforms beyond Identity
+        
+    Example:
+        let para = assert_is_paragraph(&element);
+        assert_paragraph_text(para, "This is a paragraph");
+        assert_paragraph_has_formatting(para);
+
+2. List Assertions
+
+    assert_list_style(list: &ListBlock, style: NumberingStyle)
+        Validates list decoration style (Plain, Numerical, etc.)
+        
+    assert_list_item_count(list: &ListBlock, expected: usize)
+        Validates number of list items
+        
+    assert_list_item_text(list: &ListBlock, index: usize, expected: &str)
+        Validates specific item's text
+        
+    assert_list_has_nested(list: &ListBlock, item_index: usize)
+        Validates item has nested container
+        
+    Example:
+        let list = assert_is_list(&element);
+        assert_list_style(list, NumberingStyle::Plain);
+        assert_list_item_count(list, 3);
+        assert_list_item_text(list, 0, "First item");
+
+3. Definition Assertions
+
+    assert_definition_term(def: &DefinitionBlock, expected: &str)
+        Validates definition term text
+        
+    assert_definition_has_content(def: &DefinitionBlock)
+        Validates definition has non-empty content
+        
+    assert_definition_content_count(def: &DefinitionBlock, expected: usize)
+        Validates number of elements in definition content
+        
+    Example:
+        let def = assert_is_definition(&element);
+        assert_definition_term(def, "Parser");
+        assert_definition_has_content(def);
+
+4. Session Assertions
+
+    assert_session_title(session: &SessionBlock, expected: &str)
+        Validates session title text
+        
+    assert_session_numbering(session: &SessionBlock, expected: &str)
+        Validates session numbering marker
+        
+    assert_session_is_numbered(session: &SessionBlock)
+        Validates session has numbering
+        
+    assert_session_child_count(session: &SessionBlock, expected: usize)
+        Validates number of children in session content
+        
+    assert_session_has_subsession(session: &SessionBlock)
+        Validates session contains nested session
+        
+    Example:
+        let session = assert_is_session(&element);
+        assert_session_title(session, "Introduction");
+        assert_session_numbering(session, "1.");
+        assert_session_child_count(session, 2);
+
+5. Verbatim Assertions
+
+    assert_verbatim_type(verb: &VerbatimBlock, expected: VerbatimType)
+        Validates in-flow vs stretched mode
+        
+    assert_verbatim_label(verb: &VerbatimBlock, expected: &str)
+        Validates verbatim label
+        
+    assert_verbatim_title(verb: &VerbatimBlock, expected: &str)
+        Validates title text
+        
+    assert_verbatim_content_line_count(verb: &VerbatimBlock, expected: usize)
+        Validates number of content lines
+        
+    assert_verbatim_content_contains(verb: &VerbatimBlock, needle: &str)
+        Validates verbatim content includes text
+        
+    Example:
+        let verb = assert_is_verbatim(&element);
+        assert_verbatim_type(verb, VerbatimType::InFlow);
+        assert_verbatim_label(verb, "python");
+        assert_verbatim_content_line_count(verb, 3);
+
+6. Annotation Assertions
+
+    assert_annotation_label(ann: &AnnotationBlock, expected: &str)
+        Validates annotation label
+        
+    assert_annotation_has_content(ann: &AnnotationBlock)
+        Validates annotation is not empty
+        
+    assert_annotation_content_type(ann: &AnnotationBlock, expected: AnnotationContentType)
+        Validates inline vs block content
+        
+    assert_annotation_has_parameter(ann: &AnnotationBlock, key: &str, value: &str)
+        Validates specific parameter exists with value
+        
+    Example:
+        let ann = assert_is_annotation(&element);
+        assert_annotation_label(ann, "warning");
+        assert_annotation_has_parameter(ann, "severity", "high");
+
+7. Container Assertions
+
+    assert_container_element_sequence(container, types: &[ElementType])
+        Validates container has elements in expected order
+        
+    assert_container_has_only(container, element_type: ElementType)
+        Validates all children are of same type
+        
+    assert_container_element_at(container, index: usize, element_type: ElementType)
+        Validates specific element at index
+        
+    Example:
+        assert_container_element_sequence(
+            &session.content,
+            &[ElementType::Block, ElementType::Block]
+        );
+
+8. Inline Element Assertions
+
+    assert_has_bold_span(content: &[TextTransform])
+        Validates content contains bold formatting
+        
+    assert_has_italic_span(content: &[TextTransform])
+        Validates content contains italic formatting
+        
+    assert_has_code_span(content: &[TextTransform])
+        Validates content contains code span
+        
+    assert_has_reference(content: &[TextTransform], target_type: ReferenceType)
+        Validates content contains specific reference type
+        
+    Example:
+        assert_has_bold_span(&paragraph.content);
+        assert_has_reference(&paragraph.content, ReferenceType::Url);
+
+9. Composite Assertions
+
+    9.1. Document Structure
+    
+        assert_document_structure(doc: &Document, expected: DocumentStructure)
+            Validates entire document matches expected pattern
+            
+        Example:
+            assert_document_structure(&doc, DocumentStructure {
+                has_title: true,
+                session_count: 3,
+                max_depth: 2,
+            });
+    
+    9.2. Element Completeness
+    
+        assert_element_complete(element: &dyn TxxtElement)
+            Validates element has all required parts:
+            - Non-empty tokens
+            - Valid element type
+            - Content present (if required)
+            
+    9.3. Reference Integrity
+    
+        assert_references_valid(doc: &Document)
+            Validates all references have valid targets
+            (Future: once reference resolution is implemented)
+
+10. Error Message Templates
+
+    All assertions should follow this pattern:
+    
+        Assertion: assert_session_child_count(session, 3)
+        Failure message:
+            "Session child count mismatch
+             Expected: 3 children
+             Actual: 2 children
+             Session title: 'Introduction'
+             Session location: line 5, column 0
+             
+             Children found:
+               [0] Paragraph at line 7
+               [1] List at line 9
+               
+             Missing element at index 2"
+
+11. Helper Utilities
+
+    11.1. Text Extraction
+    
+        extract_text(element: &dyn TxxtElement) -> String
+            Recursively extract all text content
+            
+    11.2. Element Path
+    
+        element_path(doc: &Document, element: &dyn TxxtElement) -> String
+            Get path like "document.content[0].content[1]"
+            Useful for error messages
+            
+    11.3. Tree Comparison
+    
+        assert_trees_equal(expected: &Document, actual: &Document)
+            Deep equality check with detailed diff on mismatch
+
+12. Implementation Example
+
+    Basic assertion:
+        pub fn assert_is_paragraph(element: &SessionContainerElement) -> &ParagraphBlock {
+            match element {
+                SessionContainerElement::Paragraph(p) => p,
+                other => panic!(
+                    "Expected Paragraph, found {:?}\nElement: {:#?}",
+                    element_type_name(other),
+                    other
+                ),
+            }
+        }
+        
+    Chainable assertion:
+        pub trait ParagraphAssertions {
+            fn assert_text_contains(&self, needle: &str) -> &Self;
+        }
+        
+        impl ParagraphAssertions for ParagraphBlock {
+            fn assert_text_contains(&self, needle: &str) -> &Self {
+                let text = extract_paragraph_text(self);
+                assert!(
+                    text.contains(needle),
+                    "Paragraph should contain '{}'\nActual text: '{}'",
+                    needle, text
+                );
+                self
+            }
+        }
+
+13. Testing the Assertions
+
+    The assertion library itself needs tests:
+        - Valid cases pass without panic
+        - Invalid cases panic with good messages
+        - Chainable assertions work
+        - Error messages are helpful
+        
+    Test file: tests/assertions_tests.rs
+
+:: note :: These element-specific assertions will make parser tests dramatically more readable and maintainable. Implementation should happen in milestone 1.3 before parser work begins.
+

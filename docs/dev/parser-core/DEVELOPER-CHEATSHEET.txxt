@@ -1,0 +1,282 @@
+Parser Implementation Developer Cheatsheet
+
+Quick reference guide for implementing parser tasks following the master plan.
+
+1. Before You Start
+
+    Read these files first:
+    - docs/specs/core/terminology.txxt - Element hierarchy (Span/Line/Block/Container)
+    - docs/specs/elements/<element>.txxt - Spec for element you're implementing
+    - docs/dev/parser-core/Parser-1.4.1-per-element-corpora.txxt - Test labels
+    
+    Understand the pipeline:
+        Raw Text → Tokens → Blocks → Elements → AST → Document
+
+2. Implementation Workflow
+
+    Step 1: Load test corpus
+        use tests::corpora::TxxtCorpora;
+        let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
+        
+    Step 2: Write failing test
+        #[test]
+        fn test_parse_simple_paragraph() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
+            let result = parse_paragraph(&corpus.source_text);
+            assert!(result.is_ok());
+        }
+        
+    Step 3: Implement parser logic
+        - Check src/parser/elements/<element>.rs
+        - Follow spec rules exactly
+        - Use existing AST types from src/ast/elements/
+        
+    Step 4: Run test, iterate
+        cargo test test_parse_simple_paragraph
+        
+    Step 5: Validate with ensemble
+        cargo test --test ensemble_documents_example
+
+3. Key APIs
+
+    3.1. Load Test Data
+    
+        Fragments (isolated elements):
+            TxxtCorpora::load("txxt.core.spec.element.validity.case")
+            
+        Full documents:
+            TxxtCorpora::load_document("01-two-paragraphs")
+            TxxtCorpora::load_document("11")  // Prefix match
+            
+        Error cases:
+            let corpus = TxxtCorpora::load("txxt.core.spec.element.invalid.case")?;
+            assert!(corpus.is_error_case());
+            assert_eq!(corpus.expected_error(), Some("ErrorType"));
+    
+    3.2. AST Types (from src/ast/elements/)
+    
+        Blocks:
+            - ParagraphBlock { content, annotations, tokens, parameters }
+            - ListBlock { decoration_type, items, annotations, tokens }
+            - DefinitionBlock { term, content, parameters, annotations, tokens }
+            - VerbatimBlock { title, content, label, parameters, verbatim_type, annotations, tokens }
+            - SessionBlock { title, content, annotations, tokens }
+            - AnnotationBlock { label, parameters, content, tokens }
+            
+        Containers:
+            - ContentContainer { content: Vec<ContentContainerElement>, ... }
+            - SessionContainer { content: Vec<SessionContainerElement>, ... }
+            - IgnoreContainer { ignore_lines, blank_lines }
+            
+        Inlines:
+            - TextTransform enum (Identity, Strong, Emphasis, Code, Math, ...)
+            - BoldSpan, ItalicSpan, CodeSpan, MathSpan
+            - ReferenceSpan, CitationSpan, etc.
+    
+    3.3. Tree Traversal (from src/ast/traversal.rs)
+    
+        Build tree:
+            let traversable = TraversableDocument::from_document(&doc);
+            
+        Query:
+            let paragraphs = traversable.query()
+                .find_by_type(ElementType::Block)
+                .collect();
+                
+        XPath:
+            let results = traversable.xpath("//Block")?;
+
+4. Testing Patterns
+
+    4.1. Basic Element Test
+    
+        #[test]
+        fn test_element_simple() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.element.valid.simple").unwrap();
+            let result = parse_element(&corpus.source_text);
+            
+            assert!(result.is_ok());
+            let element = result.unwrap();
+            
+            // Validate structure
+            assert_eq!(element.element_type(), ElementType::Block);
+            // Validate content
+            // Validate tokens
+        }
+    
+    4.2. Error Case Test
+    
+        #[test]
+        fn test_element_invalid() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.element.invalid.case").unwrap();
+            assert!(corpus.is_error_case());
+            
+            let result = parse_element(&corpus.source_text);
+            assert!(result.is_err());
+            
+            if let Err(error) = result {
+                assert!(error.to_string().contains(corpus.expected_error().unwrap()));
+            }
+        }
+    
+    4.3. Snapshot Test
+    
+        #[test]
+        fn test_element_snapshot() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.element.valid.complex").unwrap();
+            let ast = parse_element(&corpus.source_text).unwrap();
+            
+            insta::assert_yaml_snapshot!(ast);
+        }
+    
+    4.4. Progressive Document Test
+    
+        #[test]
+        fn test_progressive_parsing() {
+            // Start simple
+            let doc01 = TxxtCorpora::load_document("01").unwrap();
+            assert!(parse_document(&doc01.source_text).is_ok());
+            
+            // Add complexity
+            let doc05 = TxxtCorpora::load_document("05").unwrap();
+            assert!(parse_document(&doc05.source_text).is_ok());
+            
+            // Full feature
+            let doc11 = TxxtCorpora::load_document("11").unwrap();
+            assert!(parse_document(&doc11.source_text).is_ok());
+        }
+
+5. Common Patterns
+
+    5.1. Element Recognition
+    
+        Pattern matching order (highest to lowest priority):
+        1. Annotations (:: label ::)
+        2. Verbatim (title:)
+        3. Definitions (term ::)
+        4. Lists (- item, 1. item)
+        5. Sessions (title + indented content)
+        6. Paragraphs (default fallback)
+    
+    5.2. Container Creation
+    
+        When to use ContentContainer:
+        - List item nested content
+        - Definition content
+        - Annotation block content
+        - Cannot contain sessions
+        
+        When to use SessionContainer:
+        - Document root
+        - Session content
+        - Can contain sessions
+    
+    5.3. Indentation Rules
+    
+        - All indentation is multiples of 4 spaces
+        - Children are +1 level from parent (parent + 4 spaces)
+        - Containers get indented, not their parent elements
+        - Session title at N, content at N+4
+        - List item at N, nested content at N+4
+
+6. Debugging Tips
+
+    6.1. When Tests Fail
+    
+        Check this order:
+        1. Corpus loaded correctly? Print corpus.source_text
+        2. Tokenization correct? Use tokenizer debug output
+        3. Block grouping correct? Check indentation detection
+        4. Element recognition correct? Check pattern matching
+        5. AST structure correct? Use ast_debug visualization
+        
+    6.2. Use Tree Visualization
+    
+        use txxt::ast_debug::AstTreeVisualizer;
+        
+        let doc = parse_document(&source)?;
+        let viz = AstTreeVisualizer::new();
+        println!("{}", viz.visualize(&doc));
+    
+    6.3. Use Traversal for Inspection
+    
+        let traversable = TraversableDocument::from_document(&doc);
+        let stats = traversable.element_type_stats();
+        println!("Elements: {:?}", stats);
+
+7. Commit Workflow
+
+    7.1. Commit Message Format
+    
+        Pattern: Parser <step-number> <element> <details>
+        
+        Examples:
+            Parser 2.1.1 Paragraph simple form implementation
+            Parser 2.1.5 Session container flat structure
+            Parser 2.2.3 Definition invalid cases handling
+    
+    7.2. Before Each Commit
+    
+        Checklist:
+        - [ ] All tests pass (cargo test)
+        - [ ] No clippy warnings (cargo clippy)
+        - [ ] Code formatted (rustfmt)
+        - [ ] Documentation updated
+        - [ ] Snapshot tests updated if needed
+    
+    7.3. PR Creation
+    
+        Title: Parser <release>.<milestone> <milestone-title>
+        Example: "Parser 1.2 Inspection Tooling"
+        
+        Body must include:
+        - Completed steps with commit links
+        - Test coverage summary
+        - References to related issues
+
+8. Quick Reference
+
+    File locations:
+        Specs: docs/specs/elements/<element>.txxt
+        AST types: src/ast/elements/<element>.rs
+        Parser impl: src/parser/elements/<element>.rs
+        Tests: tests/<element>_parser_tests.rs
+        Corpora labels: docs/dev/parser-core/Parser-1.4.1-per-element-corpora.txxt
+        Ensembles: docs/specs/ensembles/NN-name.txxt
+        
+    Commands:
+        cargo test <element>_parser  # Run element tests
+        cargo test --test ensemble_documents_example  # Integration tests
+        cargo clippy --all-targets --all-features  # Lint check
+        just test  # Run test suite (if using justfile)
+
+9. Common Pitfalls
+
+    ❌ Don't anticipate future work
+    ❌ Don't skip validation steps
+    ❌ Don't break existing tests
+    ❌ Don't commit with failing tests
+    ❌ Don't merge without PR review
+    
+    ✅ Do follow spec exactly
+    ✅ Do test progressively
+    ✅ Do use corpora system
+    ✅ Do validate with ensembles
+    ✅ Do update docs when needed
+
+10. Getting Help
+
+    When stuck:
+    1. Review the element spec again
+    2. Check similar element implementation
+    3. Look at existing tests for patterns
+    4. Use tree visualization to inspect output
+    5. Review corpora extraction to verify test data
+    
+    Resources:
+    - tests/ensemble_documents_example.rs - Test patterns
+    - src/ast_debug.rs - Visualization tools
+    - docs/dev/parser-core/PLAN-REVIEW.txxt - Plan analysis
+
+:: note :: This cheatsheet provides quick reference for parser implementation. Keep it open while coding for faster lookup.
+

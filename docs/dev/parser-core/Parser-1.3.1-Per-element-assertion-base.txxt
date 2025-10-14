@@ -1,0 +1,320 @@
+Parser 1.3.1 Custom AST Assertion System Design
+
+Design specification for reusable AST validation helpers and assertion macros.
+
+1. Purpose
+
+    Create ergonomic, reusable assertion helpers that make parser tests:
+    - Easy to write (minimal boilerplate)
+    - Easy to read (clear intent)
+    - Easy to maintain (DRY principle)
+    - Comprehensive (catch structural errors)
+    - Debuggable (helpful failure messages)
+
+2. Core Assertion Categories
+
+    2.1. Element Type Assertions
+    
+        Purpose: Verify element is correct type
+        
+        Functions:
+            assert_is_paragraph(element) -> &ParagraphBlock
+            assert_is_list(element) -> &ListBlock
+            assert_is_definition(element) -> &DefinitionBlock
+            assert_is_session(element) -> &SessionBlock
+            assert_is_verbatim(element) -> &VerbatimBlock
+            
+        Returns downcasted reference for further validation
+        
+    2.2. Content Assertions
+    
+        Purpose: Verify element content
+        
+        Functions:
+            assert_text_contains(element, needle)
+            assert_text_equals(element, expected)
+            assert_text_matches(element, regex)
+            assert_has_inline_formatting(element)
+            assert_content_empty(element)
+            
+    2.3. Structure Assertions
+    
+        Purpose: Verify AST structure and relationships
+        
+        Functions:
+            assert_child_count(container, expected)
+            assert_has_child_type(container, ElementType)
+            assert_nesting_depth(container, expected)
+            assert_contains_element(container, predicate)
+            
+    2.4. Container Assertions
+    
+        Purpose: Validate container types and contents
+        
+        Functions:
+            assert_content_container(element) -> &ContentContainer
+            assert_session_container(element) -> &SessionContainer
+            assert_ignore_container(element) -> &IgnoreContainer
+            assert_container_can_hold_sessions(container)
+            
+    2.5. Metadata Assertions
+    
+        Purpose: Verify annotations and parameters
+        
+        Functions:
+            assert_has_annotation(element, label)
+            assert_annotation_count(element, expected)
+            assert_has_parameter(element, key, value)
+            assert_parameter_count(element, expected)
+            
+    2.6. Token Assertions
+    
+        Purpose: Verify source position tracking
+        
+        Functions:
+            assert_has_tokens(element)
+            assert_token_count(element, expected)
+            assert_token_span(element, start_line, start_col, end_line, end_col)
+
+3. Macro Design
+
+    3.1. Element Type Matching Macro
+    
+        Syntax:
+            assert_element! {
+                element => Paragraph {
+                    content_len > 0,
+                    annotations_len == 0
+                }
+            }
+            
+        Benefits:
+        - Pattern matching on element type
+        - Multiple assertions in one call
+        - Clear, readable syntax
+        
+    3.2. Container Content Macro
+    
+        Syntax:
+            assert_container! {
+                container => [
+                    Paragraph,
+                    List { items_len >= 2 },
+                    Paragraph
+                ]
+            }
+            
+        Benefits:
+        - Validates sequence of elements
+        - Checks element types in order
+        - Optional property checks per element
+        
+    3.3. Tree Structure Macro
+    
+        Syntax:
+            assert_tree! {
+                session => Session {
+                    title_text == "Introduction",
+                    content => [
+                        Paragraph,
+                        List {
+                            items_len == 3,
+                            nested => Some
+                        }
+                    ]
+                }
+            }
+            
+        Benefits:
+        - Validates entire subtree
+        - Nested structure checking
+        - Property validation at each level
+
+4. Implementation Approach
+
+    4.1. Module Organization
+    
+        File: tests/assertions/mod.rs
+            - Core trait implementations
+            - Base assertion functions
+            - Error formatting utilities
+            
+        File: tests/assertions/elements.rs
+            - Element-specific assertions
+            - Type checking helpers
+            - Content extractors
+            
+        File: tests/assertions/containers.rs
+            - Container validation
+            - Child counting
+            - Nesting depth checks
+            
+        File: tests/assertions/macros.rs
+            - assert_element! macro
+            - assert_container! macro
+            - assert_tree! macro
+            
+    4.2. Trait-Based Design
+    
+        Trait for common operations:
+            pub trait AssertableElement {
+                fn assert_type(&self, expected: ElementType) -> &Self;
+                fn assert_text_contains(&self, needle: &str) -> &Self;
+                fn assert_child_count(&self, count: usize) -> &Self;
+                // ... chainable assertions
+            }
+            
+        Implement for all AST types:
+            impl AssertableElement for ParagraphBlock { ... }
+            impl AssertableElement for ListBlock { ... }
+            // etc.
+            
+        Benefits:
+        - Chainable assertions
+        - Consistent API
+        - Easy to extend
+
+5. Usage Examples
+
+    5.1. Simple Element Validation
+    
+        Test code:
+            let paragraph = parse_paragraph(&source).unwrap();
+            
+            assert_is_paragraph(&paragraph)
+                .assert_text_contains("expected content")
+                .assert_has_no_annotations();
+                
+    5.2. Container Content Validation
+    
+        Test code:
+            let session = parse_session(&source).unwrap();
+            
+            assert_is_session(&session);
+            assert_child_count(&session.content, 3);
+            assert_has_child_type(&session.content, ElementType::Block);
+            
+    5.3. Using Macros
+    
+        Test code:
+            assert_element! {
+                parsed => Definition {
+                    term_text == "Parser",
+                    content.len() > 0,
+                    parameters.is_empty()
+                }
+            }
+            
+    5.4. Complex Tree Validation
+    
+        Test code:
+            assert_tree! {
+                document.content => [
+                    Session {
+                        title_text == "Introduction",
+                        content => [Paragraph, Paragraph]
+                    },
+                    Session {
+                        title_text == "Conclusion",
+                        content => [Paragraph]
+                    }
+                ]
+            }
+
+6. Error Message Design
+
+    6.1. Principles
+    
+        - Show expected vs actual
+        - Include context (element path)
+        - Suggest fixes when possible
+        - Include source position if available
+        
+    6.2. Example Error Messages
+    
+        Good:
+            "Expected SessionContainerElement::Paragraph, found SessionContainerElement::List
+             at document.content[0]
+             Source location: line 5, column 4"
+             
+        Bad:
+            "Assertion failed"
+            
+        Good:
+            "Expected 3 child elements, found 2
+             Container: SessionContainer at document.content[0].content
+             Missing element at index 2"
+             
+        Bad:
+            "Child count mismatch"
+
+7. Implementation Phases
+
+    Phase 1: Core Functions
+        - Basic type assertions (assert_is_*)
+        - Content assertions (assert_text_*)
+        - Container assertions (assert_child_count, etc.)
+        
+    Phase 2: Trait Implementation
+        - AssertableElement trait
+        - Implement for all element types
+        - Chainable methods
+        
+    Phase 3: Macros
+        - assert_element! for single elements
+        - assert_container! for sequences
+        - assert_tree! for nested structures
+        
+    Phase 4: Advanced Helpers
+        - Path-based assertions (element at path)
+        - Predicate-based queries
+        - Diff visualization for failures
+
+8. Testing the Assertions
+
+    The assertion helpers themselves need tests:
+    
+    - Test that valid structures pass
+    - Test that invalid structures fail with good messages
+    - Test chainability works
+    - Test macro expansion is correct
+    - Test error messages are helpful
+
+9. Integration with Corpora
+
+    Assertions should work seamlessly with corpora:
+    
+        #[test]
+        fn test_paragraph_simple() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
+            let para = parse_paragraph(&corpus.source_text).unwrap();
+            
+            // Use assertion helpers
+            assert_is_paragraph(&para)
+                .assert_text_contains("paragraph")
+                .assert_has_no_annotations();
+        }
+
+10. Example Implementation Sketch
+
+    Function signatures:
+        // Type assertions (return downcasted reference)
+        pub fn assert_is_paragraph(element: &SessionContainerElement) 
+            -> &ParagraphBlock { ... }
+            
+        // Content assertions (return element for chaining)
+        pub fn assert_text_contains<T: TxxtElement>(element: &T, needle: &str) 
+            -> &T { ... }
+            
+        // Container assertions
+        pub fn assert_child_count<C: ContainerElement>(container: &C, expected: usize) 
+            { ... }
+            
+        // Chainable trait
+        pub trait ElementAssertions: TxxtElement {
+            fn assert_text_contains(&self, needle: &str) -> &Self { ... }
+            fn assert_has_annotation(&self, label: &str) -> &Self { ... }
+        }
+
+:: note :: This assertion system will make parser tests much more ergonomic and maintainable. The trait-based approach with macros provides both convenience and type safety.
+

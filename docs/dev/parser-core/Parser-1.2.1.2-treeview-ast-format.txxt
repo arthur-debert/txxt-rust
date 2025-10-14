@@ -1,0 +1,102 @@
+Treeviz: TXXT AST Notation Reference
+
+    A visual notation system for representing TXXT Abstract Syntax Tree structures using monochrome Unicode characters.
+
+1. Purpose
+
+    This notation provides a standardized way to visualize the structure of TXXT documents when inspecting parsed AST elements. It enables clear representation of hierarchical document structure and element relationships.
+
+2. Tree Structure Format
+
+    Example AST structure:
+        ├─ § <session path like 1.3 (third session child of first session)>
+        │   ├─ ⊤ The Session Title
+        │   └─ ➔ children count
+        │       ├─ ¶ paragraph
+        │       │    ├─ ↵ <the text line content>
+    tree ::
+
+    General form:
+        <indentation><pipe tree> ├─ <icon> <content>
+
+    Tree Conventions:
+        ├─ indicates a child node
+        │   indicates continuation of parent structure  
+        └─ indicates the last child at a level
+
+    Indentation shows nesting depth
+
+3. Icon Reference
+
+    1. Document Structure
+        a. ⧉   document          
+        b. §   session           
+        c. Ψ   session container  
+        d. ⊤   heading         
+    2. Block Elements
+        a. ¶   paragraph        
+        b. ☰   list              
+        c. •   listItem          
+        d. 𝒱   verbatim          
+        e. ℣   verbatim line      
+        f. ≔   definition         
+        g. ➔   contentContainer   
+    3. Inline Elements  
+        a. ◦   text               
+        b. ↵   textLine           
+        c. 𝐼   emphasis          
+        d. �  strong             
+        e. ƒ   inlineCode         
+        f. √   math               
+        g. References
+            i. ⊕   reference URL      
+            ii. /   reference files    
+            ii. †   citation           
+                1. @   author             
+                2. ◫   pages              
+            iii. ⋯   reference ToCome    
+            iv. ∅   reference unknown  
+            v. ³   reference footnote 
+            vi. #   reference session  
+        5. Metadata & Parameters
+            1. ◔   label              
+            2. ✗   key                
+            3. $   value              
+            4. ”  annotation         
+
+4. Content Mapping
+
+    Content extraction should use type-to-property mapping to gather relevant content from AST nodes. Each icon represents a specific AST element type with associated content extraction rules.
+
+5. Usage Notes
+
+    This notation system provides consistent visual representation for:
+    - AST debugging and inspection
+    - Document structure visualization  
+    - Parser output analysis
+    - Development tooling displays
+
+    The monochrome Unicode characters ensure compatibility across different terminals and development environments while maintaining clear visual distinction between element types.
+
+
+6. Lib
+
+    We want an api that will receive an AST node and return pure data represtation of the format, one that can be easily serialized to JSON or other formats. Then another that renders that data structure to the notation format, and one that combines both stepe.
+
+    API:
+        fn ast_to_data(node: &AstNode, configMap: &Map ) -> NotationData
+        fn data_to_notation(data: &NotationData, configMap: &Map) -> String
+        fn ast_to_notation(node: &AstNode) -> String
+    rust ::
+
+
+7. CLI
+
+    A command line tool that takes a TXXT file, parses it, and outputs the notation representation of its AST.
+
+    CLI:
+        txxt-notation <input-file> [options]
+    options:
+        --format <type>   Output format (default: treeviz), json
+        --config <file>   Path to configuration file for custom mappings
+    cli ::

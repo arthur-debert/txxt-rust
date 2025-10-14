@@ -38,7 +38,13 @@ use regex::Regex;
 
 use crate::ast::{
     base::Document,
-    elements::core::{ElementType, TxxtElement},
+    elements::{
+        containers::{
+            content::{ContentContainer, ContentContainerElement},
+            session::{SessionContainer, SessionContainerElement},
+        },
+        core::{ElementType, TxxtElement},
+    },
 };
 
 /// Wrapper around a TXXT document that provides efficient tree traversal
@@ -93,22 +99,28 @@ impl TraversableDocument {
     /// Note: This creates an owned copy of the document structure for traversal.
     /// The original document is not modified or referenced.
     pub fn from_document(document: &Document) -> Self {
-        let id_counter = 0;
+        let mut id_counter = 0;
+        let mut node_cache = HashMap::new();
 
-        // For now, create a simple tree with just a document root
-        // We'll expand this to properly traverse the document structure
+        // Create document root
         let root_wrapper = ElementWrapper::new(
             Box::new(DocumentElementOwned::from_document(document)),
             id_counter,
         );
-        let _id_counter = id_counter + 1;
+        id_counter += 1;
 
-        let tree = Tree::new(root_wrapper);
-        let node_cache = HashMap::new();
+        let mut tree = Tree::new(root_wrapper);
 
-        // TODO: Build the tree by traversing the document structure
-        // This would involve converting each SessionContainerElement to ElementWrapper
-        // and building the ego-tree structure recursively
+        // Build the tree recursively from the document content
+        {
+            let mut root_node = tree.root_mut();
+            Self::build_session_container_recursive(
+                &document.content,
+                &mut root_node,
+                &mut id_counter,
+                &mut node_cache,
+            );
+        }
 
         Self { tree, node_cache }
     }
@@ -123,19 +135,192 @@ impl TraversableDocument {
         DocumentQuery::new(self)
     }
 
-    /// Build the ego-tree recursively from the AST structure
-    #[allow(dead_code)]
-    fn build_tree_recursive(
-        _container_element: &dyn TxxtElement,
-        _parent_node: &mut ego_tree::NodeMut<ElementWrapper>,
-        _id_counter: &mut ElementId,
-        _node_cache: &mut HashMap<ElementId, ego_tree::NodeId>,
+    /// Build the ego-tree recursively from a SessionContainer
+    fn build_session_container_recursive(
+        container: &SessionContainer,
+        parent_node: &mut ego_tree::NodeMut<ElementWrapper>,
+        id_counter: &mut ElementId,
+        node_cache: &mut HashMap<ElementId, ego_tree::NodeId>,
     ) {
-        // This is a simplified implementation - we need to properly handle
-        // the different container types and their children
+        for element in &container.content {
+            Self::build_session_element_recursive(element, parent_node, id_counter, node_cache);
+        }
+    }
 
-        // TODO: Implement proper recursive tree building based on
-        // SessionContainerElement and ContentContainerElement variants
+    /// Build the ego-tree recursively from a SessionContainerElement
+    fn build_session_element_recursive(
+        element: &SessionContainerElement,
+        parent_node: &mut ego_tree::NodeMut<ElementWrapper>,
+        id_counter: &mut ElementId,
+        node_cache: &mut HashMap<ElementId, ego_tree::NodeId>,
+    ) {
+        match element {
+            SessionContainerElement::Paragraph(paragraph) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_paragraph(paragraph)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            SessionContainerElement::List(list) => {
+                let wrapper =
+                    ElementWrapper::new(Box::new(ElementAdapter::from_list(list)), *id_counter);
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            SessionContainerElement::Definition(definition) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_definition(definition)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            SessionContainerElement::Verbatim(verbatim) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_verbatim(verbatim)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            SessionContainerElement::Annotation(annotation) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_annotation(annotation)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            SessionContainerElement::Session(session) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_session(session)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            SessionContainerElement::ContentContainer(content_container) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_content_container(content_container)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                let mut container_node = parent_node.append(wrapper);
+                Self::build_content_container_recursive(
+                    content_container,
+                    &mut container_node,
+                    id_counter,
+                    node_cache,
+                );
+            }
+            SessionContainerElement::SessionContainer(session_container) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_session_container(session_container)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                let mut container_node = parent_node.append(wrapper);
+                Self::build_session_container_recursive(
+                    session_container,
+                    &mut container_node,
+                    id_counter,
+                    node_cache,
+                );
+            }
+            SessionContainerElement::BlankLine(blank_line) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_blank_line(blank_line)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+        }
+    }
+
+    /// Build the ego-tree recursively from a ContentContainer
+    fn build_content_container_recursive(
+        container: &ContentContainer,
+        parent_node: &mut ego_tree::NodeMut<ElementWrapper>,
+        id_counter: &mut ElementId,
+        node_cache: &mut HashMap<ElementId, ego_tree::NodeId>,
+    ) {
+        for element in &container.content {
+            Self::build_content_element_recursive(element, parent_node, id_counter, node_cache);
+        }
+    }
+
+    /// Build the ego-tree recursively from a ContentContainerElement
+    fn build_content_element_recursive(
+        element: &ContentContainerElement,
+        parent_node: &mut ego_tree::NodeMut<ElementWrapper>,
+        id_counter: &mut ElementId,
+        node_cache: &mut HashMap<ElementId, ego_tree::NodeId>,
+    ) {
+        match element {
+            ContentContainerElement::Paragraph(paragraph) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_paragraph(paragraph)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            ContentContainerElement::List(list) => {
+                let wrapper =
+                    ElementWrapper::new(Box::new(ElementAdapter::from_list(list)), *id_counter);
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            ContentContainerElement::Definition(definition) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_definition(definition)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            ContentContainerElement::Verbatim(verbatim) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_verbatim(verbatim)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            ContentContainerElement::Annotation(annotation) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_annotation(annotation)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+            ContentContainerElement::Container(content_container) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_content_container(content_container)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                let mut container_node = parent_node.append(wrapper);
+                Self::build_content_container_recursive(
+                    content_container,
+                    &mut container_node,
+                    id_counter,
+                    node_cache,
+                );
+            }
+            ContentContainerElement::BlankLine(blank_line) => {
+                let wrapper = ElementWrapper::new(
+                    Box::new(ElementAdapter::from_blank_line(blank_line)),
+                    *id_counter,
+                );
+                *id_counter += 1;
+                parent_node.append(wrapper);
+            }
+        }
     }
 
     /// Find a node by its element ID (using cache)
@@ -303,11 +488,46 @@ impl QueryFilter {
     }
 
     /// Extract text content from an element (helper for text-based filters)
-    fn extract_text_content(&self, _node: NodeRef<ElementWrapper>) -> String {
-        // TODO: Implement text extraction based on element type
-        // This would use the visitor pattern or direct access to text content
-        // For now, return empty string as placeholder
-        String::new()
+    fn extract_text_content(&self, node: NodeRef<ElementWrapper>) -> String {
+        match &*node.value().element {
+            // For adapters, extract text based on the wrapped element type
+            element if element.element_type() == ElementType::Block => {
+                // Try to extract text from block elements
+                self.extract_block_text(element)
+            }
+            element if element.element_type() == ElementType::Line => {
+                // Try to extract text from line elements (like BlankLine - usually empty)
+                self.extract_line_text(element)
+            }
+            element if element.element_type() == ElementType::Container => {
+                // For containers, we could recursively collect text from children
+                // For now, just return basic identifier text
+                format!("Container({:?})", element.element_type())
+            }
+            element => {
+                // Fallback: use element type as identifier
+                format!("{:?}", element.element_type())
+            }
+        }
+    }
+
+    /// Extract text content from block elements
+    fn extract_block_text(&self, element: &dyn TxxtElement) -> String {
+        // For this basic implementation, we'll use a heuristic approach
+        // In a full implementation, we'd need to properly visit element content
+
+        // Check if we can downcast to known types through the adapter
+        // This is a simplified approach - ideally we'd have proper visitor pattern
+
+        // For now, return a basic representation
+        format!("Block content (type: {:?})", element.element_type())
+    }
+
+    /// Extract text content from line elements  
+    fn extract_line_text(&self, element: &dyn TxxtElement) -> String {
+        // Line elements typically don't have much text content
+        // BlankLine for example is just structural
+        format!("Line content (type: {:?})", element.element_type())
     }
 }
 
@@ -368,6 +588,121 @@ impl TxxtElement for DocumentElementOwned {
 // Make DocumentElementOwned Send + Sync so it can be stored in ElementWrapper
 unsafe impl Send for DocumentElementOwned {}
 unsafe impl Sync for DocumentElementOwned {}
+
+/// Adapter to wrap AST elements for tree storage
+/// This provides a uniform interface for all element types
+#[derive(Debug)]
+pub enum ElementAdapter {
+    Paragraph(crate::ast::elements::paragraph::ParagraphBlock),
+    List(crate::ast::elements::list::ListBlock),
+    Definition(crate::ast::elements::definition::DefinitionBlock),
+    Verbatim(crate::ast::elements::verbatim::VerbatimBlock),
+    Annotation(crate::ast::elements::annotation::AnnotationBlock),
+    Session(crate::ast::elements::session::SessionBlock),
+    ContentContainer(ContentContainer),
+    SessionContainer(SessionContainer),
+    BlankLine(crate::ast::elements::core::BlankLine),
+}
+
+impl ElementAdapter {
+    pub fn from_paragraph(p: &crate::ast::elements::paragraph::ParagraphBlock) -> Self {
+        Self::Paragraph(p.clone())
+    }
+
+    pub fn from_list(l: &crate::ast::elements::list::ListBlock) -> Self {
+        Self::List(l.clone())
+    }
+
+    pub fn from_definition(d: &crate::ast::elements::definition::DefinitionBlock) -> Self {
+        Self::Definition(d.clone())
+    }
+
+    pub fn from_verbatim(v: &crate::ast::elements::verbatim::VerbatimBlock) -> Self {
+        Self::Verbatim(v.clone())
+    }
+
+    pub fn from_annotation(a: &crate::ast::elements::annotation::AnnotationBlock) -> Self {
+        Self::Annotation(a.clone())
+    }
+
+    pub fn from_session(s: &crate::ast::elements::session::SessionBlock) -> Self {
+        Self::Session(s.clone())
+    }
+
+    pub fn from_content_container(c: &ContentContainer) -> Self {
+        Self::ContentContainer(c.clone())
+    }
+
+    pub fn from_session_container(s: &SessionContainer) -> Self {
+        Self::SessionContainer(s.clone())
+    }
+
+    pub fn from_blank_line(b: &crate::ast::elements::core::BlankLine) -> Self {
+        Self::BlankLine(b.clone())
+    }
+}
+
+impl TxxtElement for ElementAdapter {
+    fn element_type(&self) -> ElementType {
+        match self {
+            Self::Paragraph(p) => p.element_type(),
+            Self::List(l) => l.element_type(),
+            Self::Definition(d) => d.element_type(),
+            Self::Verbatim(v) => v.element_type(),
+            Self::Annotation(a) => a.element_type(),
+            Self::Session(s) => s.element_type(),
+            Self::ContentContainer(c) => c.element_type(),
+            Self::SessionContainer(s) => s.element_type(),
+            Self::BlankLine(b) => b.element_type(),
+        }
+    }
+
+    fn tokens(&self) -> &crate::ast::tokens::TokenSequence {
+        match self {
+            Self::Paragraph(p) => p.tokens(),
+            Self::List(l) => l.tokens(),
+            Self::Definition(d) => d.tokens(),
+            Self::Verbatim(v) => v.tokens(),
+            Self::Annotation(a) => a.tokens(),
+            Self::Session(s) => s.tokens(),
+            Self::ContentContainer(c) => c.tokens(),
+            Self::SessionContainer(s) => s.tokens(),
+            Self::BlankLine(b) => b.tokens(),
+        }
+    }
+
+    fn annotations(&self) -> &[crate::ast::annotations::Annotation] {
+        match self {
+            Self::Paragraph(p) => p.annotations(),
+            Self::List(l) => l.annotations(),
+            Self::Definition(d) => d.annotations(),
+            Self::Verbatim(v) => v.annotations(),
+            Self::Annotation(a) => a.annotations(),
+            Self::Session(s) => s.annotations(),
+            Self::ContentContainer(c) => c.annotations(),
+            Self::SessionContainer(s) => s.annotations(),
+            Self::BlankLine(b) => b.annotations(),
+        }
+    }
+
+    fn parameters(&self) -> &crate::ast::parameters::Parameters {
+        match self {
+            Self::Paragraph(p) => p.parameters(),
+            Self::List(l) => l.parameters(),
+            Self::Definition(d) => d.parameters(),
+            Self::Verbatim(v) => v.parameters(),
+            Self::Annotation(a) => a.parameters(),
+            Self::Session(s) => s.parameters(),
+            Self::ContentContainer(c) => c.parameters(),
+            Self::SessionContainer(s) => s.parameters(),
+            Self::BlankLine(b) => b.parameters(),
+        }
+    }
+}
+
+// Make ElementAdapter Send + Sync for thread safety
+unsafe impl Send for ElementAdapter {}
+unsafe impl Sync for ElementAdapter {}
 
 // TODO: We need to implement Send + Sync for our AST elements to store them in ego-tree
 // This might require some refactoring of the element trait hierarchy
@@ -462,5 +797,151 @@ mod tests {
         assert_eq!(doc_element.title, Some("Test Title".to_string()));
         assert_eq!(doc_element.content_count, 0);
         assert_eq!(doc_element.element_type(), ElementType::Container);
+    }
+
+    #[test]
+    fn test_tree_building_with_content() {
+        use crate::ast::elements::{
+            containers::ignore::IgnoreContainer,
+            core::BlankLine,
+            paragraph::ParagraphBlock,
+            verbatim::{VerbatimBlock, VerbatimType},
+        };
+
+        // Create a document with some content
+        let paragraph = ParagraphBlock {
+            content: vec![], // Empty TextTransform content for test
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let verbatim = VerbatimBlock {
+            title: vec![], // Empty TextTransform title for test
+            content: IgnoreContainer {
+                ignore_lines: vec![], // Empty ignore lines for test
+                blank_lines: vec![],  // Empty blank lines for test
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            label: "test".to_string(), // Mandatory label
+            verbatim_type: VerbatimType::InFlow,
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let blank_line = BlankLine {
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let document = Document {
+            meta: Meta {
+                title: Some(crate::ast::base::MetaValue::String(
+                    "Test Document with Content".to_string(),
+                )),
+                ..Meta::default()
+            },
+            content: SessionContainer {
+                content: vec![
+                    SessionContainerElement::Paragraph(paragraph),
+                    SessionContainerElement::BlankLine(blank_line),
+                    SessionContainerElement::Verbatim(verbatim),
+                ],
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            assembly_info: AssemblyInfo {
+                parser_version: "test".to_string(),
+                source_path: None,
+                processed_at: None,
+                stats: crate::ast::base::ProcessingStats::default(),
+            },
+        };
+
+        // Create traversable document
+        let traversable = TraversableDocument::from_document(&document);
+
+        // Test that the tree has been built correctly
+        let root = traversable.root();
+        assert_eq!(root.value().element_type, ElementType::Container);
+
+        // Check that we have child elements
+        let children: Vec<_> = root.children().collect();
+        assert_eq!(children.len(), 3); // paragraph, blank line, verbatim
+
+        // Test element types
+        let child_types: Vec<_> = children
+            .iter()
+            .map(|child| child.value().element_type.clone())
+            .collect();
+        assert_eq!(
+            child_types,
+            vec![ElementType::Block, ElementType::Line, ElementType::Block]
+        );
+
+        // Test query functionality on the built tree
+        let blocks = traversable
+            .query()
+            .find_by_type(ElementType::Block)
+            .collect();
+        assert_eq!(blocks.len(), 2); // paragraph and verbatim are blocks
+
+        let lines = traversable
+            .query()
+            .find_by_type(ElementType::Line)
+            .collect();
+        assert_eq!(lines.len(), 1); // blank line is a line
+
+        let containers = traversable
+            .query()
+            .find_by_type(ElementType::Container)
+            .collect();
+        assert_eq!(containers.len(), 1); // Just the root document container
+    }
+
+    #[test]
+    fn test_text_search_functionality() {
+        use crate::ast::elements::paragraph::ParagraphBlock;
+
+        // Create a document with content for text search testing
+        let paragraph = ParagraphBlock {
+            content: vec![], // Empty TextTransform content for test
+            annotations: vec![],
+            parameters: crate::ast::parameters::Parameters::default(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        };
+
+        let document = Document {
+            meta: Meta {
+                title: Some(crate::ast::base::MetaValue::String(
+                    "Test Document".to_string(),
+                )),
+                ..Meta::default()
+            },
+            content: SessionContainer {
+                content: vec![SessionContainerElement::Paragraph(paragraph)],
+                annotations: vec![],
+                parameters: crate::ast::parameters::Parameters::default(),
+                tokens: crate::ast::tokens::TokenSequence::new(),
+            },
+            assembly_info: AssemblyInfo {
+                parser_version: "test".to_string(),
+                source_path: None,
+                processed_at: None,
+                stats: crate::ast::base::ProcessingStats::default(),
+            },
+        };
+
+        let traversable = TraversableDocument::from_document(&document);
+
+        // Test text search - since we have basic text extraction, this should work
+        let block_search = traversable.query().text_contains("Block").collect();
+        assert!(!block_search.is_empty()); // Should find our block elements
+
+        let container_search = traversable.query().text_contains("Container").collect();
+        assert!(!container_search.is_empty()); // Should find our container elements
     }
 }

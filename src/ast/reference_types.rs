@@ -372,6 +372,62 @@ impl ReferenceTarget {
     pub fn needs_resolution(&self) -> bool {
         !matches!(self, ReferenceTarget::Unresolved { .. })
     }
+
+    /// Get display text for auto-generated content
+    pub fn display_text(&self) -> String {
+        match self {
+            ReferenceTarget::File { path, section, .. } => match section {
+                Some(sec) => format!("{}#{}", path, sec),
+                None => path.clone(),
+            },
+            ReferenceTarget::Section { identifier, .. } => match identifier {
+                SectionIdentifier::Numeric {
+                    levels,
+                    negative_index,
+                } => {
+                    let prefix = if *negative_index { "#-" } else { "#" };
+                    format!(
+                        "{}{}",
+                        prefix,
+                        levels
+                            .iter()
+                            .map(|n| n.to_string())
+                            .collect::<Vec<_>>()
+                            .join(".")
+                    )
+                }
+                SectionIdentifier::Named { name } => format!("#{}", name),
+                SectionIdentifier::Mixed {
+                    levels,
+                    name,
+                    negative_index,
+                } => {
+                    let prefix = if *negative_index { "#-" } else { "#" };
+                    format!(
+                        "{}{}.{}",
+                        prefix,
+                        levels
+                            .iter()
+                            .map(|n| n.to_string())
+                            .collect::<Vec<_>>()
+                            .join("."),
+                        name
+                    )
+                }
+            },
+            ReferenceTarget::Url { url, fragment, .. } => match fragment {
+                Some(frag) => format!("{}#{}", url, frag),
+                None => url.clone(),
+            },
+            ReferenceTarget::Citation { citations, .. } => {
+                let keys: Vec<String> = citations.iter().map(|c| format!("@{}", c.key)).collect();
+                keys.join("; ")
+            }
+            ReferenceTarget::NamedAnchor { anchor, .. } => format!("#{}", anchor),
+            ReferenceTarget::NakedNumerical { number, .. } => number.to_string(),
+            ReferenceTarget::Unresolved { content, .. } => content.clone(),
+        }
+    }
 }
 
 impl SectionIdentifier {

@@ -135,8 +135,30 @@
 // NEW AST SYSTEM - Modern typed AST with token-level precision
 // ============================================================================
 
-// Element-specific AST nodes (mirrors docs/specs/elements/)
-pub mod nodes;
+// NEW: Spec-aligned element structure (replaces nodes/)
+pub mod elements;
+
+// REMOVED: Legacy nodes/ structure - replaced by spec-aligned elements/
+
+// Re-export spec-aligned element types as the canonical AST
+pub use elements::{
+    annotation::{AnnotationBlock, AnnotationContent},
+    containers::{ContentContainer, IgnoreContainer, SessionContainer},
+    core::{BlankLine, ContainerType, ElementNode, ElementType, TxxtElement},
+    definition::{DefinitionBlock, DefinitionTerm},
+    inlines::{
+        formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan},
+        references::{
+            CitationSpan, FootnoteReferenceSpan, PageReferenceSpan, ReferenceSpan,
+            SessionReferenceSpan,
+        },
+        Link, Reference, TextLine, TextSpan, TextTransform,
+    },
+    list::{ListBlock, ListDecorationType, ListItem, NumberingForm, NumberingStyle},
+    paragraph::ParagraphBlock,
+    session::{SessionBlock, SessionNumbering, SessionTitle},
+    verbatim::{VerbatimBlock, VerbatimType},
+};
 
 // Core AST infrastructure (existing proven architecture)
 pub mod annotations;

@@ -1,0 +1,112 @@
+We will plan the preparation for implementing the actual txxt parser.
+
+It's key that we procce and vetto, before hand, most corpora sources. 
+Those are explicit examples per document spec , that are machine identifiable tagged
+While laboriouos, this ensure that we have a vettoedd an verified txxt source stirng foreach relevant testable ocurrence.
+
+The ones with ** are best hanlded outisde the element spec (lest speci files become huge)
+
+1. Valid Input
+    a) All non container elements in their simple basic form.
+        - Paragraphs: 
+            - Single Line
+            - Multi-line
+        - Label:    
+            - Simple form (no params)
+            - Simple Form more invilved (namespaces.)
+        - Defintiion: 
+            - Single Line content
+            - Multi Line content
+        - Annotation: 
+            - Single line form only
+            - Empty conten
+        - Verbatim Block: 
+            - In-flow mode
+            - In-flow mode, no title
+            - In-flow mode with empty lines in content (star, end, middle)
+        - Lists: 
+            - Flat Lists plain decoration
+            - Falat lists other decoration (but homogenuous)
+        - Params: 
+            - No escaping, no unicode , no quoted stings
+    b) All non container elemnents in ther more complex forms.
+        - Paragraphs: 
+                - Single Line, starts with dash (diasambiguate from list)
+            - Label:    
+                - With Parameters
+            - Defintiion: 
+                - With other elements in content (nested definition, simple list)
+            - Annotation: 
+                - Multi Line form
+                - Other elments in content (lists)
+                - Document bound annotation
+                - No line betwen annotation and annotated elment
+            - Verbatim Block: 
+                - streched mode
+                - With params
+            - Lists: 
+                - Mixed styling
+                - Verify one list item only not a list
+                - Verify that nested list with 1 item and inner with 1 item are ok
+            - Params: 
+                - Escaping
+                - Unicode
+                - Quoted Strings
+                - Combinations fo thises
+    c) Content Container flat element list
+        - Group of paragrahs and blank lines.
+        - Paragraphs and list
+        - Paragraphs and annotation (preccding)
+        - Varios flat combination. **
+        - One master where multiple elements, and in their own complex versions **
+    d) elements in their nested forms (using content container)
+        - Nested Definitions
+        - Nested Lists
+        - Mixed Nested lists (styles)
+        - Nested lists with content (like paragrap)
+    e) Container nested (recusrive)
+        - Simpler cases (all flat and one nested alement) 
+        - More complicated ensable: nested lists multiple elements nested**
+    f) Session Container in Flat Form
+        - Session Title + 1 Child Paragraph
+        - Session Title + 2 Child Paragraph
+        - Session Title + Children of several elements (flat)
+        - Multiple Sessions with : Session Title + 1 Child Paragraph 
+        - Multiple Sessions with : Session Title + 2 Child Paragraph
+        - Multiple Title + Children of several elements (flat) **
+    g) Session Container in nested form
+        - Session Title + child paragraph + innes session with title + child paragraph 
+        - Session Title + Nested children  +  **
+        - Session Title + Nested children  +  Nested sessions **
+    h) Hard disabiguation edge-cases (to be decided) **
+    i) Inline Elements in simple form (formatting, math)
+        - One test for each of bold, italics, code and math.
+        - Nested inlines (example _this and *that*_)
+    j) Inline Elements in hard form
+        - Several permutations with escape chars, unicode
+    k) Inline Elements : References Simple
+        - One for each target (url, session, footnote, path, to come , citation, not sure)
+        - Citations, several forms
+        - Footnotes both forms
+    l) Inline Elements : References Complex
+        - For each target type: 
+            - Unicode
+            - Escaped chars
+2) Invalid Input
+    a) Labels
+    b) Parameters
+    c) Defintiions
+    d) Annotations
+    e) Verbatim (wrong indent wall in both in-flow and streched)
+    g) Nested Lists
+    h) Lists with blank lines betwen elements alone
+    i) Sessions with no content
+    j) Indented content with no session title
+
+
+3. Non spec related: 
+    1. Setup dedicated corpora file infrastructure
+    2. Create the specs
+
+
+Task: go over each elment spec and corpora tag the samples above described, except fot he ensamble full files. 

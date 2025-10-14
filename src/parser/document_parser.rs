@@ -29,16 +29,19 @@ impl DocumentParser {
         // STUB: Return minimal document until real implementation
         use crate::ast::{
             base::{AssemblyInfo, Meta},
-            structure::{Container, ContainerType},
+            elements::containers::SessionContainer,
+            parameters::Parameters,
+            tokens::TokenSequence,
         };
 
         Document {
             meta: Meta::default(),
-            content: Container {
-                container_type: ContainerType::Session,
-                content: Vec::new(),
-                annotations: Vec::new(),
-            },
+            content: SessionContainer::new(
+                Vec::new(),
+                Vec::new(),
+                Parameters::default(),
+                TokenSequence::new(),
+            ),
             assembly_info: AssemblyInfo {
                 parser_version: env!("CARGO_PKG_VERSION").to_string(),
                 source_path: Some(self.source.clone()),

@@ -1,7 +1,3 @@
-:: title :: AST Spec Alignment - Element Structure Redesign
-:: status :: completed
-:: related-pr :: #42
-
 Specification for implementing a complete AST restructure that mirrors the specification taxonomy defined in [docs/specs/elements/].
 
 1. Overview

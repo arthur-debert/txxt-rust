@@ -1,7 +1,3 @@
-:: title :: AST Tree Traversal and Query API
-:: status :: completed
-:: related-pr :: #43
-
 Specification for implementing a comprehensive tree traversal and query system for the TXXT AST, enabling efficient navigation and flexible querying needed for language server features.
 
 1. Overview

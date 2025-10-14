@@ -20,13 +20,13 @@ Complete specification for paragraphs - the fundamental text blocks that contain
             This is the first paragraph.
             
             This is the second paragraph, separated by a blank line.
-        :: multiple
+        :: txxt.core.spec.paragraph.valid.multiple-with-blanks ::
 
     2.2. Inline Formatting Support
 
         Rich paragraph with inline elements:
             This paragraph contains *bold text*, _italic text_, `inline code`, and #mathematical expressions#. It can also include [references] and other inline elements.
-        :: formatted
+        :: txxt.core.spec.paragraph.valid.with-formatting ::
 
     2.3. Multi-line Paragraphs
 
@@ -121,7 +121,7 @@ Complete specification for paragraphs - the fundamental text blocks that contain
             First paragraph here.
                 
             Second paragraph after blank line.
-        :: whitespace-handling
+        :: txxt.core.spec.paragraph.edge.whitespace-only-line ::
 
     6.2. Mixed Indentation
 
@@ -131,13 +131,13 @@ Complete specification for paragraphs - the fundamental text blocks that contain
             This paragraph maintains
             the same indentation level
             throughout all lines.
-        :: valid-indent
+        :: txxt.core.spec.paragraph.valid.consistent-indent ::
 
         Invalid (inconsistent indentation):
             This paragraph starts here
               but this line is over-indented
             and this returns to original level.
-        :: invalid-indent
+        :: txxt.core.spec.paragraph.invalid.inconsistent-indent:error="IndentationError" ::
 
     6.3. Inline Element Boundaries
 
@@ -146,12 +146,12 @@ Complete specification for paragraphs - the fundamental text blocks that contain
         Valid (complete inline elements):
             This contains *complete bold text* and
             _complete italic text_ across lines.
-        :: valid-inline
+        :: txxt.core.spec.paragraph.valid.complete-inline-elements ::
 
         Invalid (broken inline elements):
             This contains *bold text that
             spans across lines without closing*.
-        :: invalid-inline
+        :: txxt.core.spec.paragraph.invalid.broken-inline:error="InlineSpansLines" ::
 
 7. Processing Details
 

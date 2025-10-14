@@ -154,11 +154,11 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Valid examples:
             python, warning, org.example.custom, tool_name, api-v2
-        (valid)
+        :: txxt.core.spec.label.valid.simple-identifiers ::
 
         Invalid examples:
             123label, -invalid, label., .label, label..name
-        (invalid)
+        :: txxt.core.spec.label.invalid.malformed:error="InvalidLabel" ::
 
 
     6.3. Context Validation

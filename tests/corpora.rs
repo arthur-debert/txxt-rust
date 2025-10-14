@@ -32,6 +32,7 @@ pub struct Corpus {
 
 impl Corpus {
     /// Get the processed data as tokens, if available.
+    #[allow(dead_code)] // Will be used by parser tests
     pub fn tokens(&self) -> Option<&Vec<String>> {
         match &self.processed_data {
             Some(ProcessedData::Tokens(tokens)) => Some(tokens),
@@ -41,6 +42,7 @@ impl Corpus {
     }
 
     /// Get the processed data as AST, if available.
+    #[allow(dead_code)] // Will be used by parser tests
     pub fn ast(&self) -> Option<&str> {
         match &self.processed_data {
             Some(ProcessedData::ParsedAst(ast)) => Some(ast),
@@ -88,87 +90,82 @@ pub enum ProcessedData {
     FullDocument(String), // Placeholder - will be replaced with actual document types
 }
 
-/// Utility for extracting test cases from TXXT specification documents.
+/// Spec-driven test corpus loader for txxt parser testing.
 ///
-/// # Overview
+/// Provides two loading modes:
+/// 1. **Fragments**: Isolated element samples from spec verbatim blocks
+/// 2. **Documents**: Complete files from ensembles directory
 ///
-/// `TxxtCorpora` provides a spec-driven testing framework that extracts test cases
-/// directly from the authoritative specification documents in `docs/specs/`. This
-/// approach ensures perfect alignment between documentation and tests, preventing
-/// implementation drift.
+/// # Fragment Loading (Isolated Elements)
 ///
-/// # Quick Start
+/// Load tagged samples from specification documents:
+///
+/// ```rust
+/// use tests::corpora::TxxtCorpora;
+///
+/// // Load element fragment by label
+/// let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
+/// assert!(corpus.source_text.contains("paragraph"));
+///
+/// // Test invalid cases with error parameters
+/// let corpus = TxxtCorpora::load("txxt.core.spec.definition.invalid.empty-term")?;
+/// assert!(corpus.is_error_case());
+/// assert_eq!(corpus.expected_error(), Some("EmptyTerm"));
+/// ```
+///
+/// Fragments are extracted from verbatim blocks in `docs/specs/elements/*.txxt` with labels
+/// like `:: txxt.core.spec.element.validity.testcase ::`.
+///
+/// # Document Loading (Full Documents)
+///
+/// Load complete documents for integration testing:
+///
+/// ```rust
+/// use tests::corpora::TxxtCorpora;
+///
+/// // Load by name or number prefix
+/// let corpus = TxxtCorpora::load_document("01-two-paragraphs")?;
+/// // Or shorter: TxxtCorpora::load_document("01")?;
+///
+/// // Load all documents in order
+/// let docs = TxxtCorpora::load_all_documents()?;
+/// for doc in docs {
+///     let result = parse(&doc.source_text);
+///     assert!(result.is_ok());
+/// }
+/// ```
+///
+/// Documents are in `docs/specs/ensembles/` and progress from simple (01) to
+/// comprehensive (11), enabling progressive parser validation.
+///
+/// # Processing Stages
+///
+/// Both modes support pipeline stages: `Raw` (default), `Tokens`, `BlockedTokens`,
+/// `ParsedAst`, `FullDocument`.
 ///
 /// ```rust
 /// use tests::corpora::{TxxtCorpora, ProcessingStage};
 ///
-/// // Load a test case (Raw text by default)
-/// let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
-///
-/// // Load with specific processing stage
+/// // Fragment with processing
 /// let corpus = TxxtCorpora::load_with_processing(
-///     "txxt.core.spec.paragraph.valid.simple",
+///     "txxt.core.spec.list.valid.plain-flat",
 ///     ProcessingStage::Tokens
 /// )?;
 ///
-/// // Access the data
-/// println!("Source: {}", corpus.source_text);
-/// if let Some(tokens) = corpus.tokens() {
-///     println!("Tokens: {:?}", tokens);
-/// }
-/// ```
-///
-/// # Test Case Syntax
-///
-/// Test cases are embedded in specification documents using labeled verbatim blocks:
-///
-/// ```txxt
-/// Simple paragraph example:
-///     This is a basic paragraph containing plain text.
-/// :: txxt.core.spec.paragraph.valid.simple ::
-///
-/// Error case with parameters:
-///     - Invalid single item list
-/// :: txxt.core.spec.list.error.singleItem:error="ParseError",message="Lists require multiple items" ::
-/// ```
-///
-/// # Processing Stages
-///
-/// The `ProcessingStage` enum allows testing at different pipeline stages:
-/// - `Raw` - Extracted text as-is (default)
-/// - `Tokens` - Tokenized stream
-/// - `BlockedTokens` - Block-grouped tokens
-/// - `ParsedAst` - Parsed AST structure
-/// - `FullDocument` - Complete document processing
-///
-/// # Integration for Parser Developers
-///
-/// **Tokenizer testing:**
-/// ```rust
-/// let corpus = TxxtCorpora::load_with_processing(
-///     "txxt.core.spec.paragraph.valid.simple",
-///     ProcessingStage::Tokens
+/// // Document with processing
+/// let corpus = TxxtCorpora::load_document_with_processing(
+///     "11-full-document",
+///     ProcessingStage::ParsedAst
 /// )?;
-/// let expected_tokens = corpus.tokens().unwrap();
-/// // Compare with your tokenizer output
 /// ```
 ///
-/// **Parser testing:**
-/// ```rust
-/// let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
-/// let ast = your_parser::parse(&corpus.source_text)?;
-/// insta::assert_yaml_snapshot!(ast);
-/// ```
+/// # Testing Strategy
 ///
-/// **Error testing:**
-/// ```rust
-/// let corpus = TxxtCorpora::load("txxt.core.spec.list.error.singleItem")?;
-/// assert!(corpus.is_error_case());
-/// let result = your_parser::parse(&corpus.source_text);
-/// assert!(result.is_err());
-/// ```
+/// - **Fragments**: Validate isolated element parsing, good for unit tests
+/// - **Documents**: Validate complete parsing, good for integration tests
+/// - **Progressive**: Test docs 01→11 to isolate parser capabilities by complexity
 ///
-/// See `tests/README.md` for complete documentation and best practices.
+/// See `tests/ensemble_documents_example.rs` for comprehensive usage examples.
 pub struct TxxtCorpora;
 
 impl TxxtCorpora {
@@ -176,6 +173,7 @@ impl TxxtCorpora {
     ///
     /// The name should follow the pattern `txxt.core.spec.*` as defined in the
     /// specification documents under `docs/specs/`.
+    #[allow(dead_code)] // Will be used by parser tests
     pub fn load(name: &str) -> Result<Corpus, CorpusError> {
         Self::load_with_processing(name, ProcessingStage::Raw)
     }
@@ -188,6 +186,7 @@ impl TxxtCorpora {
     /// # Arguments
     /// * `name` - The corpus identifier (e.g., "txxt.core.spec.paragraph.valid.simple")
     /// * `processing` - The processing stage to apply to the corpus
+    #[allow(dead_code)] // Will be used by parser tests
     pub fn load_with_processing(
         name: &str,
         processing: ProcessingStage,
@@ -211,11 +210,13 @@ impl TxxtCorpora {
     }
 
     /// Extract all corpora from the specification documents with default (Raw) processing.
+    #[allow(dead_code)] // Will be used by parser tests
     pub fn load_all() -> Result<Vec<Corpus>, CorpusError> {
         Self::load_all_with_processing(ProcessingStage::Raw)
     }
 
     /// Extract all corpora from the specification documents with specified processing stage.
+    #[allow(dead_code)] // Will be used by parser tests
     pub fn load_all_with_processing(
         processing: ProcessingStage,
     ) -> Result<Vec<Corpus>, CorpusError> {
@@ -237,6 +238,230 @@ impl TxxtCorpora {
         }
 
         Ok(corpora)
+    }
+
+    /// Load a complete document file from the ensembles directory with default (Raw) processing.
+    ///
+    /// This method loads entire txxt documents for integration testing, as opposed to
+    /// extracting individual test cases from verbatim blocks.
+    ///
+    /// # Document Naming Convention
+    ///
+    /// Ensemble documents follow the pattern: `NN-descriptive-name.txxt`
+    /// - Located in `docs/specs/ensembles/`
+    /// - NN: Two-digit sequence number (01, 02, etc.)
+    /// - descriptive-name: Kebab-case description
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The document name without extension (e.g., "01-two-paragraphs" or just "01")
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use tests::corpora::TxxtCorpora;
+    ///
+    /// // Load the simplest ensemble document
+    /// let corpus = TxxtCorpora::load_document("01-two-paragraphs").unwrap();
+    /// assert!(corpus.source_text.contains("first paragraph"));
+    ///
+    /// // Can also use just the number
+    /// let corpus = TxxtCorpora::load_document("01").unwrap();
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Corpus` containing the entire document text with:
+    /// - `name`: The filename without extension
+    /// - `source_text`: Complete document content
+    /// - `parameters`: Empty HashMap (documents don't have parameters)
+    /// - `processing_stage`: Set to Raw by default
+    ///
+    /// # Errors
+    ///
+    /// Returns `CorpusError` if:
+    /// - Ensembles directory doesn't exist
+    /// - Document file not found
+    /// - File cannot be read
+    #[allow(dead_code)] // Will be used by parser tests
+    pub fn load_document(name: &str) -> Result<Corpus, CorpusError> {
+        Self::load_document_with_processing(name, ProcessingStage::Raw)
+    }
+
+    /// Load a complete document file with specified processing stage.
+    ///
+    /// This is the core method for loading ensemble documents with control over
+    /// processing stage for integration with different pipeline stages.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The document name (with or without extension)
+    /// * `processing` - The processing stage to apply
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use tests::corpora::{TxxtCorpora, ProcessingStage};
+    ///
+    /// // Load document for tokenization testing
+    /// let corpus = TxxtCorpora::load_document_with_processing(
+    ///     "11-full-document",
+    ///     ProcessingStage::Tokens
+    /// ).unwrap();
+    ///
+    /// // Load document for full AST parsing
+    /// let corpus = TxxtCorpora::load_document_with_processing(
+    ///     "09-nested-complex",
+    ///     ProcessingStage::ParsedAst
+    /// ).unwrap();
+    /// ```
+    #[allow(dead_code)] // Will be used by parser tests
+    pub fn load_document_with_processing(
+        name: &str,
+        processing: ProcessingStage,
+    ) -> Result<Corpus, CorpusError> {
+        let ensembles_dir = Path::new("docs/specs/ensembles");
+        if !ensembles_dir.exists() {
+            return Err(CorpusError::EnsemblesDirectoryNotFound);
+        }
+
+        // Try to find the file - support both with and without extension
+        let name_without_ext = name.trim_end_matches(".txxt");
+
+        // Try matching by prefix (e.g., "01" matches "01-two-paragraphs.txxt")
+        for entry in WalkDir::new(ensembles_dir).max_depth(1) {
+            let entry = entry.map_err(|e| CorpusError::FileSystemError(e.to_string()))?;
+
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            let file_path = entry.path();
+            if file_path.extension() != Some("txxt".as_ref()) {
+                continue;
+            }
+
+            if let Some(file_name) = file_path.file_stem() {
+                let file_name_str = file_name.to_string_lossy();
+
+                // Match if:
+                // 1. Exact match (e.g., "01-two-paragraphs" == "01-two-paragraphs")
+                // 2. Prefix match (e.g., "01" matches "01-two-paragraphs")
+                if file_name_str == name_without_ext
+                    || file_name_str.starts_with(&format!("{}-", name_without_ext))
+                {
+                    let content = fs::read_to_string(file_path).map_err(|e| {
+                        CorpusError::FileReadError(
+                            file_path.to_string_lossy().to_string(),
+                            e.to_string(),
+                        )
+                    })?;
+
+                    let mut corpus = Corpus {
+                        name: file_name_str.to_string(),
+                        source_text: content,
+                        parameters: HashMap::new(), // Documents don't have parameters
+                        processing_stage: ProcessingStage::Raw,
+                        processed_data: None,
+                    };
+
+                    Self::apply_processing(&mut corpus, processing)?;
+                    return Ok(corpus);
+                }
+            }
+        }
+
+        Err(CorpusError::DocumentNotFound(name.to_string()))
+    }
+
+    /// Load all ensemble documents from the ensembles directory.
+    ///
+    /// This method loads all complete document files for comprehensive testing
+    /// of the full document parsing pipeline.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use tests::corpora::TxxtCorpora;
+    ///
+    /// // Load all ensemble documents
+    /// let documents = TxxtCorpora::load_all_documents().unwrap();
+    /// println!("Found {} ensemble documents", documents.len());
+    ///
+    /// for doc in &documents {
+    ///     println!("Document: {}", doc.name);
+    /// }
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Vec<Corpus>` containing all ensemble documents, ordered by filename.
+    #[allow(dead_code)] // Will be used by parser tests
+    pub fn load_all_documents() -> Result<Vec<Corpus>, CorpusError> {
+        Self::load_all_documents_with_processing(ProcessingStage::Raw)
+    }
+
+    /// Load all ensemble documents with specified processing stage.
+    ///
+    /// # Arguments
+    ///
+    /// * `processing` - The processing stage to apply to all documents
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use tests::corpora::{TxxtCorpora, ProcessingStage};
+    ///
+    /// // Load all documents for AST validation
+    /// let documents = TxxtCorpora::load_all_documents_with_processing(
+    ///     ProcessingStage::ParsedAst
+    /// ).unwrap();
+    /// ```
+    #[allow(dead_code)] // Will be used by parser tests
+    pub fn load_all_documents_with_processing(
+        processing: ProcessingStage,
+    ) -> Result<Vec<Corpus>, CorpusError> {
+        let ensembles_dir = Path::new("docs/specs/ensembles");
+        if !ensembles_dir.exists() {
+            return Err(CorpusError::EnsemblesDirectoryNotFound);
+        }
+
+        let mut documents = Vec::new();
+        let mut entries: Vec<_> = WalkDir::new(ensembles_dir)
+            .max_depth(1)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .filter(|e| e.path().extension() == Some("txxt".as_ref()))
+            .collect();
+
+        // Sort by filename for consistent ordering
+        entries.sort_by_key(|e| e.path().to_path_buf());
+
+        for entry in entries {
+            let file_path = entry.path();
+            let file_name = file_path
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+
+            let content = fs::read_to_string(file_path).map_err(|e| {
+                CorpusError::FileReadError(file_path.to_string_lossy().to_string(), e.to_string())
+            })?;
+
+            let mut corpus = Corpus {
+                name: file_name,
+                source_text: content,
+                parameters: HashMap::new(),
+                processing_stage: ProcessingStage::Raw,
+                processed_data: None,
+            };
+
+            Self::apply_processing(&mut corpus, processing)?;
+            documents.push(corpus);
+        }
+
+        Ok(documents)
     }
 
     /// Apply processing stage to a corpus.
@@ -283,6 +508,7 @@ impl TxxtCorpora {
     }
 
     /// Extract a specific corpus from a file.
+    #[allow(dead_code)] // Will be used by parser tests
     fn extract_from_file(file_path: &Path, target_name: &str) -> Result<Corpus, CorpusError> {
         let content = fs::read_to_string(file_path).map_err(|e| {
             CorpusError::FileReadError(file_path.to_string_lossy().to_string(), e.to_string())
@@ -301,6 +527,7 @@ impl TxxtCorpora {
     }
 
     /// Extract all corpora from a file.
+    #[allow(dead_code)] // Will be used by parser tests
     fn extract_all_from_file(file_path: &Path) -> Result<Vec<Corpus>, CorpusError> {
         let content = fs::read_to_string(file_path).map_err(|e| {
             CorpusError::FileReadError(file_path.to_string_lossy().to_string(), e.to_string())
@@ -319,6 +546,7 @@ impl TxxtCorpora {
 }
 
 /// State machine for extracting test cases from specification files.
+#[allow(dead_code)] // Will be used by parser tests
 struct CorpusExtractor<'a> {
     lines: &'a [&'a str],
     current_line: usize,
@@ -488,11 +716,14 @@ impl<'a> CorpusExtractor<'a> {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Variants will be used by parser tests
 pub enum CorpusError {
     SpecsDirectoryNotFound,
+    EnsemblesDirectoryNotFound,
     FileSystemError(String),
     FileReadError(String, String),
     CorpusNotFound(String),
+    DocumentNotFound(String),
     TitleLineNotFound(String),
 }
 
@@ -502,6 +733,9 @@ impl std::fmt::Display for CorpusError {
             CorpusError::SpecsDirectoryNotFound => {
                 write!(f, "Specifications directory 'docs/specs' not found")
             }
+            CorpusError::EnsemblesDirectoryNotFound => {
+                write!(f, "Ensembles directory 'docs/specs/ensembles' not found")
+            }
             CorpusError::FileSystemError(err) => {
                 write!(f, "File system error: {}", err)
             }
@@ -510,6 +744,13 @@ impl std::fmt::Display for CorpusError {
             }
             CorpusError::CorpusNotFound(name) => {
                 write!(f, "Corpus '{}' not found in specification documents", name)
+            }
+            CorpusError::DocumentNotFound(name) => {
+                write!(
+                    f,
+                    "Ensemble document '{}' not found in 'docs/specs/ensembles'",
+                    name
+                )
             }
             CorpusError::TitleLineNotFound(name) => {
                 write!(f, "Title line not found for corpus '{}'", name)

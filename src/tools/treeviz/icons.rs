@@ -19,14 +19,14 @@ use crate::ast::elements::core::ElementNode;
 pub struct IconConfig {
     /// Node type to icon character mappings
     pub type_icons: HashMap<String, String>,
-    
+
     /// Node type to content extraction function mappings
     /// The key is node type, value is the property/method to use for content
     pub content_extractors: HashMap<String, ContentExtractor>,
-    
+
     /// Whether to include debug information in output
     pub show_debug_info: bool,
-    
+
     /// Whether to include metadata in tree nodes
     pub include_metadata: bool,
 }
@@ -40,10 +40,10 @@ pub struct IconConfig {
 pub struct ContentExtractor {
     /// Property/method name to get display text
     pub content_property: String,
-    
+
     /// Property/method name to get child nodes (for traversal)
     pub children_property: String,
-    
+
     /// Optional format string for content display
     pub format_template: Option<String>,
 }
@@ -57,12 +57,12 @@ impl ContentExtractor {
             format_template: None,
         }
     }
-    
+
     /// Create a content extractor with formatting template
     pub fn with_format(
-        content_property: &str, 
-        children_property: &str, 
-        format_template: &str
+        content_property: &str,
+        children_property: &str,
+        format_template: &str,
     ) -> Self {
         Self {
             content_property: content_property.to_string(),
@@ -88,24 +88,25 @@ impl IconConfig {
             include_metadata: false,
         }
     }
-    
+
     /// Get icon for a node type, falling back to default
     pub fn get_icon(&self, node_type: &str) -> String {
-        self.type_icons.get(node_type)
+        self.type_icons
+            .get(node_type)
             .cloned()
             .unwrap_or_else(|| "◦".to_string()) // Default: generic text icon
     }
-    
+
     /// Get content extractor for a node type
     pub fn get_content_extractor(&self, node_type: &str) -> Option<&ContentExtractor> {
         self.content_extractors.get(node_type)
     }
-    
+
     /// Add icon mapping
     pub fn add_icon(&mut self, node_type: String, icon: String) {
         self.type_icons.insert(node_type, icon);
     }
-    
+
     /// Add content extractor
     pub fn add_extractor(&mut self, node_type: String, extractor: ContentExtractor) {
         self.content_extractors.insert(node_type, extractor);
@@ -118,14 +119,14 @@ impl IconConfig {
 /// monochrome Unicode characters for all TXXT AST element types.
 pub static DEFAULT_ICON_CONFIG: std::sync::LazyLock<IconConfig> = std::sync::LazyLock::new(|| {
     let mut config = IconConfig::new();
-    
+
     // Document Structure icons
     config.add_icon("Document".to_string(), "⧉".to_string());
     config.add_icon("SessionBlock".to_string(), "§".to_string());
     config.add_icon("SessionContainer".to_string(), "Ψ".to_string());
     config.add_icon("SessionTitle".to_string(), "⊤".to_string());
-    
-    // Block Elements icons  
+
+    // Block Elements icons
     config.add_icon("ParagraphBlock".to_string(), "¶".to_string());
     config.add_icon("ListBlock".to_string(), "☰".to_string());
     config.add_icon("ListItem".to_string(), "•".to_string());
@@ -133,7 +134,7 @@ pub static DEFAULT_ICON_CONFIG: std::sync::LazyLock<IconConfig> = std::sync::Laz
     config.add_icon("VerbatimLine".to_string(), "℣".to_string());
     config.add_icon("DefinitionBlock".to_string(), "≔".to_string());
     config.add_icon("ContentContainer".to_string(), "➔".to_string());
-    
+
     // Inline Elements icons
     config.add_icon("TextSpan".to_string(), "◦".to_string());
     config.add_icon("TextLine".to_string(), "↵".to_string());
@@ -141,7 +142,7 @@ pub static DEFAULT_ICON_CONFIG: std::sync::LazyLock<IconConfig> = std::sync::Laz
     config.add_icon("BoldSpan".to_string(), "𝐁".to_string());
     config.add_icon("CodeSpan".to_string(), "ƒ".to_string());
     config.add_icon("MathSpan".to_string(), "√".to_string());
-    
+
     // Reference icons
     config.add_icon("ReferenceSpan".to_string(), "⊕".to_string()); // URL references
     config.add_icon("FileReference".to_string(), "/".to_string());
@@ -152,84 +153,84 @@ pub static DEFAULT_ICON_CONFIG: std::sync::LazyLock<IconConfig> = std::sync::Laz
     config.add_icon("ReferenceUnknown".to_string(), "∅".to_string());
     config.add_icon("FootnoteReferenceSpan".to_string(), "³".to_string());
     config.add_icon("SessionReferenceSpan".to_string(), "#".to_string());
-    
+
     // Metadata & Parameters icons
     config.add_icon("Label".to_string(), "◔".to_string());
     config.add_icon("ParameterKey".to_string(), "✗".to_string());
     config.add_icon("ParameterValue".to_string(), "$".to_string());
     config.add_icon("AnnotationBlock".to_string(), "\"".to_string());
-    
+
     // Content extractors for common node types
     config.add_extractor(
         "ParagraphBlock".to_string(),
-        ContentExtractor::simple("text_content", "lines")
+        ContentExtractor::simple("text_content", "lines"),
     );
-    
+
     config.add_extractor(
-        "SessionBlock".to_string(), 
-        ContentExtractor::simple("title", "content")
+        "SessionBlock".to_string(),
+        ContentExtractor::simple("title", "content"),
     );
-    
+
     config.add_extractor(
         "ListBlock".to_string(),
-        ContentExtractor::with_format("style", "items", "list ({} items)")
+        ContentExtractor::with_format("style", "items", "list ({} items)"),
     );
-    
+
     config.add_extractor(
         "ListItem".to_string(),
-        ContentExtractor::simple("content", "children")
+        ContentExtractor::simple("content", "children"),
     );
-    
+
     config.add_extractor(
         "VerbatimBlock".to_string(),
-        ContentExtractor::with_format("label", "content", "verbatim: {}")
+        ContentExtractor::with_format("label", "content", "verbatim: {}"),
     );
-    
+
     config.add_extractor(
         "TextLine".to_string(),
-        ContentExtractor::simple("content", "spans")
+        ContentExtractor::simple("content", "spans"),
     );
-    
+
     config.add_extractor(
         "TextSpan".to_string(),
-        ContentExtractor::simple("text", "children")
+        ContentExtractor::simple("text", "children"),
     );
-    
+
     config.add_extractor(
         "BoldSpan".to_string(),
-        ContentExtractor::with_format("text", "children", "*{}*")
+        ContentExtractor::with_format("text", "children", "*{}*"),
     );
-    
+
     config.add_extractor(
         "ItalicSpan".to_string(),
-        ContentExtractor::with_format("text", "children", "_{}_")
+        ContentExtractor::with_format("text", "children", "_{}_"),
     );
-    
+
     config.add_extractor(
         "CodeSpan".to_string(),
-        ContentExtractor::with_format("text", "children", "`{}`")
+        ContentExtractor::with_format("text", "children", "`{}`"),
     );
-    
+
     config.add_extractor(
         "DefinitionBlock".to_string(),
-        ContentExtractor::simple("term", "content")
+        ContentExtractor::simple("term", "content"),
     );
-    
+
     config.add_extractor(
         "AnnotationBlock".to_string(),
-        ContentExtractor::with_format("label", "content", ":: {} ::")
+        ContentExtractor::with_format("label", "content", ":: {} ::"),
     );
-    
+
     config.add_extractor(
         "ReferenceSpan".to_string(),
-        ContentExtractor::with_format("target", "children", "[{}]")
+        ContentExtractor::with_format("target", "children", "[{}]"),
     );
-    
+
     config.add_extractor(
         "CitationSpan".to_string(),
-        ContentExtractor::with_format("key", "children", "[@{}]")
+        ContentExtractor::with_format("key", "children", "[@{}]"),
     );
-    
+
     config
 });
 
@@ -239,7 +240,7 @@ pub static DEFAULT_ICON_CONFIG: std::sync::LazyLock<IconConfig> = std::sync::Laz
 /// the configured property mappings rather than hard-coded node knowledge.
 pub fn extract_content_from_node(node: &ElementNode, config: &IconConfig) -> String {
     let node_type = get_node_type_name(node);
-    
+
     // Get the content extractor for this node type
     if let Some(extractor) = config.get_content_extractor(&node_type) {
         // For now, we'll implement basic content extraction
@@ -247,7 +248,7 @@ pub fn extract_content_from_node(node: &ElementNode, config: &IconConfig) -> Str
         extract_content_by_type(node, extractor)
     } else {
         // Fallback: try to get some basic text representation
-        format!("{}", node_type)
+        node_type.to_string()
     }
 }
 
@@ -286,7 +287,7 @@ fn extract_content_by_type(node: &ElementNode, extractor: &ContentExtractor) -> 
     // For now, implement basic content extraction patterns
     // In practice, this would use the extractor.content_property to determine
     // what method/field to access on the node
-    
+
     let base_content = match node {
         ElementNode::TextSpan(_) => "text content".to_string(),
         ElementNode::BoldSpan(_) => "bold text".to_string(),
@@ -310,7 +311,7 @@ fn extract_content_by_type(node: &ElementNode, extractor: &ContentExtractor) -> 
         ElementNode::SessionContainer(_) => "session container".to_string(),
         ElementNode::IgnoreContainer(_) => "ignore container".to_string(),
     };
-    
+
     // Apply format template if provided
     if let Some(template) = &extractor.format_template {
         template.replace("{}", &base_content)

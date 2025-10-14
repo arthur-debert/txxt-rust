@@ -1,6 +1,6 @@
 //! TXXT AST Tree Visualization
 //!
-//! A visual notation system for representing TXXT Abstract Syntax Tree structures 
+//! A visual notation system for representing TXXT Abstract Syntax Tree structures
 //! using monochrome Unicode characters. This module provides standardized tree
 //! visualization for AST inspection, debugging, and documentation.
 //!
@@ -81,7 +81,6 @@ pub mod converter;
 pub mod icons;
 pub mod renderer;
 
-
 pub use converter::{ast_to_notation_data, ast_to_tree_notation};
 pub use icons::{IconConfig, DEFAULT_ICON_CONFIG};
 pub use renderer::notation_data_to_string;
@@ -94,7 +93,7 @@ pub use renderer::notation_data_to_string;
 pub struct NotationData {
     /// Root node of the tree
     pub root: TreeNode,
-    
+
     /// Configuration used for this tree representation
     pub config: IconConfig,
 }
@@ -108,16 +107,16 @@ pub struct NotationData {
 pub struct TreeNode {
     /// Unicode icon representing the node type
     pub icon: String,
-    
+
     /// Text content for display (extracted from AST node)
     pub content: String,
-    
+
     /// AST node type name for debugging/tooling
     pub node_type: String,
-    
+
     /// Child nodes in document order
     pub children: Vec<TreeNode>,
-    
+
     /// Optional metadata for debugging
     pub metadata: HashMap<String, String>,
 }
@@ -133,17 +132,17 @@ impl TreeNode {
             metadata: HashMap::new(),
         }
     }
-    
+
     /// Add a child node
     pub fn add_child(&mut self, child: TreeNode) {
         self.children.push(child);
     }
-    
+
     /// Add multiple child nodes
     pub fn add_children(&mut self, children: Vec<TreeNode>) {
         self.children.extend(children);
     }
-    
+
     /// Set metadata value
     pub fn set_metadata(&mut self, key: String, value: String) {
         self.metadata.insert(key, value);
@@ -162,13 +161,13 @@ impl NotationData {
 pub enum TreeVizError {
     /// Configuration is invalid or missing required mappings
     InvalidConfig(String),
-    
+
     /// AST node type not supported
     UnsupportedNodeType(String),
-    
+
     /// Content extraction failed
     ContentExtractionFailed(String),
-    
+
     /// Tree rendering failed
     RenderingFailed(String),
 }

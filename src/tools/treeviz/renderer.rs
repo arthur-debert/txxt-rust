@@ -1,6 +1,6 @@
 //! Tree Notation String Renderer
 //!
-//! This module handles the conversion of NotationData structures into the 
+//! This module handles the conversion of NotationData structures into the
 //! visual tree notation string format using Unicode box-drawing characters.
 //!
 //! The renderer produces output in this format:
@@ -15,7 +15,7 @@
 //! │            └─ • item 2
 //! ```
 
-use super::{NotationData, TreeNode, TreeVizError, TreeVizResult, icons::IconConfig};
+use super::{icons::IconConfig, NotationData, TreeNode, TreeVizError, TreeVizResult};
 
 /// Convert NotationData to formatted tree string
 ///
@@ -30,10 +30,7 @@ use super::{NotationData, TreeNode, TreeVizError, TreeVizResult, icons::IconConf
 /// # Returns
 ///
 /// A formatted string ready for display in terminal or text output
-pub fn notation_data_to_string(
-    data: &NotationData, 
-    config: &IconConfig
-) -> TreeVizResult<String> {
+pub fn notation_data_to_string(data: &NotationData, config: &IconConfig) -> TreeVizResult<String> {
     let mut output = String::new();
     render_node(&data.root, &mut output, "", true, config)?;
     Ok(output)
@@ -56,14 +53,17 @@ fn render_node(
     output: &mut String,
     prefix: &str,
     is_last: bool,
-    config: &IconConfig,
+    _config: &IconConfig,
 ) -> TreeVizResult<()> {
     // Choose the appropriate tree connector
     let connector = if is_last { "└─" } else { "├─" };
-    
+
     // Render this node
-    output.push_str(&format!("{}{} {} {}\n", prefix, connector, node.icon, node.content));
-    
+    output.push_str(&format!(
+        "{}{} {} {}\n",
+        prefix, connector, node.icon, node.content
+    ));
+
     // Render children if any
     if !node.children.is_empty() {
         // Calculate prefix for children
@@ -72,14 +72,14 @@ fn render_node(
         } else {
             format!("{}│   ", prefix) // Vertical line continues
         };
-        
+
         // Render each child
         for (i, child) in node.children.iter().enumerate() {
             let is_last_child = i == node.children.len() - 1;
-            render_node(child, output, &child_prefix, is_last_child, config)?;
+            render_node(child, output, &child_prefix, is_last_child, _config)?;
         }
     }
-    
+
     Ok(())
 }
 
@@ -87,44 +87,29 @@ fn render_node(
 ///
 /// Extended version of the renderer that supports additional formatting options
 /// for different output contexts (terminal, HTML, etc.).
-pub fn render_with_options(
-    data: &NotationData,
-    options: &RenderOptions,
-) -> TreeVizResult<String> {
+pub fn render_with_options(data: &NotationData, options: &RenderOptions) -> TreeVizResult<String> {
     let mut output = String::new();
     render_node_with_options(&data.root, &mut output, "", true, options)?;
     Ok(output)
 }
 
 /// Rendering options for different output contexts
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RenderOptions {
     /// Whether to include debug information
     pub include_debug: bool,
-    
-    /// Whether to include metadata 
+
+    /// Whether to include metadata
     pub include_metadata: bool,
-    
+
     /// Custom tree drawing characters
     pub tree_chars: TreeChars,
-    
+
     /// Maximum content length before truncation
     pub max_content_length: Option<usize>,
-    
+
     /// Whether to colorize output (for terminal)
     pub colorize: bool,
-}
-
-impl Default for RenderOptions {
-    fn default() -> Self {
-        Self {
-            include_debug: false,
-            include_metadata: false,
-            tree_chars: TreeChars::default(),
-            max_content_length: None,
-            colorize: false,
-        }
-    }
 }
 
 /// Customizable tree drawing characters
@@ -132,13 +117,13 @@ impl Default for RenderOptions {
 pub struct TreeChars {
     /// Connector for non-last children
     pub branch: &'static str,
-    
+
     /// Connector for last child
     pub last_branch: &'static str,
-    
+
     /// Vertical line for continued indentation
     pub vertical: &'static str,
-    
+
     /// Spacing for empty indentation
     pub space: &'static str,
 }
@@ -164,7 +149,7 @@ impl TreeChars {
             space: " ",
         }
     }
-    
+
     /// Double-line Unicode characters for emphasis
     pub fn double_line() -> Self {
         Self {
@@ -185,12 +170,12 @@ fn render_node_with_options(
     options: &RenderOptions,
 ) -> TreeVizResult<()> {
     // Choose the appropriate tree connector
-    let connector = if is_last { 
-        options.tree_chars.last_branch 
-    } else { 
-        options.tree_chars.branch 
+    let connector = if is_last {
+        options.tree_chars.last_branch
+    } else {
+        options.tree_chars.branch
     };
-    
+
     // Prepare content with optional truncation
     let content = if let Some(max_len) = options.max_content_length {
         if node.content.len() > max_len {
@@ -201,33 +186,31 @@ fn render_node_with_options(
     } else {
         node.content.clone()
     };
-    
+
     // Render this node
     output.push_str(&format!(
-        "{}{} {} {}", 
-        prefix, 
-        connector, 
-        node.icon, 
-        content
+        "{}{} {} {}",
+        prefix, connector, node.icon, content
     ));
-    
+
     // Add debug information if requested
     if options.include_debug {
         output.push_str(&format!(" [{}]", node.node_type));
     }
-    
+
     // Add metadata if requested
     if options.include_metadata && !node.metadata.is_empty() {
-        let metadata_str = node.metadata
+        let metadata_str = node
+            .metadata
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))
             .collect::<Vec<_>>()
             .join(", ");
         output.push_str(&format!(" ({})", metadata_str));
     }
-    
+
     output.push('\n');
-    
+
     // Render children if any
     if !node.children.is_empty() {
         // Calculate prefix for children
@@ -236,14 +219,14 @@ fn render_node_with_options(
         } else {
             format!("{}{}   ", prefix, options.tree_chars.vertical) // Vertical line continues
         };
-        
+
         // Render each child
         for (i, child) in node.children.iter().enumerate() {
             let is_last_child = i == node.children.len() - 1;
             render_node_with_options(child, output, &child_prefix, is_last_child, options)?;
         }
     }
-    
+
     Ok(())
 }
 
@@ -268,35 +251,35 @@ pub fn notation_data_to_compact_json(data: &NotationData) -> TreeVizResult<Strin
 mod tests {
     use super::*;
     use crate::tools::treeviz::converter::create_demo_notation_data;
-    
+
     #[test]
     fn test_basic_rendering() {
         let demo_data = create_demo_notation_data();
         let result = notation_data_to_string(&demo_data, &demo_data.config);
-        
+
         assert!(result.is_ok());
         let output = result.unwrap();
-        
+
         // Verify basic structure
         assert!(output.contains("⧉ Sample Document"));
         assert!(output.contains("§ 1. Introduction"));
         assert!(output.contains("¶ This is a sample paragraph"));
         assert!(output.contains("☰ list (3 items)"));
-        
+
         // Verify tree structure characters
         assert!(output.contains("├─"));
         assert!(output.contains("└─"));
         assert!(output.contains("│"));
     }
-    
+
     #[test]
     fn test_json_output() {
         let demo_data = create_demo_notation_data();
         let result = notation_data_to_json(&demo_data);
-        
+
         assert!(result.is_ok());
         let json = result.unwrap();
-        
+
         // Verify JSON structure
         assert!(json.contains("\"root\""));
         assert!(json.contains("\"config\""));
@@ -304,7 +287,7 @@ mod tests {
         assert!(json.contains("\"content\""));
         assert!(json.contains("\"children\""));
     }
-    
+
     #[test]
     fn test_ascii_rendering() {
         let demo_data = create_demo_notation_data();
@@ -312,10 +295,10 @@ mod tests {
             tree_chars: TreeChars::ascii(),
             ..Default::default()
         };
-        
+
         let result = render_with_options(&demo_data, &options);
         assert!(result.is_ok());
-        
+
         let output = result.unwrap();
         assert!(output.contains("|-"));
         assert!(output.contains("`-"));

@@ -1,6 +1,6 @@
 //! TXXT Tree Visualization CLI Tool
 //!
-//! A command line tool that takes a TXXT file, parses it, and outputs 
+//! A command line tool that takes a TXXT file, parses it, and outputs
 //! the tree notation representation of its AST.
 //!
 //! Usage:
@@ -19,9 +19,9 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use txxt::tools::treeviz::{
-    renderer::{notation_data_to_json, render_with_options, RenderOptions, TreeChars},
-    icons::{IconConfig, DEFAULT_ICON_CONFIG},
     converter::create_demo_notation_data,
+    icons::{IconConfig, DEFAULT_ICON_CONFIG},
+    renderer::{notation_data_to_json, render_with_options, RenderOptions, TreeChars},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let input_path = input_file.unwrap();
-    
+
     // Check if input file exists
     if !Path::new(input_path).exists() {
         eprintln!("Error: Input file '{}' does not exist", input_path);
@@ -105,29 +105,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Read input file
     let _content = fs::read_to_string(input_path)?;
-    
+
     // Parse the file (placeholder - would use actual parser when ready)
     eprintln!("Note: Parser not yet implemented, using demo data for visualization");
-    
+
     // For now, use demo data since parser isn't ready
     let notation_data = create_demo_notation_data();
-    
+
     // Get output format
     let format = matches.get_one::<String>("format").unwrap();
-    
+
     // Generate output based on format
     let output = match format.as_str() {
         "json" => notation_data_to_json(&notation_data)?,
         "treeviz" => {
             // Create render options
-            let mut options = RenderOptions::default();
-            options.include_debug = matches.get_flag("debug");
-            options.include_metadata = matches.get_flag("metadata");
-            
-            if matches.get_flag("ascii") {
-                options.tree_chars = TreeChars::ascii();
-            }
-            
+            let options = RenderOptions {
+                include_debug: matches.get_flag("debug"),
+                include_metadata: matches.get_flag("metadata"),
+                tree_chars: if matches.get_flag("ascii") {
+                    TreeChars::ascii()
+                } else {
+                    TreeChars::default()
+                },
+                ..Default::default()
+            };
+
             render_with_options(&notation_data, &options)?
         }
         _ => {
@@ -161,19 +164,25 @@ fn run_demo(matches: &clap::ArgMatches) -> Result<(), Box<dyn std::error::Error>
         }
         "treeviz" => {
             println!("Tree Visualization:");
-            
+
             // Create render options
-            let mut options = RenderOptions::default();
-            options.include_debug = matches.get_flag("debug");
-            options.include_metadata = matches.get_flag("metadata");
-            
+            let options = RenderOptions {
+                include_debug: matches.get_flag("debug"),
+                include_metadata: matches.get_flag("metadata"),
+                tree_chars: if matches.get_flag("ascii") {
+                    TreeChars::ascii()
+                } else {
+                    TreeChars::default()
+                },
+                ..Default::default()
+            };
+
             if matches.get_flag("ascii") {
-                options.tree_chars = TreeChars::ascii();
                 println!("(Using ASCII characters)");
             } else {
                 println!("(Using Unicode characters)");
             }
-            
+
             println!();
             println!("{}", render_with_options(&demo_data, &options)?);
         }
@@ -192,43 +201,50 @@ fn load_config(config_path: &str) -> Result<IconConfig, Box<dyn std::error::Erro
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::process::Command;
-    
+
     #[test]
     fn test_demo_mode() {
         // Test that demo mode works
         let output = Command::new("cargo")
-            .args(&["run", "--bin", "txxt-treeviz", "--", "--demo"])
+            .args(["run", "--bin", "txxt-treeviz", "--", "--demo"])
             .output()
             .expect("Failed to execute command");
-        
+
         assert!(output.status.success());
         let stdout = String::from_utf8(output.stdout).unwrap();
         assert!(stdout.contains("TXXT Tree Visualization Demo"));
         assert!(stdout.contains("Sample Document"));
     }
-    
+
     #[test]
     fn test_ascii_output() {
         let output = Command::new("cargo")
-            .args(&["run", "--bin", "txxt-treeviz", "--", "--demo", "--ascii"])
+            .args(["run", "--bin", "txxt-treeviz", "--", "--demo", "--ascii"])
             .output()
             .expect("Failed to execute command");
-        
+
         assert!(output.status.success());
         let stdout = String::from_utf8(output.stdout).unwrap();
         assert!(stdout.contains("|-")); // ASCII tree characters
         assert!(stdout.contains("`-"));
     }
-    
+
     #[test]
     fn test_json_output() {
         let output = Command::new("cargo")
-            .args(&["run", "--bin", "txxt-treeviz", "--", "--demo", "--format", "json"])
+            .args([
+                "run",
+                "--bin",
+                "txxt-treeviz",
+                "--",
+                "--demo",
+                "--format",
+                "json",
+            ])
             .output()
             .expect("Failed to execute command");
-        
+
         assert!(output.status.success());
         let stdout = String::from_utf8(output.stdout).unwrap();
         assert!(stdout.contains("\"root\"")); // JSON structure

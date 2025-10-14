@@ -5,11 +5,11 @@
 //! specified in the GitHub issue - the tool doesn't need to understand the semantics
 //! of each node type, just how to extract icons, content, and children.
 
-use crate::ast::elements::core::ElementNode;
 use super::{
+    icons::{extract_content_from_node, get_node_type_name, IconConfig, DEFAULT_ICON_CONFIG},
     NotationData, TreeNode, TreeVizResult,
-    icons::{IconConfig, extract_content_from_node, get_node_type_name, DEFAULT_ICON_CONFIG},
 };
+use crate::ast::elements::core::ElementNode;
 
 /// Convert an AST node to NotationData with configurable mapping
 ///
@@ -17,7 +17,7 @@ use super::{
 /// representation that can be serialized to JSON or rendered to string.
 ///
 /// # Arguments
-/// 
+///
 /// * `ast_node` - The root AST node to convert
 /// * `config` - Icon and content extraction configuration
 ///
@@ -25,8 +25,8 @@ use super::{
 ///
 /// A `NotationData` structure containing the tree representation and config
 pub fn ast_to_notation_data(
-    ast_node: &ElementNode, 
-    config: &IconConfig
+    ast_node: &ElementNode,
+    config: &IconConfig,
 ) -> TreeVizResult<NotationData> {
     let root_tree_node = convert_node_recursive(ast_node, config)?;
     Ok(NotationData::new(root_tree_node, config.clone()))
@@ -54,30 +54,29 @@ pub fn ast_to_tree_notation(ast_node: &ElementNode) -> TreeVizResult<String> {
 ///
 /// This function handles the recursive traversal of the AST structure,
 /// applying the configured icon and content extraction rules at each level.
-fn convert_node_recursive(
-    ast_node: &ElementNode,
-    config: &IconConfig,
-) -> TreeVizResult<TreeNode> {
+fn convert_node_recursive(ast_node: &ElementNode, config: &IconConfig) -> TreeVizResult<TreeNode> {
     let node_type = get_node_type_name(ast_node);
     let icon = config.get_icon(&node_type);
     let content = extract_content_from_node(ast_node, config);
-    
+
     let mut tree_node = TreeNode::new(icon, content, node_type.clone());
-    
+
     // Add metadata if configured
     if config.include_metadata {
         tree_node.set_metadata("element_type".to_string(), node_type.clone());
-        tree_node.set_metadata("has_children".to_string(), 
-                               has_children(ast_node).to_string());
+        tree_node.set_metadata(
+            "has_children".to_string(),
+            has_children(ast_node).to_string(),
+        );
     }
-    
+
     // Get children using the semantic-agnostic approach
     let children = get_node_children(ast_node);
     for child in children {
         let child_tree_node = convert_node_recursive(&child, config)?;
         tree_node.add_child(child_tree_node);
     }
-    
+
     Ok(tree_node)
 }
 
@@ -89,33 +88,33 @@ fn convert_node_recursive(
 fn get_node_children(node: &ElementNode) -> Vec<ElementNode> {
     match node {
         // Span elements (typically leaf nodes or simple containers)
-        ElementNode::TextSpan(_) => vec![], // Leaf node
-        ElementNode::BoldSpan(_) => vec![], // For now, treating as leaf
-        ElementNode::ItalicSpan(_) => vec![], // For now, treating as leaf  
-        ElementNode::CodeSpan(_) => vec![], // Leaf node
-        ElementNode::MathSpan(_) => vec![], // Leaf node
-        ElementNode::ReferenceSpan(_) => vec![], // Leaf node
-        ElementNode::CitationSpan(_) => vec![], // Leaf node
+        ElementNode::TextSpan(_) => vec![],          // Leaf node
+        ElementNode::BoldSpan(_) => vec![],          // For now, treating as leaf
+        ElementNode::ItalicSpan(_) => vec![],        // For now, treating as leaf
+        ElementNode::CodeSpan(_) => vec![],          // Leaf node
+        ElementNode::MathSpan(_) => vec![],          // Leaf node
+        ElementNode::ReferenceSpan(_) => vec![],     // Leaf node
+        ElementNode::CitationSpan(_) => vec![],      // Leaf node
         ElementNode::PageReferenceSpan(_) => vec![], // Leaf node
         ElementNode::SessionReferenceSpan(_) => vec![], // Leaf node
         ElementNode::FootnoteReferenceSpan(_) => vec![], // Leaf node
-        
+
         // Line elements
         ElementNode::TextLine(_) => vec![], // For now, not extracting spans
         ElementNode::BlankLine(_) => vec![], // Leaf node
-        
+
         // Block elements - these will have children in a real implementation
         ElementNode::ParagraphBlock(_) => vec![], // Would contain TextLines
-        ElementNode::ListBlock(_) => vec![], // Would contain ListItems
+        ElementNode::ListBlock(_) => vec![],      // Would contain ListItems
         ElementNode::DefinitionBlock(_) => vec![], // Would contain term + content
-        ElementNode::VerbatimBlock(_) => vec![], // Would contain verbatim lines
-        ElementNode::SessionBlock(_) => vec![], // Would contain title + container
+        ElementNode::VerbatimBlock(_) => vec![],  // Would contain verbatim lines
+        ElementNode::SessionBlock(_) => vec![],   // Would contain title + container
         ElementNode::AnnotationBlock(_) => vec![], // Would contain content
-        
+
         // Container elements - these are the main ones with children
         ElementNode::ContentContainer(_) => vec![], // Would contain blocks
         ElementNode::SessionContainer(_) => vec![], // Would contain blocks + sessions
-        ElementNode::IgnoreContainer(_) => vec![], // Would contain ignore lines
+        ElementNode::IgnoreContainer(_) => vec![],  // Would contain ignore lines
     }
 }
 
@@ -131,19 +130,19 @@ fn has_children(node: &ElementNode) -> bool {
 pub fn create_synthetic_ast() -> ElementNode {
     // For now, create a simple structure using available types
     // In practice, we'd build a more complex tree with actual content
-    
+
     // Create a simple session block as the root
     use crate::ast::elements::containers::SessionContainer;
-    use crate::ast::tokens::TokenSequence;
     use crate::ast::parameters::Parameters;
-    
+    use crate::ast::tokens::TokenSequence;
+
     // Since we can't easily construct the complex nested structures without
     // the full parser infrastructure, we'll create a minimal synthetic node
     // This is a placeholder that demonstrates the tree structure concept
-    
+
     ElementNode::SessionContainer(SessionContainer::new(
         vec![], // blocks - would contain various block types
-        vec![], // sessions - would contain nested sessions  
+        vec![], // sessions - would contain nested sessions
         Parameters::default(),
         TokenSequence::new(),
     ))
@@ -155,21 +154,21 @@ pub fn create_synthetic_ast() -> ElementNode {
 /// without requiring the full parsing infrastructure.
 pub fn create_demo_notation_data() -> NotationData {
     let config = &*DEFAULT_ICON_CONFIG;
-    
+
     // Create a synthetic tree structure manually
     let mut root = TreeNode::new(
         "⧉".to_string(),
         "Sample Document".to_string(),
         "Document".to_string(),
     );
-    
+
     // Add a session
     let mut session = TreeNode::new(
         "§".to_string(),
         "1. Introduction".to_string(),
         "SessionBlock".to_string(),
     );
-    
+
     // Add session title
     let session_title = TreeNode::new(
         "⊤".to_string(),
@@ -177,28 +176,28 @@ pub fn create_demo_notation_data() -> NotationData {
         "SessionTitle".to_string(),
     );
     session.add_child(session_title);
-    
+
     // Add session container
     let mut container = TreeNode::new(
         "➔".to_string(),
         "3 children".to_string(),
         "ContentContainer".to_string(),
     );
-    
+
     // Add paragraph
     let mut paragraph = TreeNode::new(
         "¶".to_string(),
         "This is a sample paragraph with formatting.".to_string(),
         "ParagraphBlock".to_string(),
     );
-    
+
     // Add text line to paragraph
     let mut text_line = TreeNode::new(
         "↵".to_string(),
         "This is a sample paragraph with formatting.".to_string(),
         "TextLine".to_string(),
     );
-    
+
     // Add formatted spans to text line
     text_line.add_child(TreeNode::new(
         "◦".to_string(),
@@ -215,17 +214,17 @@ pub fn create_demo_notation_data() -> NotationData {
         ".".to_string(),
         "TextSpan".to_string(),
     ));
-    
+
     paragraph.add_child(text_line);
     container.add_child(paragraph);
-    
+
     // Add a list
     let mut list = TreeNode::new(
         "☰".to_string(),
         "list (3 items)".to_string(),
         "ListBlock".to_string(),
     );
-    
+
     list.add_child(TreeNode::new(
         "•".to_string(),
         "First item".to_string(),
@@ -241,9 +240,9 @@ pub fn create_demo_notation_data() -> NotationData {
         "Third item".to_string(),
         "ListItem".to_string(),
     ));
-    
+
     container.add_child(list);
-    
+
     // Add verbatim block
     let verbatim = TreeNode::new(
         "𝒱".to_string(),
@@ -251,9 +250,9 @@ pub fn create_demo_notation_data() -> NotationData {
         "VerbatimBlock".to_string(),
     );
     container.add_child(verbatim);
-    
+
     session.add_child(container);
     root.add_child(session);
-    
+
     NotationData::new(root, config.clone())
 }

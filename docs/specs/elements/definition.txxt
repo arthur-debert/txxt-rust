@@ -15,13 +15,13 @@ Complete specification for definitions - structured term-definition pairs that p
         Simple term definition:
             Parser ::
                 A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
-        :: basic
+        :: txxt.core.spec.definition.valid.simple-term ::
 
         Complex term with inline formatting:
             *Important Concept* ::
                 This term uses inline formatting in the term itself.
                 The definition can span multiple paragraphs and include rich content.
-        :: formatted-term
+        :: txxt.core.spec.definition.valid.formatted-term ::
 
     2.2. Syntax Rules
 
@@ -53,7 +53,7 @@ Complete specification for definitions - structured term-definition pairs that p
                             return 1
                         return n * factorial(n - 1)
                 :: python
-        :: rich-content
+        :: txxt.core.spec.definition.valid.rich-content ::
 
 3. Grammar
 
@@ -150,7 +150,7 @@ Complete specification for definitions - structured term-definition pairs that p
         Invalid (empty term):
             ::
                 This definition has no term.
-        :: invalid-empty
+        :: txxt.core.spec.definition.invalid.empty-term:error="EmptyTerm" ::
 
         This is parsed as an annotation, not a definition.
 
@@ -160,7 +160,7 @@ Complete specification for definitions - structured term-definition pairs that p
             Term with no definition ::
             
             Next paragraph here.
-        :: invalid-incomplete
+        :: txxt.core.spec.definition.invalid.no-content:error="MissingContent" ::
 
         This should cause a parse error as definitions require content.
 
@@ -168,7 +168,7 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Invalid (definition content must be indented):
             Inline Term :: Definition content on same line
-        :: invalid-inline
+        :: txxt.core.spec.definition.invalid.inline-content:error="InlineContent" ::
 
         Definitions require indented content; inline content is not supported.
 
@@ -183,7 +183,7 @@ Complete specification for definitions - structured term-definition pairs that p
                 
                 Data Structure ::
                     A way of organizing and storing data efficiently.
-        :: nested-valid
+        :: txxt.core.spec.definition.valid.nested-definitions ::
 
 7. Implementation Notes
 

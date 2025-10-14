@@ -169,3 +169,6 @@ pub mod parameters;
 pub mod reference_types;
 pub mod structure;
 pub mod tokens;
+
+// Tree traversal API using ego-tree
+pub mod traversal;

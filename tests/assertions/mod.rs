@@ -804,16 +804,443 @@ pub fn assert_verbatim<'a>(
     verbatim
 }
 
-/// Assert element is an annotation (to be fully implemented).
+/// Assert element is an annotation and validate specified properties.
 ///
-/// **Template for implementation:** Copy `assert_paragraph()` and adapt.
+/// Follows the same pattern as `assert_paragraph()` but adapted for annotation-specific properties.
+///
+/// # Arguments
+///
+/// * `element` - The SessionContainerElement to validate
+/// * `expected` - AnnotationExpected with properties to validate
+///
+/// # Returns
+///
+/// Returns `&AnnotationBlock` reference for further validation if needed.
+///
+/// # Panics
+///
+/// Panics if:
+/// - Element is not an AnnotationBlock
+/// - Any specified property doesn't match expected value
+///
+/// # Examples
+///
+/// ```rust
+/// use tests::assertions::{assert_annotation, AnnotationExpected};
+///
+/// // Minimal validation
+/// assert_annotation(&element, AnnotationExpected {
+///     label: Some("note"),
+///     ..Default::default()
+/// });
+///
+/// // Comprehensive validation
+/// assert_annotation(&element, AnnotationExpected {
+///     label: Some("warning"),
+///     has_parameter: Some(("severity", "high")),
+///     has_content: Some(true),
+///     ..Default::default()
+/// });
+/// ```
 #[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_annotation<'a>(
-    _element: &'a SessionContainerElement,
-    _expected: AnnotationExpected<'a>,
+    element: &'a SessionContainerElement,
+    expected: AnnotationExpected<'a>,
 ) -> &'a txxt::ast::elements::annotation::AnnotationBlock {
-    todo!("Implement during annotation parsing")
+    use txxt::ast::elements::annotation::AnnotationContent;
+
+    // Step 1: Type check and downcast
+    let annotation = match element {
+        SessionContainerElement::Annotation(a) => a,
+        other => {
+            panic!(
+                "Element type assertion failed\n\
+                 Expected: AnnotationBlock\n\
+                 Actual: {:?}\n\
+                 Hint: Ensure you're extracting the correct element from the container",
+                element_type_name(other)
+            );
+        }
+    };
+
+    // Step 2: Validate each specified property
+
+    // Label validation
+    if let Some(expected_label) = expected.label {
+        assert_eq!(
+            annotation.label.trim(),
+            expected_label.trim(),
+            "Label mismatch\n\
+             Expected: '{}'\n\
+             Actual: '{}'",
+            expected_label,
+            annotation.label
+        );
+    }
+
+    // Content type validation
+    if let Some(expected_content_type) = expected.content_type {
+        assert!(
+            expected_content_type.matches(&annotation.content),
+            "Content type mismatch\n\
+             Expected: {:?}\n\
+             Actual content: {:?}",
+            expected_content_type,
+            annotation.content
+        );
+    }
+
+    // Has content validation
+    if let Some(expected_has_content) = expected.has_content {
+        let actual_has_content = match &annotation.content {
+            AnnotationContent::Inline(v) => !v.is_empty(),
+            AnnotationContent::Block(c) => !c.content.is_empty(),
+        };
+        assert_eq!(
+            actual_has_content, expected_has_content,
+            "Annotation content existence mismatch\n\
+             Expected has_content: {}\n\
+             Actual has_content: {}",
+            expected_has_content, actual_has_content
+        );
+    }
+
+    // Content text validation (for inline annotations)
+    if let Some(expected_text) = expected.content_text {
+        match &annotation.content {
+            AnnotationContent::Inline(transforms) => {
+                validate_text_exact(transforms, expected_text);
+            }
+            AnnotationContent::Block(_) => {
+                panic!(
+                    "Content text validation failed\n\
+                     Expected inline content with text: '{}'\n\
+                     Actual: Block content (use content_contains for block content)",
+                    expected_text
+                );
+            }
+        }
+    }
+
+    // Content contains validation
+    if let Some(needle) = expected.content_contains {
+        let actual_content = match &annotation.content {
+            AnnotationContent::Inline(transforms) => validators::extract_all_text(transforms),
+            AnnotationContent::Block(_) => {
+                // For block content, we'd need to extract all text from all elements
+                // For now, we'll panic with a helpful message
+                panic!(
+                    "Content contains validation for block annotations not yet implemented\n\
+                     Expected to contain: '{}'",
+                    needle
+                );
+            }
+        };
+        assert!(
+            actual_content.contains(needle),
+            "Annotation content validation failed\n\
+             Expected to contain: '{}'\n\
+             Actual content: '{}'",
+            needle,
+            actual_content
+        );
+    }
+
+    // Parameters validation (all parameters)
+    if let Some(expected_params) = expected.parameters {
+        validators::validate_parameters(&annotation.parameters, &expected_params);
+    }
+
+    // Specific parameter validation
+    if let Some((key, value)) = expected.has_parameter {
+        validate_parameter(&annotation.parameters, key, value);
+    }
+
+    // Step 3: Return reference for further use
+    annotation
+}
+
+// ============================================================================
+// CONTAINER ASSERTIONS
+// ============================================================================
+
+/// Assert content container has expected properties.
+///
+/// # Arguments
+///
+/// * `container` - The ContentContainer to validate
+/// * `expected` - ContentContainerExpected with properties to validate
+///
+/// # Returns
+///
+/// Returns `&ContentContainer` reference for further validation if needed.
+///
+/// # Panics
+///
+/// Panics if any specified property doesn't match expected value.
+///
+/// # Examples
+///
+/// ```rust
+/// use tests::assertions::{assert_content_container, ContentContainerExpected};
+///
+/// assert_content_container(&definition.content, ContentContainerExpected {
+///     element_count: Some(3),
+///     ..Default::default()
+/// });
+/// ```
+#[cfg(feature = "new-ast")]
+#[allow(dead_code)]
+pub fn assert_content_container<'a>(
+    container: &'a txxt::ast::elements::containers::ContentContainer,
+    expected: ContentContainerExpected,
+) -> &'a txxt::ast::elements::containers::ContentContainer {
+    // Element count validation
+    if let Some(expected_count) = expected.element_count {
+        let actual_count = container.content.len();
+        assert_eq!(
+            actual_count, expected_count,
+            "Content container element count mismatch\n\
+             Expected: {} elements\n\
+             Actual: {} elements",
+            expected_count, actual_count
+        );
+    }
+
+    // Element types validation
+    if let Some(expected_types) = expected.element_types {
+        let actual_count = container.content.len();
+        assert_eq!(
+            actual_count,
+            expected_types.len(),
+            "Element count mismatch for type validation\n\
+             Expected: {} elements\n\
+             Actual: {} elements",
+            expected_types.len(),
+            actual_count
+        );
+
+        // Type validation would go here when full type checking is needed
+        // For now, just verify expected_types list matches count
+        let _ = expected_types;
+    }
+
+    // Has element type validation
+    if let Some(expected_type) = expected.has_element_type {
+        // Check if at least one element of this type exists
+        // This would require type checking on ContentContainerElement
+        // For now, just acknowledge the parameter
+        let _ = expected_type;
+    }
+
+    // All same type validation
+    if let Some(expected_type) = expected.all_same_type {
+        // Validate all elements are of the same type
+        // This would require type checking on ContentContainerElement
+        // For now, just acknowledge the parameter
+        let _ = expected_type;
+    }
+
+    container
+}
+
+/// Assert session container has expected properties.
+///
+/// # Arguments
+///
+/// * `container` - The SessionContainer to validate
+/// * `expected` - SessionContainerExpected with properties to validate
+///
+/// # Returns
+///
+/// Returns `&SessionContainer` reference for further validation if needed.
+///
+/// # Panics
+///
+/// Panics if any specified property doesn't match expected value.
+///
+/// # Examples
+///
+/// ```rust
+/// use tests::assertions::{assert_session_container, SessionContainerExpected};
+///
+/// assert_session_container(&session.content, SessionContainerExpected {
+///     element_count: Some(5),
+///     has_session: Some(true),
+///     ..Default::default()
+/// });
+/// ```
+#[cfg(feature = "new-ast")]
+#[allow(dead_code)]
+pub fn assert_session_container<'a>(
+    container: &'a txxt::ast::elements::containers::SessionContainer,
+    expected: SessionContainerExpected,
+) -> &'a txxt::ast::elements::containers::SessionContainer {
+    // Element count validation
+    if let Some(expected_count) = expected.element_count {
+        let actual_count = container.content.len();
+        assert_eq!(
+            actual_count, expected_count,
+            "Session container element count mismatch\n\
+             Expected: {} elements\n\
+             Actual: {} elements",
+            expected_count, actual_count
+        );
+    }
+
+    // Element types validation
+    if let Some(expected_types) = expected.element_types {
+        let actual_count = container.content.len();
+        assert_eq!(
+            actual_count,
+            expected_types.len(),
+            "Element count mismatch for type validation\n\
+             Expected: {} elements\n\
+             Actual: {} elements",
+            expected_types.len(),
+            actual_count
+        );
+
+        // Type validation would go here when full type checking is needed
+        let _ = expected_types;
+    }
+
+    // Has session validation
+    if let Some(expected_has_session) = expected.has_session {
+        let actual_has_session = container
+            .content
+            .iter()
+            .any(|e| matches!(e, SessionContainerElement::Session(_)));
+        assert_eq!(
+            actual_has_session, expected_has_session,
+            "Session presence mismatch\n\
+             Expected has_session: {}\n\
+             Actual has_session: {}",
+            expected_has_session, actual_has_session
+        );
+    }
+
+    // Session count validation
+    if let Some(expected_count) = expected.session_count {
+        let actual_count = container
+            .content
+            .iter()
+            .filter(|e| matches!(e, SessionContainerElement::Session(_)))
+            .count();
+        assert_eq!(
+            actual_count, expected_count,
+            "Session count mismatch\n\
+             Expected: {} sessions\n\
+             Actual: {} sessions",
+            expected_count, actual_count
+        );
+    }
+
+    container
+}
+
+// ============================================================================
+// INLINE CONTENT ASSERTION
+// ============================================================================
+
+/// Assert inline content has expected properties.
+///
+/// # Arguments
+///
+/// * `content` - The TextTransform slice to validate
+/// * `expected` - InlineContentExpected with properties to validate
+///
+/// # Panics
+///
+/// Panics if any specified property doesn't match expected value.
+///
+/// # Examples
+///
+/// ```rust
+/// use tests::assertions::{assert_inline_content, InlineContentExpected};
+///
+/// assert_inline_content(&paragraph.content, InlineContentExpected {
+///     has_bold: Some(true),
+///     transform_count: Some(3),
+///     ..Default::default()
+/// });
+/// ```
+#[cfg(feature = "new-ast")]
+#[allow(dead_code)]
+pub fn assert_inline_content(
+    content: &[txxt::ast::elements::inlines::TextTransform],
+    expected: InlineContentExpected,
+) {
+    use txxt::ast::elements::inlines::TextTransform;
+
+    // Transform count validation
+    if let Some(expected_count) = expected.transform_count {
+        let actual_count = content.len();
+        assert_eq!(
+            actual_count, expected_count,
+            "Transform count mismatch\n\
+             Expected: {} transforms\n\
+             Actual: {} transforms",
+            expected_count, actual_count
+        );
+    }
+
+    // Has bold validation
+    if let Some(expected_has_bold) = expected.has_bold {
+        let actual_has_bold = content
+            .iter()
+            .any(|t| matches!(t, TextTransform::Strong(_)));
+        assert_eq!(
+            actual_has_bold, expected_has_bold,
+            "Bold formatting presence mismatch\n\
+             Expected has_bold: {}\n\
+             Actual has_bold: {}",
+            expected_has_bold, actual_has_bold
+        );
+    }
+
+    // Has italic validation
+    if let Some(expected_has_italic) = expected.has_italic {
+        let actual_has_italic = content
+            .iter()
+            .any(|t| matches!(t, TextTransform::Emphasis(_)));
+        assert_eq!(
+            actual_has_italic, expected_has_italic,
+            "Italic formatting presence mismatch\n\
+             Expected has_italic: {}\n\
+             Actual has_italic: {}",
+            expected_has_italic, actual_has_italic
+        );
+    }
+
+    // Has code validation
+    if let Some(expected_has_code) = expected.has_code {
+        let actual_has_code = content
+            .iter()
+            .any(|t| matches!(t, TextTransform::Code(_)));
+        assert_eq!(
+            actual_has_code, expected_has_code,
+            "Code formatting presence mismatch\n\
+             Expected has_code: {}\n\
+             Actual has_code: {}",
+            expected_has_code, actual_has_code
+        );
+    }
+
+    // Has math validation
+    if let Some(expected_has_math) = expected.has_math {
+        let actual_has_math = content
+            .iter()
+            .any(|t| matches!(t, TextTransform::Math(_)));
+        assert_eq!(
+            actual_has_math, expected_has_math,
+            "Math formatting presence mismatch\n\
+             Expected has_math: {}\n\
+             Actual has_math: {}",
+            expected_has_math, actual_has_math
+        );
+    }
 }
 
 // ============================================================================

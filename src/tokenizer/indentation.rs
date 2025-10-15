@@ -210,7 +210,7 @@ pub fn normalize_indentation(line: &str, tab_width: usize) -> String {
 
 /// Check if an indentation level is valid (multiple of INDENT_SIZE)
 pub fn is_valid_indentation_level(level: usize) -> bool {
-    level.is_multiple_of(INDENT_SIZE)
+    level % INDENT_SIZE == 0
 }
 
 #[cfg(test)]

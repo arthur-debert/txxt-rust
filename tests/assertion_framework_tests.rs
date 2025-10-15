@@ -7,12 +7,20 @@ mod assertions;
 
 #[cfg(feature = "new-ast")]
 mod framework_tests {
-    use super::assertions::{assert_paragraph, ParagraphExpected};
+    use super::assertions::{
+        assert_annotation, assert_content_container, assert_inline_content, assert_paragraph,
+        assert_session_container, AnnotationExpected, ContentContainerExpected,
+        InlineContentExpected, ParagraphExpected, SessionContainerExpected,
+    };
     use txxt::ast::{
         elements::{
-            containers::session::SessionContainerElement,
+            annotation::{AnnotationBlock, AnnotationContent},
+            containers::{
+                content::{ContentContainer, ContentContainerElement},
+                session::{SessionContainer, SessionContainerElement},
+            },
             core::{ElementType, TxxtElement},
-            inlines::TextTransform,
+            inlines::{TextSpan, TextTransform},
             paragraph::ParagraphBlock,
         },
         parameters::Parameters,
@@ -200,6 +208,278 @@ mod framework_tests {
                 text_contains: Some("Test"),
                 has_formatting: Some(false),
                 annotation_count: Some(0),
+                ..Default::default()
+            },
+        );
+    }
+
+    // ============================================================================
+    // Annotation Assertion Tests
+    // ============================================================================
+
+    /// Helper to create a test annotation
+    fn make_test_annotation(label: &str, content: &str) -> SessionContainerElement {
+        let text_transform = TextTransform::Identity(TextSpan {
+            tokens: TokenSequence {
+                tokens: vec![Token::Text {
+                    content: content.to_string(),
+                    span: SourceSpan {
+                        start: Position { row: 0, column: 0 },
+                        end: Position {
+                            row: 0,
+                            column: content.len(),
+                        },
+                    },
+                }],
+            },
+            annotations: vec![],
+            parameters: Parameters::new(),
+        });
+
+        SessionContainerElement::Annotation(AnnotationBlock {
+            label: label.to_string(),
+            content: AnnotationContent::Inline(vec![text_transform]),
+            parameters: Parameters::new(),
+            annotations: vec![],
+            tokens: TokenSequence::new(),
+            namespace: None,
+        })
+    }
+
+    #[test]
+    fn test_assert_annotation_label() {
+        let element = make_test_annotation("note", "This is a note");
+
+        assert_annotation(
+            &element,
+            AnnotationExpected {
+                label: Some("note"),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Element type assertion failed")]
+    fn test_assert_annotation_type_check_fails() {
+        let element = make_test_paragraph("Not an annotation");
+
+        assert_annotation(&element, AnnotationExpected::default());
+    }
+
+    #[test]
+    fn test_assert_annotation_has_content() {
+        let element = make_test_annotation("warning", "Warning text");
+
+        assert_annotation(
+            &element,
+            AnnotationExpected {
+                has_content: Some(true),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_annotation_content_text() {
+        let element = make_test_annotation("note", "Exact content");
+
+        assert_annotation(
+            &element,
+            AnnotationExpected {
+                content_text: Some("Exact content"),
+                ..Default::default()
+            },
+        );
+    }
+
+    // ============================================================================
+    // Container Assertion Tests
+    // ============================================================================
+
+    #[test]
+    fn test_assert_content_container_element_count() {
+        let para1 = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let para2 = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = ContentContainer {
+            content: vec![
+                ContentContainerElement::Paragraph(para1),
+                ContentContainerElement::Paragraph(para2),
+            ],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_content_container(
+            &container,
+            ContentContainerExpected {
+                element_count: Some(2),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "element count mismatch")]
+    fn test_assert_content_container_element_count_fails() {
+        let container = ContentContainer {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_content_container(
+            &container,
+            ContentContainerExpected {
+                element_count: Some(5),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_session_container_has_session() {
+        use txxt::ast::elements::session::{SessionBlock, SessionTitle};
+
+        let session = SessionBlock {
+            title: SessionTitle {
+                content: vec![],
+                numbering: None,
+                tokens: TokenSequence::new(),
+            },
+            content: SessionContainer {
+                content: vec![],
+                annotations: vec![],
+                parameters: Parameters::new(),
+                tokens: TokenSequence::new(),
+            },
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = SessionContainer {
+            content: vec![SessionContainerElement::Session(session)],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_session_container(
+            &container,
+            SessionContainerExpected {
+                has_session: Some(true),
+                session_count: Some(1),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_session_container_no_sessions() {
+        let para = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = SessionContainer {
+            content: vec![SessionContainerElement::Paragraph(para)],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_session_container(
+            &container,
+            SessionContainerExpected {
+                has_session: Some(false),
+                session_count: Some(0),
+                element_count: Some(1),
+                ..Default::default()
+            },
+        );
+    }
+
+    // ============================================================================
+    // Inline Content Assertion Tests
+    // ============================================================================
+
+    #[test]
+    fn test_assert_inline_content_transform_count() {
+        let text_span = TextSpan {
+            tokens: TokenSequence::new(),
+            annotations: vec![],
+            parameters: Parameters::new(),
+        };
+
+        let transforms = vec![
+            TextTransform::Identity(text_span.clone()),
+            TextTransform::Identity(text_span),
+        ];
+
+        assert_inline_content(
+            &transforms,
+            InlineContentExpected {
+                transform_count: Some(2),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_inline_content_has_bold() {
+        let text_span = TextSpan {
+            tokens: TokenSequence::new(),
+            annotations: vec![],
+            parameters: Parameters::new(),
+        };
+
+        let transforms = vec![TextTransform::Strong(vec![TextTransform::Identity(
+            text_span,
+        )])];
+
+        assert_inline_content(
+            &transforms,
+            InlineContentExpected {
+                has_bold: Some(true),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_inline_content_no_formatting() {
+        let text_span = TextSpan {
+            tokens: TokenSequence::new(),
+            annotations: vec![],
+            parameters: Parameters::new(),
+        };
+
+        let transforms = vec![TextTransform::Identity(text_span)];
+
+        assert_inline_content(
+            &transforms,
+            InlineContentExpected {
+                has_bold: Some(false),
+                has_italic: Some(false),
+                has_code: Some(false),
+                has_math: Some(false),
                 ..Default::default()
             },
         );

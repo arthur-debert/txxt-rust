@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
 
-use super::{
+use super::super::{
     containers::ContentContainer,
     core::{BlockElement, ElementType, TxxtElement},
     inlines::TextTransform,

@@ -46,12 +46,20 @@ pub mod paragraph;
 pub mod session;
 pub mod verbatim;
 
-// Inline/span elements
+// Document-level elements
+pub mod document;
+
+// Formatting elements
+pub mod formatting;
+
+// Reference elements
+pub mod references;
+
+// Inline/span elements (legacy - to be migrated)
 pub mod inlines;
 
-// Shared element utilities
-pub mod labels;
-pub mod parameters;
+// Shared component elements
+pub mod components;
 
 // Re-export core types for convenience
 pub use core::{ElementType, TxxtElement};

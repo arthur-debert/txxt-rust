@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
-use super::{TextSpan, TextTransform};
+use super::super::inlines::{TextSpan, TextTransform};
 
 /// Bold span - strong emphasis formatting
 ///

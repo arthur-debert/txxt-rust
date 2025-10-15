@@ -27,6 +27,7 @@ Currently there is no consistenty, but we're slowly migrating towares a standard
 ├── formatting/               # Text formatting elements
 │   ├── mod.rs
 │   ├── emphasis.rs           # bold, italic
+│   ├── strong.rs           # bold, italic
 │   ├── code.rs
 │   └── math.rs
 │

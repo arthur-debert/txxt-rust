@@ -1,3 +1,7 @@
+#![allow(rustdoc::bare_urls)]
+#![allow(rustdoc::broken_intra_doc_links)]
+#![allow(rustdoc::invalid_html_tags)]
+
 //! TXXT Parser and Processor
 //!
 //! # For Parser Developers
@@ -16,7 +20,6 @@
 //! ```
 //!
 //! See `tests/README.md` for complete documentation and `CLAUDE.md` for requirements.
-
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

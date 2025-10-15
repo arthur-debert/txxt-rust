@@ -3,10 +3,8 @@
 //! These utilities provide consistent validation logic across all element types,
 //! reducing duplication and ensuring uniform error messages.
 
-#[cfg(feature = "new-ast")]
 use std::collections::HashMap;
 
-#[cfg(feature = "new-ast")]
 use txxt::ast::{
     annotations::Annotation, elements::inlines::TextTransform, parameters::Parameters,
 };
@@ -25,7 +23,6 @@ use txxt::ast::{
 /// # Panics
 ///
 /// Panics if any expected parameter is missing or has wrong value.
-#[cfg(feature = "new-ast")]
 pub fn validate_parameters(actual: &Parameters, expected: &HashMap<&str, &str>) {
     for (key, expected_value) in expected {
         match actual.get(key) {
@@ -57,7 +54,6 @@ pub fn validate_parameters(actual: &Parameters, expected: &HashMap<&str, &str>) 
 }
 
 /// Validate a specific parameter exists with expected value.
-#[cfg(feature = "new-ast")]
 pub fn validate_parameter(actual: &Parameters, key: &str, expected_value: &str) {
     let mut map = HashMap::new();
     map.insert(key, expected_value);
@@ -112,7 +108,6 @@ pub fn validate_has_annotation(actual: &[Annotation], expected_label: &str) {
 /// Extract all text content from TextTransforms recursively.
 ///
 /// Walks through all transforms and concatenates text spans.
-#[cfg(feature = "new-ast")]
 pub fn extract_all_text(transforms: &[TextTransform]) -> String {
     transforms
         .iter()
@@ -122,7 +117,6 @@ pub fn extract_all_text(transforms: &[TextTransform]) -> String {
 }
 
 /// Validate text content exactly matches expected.
-#[cfg(feature = "new-ast")]
 pub fn validate_text_exact(transforms: &[TextTransform], expected: &str) {
     let actual = extract_all_text(transforms);
     assert_eq!(
@@ -135,7 +129,6 @@ pub fn validate_text_exact(transforms: &[TextTransform], expected: &str) {
 }
 
 /// Validate text content contains expected substring.
-#[cfg(feature = "new-ast")]
 pub fn validate_text_contains(transforms: &[TextTransform], needle: &str) {
     let actual = extract_all_text(transforms);
     assert!(
@@ -150,7 +143,6 @@ pub fn validate_text_contains(transforms: &[TextTransform], needle: &str) {
 }
 
 /// Validate text content matches regex pattern.
-#[cfg(feature = "new-ast")]
 pub fn validate_text_matches(transforms: &[TextTransform], pattern: &str) {
     use regex::Regex;
 
@@ -169,7 +161,6 @@ pub fn validate_text_matches(transforms: &[TextTransform], pattern: &str) {
 }
 
 /// Check if transforms contain formatting beyond plain text.
-#[cfg(feature = "new-ast")]
 pub fn has_formatting(transforms: &[TextTransform]) -> bool {
     transforms
         .iter()
@@ -177,7 +168,6 @@ pub fn has_formatting(transforms: &[TextTransform]) -> bool {
 }
 
 /// Validate transforms contain formatting.
-#[cfg(feature = "new-ast")]
 pub fn validate_has_formatting(transforms: &[TextTransform], expected: bool) {
     let actual = has_formatting(transforms);
     assert_eq!(
@@ -198,7 +188,6 @@ pub fn validate_has_formatting(transforms: &[TextTransform], expected: bool) {
 // ============================================================================
 
 /// Validate container has expected number of elements.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)] // Will be used during container parsing
 pub fn validate_element_count<T>(elements: &[T], expected_count: usize, context: &str) {
     let actual_count = elements.len();

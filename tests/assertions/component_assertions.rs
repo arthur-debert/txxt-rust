@@ -7,7 +7,6 @@
 
 use std::collections::HashMap;
 
-#[cfg(feature = "new-ast")]
 use txxt::ast::{annotations::Annotation, parameters::Parameters};
 
 // ============================================================================
@@ -42,7 +41,6 @@ use txxt::ast::{annotations::Annotation, parameters::Parameters};
 ///
 /// assert_parameters_exact(&element.parameters, &expected);
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_parameters_exact(parameters: &Parameters, expected: &HashMap<&str, &str>) {
     // Check count first
@@ -81,7 +79,6 @@ pub fn assert_parameters_exact(parameters: &Parameters, expected: &HashMap<&str,
 /// Assert that Parameters struct contains at least the specified parameters.
 ///
 /// Allows extra parameters beyond what's expected (non-strict mode).
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_parameters_contains(parameters: &Parameters, expected: &HashMap<&str, &str>) {
     for (key, expected_value) in expected {
@@ -100,7 +97,6 @@ pub fn assert_parameters_contains(parameters: &Parameters, expected: &HashMap<&s
 }
 
 /// Assert that Parameters struct has a specific key-value pair.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_parameter(parameters: &Parameters, key: &str, expected_value: &str) {
     let actual_value = parameters.get(key);
@@ -119,7 +115,6 @@ pub fn assert_parameter(parameters: &Parameters, key: &str, expected_value: &str
 /// Assert that Parameters struct is NOT empty.
 ///
 /// Use this to catch parsers that forgot to extract parameter tokens.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_parameters_not_empty(parameters: &Parameters) {
     assert!(
@@ -134,7 +129,6 @@ pub fn assert_parameters_not_empty(parameters: &Parameters) {
 /// Assert that Parameters struct IS empty.
 ///
 /// Use this when element should have no parameters.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_parameters_empty(parameters: &Parameters) {
     assert!(
@@ -152,7 +146,6 @@ pub fn assert_parameters_empty(parameters: &Parameters) {
 /// Assert that a label string exactly matches expected value.
 ///
 /// Use this for validating labels in Verbatim and Annotation elements.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_label_exact(actual: &str, expected: &str) {
     assert_eq!(
@@ -167,7 +160,6 @@ pub fn assert_label_exact(actual: &str, expected: &str) {
 }
 
 /// Assert that a label string starts with expected prefix.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_label_starts_with(actual: &str, prefix: &str) {
     assert!(
@@ -181,7 +173,6 @@ pub fn assert_label_starts_with(actual: &str, prefix: &str) {
 }
 
 /// Assert that a label is not empty.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_label_not_empty(actual: &str) {
     assert!(!actual.trim().is_empty(), "Label should not be empty");
@@ -192,7 +183,6 @@ pub fn assert_label_not_empty(actual: &str) {
 // ============================================================================
 
 /// Assert annotations vector is not empty.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_has_annotations(annotations: &[Annotation]) {
     assert!(
@@ -205,7 +195,6 @@ pub fn assert_has_annotations(annotations: &[Annotation]) {
 }
 
 /// Assert annotations vector has exactly N elements.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_annotation_count_exact(annotations: &[Annotation], expected_count: usize) {
     assert_eq!(
@@ -220,7 +209,6 @@ pub fn assert_annotation_count_exact(annotations: &[Annotation], expected_count:
 }
 
 /// Assert annotations vector contains annotation with specific label.
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_has_annotation_with_label(annotations: &[Annotation], label: &str) {
     let found = annotations.iter().any(|ann| ann.label == label);

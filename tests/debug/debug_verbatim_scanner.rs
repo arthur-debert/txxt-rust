@@ -1,6 +1,6 @@
 //! Debug the verbatim scanner to understand what it's finding
 
-use txxt::tokenizer::verbatim_scanner::VerbatimScanner;
+use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 
 #[test]
 fn debug_simple_verbatim() {

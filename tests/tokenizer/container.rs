@@ -1,6 +1,6 @@
 //! Tests for container element tokenization
 //!
-//! Tests container tokenization as defined in docs/specs/elements/container.txxt
+//! Tests container tokenization as defined in docs/specs/elements/containers/container.txxt
 //! This module will contain tests once container tokenization is implemented.
 
 // TODO: Add container tokenization tests

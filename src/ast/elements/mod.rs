@@ -35,6 +35,11 @@
 // Core element trait and types
 pub mod core;
 
+// Core AST files
+pub mod blocks;
+pub mod tokens;
+pub mod traversal;
+
 // Container elements (hold child elements)
 pub mod containers;
 
@@ -46,12 +51,20 @@ pub mod paragraph;
 pub mod session;
 pub mod verbatim;
 
+// Document-level elements
+pub mod document;
+
+// Formatting elements
+pub mod formatting;
+
+// Reference elements
+pub mod references;
+
 // Inline/span elements
 pub mod inlines;
 
-// Shared element utilities
-pub mod labels;
-pub mod parameters;
+// Shared component elements
+pub mod components;
 
 // Re-export core types for convenience
 pub use core::{ElementType, TxxtElement};

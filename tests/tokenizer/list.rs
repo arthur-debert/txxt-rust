@@ -1,7 +1,7 @@
 //! Tests for list element tokenization using rstest and proptest
 //!
 //! Tests both successful parsing and failure cases for list sequence markers
-//! as defined in docs/specs/elements/list.txxt
+//! as defined in docs/specs/elements/list/list.txxt
 
 use proptest::prelude::*;
 use rstest::rstest;

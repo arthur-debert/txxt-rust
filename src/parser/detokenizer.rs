@@ -15,7 +15,7 @@
 
 use crate::ast::tokens::Token;
 use crate::parser::pipeline::BlockGroup;
-use crate::tokenizer::indentation::INDENT_SIZE;
+use crate::tokenizer::core::indentation::INDENT_SIZE;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;
@@ -249,7 +249,7 @@ impl Detokenizer {
                 result.push(']');
             }
             Token::FootnoteRef { footnote_type, .. } => {
-                use crate::tokenizer::inline::references::footnote_ref::FootnoteType;
+                use crate::tokenizer::elements::references::footnote_ref::FootnoteType;
                 match footnote_type {
                     FootnoteType::Naked(n) => {
                         result.push('[');

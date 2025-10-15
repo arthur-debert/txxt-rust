@@ -7,11 +7,9 @@
 use crate::ast::{
     base::Document,
     elements::{
-        containers::{
-            content::ContentContainerElement, session::SessionContainerElement, ContentContainer,
-            SessionContainer,
-        },
+        containers::{content::ContentContainerElement, ContentContainer},
         inlines::TextTransform,
+        session::{session_container::SessionContainerElement, SessionContainer},
     },
 };
 

@@ -143,35 +143,31 @@ pub mod elements;
 // Re-export spec-aligned element types as the canonical AST
 pub use elements::{
     annotation::{AnnotationBlock, AnnotationContent},
-    containers::{ContentContainer, IgnoreContainer, SessionContainer},
+    containers::ContentContainer,
     core::{BlankLine, ContainerType, ElementNode, ElementType, TxxtElement},
     definition::{DefinitionBlock, DefinitionTerm},
-    inlines::{
-        formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan},
-        references::{
-            CitationSpan, FootnoteReferenceSpan, PageReferenceSpan, ReferenceSpan,
-            SessionReferenceSpan,
-        },
-        Link, Reference, TextLine, TextSpan, TextTransform,
-    },
+    document::{AssemblyInfo, Document, Meta, MetaValue, ProcessingStats},
+    formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan},
+    inlines::{Link, Reference, ReferenceSpan, TextLine, TextSpan, TextTransform},
     list::{ListBlock, ListDecorationType, ListItem, NumberingForm, NumberingStyle},
     paragraph::ParagraphBlock,
+    references::{CitationSpan, FootnoteReferenceSpan, PageReferenceSpan, SessionReferenceSpan},
+    session::SessionContainer,
     session::{SessionBlock, SessionNumbering, SessionTitle},
+    verbatim::IgnoreContainer,
     verbatim::{VerbatimBlock, VerbatimType},
 };
 
-// Core AST infrastructure (existing proven architecture)
-pub mod annotations;
-pub mod base;
-pub mod blocks;
-pub mod inlines;
-pub mod parameters;
-pub mod reference_types;
-pub mod structure;
-pub mod tokens;
+// Core AST infrastructure (moved to elements/)
+pub use elements::{
+    blocks,
+    document as base, // base.rs moved to elements/document/document.rs
+    tokens,
+    traversal,
+};
 
-// Tree traversal API using ego-tree
-pub mod traversal;
+// Legacy re-exports for backward compatibility - REMOVED
+// All callers have been updated to use the new element paths
 
 // Advanced query and traversal API (Unist-compatible) - temporarily disabled
 // pub mod query;

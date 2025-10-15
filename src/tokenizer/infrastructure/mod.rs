@@ -1,9 +1,8 @@
 //! Infrastructure modules for tokenization
 //!
-//! Contains lexer implementation, pattern utilities, and marker detection
-//! that are not directly specification-aligned but provide the foundation
-//! for specification-aligned modules.
-
-pub mod lexer;
-pub mod markers;
-pub mod patterns;
+//! Contains supporting utilities that are not core tokenization logic
+//! but provide infrastructure for the tokenization process.
+//! This mirrors the AST/parser infrastructure structure.
+//!
+//! Note: Marker detection components have been moved to elements/components/
+//! as they are shared components used across multiple element types.

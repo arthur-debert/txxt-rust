@@ -1,0 +1,79 @@
+File Layout
+
+The txxt format structure is represented in various places, from multiple places in the codebase (i.e. ast, tokenizer, etc) to the specs.
+Currently there is no consistenty, but we're slowly migrating towares a standard layout at this document's end.
+
+We aim to consistency not blind compliance. 
+In some domains, for example tokening, we have things like markers, which are ok to deviate from this structure. 
+That is to say we strive for a similar structure even through domains do vary in how they map precisely.
+
+
+<domain>/core                 # Non domain related bits, as ifrastructure
+<domain>/elements
+├── mod.rs                    # Main module file with re-exports
+├── core.rs                   # Core element traits and types
+│
+├── annotation/               # Annotation elements
+│   ├── mod.rs
+│   └── annotation.rs
+│
+├── containers/               # Generic container elements
+│   ├── mod.rs
+│   └── content.rs            # Only content container (generic)
+│
+│
+├── components/               # smaller components that are resued in various elements
+│   ├── mod.rs
+│   └── parameters.rs
+│
+│
+├── definition/               # Definition elements
+│   ├── mod.rs
+│   └── definition.rs
+│
+├── document/                 # Document-level elements
+│   ├── mod.rs
+│   └── document.rs
+│
+├── formatting/               # Text formatting elements
+│   ├── mod.rs
+│   ├── emphasis.rs           # bold, italic
+│   ├── strong.rs           # bold, italic
+│   ├── code.rs
+│   └── math.rs
+│
+├── list/                     # List-related elements
+│   ├── mod.rs
+│   ├── list.rs
+│   └── list_item.rs
+│
+├── paragraph/                # Paragraph elements
+│   ├── mod.rs
+│   └── paragraph.rs
+│
+├── references/               # Reference and link elements
+│   ├── mod.rs
+│   ├── file.rs
+│   ├── url.rs
+│   ├── session_ref.rs
+│   ├── footnote_ref.rs
+│   ├── citation.rs
+│   └── tocome.rs
+│
+├── session/                  # Session-related elements
+│   ├── mod.rs
+│   ├── session.rs
+│   ├── session_container.rs  # Session-specific container
+│   └── heading.rs
+│
+├── verbatim/                 # Verbatim elements
+│   ├── mod.rs
+│   ├── verbatim_line.rs
+│   ├── verbatim_block.rs
+│   └── ignore_container.rs   # Verbatim-specific container
+│
+└── components/               # Shared component elements
+    ├── mod.rs
+    ├── label.rs
+    └── parameters.rs
+

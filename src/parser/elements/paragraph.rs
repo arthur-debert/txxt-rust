@@ -5,7 +5,7 @@
 //! default element type when no other block structure is detected.
 //!
 //! # Specification
-//! See `docs/specs/elements/paragraph.txxt` for complete specification.
+//! See `docs/specs/elements/paragraph/paragraph.txxt` for complete specification.
 //!
 //! # Test Cases
 //! Test cases are embedded in the specification and can be loaded via:

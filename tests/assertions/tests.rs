@@ -145,7 +145,7 @@ mod validator_tests {
     #[test]
     #[cfg(feature = "new-ast")]
     fn test_validate_parameters_succeeds() {
-        use txxt::ast::parameters::Parameters;
+        use txxt::ast::elements::components::parameters::Parameters;
         
         let mut params = Parameters::new();
         params.insert("key1".to_string(), "value1".to_string());
@@ -163,7 +163,7 @@ mod validator_tests {
     #[should_panic(expected = "Parameter validation failed for key")]
     #[cfg(feature = "new-ast")]
     fn test_validate_parameters_value_mismatch() {
-        use txxt::ast::parameters::Parameters;
+        use txxt::ast::elements::components::parameters::Parameters;
         
         let mut params = Parameters::new();
         params.insert("key1".to_string(), "wrong_value".to_string());
@@ -179,7 +179,7 @@ mod validator_tests {
     #[should_panic(expected = "missing key")]
     #[cfg(feature = "new-ast")]
     fn test_validate_parameters_missing_key() {
-        use txxt::ast::parameters::Parameters;
+        use txxt::ast::elements::components::parameters::Parameters;
         
         let params = Parameters::new(); // Empty
 

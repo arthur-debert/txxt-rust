@@ -64,7 +64,7 @@ Now, we have systematically design the full syntax, with the grammar and tokens,
 - The core tipology of elements and nodes: docs/specs/core/terminology.txxt
 - The format's syntax: docs/specs/core/syntax.txxt
 - docs/specs/core/elements/
-- The core reusable blocks (docs/specs/elements/container.txxt docs/specs/elements/labels.txxt docs/specs/elements/parameters.txxt)
+- The core reusable blocks (docs/specs/elements/containers/container.txxt docs/specs/elements/components/labels.txxt docs/specs/elements/components/parameters.txxt)
 - Then docs/specs/elements/ `<elements> for the work you'll be doing
 - This is the authorative information on txxt, and these will win every other source
 

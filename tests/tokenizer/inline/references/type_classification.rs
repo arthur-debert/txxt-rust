@@ -3,7 +3,7 @@
 //! Tests each reference type in isolation with valid and invalid inputs,
 //! plus full classifier tests with precedence validation.
 
-use txxt::ast::reference_types::{ReferenceClassifier, SimpleReferenceType};
+use txxt::ast::elements::references::reference_types::{ReferenceClassifier, SimpleReferenceType};
 
 #[cfg(test)]
 mod url_reference_tests {

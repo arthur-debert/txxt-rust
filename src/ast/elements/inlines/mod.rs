@@ -8,24 +8,25 @@
 //! "Span: The smallest unit of text that does not include line breaks.
 //! A line can host multiple spans."
 
-pub mod formatting;
-pub mod references;
+// Legacy inline elements - these have been moved to functional modules
+// pub mod formatting;  // moved to formatting/
+// pub mod references;  // moved to references/
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::ast::{
-    annotations::Annotation,
-    parameters::Parameters,
-    reference_types::ReferenceTarget,
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation,
+    components::parameters::Parameters,
+    references::reference_types::ReferenceTarget,
     tokens::{Token, TokenSequence},
 };
 
 use super::core::{ElementType, SpanElement, TxxtElement};
 
-// Re-export inline types
-pub use formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan};
-pub use references::{
+// Re-export inline types from new functional modules
+pub use super::formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan};
+pub use super::references::{
     CitationSpan, FootnoteReferenceSpan, PageReferenceSpan, ReferenceSpan, SessionReferenceSpan,
 };
 

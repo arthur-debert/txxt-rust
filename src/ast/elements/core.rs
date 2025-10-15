@@ -5,7 +5,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
+    tokens::TokenSequence,
+};
 
 /// Element type classification according to specification terminology
 ///
@@ -128,15 +131,15 @@ pub enum ContainerType {
 pub enum ElementNode {
     // Span elements (inline)
     TextSpan(super::inlines::TextSpan),
-    BoldSpan(super::inlines::formatting::BoldSpan),
-    ItalicSpan(super::inlines::formatting::ItalicSpan),
-    CodeSpan(super::inlines::formatting::CodeSpan),
-    MathSpan(super::inlines::formatting::MathSpan),
-    ReferenceSpan(super::inlines::references::ReferenceSpan),
-    CitationSpan(super::inlines::references::CitationSpan),
-    PageReferenceSpan(super::inlines::references::PageReferenceSpan),
-    SessionReferenceSpan(super::inlines::references::SessionReferenceSpan),
-    FootnoteReferenceSpan(super::inlines::references::FootnoteReferenceSpan),
+    BoldSpan(super::formatting::BoldSpan),
+    ItalicSpan(super::formatting::ItalicSpan),
+    CodeSpan(super::formatting::CodeSpan),
+    MathSpan(super::formatting::MathSpan),
+    ReferenceSpan(super::inlines::Reference),
+    CitationSpan(super::references::CitationSpan),
+    PageReferenceSpan(super::references::PageReferenceSpan),
+    SessionReferenceSpan(super::references::SessionReferenceSpan),
+    FootnoteReferenceSpan(super::references::FootnoteReferenceSpan),
 
     // Line elements
     TextLine(super::inlines::TextLine),
@@ -152,8 +155,8 @@ pub enum ElementNode {
 
     // Container elements
     ContentContainer(super::containers::ContentContainer),
-    SessionContainer(super::containers::SessionContainer),
-    IgnoreContainer(super::containers::IgnoreContainer),
+    SessionContainer(super::session::SessionContainer),
+    IgnoreContainer(super::verbatim::IgnoreContainer),
 }
 
 impl ElementNode {

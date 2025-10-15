@@ -14,13 +14,13 @@ mod assertions;
 
 #[cfg(feature = "new-ast")]
 use txxt::ast::{
-    annotations::{Annotation, AnnotationContent},
+    elements::annotation::annotation_content::{Annotation, AnnotationContent},
+    elements::components::parameters::Parameters,
     elements::{
-        containers::session::SessionContainerElement,
         inlines::{TextSpan, TextTransform},
         paragraph::ParagraphBlock,
+        session::session_container::SessionContainerElement,
     },
-    parameters::Parameters,
     tokens::TokenSequence,
 };
 

@@ -1,14 +1,18 @@
+#![allow(rustdoc::bare_urls)]
+#![allow(rustdoc::broken_intra_doc_links)]
+#![allow(rustdoc::invalid_html_tags)]
+
 //! TXXT Tree Visualization CLI Tool
 //!
 //! A command line tool that takes a TXXT file, parses it, and outputs
 //! the tree notation representation of its AST.
 //!
 //! Usage:
-//!   txxt-treeviz <input-file> [options]
+//!   txxt-treeviz `<input-file>` [options]
 //!
 //! Options:
-//!   --format <format>     Output format: treeviz (default), json
-//!   --config <file>       Path to configuration file for custom mappings
+//!   --format `<format>`     Output format: treeviz (default), json
+//!   --config `<file>`       Path to configuration file for custom mappings
 //!   --ascii              Use ASCII characters instead of Unicode
 //!   --debug              Include debug information in output
 //!   --metadata           Include metadata in tree nodes

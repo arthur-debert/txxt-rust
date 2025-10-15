@@ -15,13 +15,11 @@ mod framework_tests {
     use txxt::ast::{
         elements::{
             annotation::{AnnotationBlock, AnnotationContent},
-            containers::{
-                content::{ContentContainer, ContentContainerElement},
-                session::{SessionContainer, SessionContainerElement},
-            },
+            containers::content::{ContentContainer, ContentContainerElement},
             core::{ElementType, TxxtElement},
             inlines::{TextSpan, TextTransform},
             paragraph::ParagraphBlock,
+            session::{session_container::SessionContainerElement, SessionContainer},
         },
         parameters::Parameters,
         tokens::{Position, SourceSpan, Token, TokenSequence},

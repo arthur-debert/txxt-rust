@@ -39,11 +39,9 @@ use regex::Regex;
 use crate::ast::{
     base::Document,
     elements::{
-        containers::{
-            content::{ContentContainer, ContentContainerElement},
-            session::{SessionContainer, SessionContainerElement},
-        },
+        containers::content::{ContentContainer, ContentContainerElement},
         core::{ElementType, TxxtElement},
+        session::{session_container::SessionContainerElement, SessionContainer},
     },
 };
 
@@ -1406,7 +1404,7 @@ impl TraversableDocument {
 mod tests {
     use super::*;
     use crate::ast::base::{AssemblyInfo, Document, Meta};
-    use crate::ast::elements::containers::session::SessionContainer;
+    use crate::ast::elements::session::SessionContainer;
 
     #[test]
     fn test_ego_tree_basic_functionality() {
@@ -1497,9 +1495,9 @@ mod tests {
     #[test]
     fn test_tree_building_with_content() {
         use crate::ast::elements::{
-            containers::ignore::IgnoreContainer,
             core::BlankLine,
             paragraph::ParagraphBlock,
+            verbatim::IgnoreContainer,
             verbatim::{VerbatimBlock, VerbatimType},
         };
 

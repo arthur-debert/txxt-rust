@@ -57,7 +57,7 @@ pub use expected::*;
 
 #[cfg(feature = "new-ast")]
 use txxt::ast::elements::{
-    containers::session::SessionContainerElement, paragraph::ParagraphBlock,
+    paragraph::ParagraphBlock, session::session_container::SessionContainerElement,
 };
 
 #[cfg(feature = "new-ast")]
@@ -1031,9 +1031,9 @@ fn content_element_type_name(
 /// Get the element type name from a SessionContainerElement
 #[cfg(feature = "new-ast")]
 fn session_element_type_name(
-    element: &txxt::ast::elements::containers::session::SessionContainerElement,
+    element: &txxt::ast::elements::session::session_container::SessionContainerElement,
 ) -> &'static str {
-    use txxt::ast::elements::containers::session::SessionContainerElement;
+    use txxt::ast::elements::session::session_container::SessionContainerElement;
     match element {
         SessionContainerElement::Paragraph(_) => "Paragraph",
         SessionContainerElement::List(_) => "List",
@@ -1072,10 +1072,12 @@ fn content_element_matches_type(
 /// Check if SessionContainerElement matches the expected ElementType
 #[cfg(feature = "new-ast")]
 fn session_element_matches_type(
-    element: &txxt::ast::elements::containers::session::SessionContainerElement,
+    element: &txxt::ast::elements::session::session_container::SessionContainerElement,
     expected_type: &txxt::ast::elements::core::ElementType,
 ) -> bool {
-    use txxt::ast::elements::{containers::session::SessionContainerElement, core::ElementType};
+    use txxt::ast::elements::{
+        core::ElementType, session::session_container::SessionContainerElement,
+    };
     matches!(
         (element, expected_type),
         (SessionContainerElement::Paragraph(_), ElementType::Block)
@@ -1244,9 +1246,9 @@ pub fn assert_content_container(
 #[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_session_container(
-    container: &txxt::ast::elements::containers::session::SessionContainer,
+    container: &txxt::ast::elements::session::SessionContainer,
     expected: SessionContainerExpected,
-) -> &txxt::ast::elements::containers::session::SessionContainer {
+) -> &txxt::ast::elements::session::SessionContainer {
     // Element count validation
     if let Some(expected_count) = expected.element_count {
         let actual_count = container.content.len();
@@ -1295,7 +1297,7 @@ pub fn assert_session_container(
 
     // Has session validation
     if let Some(expected_has_session) = expected.has_session {
-        use txxt::ast::elements::containers::session::SessionContainerElement;
+        use txxt::ast::elements::session::session_container::SessionContainerElement;
         let actual_has_session = container
             .content
             .iter()
@@ -1311,7 +1313,7 @@ pub fn assert_session_container(
 
     // Session count validation
     if let Some(expected_count) = expected.session_count {
-        use txxt::ast::elements::containers::session::SessionContainerElement;
+        use txxt::ast::elements::session::session_container::SessionContainerElement;
         let actual_count = container
             .content
             .iter()

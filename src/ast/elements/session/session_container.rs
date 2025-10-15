@@ -67,10 +67,10 @@ pub enum SessionContainerElement {
     Annotation(super::super::annotation::AnnotationBlock),
 
     /// Session blocks (only allowed in session containers!)
-    Session(super::super::session::SessionBlock),
+    Session(super::block::SessionBlock),
 
     /// Nested content containers
-    ContentContainer(super::content::ContentContainer),
+    ContentContainer(super::super::containers::content::ContentContainer),
 
     /// Nested session containers
     SessionContainer(SessionContainer),
@@ -156,7 +156,7 @@ impl SessionContainer {
     }
 
     /// Find all sessions within this container
-    pub fn sessions(&self) -> Vec<&super::super::session::SessionBlock> {
+    pub fn sessions(&self) -> Vec<&super::block::SessionBlock> {
         self.content
             .iter()
             .filter_map(|element| match element {

@@ -10,11 +10,13 @@ use serde::{Deserialize, Serialize};
 
 // Re-export new spec-aligned types as canonical implementations
 pub use super::elements::{
-    containers::{ContentContainer as Container, IgnoreContainer, SessionContainer},
+    containers::ContentContainer as Container,
     core::{BlankLine, ContainerType},
     list::{NumberingForm, NumberingStyle},
     paragraph::ParagraphBlock as Paragraph,
+    session::SessionContainer,
     session::{SessionBlock as Session, SessionNumbering, SessionTitle},
+    verbatim::IgnoreContainer,
 };
 
 // Import TokenSequence for IgnoreLine

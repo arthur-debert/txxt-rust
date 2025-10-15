@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use super::{
-    blocks::Block, elements::containers::SessionContainer, parameters::Parameters,
+    blocks::Block, elements::session::SessionContainer, parameters::Parameters,
     tokens::TokenSequence,
 };
 

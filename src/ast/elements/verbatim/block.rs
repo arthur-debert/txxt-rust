@@ -6,11 +6,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
 
-use super::{
-    containers::IgnoreContainer,
+use super::super::{
     core::{BlockElement, ElementType, TxxtElement},
     inlines::TextTransform,
 };
+
+use super::ignore_container::IgnoreContainer;
 
 /// Verbatim block - content that bypasses all TXXT parsing
 ///

@@ -6,12 +6,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
 
-use super::{
-    containers::SessionContainer,
+use super::super::{
     core::{BlockElement, ElementType, TxxtElement},
     inlines::TextTransform,
     list::{NumberingForm, NumberingStyle},
 };
+
+use super::session_container::SessionContainer;
 
 /// Session block - a hierarchical section of the document
 ///

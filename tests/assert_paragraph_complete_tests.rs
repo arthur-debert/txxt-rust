@@ -16,9 +16,9 @@ mod assertions;
 use txxt::ast::{
     annotations::{Annotation, AnnotationContent},
     elements::{
-        containers::session::SessionContainerElement,
         inlines::{TextSpan, TextTransform},
         paragraph::ParagraphBlock,
+        session::session_container::SessionContainerElement,
     },
     parameters::Parameters,
     tokens::TokenSequence,

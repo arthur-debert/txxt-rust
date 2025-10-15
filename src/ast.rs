@@ -143,7 +143,7 @@ pub mod elements;
 // Re-export spec-aligned element types as the canonical AST
 pub use elements::{
     annotation::{AnnotationBlock, AnnotationContent},
-    containers::{ContentContainer, IgnoreContainer, SessionContainer},
+    containers::ContentContainer,
     core::{BlankLine, ContainerType, ElementNode, ElementType, TxxtElement},
     definition::{DefinitionBlock, DefinitionTerm},
     inlines::{
@@ -156,7 +156,9 @@ pub use elements::{
     },
     list::{ListBlock, ListDecorationType, ListItem, NumberingForm, NumberingStyle},
     paragraph::ParagraphBlock,
+    session::SessionContainer,
     session::{SessionBlock, SessionNumbering, SessionTitle},
+    verbatim::IgnoreContainer,
     verbatim::{VerbatimBlock, VerbatimType},
 };
 

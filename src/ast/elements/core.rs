@@ -152,8 +152,8 @@ pub enum ElementNode {
 
     // Container elements
     ContentContainer(super::containers::ContentContainer),
-    SessionContainer(super::containers::SessionContainer),
-    IgnoreContainer(super::containers::IgnoreContainer),
+    SessionContainer(super::session::SessionContainer),
+    IgnoreContainer(super::verbatim::IgnoreContainer),
 }
 
 impl ElementNode {

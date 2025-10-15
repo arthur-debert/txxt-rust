@@ -1,7 +1,11 @@
 File Layout
 
 The txxt format structure is represented in various places, from multiple places in the codebase (i.e. ast, tokenizer, etc) to the specs.
-Currently there is no consistenty, but we're slowly migrating towares a standard layout, described bellow: 
+Currently there is no consistenty, but we're slowly migrating towares a standard layout at this document's end.
+
+We aim to consistency not blind compliance. 
+In some domains, for example tokening, we have things like markers, which are ok to deviate from this structure. 
+That is to say we strive for a similar structure even through domains do vary in how they map precisely.
 
 
 

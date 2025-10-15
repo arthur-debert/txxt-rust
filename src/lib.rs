@@ -23,7 +23,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-pub mod adapters;
 pub mod annotation_parser;
 pub mod ast;
 pub mod ast_debug;

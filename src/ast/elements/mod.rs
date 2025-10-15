@@ -60,7 +60,7 @@ pub mod formatting;
 // Reference elements
 pub mod references;
 
-// Inline/span elements (legacy - to be migrated)
+// Inline/span elements
 pub mod inlines;
 
 // Shared component elements

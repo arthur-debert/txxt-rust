@@ -64,4 +64,3 @@ pub enum Block {
 }
 
 // All block-level types now defined in elements/ - see re-exports above
-// This maintains backward compatibility while using the new spec-aligned structure

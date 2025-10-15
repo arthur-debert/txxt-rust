@@ -51,12 +51,6 @@ pub mod infrastructure;
 pub use core::Lexer;
 pub use elements::verbatim::{VerbatimBlock, VerbatimScanner, VerbatimType};
 
-// Re-export element functionality for backward compatibility
-pub use elements::{
-    parse_parameters, read_annotation_marker, read_definition_marker, read_sequence_marker,
-    ParameterLexer,
-};
-
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};
 

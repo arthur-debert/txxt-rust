@@ -23,8 +23,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::{
-    blocks::Block, elements::session::SessionContainer, parameters::Parameters,
+use crate::ast::elements::{
+    blocks::Block, components::parameters::Parameters, session::SessionContainer,
     tokens::TokenSequence,
 };
 
@@ -76,7 +76,7 @@ pub enum MetaValue {
     String(String),
 
     /// Rich text with inline formatting
-    Inlines(Vec<super::inlines::Inline>),
+    Inlines(Vec<crate::ast::elements::formatting::inlines::Inline>),
 
     /// Structured content (for complex metadata)
     Blocks(Vec<Block>),

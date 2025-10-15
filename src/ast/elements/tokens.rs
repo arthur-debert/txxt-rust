@@ -156,7 +156,7 @@ pub enum Token {
 
     /// Footnote references ([1], [2], [^label])
     FootnoteRef {
-        footnote_type: crate::tokenizer::inline::references::footnote_ref::FootnoteType,
+        footnote_type: crate::tokenizer::elements::references::footnote_ref::FootnoteType,
         span: SourceSpan,
     },
 
@@ -297,7 +297,7 @@ impl Token {
     /// Get the footnote type information (only valid for FootnoteRef tokens)
     pub fn footnote_type(
         &self,
-    ) -> Option<&crate::tokenizer::inline::references::footnote_ref::FootnoteType> {
+    ) -> Option<&crate::tokenizer::elements::references::footnote_ref::FootnoteType> {
         match self {
             Token::FootnoteRef { footnote_type, .. } => Some(footnote_type),
             _ => None,

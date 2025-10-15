@@ -8,7 +8,7 @@
 //! - Roman numeral markers: "i. ", "III) "
 
 use crate::ast::tokens::{Position, SequenceMarkerType, SourceSpan, Token};
-use crate::tokenizer::infrastructure::lexer::{Lexer, LexerState};
+use crate::tokenizer::core::lexer::{Lexer, LexerState};
 
 /// Convert Roman numeral string to number
 fn roman_to_number(roman: &str) -> u64 {

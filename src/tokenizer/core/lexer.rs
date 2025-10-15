@@ -4,20 +4,20 @@
 //! positioning for language server support.
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::indentation::IndentationTracker;
-use crate::tokenizer::infrastructure::markers::{
+use crate::tokenizer::core::indentation::IndentationTracker;
+use crate::tokenizer::elements::components::{
     parameter_integration_v2::{
         integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
     },
     sequence::read_sequence_marker,
     txxt_marker::{read_annotation_marker, read_definition_marker},
 };
-use crate::tokenizer::inline::read_inline_delimiter;
-use crate::tokenizer::inline::references::{
+use crate::tokenizer::elements::formatting::read_inline_delimiter;
+use crate::tokenizer::elements::references::{
     citations::read_citation_ref, footnote_ref::read_footnote_ref, page_ref::read_page_ref,
     session_ref::read_session_ref,
 };
-use crate::tokenizer::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
+use crate::tokenizer::elements::verbatim::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
 
 /// Check if a character is a special delimiter that should terminate text tokens
 fn is_special_delimiter(ch: char) -> bool {
@@ -150,7 +150,7 @@ impl Lexer {
             } else if let Some(token) = read_footnote_ref(self) {
                 tokens.push(token);
             } else if let Some(token) =
-                crate::tokenizer::inline::references::ReferenceLexer::read_ref_marker(self)
+                crate::tokenizer::elements::references::ReferenceLexer::read_ref_marker(self)
             {
                 tokens.push(token);
             } else if let Some(token) = self.read_left_bracket() {
@@ -741,7 +741,7 @@ impl Lexer {
 
     /// Check if we're at the start of line content after proper indentation
     fn is_at_line_start_after_indent(&self, tokens: &[Token]) -> bool {
-        use crate::tokenizer::indentation::is_valid_indentation_level;
+        use crate::tokenizer::core::indentation::is_valid_indentation_level;
 
         // Look back at recent tokens to see if we just processed proper indentation
         if tokens.is_empty() {
@@ -841,7 +841,7 @@ impl VerbatimLexer for Lexer {
 }
 
 // Trait implementations for reference lexing
-use crate::tokenizer::inline::references::{CitationRefLexer, PageRefLexer};
+use crate::tokenizer::elements::references::{CitationRefLexer, PageRefLexer};
 
 impl CitationRefLexer for Lexer {
     fn current_position(&self) -> Position {
@@ -921,7 +921,7 @@ impl PageRefLexer for Lexer {
     }
 }
 
-impl crate::tokenizer::inline::references::session_ref::SessionRefLexer for Lexer {
+impl crate::tokenizer::elements::references::session_ref::SessionRefLexer for Lexer {
     fn current_position(&self) -> crate::ast::tokens::Position {
         crate::ast::tokens::Position {
             row: self.row,
@@ -971,7 +971,7 @@ impl crate::tokenizer::inline::references::session_ref::SessionRefLexer for Lexe
     }
 }
 
-impl crate::tokenizer::inline::references::ReferenceLexer for Lexer {
+impl crate::tokenizer::elements::references::ReferenceLexer for Lexer {
     fn current_position(&self) -> Position {
         Position {
             row: self.row,
@@ -1017,7 +1017,7 @@ impl crate::tokenizer::inline::references::ReferenceLexer for Lexer {
     }
 }
 
-impl crate::tokenizer::inline::references::footnote_ref::FootnoteRefLexer for Lexer {
+impl crate::tokenizer::elements::references::footnote_ref::FootnoteRefLexer for Lexer {
     fn current_position(&self) -> crate::ast::tokens::Position {
         crate::ast::tokens::Position {
             row: self.row,

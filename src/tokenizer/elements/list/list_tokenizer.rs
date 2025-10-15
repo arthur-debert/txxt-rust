@@ -6,4 +6,4 @@
 //! Sequence marker parsing for lists
 
 // Re-export the sequence marker reading function from infrastructure
-pub use crate::tokenizer::infrastructure::markers::sequence::read_sequence_marker;
+pub use crate::tokenizer::elements::components::sequence::read_sequence_marker;

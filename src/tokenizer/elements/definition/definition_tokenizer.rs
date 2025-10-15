@@ -6,4 +6,4 @@
 //! Definition pattern: term :: content or term:params :: content
 
 // Re-export the definition marker reading function from infrastructure
-pub use crate::tokenizer::infrastructure::markers::txxt_marker::read_definition_marker;
+pub use crate::tokenizer::elements::components::txxt_marker::read_definition_marker;

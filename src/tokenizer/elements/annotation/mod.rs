@@ -5,5 +5,7 @@
 //!
 //! Annotation pattern: :: label :: content or :: label:params :: content
 
-// Re-export the annotation marker reading function from infrastructure
-pub use crate::tokenizer::infrastructure::markers::txxt_marker::read_annotation_marker;
+pub mod annotation_tokenizer;
+
+// Re-export main interfaces
+pub use crate::tokenizer::elements::components::txxt_marker::read_annotation_marker;

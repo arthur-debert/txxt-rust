@@ -33,7 +33,7 @@ use serde::{Deserialize, Serialize};
 // All types now defined in elements/ module
 
 // Re-export new types as the canonical implementations
-pub use super::elements::{
+pub use super::{
     definition::{DefinitionBlock as Definition, DefinitionTerm},
     list::{ListBlock as List, ListDecorationType, ListItem},
     verbatim::{VerbatimBlock, VerbatimType},
@@ -48,19 +48,19 @@ pub use super::elements::{
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Block {
     // Leaf blocks (cannot contain other blocks)
-    Paragraph(super::elements::paragraph::ParagraphBlock),
+    Paragraph(super::paragraph::ParagraphBlock),
     VerbatimBlock(VerbatimBlock),
-    BlankLine(super::elements::core::BlankLine),
+    BlankLine(super::core::BlankLine),
 
     // Content container blocks (cannot host sessions)
     List(List),
     Definition(Definition),
 
     // Session container blocks (can host new document sessions)
-    Session(super::elements::session::SessionBlock),
+    Session(super::session::SessionBlock),
 
     // Container nodes for indented content
-    Container(super::elements::containers::ContentContainer),
+    Container(super::containers::ContentContainer),
 }
 
 // All block-level types now defined in elements/ - see re-exports above

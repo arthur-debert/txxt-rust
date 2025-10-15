@@ -1,6 +1,6 @@
 //! Debug multiple blocks
 
-use txxt::tokenizer::verbatim_scanner::VerbatimScanner;
+use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 
 #[test]
 fn debug_multiple_blocks() {

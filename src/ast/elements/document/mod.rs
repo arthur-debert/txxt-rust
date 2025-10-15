@@ -2,7 +2,7 @@
 //!
 //! Document-level elements for top-level document structure.
 
-// TODO: Add document-specific elements when needed
+pub mod document_structure;
 
 // Re-export document types
-// pub use document::DocumentElement;
+pub use document_structure::{AssemblyInfo, Document, Meta, MetaValue, ProcessingStats};

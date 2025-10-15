@@ -5,22 +5,21 @@
 pub mod citations;
 pub mod footnote_ref;
 pub mod page_ref;
+pub mod reference_types;
 pub mod session_ref;
 
 // Re-export reference types
 pub use citations::CitationSpan;
 pub use footnote_ref::FootnoteReferenceSpan;
 pub use page_ref::PageReferenceSpan;
+pub use reference_types::*;
 pub use session_ref::SessionReferenceSpan;
 
 // General reference span for links and cross-references
 // (copied from inlines/references/mod.rs for functionality-driven organization)
 
-use super::super::inlines::TextTransform;
-use crate::ast::{
-    annotations::Annotation, parameters::Parameters, reference_types::ReferenceTarget,
-    tokens::TokenSequence,
-};
+use crate::ast::elements::formatting::inlines::TextTransform;
+use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
 use serde::{Deserialize, Serialize};
 
 /// General reference span for links and cross-references
@@ -29,7 +28,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ReferenceSpan {
     /// Comprehensive reference target with full type information
-    pub target: ReferenceTarget,
+    pub target: crate::ast::elements::references::reference_types::ReferenceTarget,
 
     /// Optional custom display content (if not auto-generated)
     pub content: Option<Vec<TextTransform>>,

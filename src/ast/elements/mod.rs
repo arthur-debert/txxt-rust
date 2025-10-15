@@ -35,6 +35,11 @@
 // Core element trait and types
 pub mod core;
 
+// Core AST files
+pub mod blocks;
+pub mod tokens;
+pub mod traversal;
+
 // Container elements (hold child elements)
 pub mod containers;
 

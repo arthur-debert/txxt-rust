@@ -146,6 +146,7 @@ pub use elements::{
     containers::ContentContainer,
     core::{BlankLine, ContainerType, ElementNode, ElementType, TxxtElement},
     definition::{DefinitionBlock, DefinitionTerm},
+    document::{AssemblyInfo, Document, Meta, MetaValue, ProcessingStats},
     formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan},
     inlines::{Link, Reference, ReferenceSpan, TextLine, TextSpan, TextTransform},
     list::{ListBlock, ListDecorationType, ListItem, NumberingForm, NumberingStyle},
@@ -157,18 +158,20 @@ pub use elements::{
     verbatim::{VerbatimBlock, VerbatimType},
 };
 
-// Core AST infrastructure (existing proven architecture)
+// Core AST infrastructure (moved to elements/)
+pub use elements::{
+    blocks,
+    document as base, // base.rs moved to elements/document/document.rs
+    tokens,
+    traversal,
+};
+
+// Legacy re-exports for backward compatibility
 pub mod annotations;
-pub mod base;
-pub mod blocks;
 pub mod inlines;
 pub mod parameters;
 pub mod reference_types;
 pub mod structure;
-pub mod tokens;
-
-// Tree traversal API using ego-tree
-pub mod traversal;
 
 // Advanced query and traversal API (Unist-compatible) - temporarily disabled
 // pub mod query;

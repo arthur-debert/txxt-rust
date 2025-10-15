@@ -1,7 +1,7 @@
 //! Label element tokenization
 //!
 //! Implements tokenization for label elements as defined in
-//! docs/specs/elements/labels.txxt
+//! docs/specs/elements/components/labels.txxt
 //!
 //! Labels provide identification and metadata for elements.
 //! They follow consistent identifier rules and support namespacing.

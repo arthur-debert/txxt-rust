@@ -1,7 +1,7 @@
 //! Container element tokenization
 //!
 //! Implements tokenization for container elements as defined in
-//! docs/specs/elements/container.txxt
+//! docs/specs/elements/containers/container.txxt
 //!
 //! Containers provide structural organization through indentation.
 

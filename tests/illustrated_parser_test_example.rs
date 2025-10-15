@@ -47,7 +47,7 @@ use corpora::TxxtCorpora;
 #[test]
 fn illustrated_parse_simple_paragraph() {
     // Step 1: Load the test corpus
-    // This gets the exact sample from docs/specs/elements/paragraph.txxt
+    // This gets the exact sample from docs/specs/elements/paragraph/paragraph.txxt
     let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")
         .expect("Corpus should exist in specs");
 

@@ -1,7 +1,7 @@
 //! Annotation element tokenization
 //!
 //! Implements tokenization for annotation elements as defined in
-//! docs/specs/elements/annotation.txxt
+//! docs/specs/elements/annotation/annotation.txxt
 //!
 //! Annotation pattern: :: label :: content or :: label:params :: content
 

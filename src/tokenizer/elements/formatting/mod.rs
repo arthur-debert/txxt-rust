@@ -1,7 +1,7 @@
 //! Formatting tokenization modules
 //!
 //! This module contains all formatting-type tokenizers that implement the formatting
-//! patterns defined in docs/specs/elements/inlines/formatting.txxt.
+//! patterns defined in docs/specs/elements/formatting/formatting.txxt.
 
 pub mod delimiters;
 

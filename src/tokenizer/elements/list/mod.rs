@@ -1,7 +1,7 @@
 //! List element tokenization
 //!
 //! Implements tokenization for list elements as defined in
-//! docs/specs/elements/list.txxt
+//! docs/specs/elements/list/list.txxt
 //!
 //! Sequence marker parsing for lists
 

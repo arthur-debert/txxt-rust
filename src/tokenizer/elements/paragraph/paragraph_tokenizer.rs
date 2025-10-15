@@ -1,7 +1,7 @@
 //! Paragraph element tokenization
 //!
 //! Implements tokenization for paragraph elements as defined in
-//! docs/specs/elements/paragraph.txxt
+//! docs/specs/elements/paragraph/paragraph.txxt
 //!
 //! Paragraphs are the fundamental text blocks containing inline content.
 //! They serve as the default element type when no other structure is detected.

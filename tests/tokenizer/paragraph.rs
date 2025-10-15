@@ -1,6 +1,6 @@
 //! Tests for paragraph element tokenization
 //!
-//! Tests paragraph tokenization as defined in docs/specs/elements/paragraph.txxt
+//! Tests paragraph tokenization as defined in docs/specs/elements/paragraph/paragraph.txxt
 //! This module will contain tests once paragraph tokenization is implemented.
 
 // TODO: Add paragraph tokenization tests

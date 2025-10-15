@@ -1,6 +1,6 @@
 //! Tests for session element tokenization
 //!
-//! Tests session tokenization as defined in docs/specs/elements/session.txxt
+//! Tests session tokenization as defined in docs/specs/elements/session/session.txxt
 //! This module will contain tests once session tokenization is implemented.
 
 // TODO: Add session tokenization tests

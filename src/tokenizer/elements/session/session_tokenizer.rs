@@ -1,7 +1,7 @@
 //! Session element tokenization
 //!
 //! Implements tokenization for session elements as defined in
-//! docs/specs/elements/session.txxt
+//! docs/specs/elements/session/session.txxt
 //!
 //! Sessions are hierarchical content sections. At the tokenizer level,
 //! sessions produce the same tokens as paragraphs (SequenceMarker + Text).

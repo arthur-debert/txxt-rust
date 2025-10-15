@@ -1,7 +1,7 @@
 //! Definition element tokenization
 //!
 //! Implements tokenization for definition elements as defined in
-//! docs/specs/elements/definition.txxt
+//! docs/specs/elements/definition/definition.txxt
 //!
 //! Definition pattern: term :: content or term:params :: content
 

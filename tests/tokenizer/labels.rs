@@ -1,6 +1,6 @@
 //! Tests for label element tokenization
 //!
-//! Tests label tokenization as defined in docs/specs/elements/labels.txxt
+//! Tests label tokenization as defined in docs/specs/elements/components/labels.txxt
 //! This module will contain tests once label tokenization is implemented.
 
 // TODO: Add label tokenization tests

@@ -1,7 +1,7 @@
 //! Reference tokenization modules
 //!
 //! This module contains all reference-type tokenizers that implement the reference
-//! patterns defined in docs/specs/elements/inlines/references/.
+//! patterns defined in docs/specs/elements/references/.
 
 pub mod citations;
 pub mod footnote_ref;

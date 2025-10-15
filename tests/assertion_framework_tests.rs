@@ -591,7 +591,6 @@ mod framework_tests {
 
     #[test]
     fn test_assert_content_container_has_element_type() {
-        use txxt::ast::elements::core::ElementType;
 
         let para = ParagraphBlock {
             content: vec![],

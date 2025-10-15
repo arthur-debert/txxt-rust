@@ -966,9 +966,9 @@ fn extract_text_from_content_container(
     container: &txxt::ast::elements::containers::content::ContentContainer,
 ) -> String {
     use txxt::ast::elements::containers::content::ContentContainerElement;
-    
+
     let mut text = String::new();
-    
+
     for element in &container.content {
         match element {
             ContentContainerElement::Paragraph(p) => {
@@ -990,26 +990,24 @@ fn extract_text_from_content_container(
                 text.push_str(&v.content_text());
                 text.push('\n');
             }
-            ContentContainerElement::Annotation(a) => {
-                match &a.content {
-                    txxt::ast::elements::annotation::AnnotationContent::Inline(transforms) => {
-                        text.push_str(&validators::extract_all_text(&transforms));
-                        text.push('\n');
-                    }
-                    txxt::ast::elements::annotation::AnnotationContent::Block(c) => {
-                        text.push_str(&extract_text_from_content_container(&c));
-                    }
+            ContentContainerElement::Annotation(a) => match &a.content {
+                txxt::ast::elements::annotation::AnnotationContent::Inline(transforms) => {
+                    text.push_str(&validators::extract_all_text(transforms));
+                    text.push('\n');
                 }
-            }
+                txxt::ast::elements::annotation::AnnotationContent::Block(c) => {
+                    text.push_str(&extract_text_from_content_container(c));
+                }
+            },
             ContentContainerElement::Container(c) => {
-                text.push_str(&extract_text_from_content_container(&c));
+                text.push_str(&extract_text_from_content_container(c));
             }
             ContentContainerElement::BlankLine(_) => {
                 // Skip blank lines for text extraction
             }
         }
     }
-    
+
     text
 }
 
@@ -1063,7 +1061,10 @@ fn content_element_matches_type(
             | (ContentContainerElement::Definition(_), ElementType::Block)
             | (ContentContainerElement::Verbatim(_), ElementType::Block)
             | (ContentContainerElement::Annotation(_), ElementType::Block)
-            | (ContentContainerElement::Container(_), ElementType::Container)
+            | (
+                ContentContainerElement::Container(_),
+                ElementType::Container
+            )
             | (ContentContainerElement::BlankLine(_), ElementType::Line)
     )
 }
@@ -1083,8 +1084,14 @@ fn session_element_matches_type(
             | (SessionContainerElement::Verbatim(_), ElementType::Block)
             | (SessionContainerElement::Annotation(_), ElementType::Block)
             | (SessionContainerElement::Session(_), ElementType::Block)
-            | (SessionContainerElement::ContentContainer(_), ElementType::Container)
-            | (SessionContainerElement::SessionContainer(_), ElementType::Container)
+            | (
+                SessionContainerElement::ContentContainer(_),
+                ElementType::Container
+            )
+            | (
+                SessionContainerElement::SessionContainer(_),
+                ElementType::Container
+            )
             | (SessionContainerElement::BlankLine(_), ElementType::Line)
     )
 }
@@ -1116,10 +1123,10 @@ fn session_element_matches_type(
 /// ```
 #[cfg(feature = "new-ast")]
 #[allow(dead_code)]
-pub fn assert_content_container<'a>(
-    container: &'a txxt::ast::elements::containers::content::ContentContainer,
+pub fn assert_content_container(
+    container: &txxt::ast::elements::containers::content::ContentContainer,
     expected: ContentContainerExpected,
-) -> &'a txxt::ast::elements::containers::content::ContentContainer {
+) -> &txxt::ast::elements::containers::content::ContentContainer {
     // Element count validation
     if let Some(expected_count) = expected.element_count {
         let actual_count = container.content.len();
@@ -1146,8 +1153,11 @@ pub fn assert_content_container<'a>(
         );
 
         // Validate each element's type matches expected
-        for (i, (element, expected_type)) in
-            container.content.iter().zip(expected_types.iter()).enumerate()
+        for (i, (element, expected_type)) in container
+            .content
+            .iter()
+            .zip(expected_types.iter())
+            .enumerate()
         {
             let matches = content_element_matches_type(element, expected_type);
             assert!(
@@ -1169,13 +1179,13 @@ pub fn assert_content_container<'a>(
             .content
             .iter()
             .any(|el| content_element_matches_type(el, &expected_type));
-        
+
         let actual_types: Vec<_> = container
             .content
             .iter()
             .map(content_element_type_name)
             .collect();
-        
+
         assert!(
             found,
             "No element of requested type found in container\n\
@@ -1233,10 +1243,10 @@ pub fn assert_content_container<'a>(
 /// ```
 #[cfg(feature = "new-ast")]
 #[allow(dead_code)]
-pub fn assert_session_container<'a>(
-    container: &'a txxt::ast::elements::containers::session::SessionContainer,
+pub fn assert_session_container(
+    container: &txxt::ast::elements::containers::session::SessionContainer,
     expected: SessionContainerExpected,
-) -> &'a txxt::ast::elements::containers::session::SessionContainer {
+) -> &txxt::ast::elements::containers::session::SessionContainer {
     // Element count validation
     if let Some(expected_count) = expected.element_count {
         let actual_count = container.content.len();
@@ -1263,8 +1273,11 @@ pub fn assert_session_container<'a>(
         );
 
         // Validate each element's type matches expected
-        for (i, (element, expected_type)) in
-            container.content.iter().zip(expected_types.iter()).enumerate()
+        for (i, (element, expected_type)) in container
+            .content
+            .iter()
+            .zip(expected_types.iter())
+            .enumerate()
         {
             let matches = session_element_matches_type(element, expected_type);
             assert!(
@@ -1392,9 +1405,7 @@ pub fn assert_inline_content(
 
     // Has code validation
     if let Some(expected_has_code) = expected.has_code {
-        let actual_has_code = content
-            .iter()
-            .any(|t| matches!(t, TextTransform::Code(_)));
+        let actual_has_code = content.iter().any(|t| matches!(t, TextTransform::Code(_)));
         assert_eq!(
             actual_has_code, expected_has_code,
             "Code formatting presence mismatch\n\
@@ -1406,9 +1417,7 @@ pub fn assert_inline_content(
 
     // Has math validation
     if let Some(expected_has_math) = expected.has_math {
-        let actual_has_math = content
-            .iter()
-            .any(|t| matches!(t, TextTransform::Math(_)));
+        let actual_has_math = content.iter().any(|t| matches!(t, TextTransform::Math(_)));
         assert_eq!(
             actual_has_math, expected_has_math,
             "Math formatting presence mismatch\n\

@@ -210,8 +210,14 @@ pub fn normalize_indentation(line: &str, tab_width: usize) -> String {
 
 /// Check if an indentation level is valid (multiple of INDENT_SIZE)
 pub fn is_valid_indentation_level(level: usize) -> bool {
-    debug_assert!(INDENT_SIZE > 0, "INDENT_SIZE must be greater than zero to avoid division by zero");
-    level % INDENT_SIZE == 0
+    #[allow(clippy::assertions_on_constants)]
+    {
+        debug_assert!(
+            INDENT_SIZE > 0,
+            "INDENT_SIZE must be greater than zero to avoid division by zero"
+        );
+    }
+    level.is_multiple_of(INDENT_SIZE)
 }
 
 #[cfg(test)]

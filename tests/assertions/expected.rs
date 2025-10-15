@@ -24,7 +24,6 @@
 
 use std::collections::HashMap;
 
-#[cfg(feature = "new-ast")]
 use txxt::ast::elements::{
     annotation::AnnotationContent, core::ElementType, list::NumberingStyle, verbatim::VerbatimType,
 };
@@ -227,7 +226,6 @@ pub enum AnnotationContentType {
 }
 
 impl AnnotationContentType {
-    #[cfg(feature = "new-ast")]
     #[allow(dead_code)] // Will be used during annotation parsing
     pub fn matches(&self, content: &AnnotationContent) -> bool {
         match (self, content) {

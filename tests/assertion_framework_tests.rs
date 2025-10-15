@@ -591,7 +591,6 @@ mod framework_tests {
 
     #[test]
     fn test_assert_content_container_has_element_type() {
-
         let para = ParagraphBlock {
             content: vec![],
             annotations: vec![],
@@ -689,10 +688,7 @@ mod framework_tests {
                         content: "Block content text".to_string(),
                         span: SourceSpan {
                             start: Position { row: 0, column: 0 },
-                            end: Position {
-                                row: 0,
-                                column: 18,
-                            },
+                            end: Position { row: 0, column: 18 },
                         },
                     }],
                 },

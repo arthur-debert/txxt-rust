@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use txxt::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
 
 #[cfg(feature = "new-ast")]
-use assertions::component_assertions::*;
+use assertions::elements::components::component_assertions::*;
 
 // ============================================================================
 // Parameters Assertion Tests

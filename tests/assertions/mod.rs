@@ -37,7 +37,7 @@
 //!
 //! When implementing a parser for a new element, add its assertion:
 //!
-//! 1. Expected struct already exists in `expected.rs`
+//! 1. Expected struct already exists in `elements/{element}/expected.rs`
 //! 2. Copy `assert_paragraph()` as template
 //! 3. Rename to `assert_your_element()`
 //! 4. Update downcast logic for your element type
@@ -47,13 +47,20 @@
 //!
 //! Time per element: ~30 minutes
 
-pub mod component_assertions;
-pub mod expected;
+// Core assertion functionality
+pub mod core;
+
+// Element-specific assertions organized by type
+pub mod elements;
+
+// Legacy modules for backward compatibility
 pub mod validators;
 
 // Re-export expected structs for convenience
 #[cfg(feature = "new-ast")]
-pub use expected::*;
+pub use core::*;
+#[cfg(feature = "new-ast")]
+pub use elements::*;
 
 #[cfg(feature = "new-ast")]
 use txxt::ast::elements::{

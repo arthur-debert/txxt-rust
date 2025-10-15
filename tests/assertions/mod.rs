@@ -859,7 +859,7 @@ pub fn assert_annotation<'a>(
                  Expected: AnnotationBlock\n\
                  Actual: {:?}\n\
                  Hint: Ensure you're extracting the correct element from the container",
-                element_type_name(other)
+                session_element_type_name(other)
             );
         }
     };

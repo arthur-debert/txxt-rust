@@ -927,14 +927,9 @@ pub fn assert_annotation<'a>(
     if let Some(needle) = expected.content_contains {
         let actual_content = match &annotation.content {
             AnnotationContent::Inline(transforms) => validators::extract_all_text(transforms),
-            AnnotationContent::Block(_) => {
-                // For block content, we'd need to extract all text from all elements
-                // For now, we'll panic with a helpful message
-                panic!(
-                    "Content contains validation for block annotations not yet implemented\n\
-                     Expected to contain: '{}'",
-                    needle
-                );
+            AnnotationContent::Block(content_container) => {
+                // Extract all text from all elements in the block content
+                extract_text_from_content_container(content_container)
             }
         };
         assert!(
@@ -965,6 +960,135 @@ pub fn assert_annotation<'a>(
 // CONTAINER ASSERTIONS
 // ============================================================================
 
+/// Extract all text from a ContentContainer recursively
+#[cfg(feature = "new-ast")]
+fn extract_text_from_content_container(
+    container: &txxt::ast::elements::containers::content::ContentContainer,
+) -> String {
+    use txxt::ast::elements::containers::content::ContentContainerElement;
+    
+    let mut text = String::new();
+    
+    for element in &container.content {
+        match element {
+            ContentContainerElement::Paragraph(p) => {
+                text.push_str(&validators::extract_all_text(&p.content));
+                text.push('\n');
+            }
+            ContentContainerElement::List(l) => {
+                for item in &l.items {
+                    text.push_str(&item.text_content());
+                    text.push('\n');
+                }
+            }
+            ContentContainerElement::Definition(d) => {
+                text.push_str(&d.term_text());
+                text.push('\n');
+                text.push_str(&extract_text_from_content_container(&d.content));
+            }
+            ContentContainerElement::Verbatim(v) => {
+                text.push_str(&v.content_text());
+                text.push('\n');
+            }
+            ContentContainerElement::Annotation(a) => {
+                match &a.content {
+                    txxt::ast::elements::annotation::AnnotationContent::Inline(transforms) => {
+                        text.push_str(&validators::extract_all_text(&transforms));
+                        text.push('\n');
+                    }
+                    txxt::ast::elements::annotation::AnnotationContent::Block(c) => {
+                        text.push_str(&extract_text_from_content_container(&c));
+                    }
+                }
+            }
+            ContentContainerElement::Container(c) => {
+                text.push_str(&extract_text_from_content_container(&c));
+            }
+            ContentContainerElement::BlankLine(_) => {
+                // Skip blank lines for text extraction
+            }
+        }
+    }
+    
+    text
+}
+
+/// Get the element type name from a ContentContainerElement
+#[cfg(feature = "new-ast")]
+fn content_element_type_name(
+    element: &txxt::ast::elements::containers::content::ContentContainerElement,
+) -> &'static str {
+    use txxt::ast::elements::containers::content::ContentContainerElement;
+    match element {
+        ContentContainerElement::Paragraph(_) => "Paragraph",
+        ContentContainerElement::List(_) => "List",
+        ContentContainerElement::Definition(_) => "Definition",
+        ContentContainerElement::Verbatim(_) => "Verbatim",
+        ContentContainerElement::Annotation(_) => "Annotation",
+        ContentContainerElement::Container(_) => "Container",
+        ContentContainerElement::BlankLine(_) => "BlankLine",
+    }
+}
+
+/// Get the element type name from a SessionContainerElement
+#[cfg(feature = "new-ast")]
+fn session_element_type_name(
+    element: &txxt::ast::elements::containers::session::SessionContainerElement,
+) -> &'static str {
+    use txxt::ast::elements::containers::session::SessionContainerElement;
+    match element {
+        SessionContainerElement::Paragraph(_) => "Paragraph",
+        SessionContainerElement::List(_) => "List",
+        SessionContainerElement::Definition(_) => "Definition",
+        SessionContainerElement::Verbatim(_) => "Verbatim",
+        SessionContainerElement::Annotation(_) => "Annotation",
+        SessionContainerElement::Session(_) => "Session",
+        SessionContainerElement::ContentContainer(_) => "ContentContainer",
+        SessionContainerElement::SessionContainer(_) => "SessionContainer",
+        SessionContainerElement::BlankLine(_) => "BlankLine",
+    }
+}
+
+/// Check if ContentContainerElement matches the expected ElementType
+#[cfg(feature = "new-ast")]
+fn content_element_matches_type(
+    element: &txxt::ast::elements::containers::content::ContentContainerElement,
+    expected_type: &txxt::ast::elements::core::ElementType,
+) -> bool {
+    use txxt::ast::elements::{containers::content::ContentContainerElement, core::ElementType};
+    matches!(
+        (element, expected_type),
+        (ContentContainerElement::Paragraph(_), ElementType::Block)
+            | (ContentContainerElement::List(_), ElementType::Block)
+            | (ContentContainerElement::Definition(_), ElementType::Block)
+            | (ContentContainerElement::Verbatim(_), ElementType::Block)
+            | (ContentContainerElement::Annotation(_), ElementType::Block)
+            | (ContentContainerElement::Container(_), ElementType::Container)
+            | (ContentContainerElement::BlankLine(_), ElementType::Line)
+    )
+}
+
+/// Check if SessionContainerElement matches the expected ElementType
+#[cfg(feature = "new-ast")]
+fn session_element_matches_type(
+    element: &txxt::ast::elements::containers::session::SessionContainerElement,
+    expected_type: &txxt::ast::elements::core::ElementType,
+) -> bool {
+    use txxt::ast::elements::{containers::session::SessionContainerElement, core::ElementType};
+    matches!(
+        (element, expected_type),
+        (SessionContainerElement::Paragraph(_), ElementType::Block)
+            | (SessionContainerElement::List(_), ElementType::Block)
+            | (SessionContainerElement::Definition(_), ElementType::Block)
+            | (SessionContainerElement::Verbatim(_), ElementType::Block)
+            | (SessionContainerElement::Annotation(_), ElementType::Block)
+            | (SessionContainerElement::Session(_), ElementType::Block)
+            | (SessionContainerElement::ContentContainer(_), ElementType::Container)
+            | (SessionContainerElement::SessionContainer(_), ElementType::Container)
+            | (SessionContainerElement::BlankLine(_), ElementType::Line)
+    )
+}
+
 /// Assert content container has expected properties.
 ///
 /// # Arguments
@@ -993,9 +1117,9 @@ pub fn assert_annotation<'a>(
 #[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_content_container<'a>(
-    container: &'a txxt::ast::elements::containers::ContentContainer,
+    container: &'a txxt::ast::elements::containers::content::ContentContainer,
     expected: ContentContainerExpected,
-) -> &'a txxt::ast::elements::containers::ContentContainer {
+) -> &'a txxt::ast::elements::containers::content::ContentContainer {
     // Element count validation
     if let Some(expected_count) = expected.element_count {
         let actual_count = container.content.len();
@@ -1021,25 +1145,61 @@ pub fn assert_content_container<'a>(
             actual_count
         );
 
-        // Type validation would go here when full type checking is needed
-        // For now, just verify expected_types list matches count
-        let _ = expected_types;
+        // Validate each element's type matches expected
+        for (i, (element, expected_type)) in
+            container.content.iter().zip(expected_types.iter()).enumerate()
+        {
+            let matches = content_element_matches_type(element, expected_type);
+            assert!(
+                matches,
+                "Element type mismatch at index {}\n\
+                 Expected type: {:?}\n\
+                 Actual element: {}\n\
+                 Hint: ElementType::Block covers Paragraph, List, Definition, Verbatim, Annotation",
+                i,
+                expected_type,
+                content_element_type_name(element)
+            );
+        }
     }
 
     // Has element type validation
     if let Some(expected_type) = expected.has_element_type {
-        // Check if at least one element of this type exists
-        // This would require type checking on ContentContainerElement
-        // For now, just acknowledge the parameter
-        let _ = expected_type;
+        let found = container
+            .content
+            .iter()
+            .any(|el| content_element_matches_type(el, &expected_type));
+        
+        let actual_types: Vec<_> = container
+            .content
+            .iter()
+            .map(content_element_type_name)
+            .collect();
+        
+        assert!(
+            found,
+            "No element of requested type found in container\n\
+             Expected type: {:?}\n\
+             Actual element types: [{}]",
+            expected_type,
+            actual_types.join(", ")
+        );
     }
 
     // All same type validation
     if let Some(expected_type) = expected.all_same_type {
-        // Validate all elements are of the same type
-        // This would require type checking on ContentContainerElement
-        // For now, just acknowledge the parameter
-        let _ = expected_type;
+        for (idx, element) in container.content.iter().enumerate() {
+            let matches = content_element_matches_type(element, &expected_type);
+            assert!(
+                matches,
+                "Element at index {} does not match expected type\n\
+                 Expected type: {:?}\n\
+                 Actual element: {}",
+                idx,
+                expected_type,
+                content_element_type_name(element)
+            );
+        }
     }
 
     container
@@ -1074,9 +1234,9 @@ pub fn assert_content_container<'a>(
 #[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_session_container<'a>(
-    container: &'a txxt::ast::elements::containers::SessionContainer,
+    container: &'a txxt::ast::elements::containers::session::SessionContainer,
     expected: SessionContainerExpected,
-) -> &'a txxt::ast::elements::containers::SessionContainer {
+) -> &'a txxt::ast::elements::containers::session::SessionContainer {
     // Element count validation
     if let Some(expected_count) = expected.element_count {
         let actual_count = container.content.len();
@@ -1102,12 +1262,27 @@ pub fn assert_session_container<'a>(
             actual_count
         );
 
-        // Type validation would go here when full type checking is needed
-        let _ = expected_types;
+        // Validate each element's type matches expected
+        for (i, (element, expected_type)) in
+            container.content.iter().zip(expected_types.iter()).enumerate()
+        {
+            let matches = session_element_matches_type(element, expected_type);
+            assert!(
+                matches,
+                "Element type mismatch at index {}\n\
+                 Expected type: {:?}\n\
+                 Actual element: {}\n\
+                 Hint: ElementType::Block covers Paragraph, List, Definition, Verbatim, Annotation, Session",
+                i,
+                expected_type,
+                session_element_type_name(element)
+            );
+        }
     }
 
     // Has session validation
     if let Some(expected_has_session) = expected.has_session {
+        use txxt::ast::elements::containers::session::SessionContainerElement;
         let actual_has_session = container
             .content
             .iter()
@@ -1123,6 +1298,7 @@ pub fn assert_session_container<'a>(
 
     // Session count validation
     if let Some(expected_count) = expected.session_count {
+        use txxt::ast::elements::containers::session::SessionContainerElement;
         let actual_count = container
             .content
             .iter()

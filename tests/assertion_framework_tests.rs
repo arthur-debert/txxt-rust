@@ -484,4 +484,249 @@ mod framework_tests {
             },
         );
     }
+
+    #[test]
+    fn test_assert_inline_content_has_italic() {
+        let text_span = TextSpan {
+            tokens: TokenSequence::new(),
+            annotations: vec![],
+            parameters: Parameters::new(),
+        };
+
+        let transforms = vec![TextTransform::Emphasis(vec![TextTransform::Identity(
+            text_span,
+        )])];
+
+        assert_inline_content(
+            &transforms,
+            InlineContentExpected {
+                has_italic: Some(true),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_inline_content_has_code() {
+        let text_span = TextSpan {
+            tokens: TokenSequence::new(),
+            annotations: vec![],
+            parameters: Parameters::new(),
+        };
+
+        let transforms = vec![TextTransform::Code(text_span)];
+
+        assert_inline_content(
+            &transforms,
+            InlineContentExpected {
+                has_code: Some(true),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_inline_content_has_math() {
+        let text_span = TextSpan {
+            tokens: TokenSequence::new(),
+            annotations: vec![],
+            parameters: Parameters::new(),
+        };
+
+        let transforms = vec![TextTransform::Math(text_span)];
+
+        assert_inline_content(
+            &transforms,
+            InlineContentExpected {
+                has_math: Some(true),
+                ..Default::default()
+            },
+        );
+    }
+
+    // ============================================================================
+    // Enhanced Container Assertion Tests
+    // ============================================================================
+
+    #[test]
+    fn test_assert_content_container_element_types() {
+        use txxt::ast::elements::{
+            core::ElementType,
+            list::{ListBlock, ListDecorationType},
+        };
+
+        let para = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let list = ListBlock {
+            decoration_type: ListDecorationType::default(),
+            items: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = ContentContainer {
+            content: vec![
+                ContentContainerElement::Paragraph(para),
+                ContentContainerElement::List(list),
+            ],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_content_container(
+            &container,
+            ContentContainerExpected {
+                element_types: Some(vec![ElementType::Block, ElementType::Block]),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_content_container_has_element_type() {
+        use txxt::ast::elements::core::ElementType;
+
+        let para = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = ContentContainer {
+            content: vec![ContentContainerElement::Paragraph(para)],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_content_container(
+            &container,
+            ContentContainerExpected {
+                has_element_type: Some(ElementType::Block),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_content_container_all_same_type() {
+        use txxt::ast::elements::core::ElementType;
+
+        let para1 = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let para2 = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = ContentContainer {
+            content: vec![
+                ContentContainerElement::Paragraph(para1),
+                ContentContainerElement::Paragraph(para2),
+            ],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_content_container(
+            &container,
+            ContentContainerExpected {
+                all_same_type: Some(ElementType::Block),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_session_container_element_types() {
+        use txxt::ast::elements::core::ElementType;
+
+        let para = ParagraphBlock {
+            content: vec![],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let container = SessionContainer {
+            content: vec![SessionContainerElement::Paragraph(para)],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        assert_session_container(
+            &container,
+            SessionContainerExpected {
+                element_types: Some(vec![ElementType::Block]),
+                ..Default::default()
+            },
+        );
+    }
+
+    #[test]
+    fn test_assert_annotation_block_content_contains() {
+        // Create annotation with block content
+        let para = ParagraphBlock {
+            content: vec![TextTransform::Identity(TextSpan {
+                tokens: TokenSequence {
+                    tokens: vec![Token::Text {
+                        content: "Block content text".to_string(),
+                        span: SourceSpan {
+                            start: Position { row: 0, column: 0 },
+                            end: Position {
+                                row: 0,
+                                column: 18,
+                            },
+                        },
+                    }],
+                },
+                annotations: vec![],
+                parameters: Parameters::new(),
+            })],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let block_content = ContentContainer {
+            content: vec![ContentContainerElement::Paragraph(para)],
+            annotations: vec![],
+            parameters: Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        let element = SessionContainerElement::Annotation(AnnotationBlock {
+            label: "note".to_string(),
+            content: AnnotationContent::Block(block_content),
+            parameters: Parameters::new(),
+            annotations: vec![],
+            tokens: TokenSequence::new(),
+            namespace: None,
+        });
+
+        assert_annotation(
+            &element,
+            AnnotationExpected {
+                content_contains: Some("Block content"),
+                ..Default::default()
+            },
+        );
+    }
 }

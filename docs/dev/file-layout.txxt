@@ -8,7 +8,8 @@ In some domains, for example tokening, we have things like markers, which are ok
 That is to say we strive for a similar structure even through domains do vary in how they map precisely.
 
 
-
+<domain>/core                 # Non domain related bits, as ifrastructure
+<domain>/elements
 ├── mod.rs                    # Main module file with re-exports
 ├── core.rs                   # Core element traits and types
 │
@@ -19,6 +20,12 @@ That is to say we strive for a similar structure even through domains do vary in
 ├── containers/               # Generic container elements
 │   ├── mod.rs
 │   └── content.rs            # Only content container (generic)
+│
+│
+├── components/               # smaller components that are resued in various elements
+│   ├── mod.rs
+│   └── parameters.rs
+│
 │
 ├── definition/               # Definition elements
 │   ├── mod.rs

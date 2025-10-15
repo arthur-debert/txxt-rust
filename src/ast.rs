@@ -166,12 +166,8 @@ pub use elements::{
     traversal,
 };
 
-// Legacy re-exports for backward compatibility
-pub mod annotations;
-pub mod inlines;
-pub mod parameters;
-pub mod reference_types;
-pub mod structure;
+// Legacy re-exports for backward compatibility - REMOVED
+// All callers have been updated to use the new element paths
 
 // Advanced query and traversal API (Unist-compatible) - temporarily disabled
 // pub mod query;

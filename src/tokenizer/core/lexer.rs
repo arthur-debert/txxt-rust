@@ -1003,11 +1003,16 @@ impl crate::tokenizer::elements::references::ReferenceLexer for Lexer {
         &self.input
     }
 
-    fn ref_classifier(&self) -> &crate::ast::reference_types::ReferenceClassifier {
+    fn ref_classifier(
+        &self,
+    ) -> &crate::ast::elements::references::reference_types::ReferenceClassifier {
         // Create a static classifier instance
-        static CLASSIFIER: std::sync::OnceLock<crate::ast::reference_types::ReferenceClassifier> =
-            std::sync::OnceLock::new();
-        CLASSIFIER.get_or_init(crate::ast::reference_types::ReferenceClassifier::new)
+        static CLASSIFIER: std::sync::OnceLock<
+            crate::ast::elements::references::reference_types::ReferenceClassifier,
+        > = std::sync::OnceLock::new();
+        CLASSIFIER.get_or_init(
+            crate::ast::elements::references::reference_types::ReferenceClassifier::new,
+        )
     }
 
     fn backtrack(&mut self, position: usize, row: usize, column: usize) {

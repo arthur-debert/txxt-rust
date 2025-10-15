@@ -3,7 +3,7 @@
 //! Handles parsing of reference markers in TXXT syntax: [target], [@citation], [#section], [1]
 //! Reference markers are inline elements that link to other content.
 
-use crate::ast::reference_types::ReferenceClassifier;
+use crate::ast::elements::references::reference_types::ReferenceClassifier;
 use crate::ast::tokens::{Position, SourceSpan, Token};
 
 /// Trait for reference marker lexing

@@ -4,9 +4,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{
-    annotations::Annotation, parameters::Parameters, reference_types::ReferenceTarget,
-    tokens::TokenSequence,
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
+    references::reference_types::ReferenceTarget, tokens::TokenSequence,
 };
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};

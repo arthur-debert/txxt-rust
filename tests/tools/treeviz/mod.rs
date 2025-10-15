@@ -8,7 +8,7 @@ use txxt::tools::treeviz::*;
 use txxt::ast::elements::core::ElementNode;
 use txxt::ast::elements::containers::SessionContainer;
 use txxt::ast::tokens::TokenSequence;
-use txxt::ast::parameters::Parameters;
+use txxt::ast::elements::components::parameters::Parameters;
 
 #[cfg(test)]
 mod tests {

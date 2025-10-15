@@ -132,8 +132,8 @@ pub fn create_synthetic_ast() -> ElementNode {
     // In practice, we'd build a more complex tree with actual content
 
     // Create a simple session block as the root
+    use crate::ast::elements::components::parameters::Parameters;
     use crate::ast::elements::session::SessionContainer;
-    use crate::ast::parameters::Parameters;
     use crate::ast::tokens::TokenSequence;
 
     // Since we can't easily construct the complex nested structures without

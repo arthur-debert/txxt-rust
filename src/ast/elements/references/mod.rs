@@ -19,7 +19,10 @@ pub use session_ref::SessionReferenceSpan;
 // (copied from inlines/references/mod.rs for functionality-driven organization)
 
 use crate::ast::elements::formatting::inlines::TextTransform;
-use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
+    tokens::TokenSequence,
+};
 use serde::{Deserialize, Serialize};
 
 /// General reference span for links and cross-references

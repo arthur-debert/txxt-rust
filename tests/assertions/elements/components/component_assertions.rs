@@ -7,7 +7,10 @@
 
 use std::collections::HashMap;
 
-use txxt::ast::{annotations::Annotation, parameters::Parameters};
+use txxt::ast::{
+    elements::annotation::annotation_content::Annotation,
+    elements::components::parameters::Parameters,
+};
 
 // ============================================================================
 // Parameters Assertions

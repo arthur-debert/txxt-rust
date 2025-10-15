@@ -3,7 +3,7 @@
 //! These tests verify that the classifier follows the correct precedence order
 //! as specified in the TXXT spec when content could match multiple patterns.
 
-use txxt::ast::reference_types::{ReferenceClassifier, SimpleReferenceType};
+use txxt::ast::elements::references::reference_types::{ReferenceClassifier, SimpleReferenceType};
 
 #[cfg(test)]
 mod precedence_tests {

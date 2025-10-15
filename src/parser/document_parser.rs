@@ -29,8 +29,8 @@ impl DocumentParser {
         // STUB: Return minimal document until real implementation
         use crate::ast::{
             base::{AssemblyInfo, Meta},
+            elements::components::parameters::Parameters,
             elements::session::SessionContainer,
-            parameters::Parameters,
             tokens::TokenSequence,
         };
 

@@ -5,7 +5,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
+    tokens::TokenSequence,
+};
 
 use super::super::core::{ContainerElement, ContainerType, ElementType, TxxtElement};
 

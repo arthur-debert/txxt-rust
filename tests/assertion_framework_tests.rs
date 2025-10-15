@@ -13,6 +13,7 @@ mod framework_tests {
         InlineContentExpected, ParagraphExpected, SessionContainerExpected,
     };
     use txxt::ast::{
+        elements::components::parameters::Parameters,
         elements::{
             annotation::{AnnotationBlock, AnnotationContent},
             containers::content::{ContentContainer, ContentContainerElement},
@@ -21,7 +22,6 @@ mod framework_tests {
             paragraph::ParagraphBlock,
             session::{session_container::SessionContainerElement, SessionContainer},
         },
-        parameters::Parameters,
         tokens::{Position, SourceSpan, Token, TokenSequence},
     };
 

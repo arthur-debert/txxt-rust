@@ -4,10 +4,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{
-    annotations::Annotation,
-    parameters::Parameters,
-    reference_types::{CitationEntry, ReferenceTarget},
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation,
+    components::parameters::Parameters,
+    references::reference_types::{CitationEntry, ReferenceTarget},
     tokens::TokenSequence,
 };
 

@@ -10,7 +10,10 @@ mod assertions;
 use std::collections::HashMap;
 
 #[cfg(feature = "new-ast")]
-use txxt::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
+use txxt::ast::{
+    elements::annotation::annotation_content::Annotation,
+    elements::components::parameters::Parameters, tokens::TokenSequence,
+};
 
 #[cfg(feature = "new-ast")]
 use assertions::elements::components::component_assertions::*;
@@ -166,7 +169,7 @@ fn test_assert_label_not_empty_fails() {
 
 #[cfg(feature = "new-ast")]
 fn make_test_annotation(label: &str) -> Annotation {
-    use txxt::ast::annotations::AnnotationContent;
+    use txxt::ast::elements::annotation::annotation_content::AnnotationContent;
 
     Annotation {
         label: label.to_string(),

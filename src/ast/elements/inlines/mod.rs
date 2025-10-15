@@ -15,10 +15,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::ast::{
-    annotations::Annotation,
-    parameters::Parameters,
-    reference_types::ReferenceTarget,
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation,
+    components::parameters::Parameters,
+    references::reference_types::ReferenceTarget,
     tokens::{Token, TokenSequence},
 };
 

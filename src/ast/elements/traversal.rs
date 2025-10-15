@@ -672,16 +672,17 @@ impl TxxtElement for DocumentElementOwned {
         EMPTY_TOKENS.get_or_init(crate::ast::tokens::TokenSequence::new)
     }
 
-    fn annotations(&self) -> &[crate::ast::annotations::Annotation] {
+    fn annotations(&self) -> &[crate::ast::elements::annotation::annotation_content::Annotation] {
         // Document doesn't have annotations directly
         &[]
     }
 
-    fn parameters(&self) -> &crate::ast::parameters::Parameters {
+    fn parameters(&self) -> &crate::ast::elements::components::parameters::Parameters {
         // Document doesn't have parameters directly
         use std::sync::OnceLock;
-        static EMPTY_PARAMS: OnceLock<crate::ast::parameters::Parameters> = OnceLock::new();
-        EMPTY_PARAMS.get_or_init(crate::ast::parameters::Parameters::default)
+        static EMPTY_PARAMS: OnceLock<crate::ast::elements::components::parameters::Parameters> =
+            OnceLock::new();
+        EMPTY_PARAMS.get_or_init(crate::ast::elements::components::parameters::Parameters::default)
     }
 }
 
@@ -771,7 +772,7 @@ impl TxxtElement for ElementAdapter {
         }
     }
 
-    fn annotations(&self) -> &[crate::ast::annotations::Annotation] {
+    fn annotations(&self) -> &[crate::ast::elements::annotation::annotation_content::Annotation] {
         match self {
             Self::Paragraph(p) => p.annotations(),
             Self::List(l) => l.annotations(),
@@ -785,7 +786,7 @@ impl TxxtElement for ElementAdapter {
         }
     }
 
-    fn parameters(&self) -> &crate::ast::parameters::Parameters {
+    fn parameters(&self) -> &crate::ast::elements::components::parameters::Parameters {
         match self {
             Self::Paragraph(p) => p.parameters(),
             Self::List(l) => l.parameters(),
@@ -1437,7 +1438,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![], // Empty for now
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1475,7 +1476,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1505,7 +1506,7 @@ mod tests {
         let paragraph = ParagraphBlock {
             content: vec![], // Empty TextTransform content for test
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1515,13 +1516,13 @@ mod tests {
                 ignore_lines: vec![], // Empty ignore lines for test
                 blank_lines: vec![],  // Empty blank lines for test
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             label: "test".to_string(), // Mandatory label
             verbatim_type: VerbatimType::InFlow,
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1543,7 +1544,7 @@ mod tests {
                     SessionContainerElement::Verbatim(verbatim),
                 ],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1603,7 +1604,7 @@ mod tests {
         let paragraph = ParagraphBlock {
             content: vec![], // Empty TextTransform content for test
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1617,7 +1618,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1687,7 +1688,7 @@ mod tests {
         let paragraph = ParagraphBlock {
             content: vec![], // Empty TextTransform content for test
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1701,7 +1702,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1752,7 +1753,7 @@ mod tests {
         let paragraph = ParagraphBlock {
             content: vec![],
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1766,7 +1767,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1837,7 +1838,7 @@ mod tests {
         let paragraph = ParagraphBlock {
             content: vec![],
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1846,7 +1847,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
@@ -1876,7 +1877,7 @@ mod tests {
         let paragraph = ParagraphBlock {
             content: vec![],
             annotations: vec![],
-            parameters: crate::ast::parameters::Parameters::default(),
+            parameters: crate::ast::elements::components::parameters::Parameters::default(),
             tokens: crate::ast::tokens::TokenSequence::new(),
         };
 
@@ -1885,7 +1886,7 @@ mod tests {
             content: SessionContainer {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
-                parameters: crate::ast::parameters::Parameters::default(),
+                parameters: crate::ast::elements::components::parameters::Parameters::default(),
                 tokens: crate::ast::tokens::TokenSequence::new(),
             },
             assembly_info: AssemblyInfo {

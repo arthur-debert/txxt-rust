@@ -6,6 +6,7 @@ Currently there is no consistenty, but we're slowly migrating towares a standard
 We aim to consistency not blind compliance. 
 In some domains, for example tokening, we have things like markers, which are ok to deviate from this structure. 
 That is to say we strive for a similar structure even through domains do vary in how they map precisely.
+Remember that tests file paths and name should mirror as mubh as possible the coee being tested
 
 
 <domain>/core                 # Non domain related bits, as ifrastructure

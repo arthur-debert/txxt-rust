@@ -21,6 +21,7 @@
 
 use crate::ast::ElementNode;
 use crate::lexer::pipeline::TokenTree;
+use crate::parser::elements::paragraph::paragraph::parse_paragraph;
 
 /// Block parser for converting token trees to AST nodes
 ///
@@ -45,13 +46,34 @@ impl BlockParser {
     /// Takes a hierarchical token tree and converts it into a tree
     /// of typed AST element nodes. Each block type is handled by
     /// its specific parsing logic.
-    pub fn parse_blocks(
-        &self,
-        _token_tree: TokenTree,
-    ) -> Result<Vec<ElementNode>, BlockParseError> {
-        // TODO: Implement block parsing logic
-        // For now, return empty result as Phase 2 is not yet implemented
-        Ok(vec![])
+    #[allow(clippy::only_used_in_recursion)]
+    pub fn parse_blocks(&self, token_tree: TokenTree) -> Result<Vec<ElementNode>, BlockParseError> {
+        let mut elements = Vec::new();
+
+        // For Phase 1 Simple Elements, we focus on parsing paragraphs
+        // Other elements will be added in subsequent phases
+
+        // Process tokens at the root level as a group
+        if !token_tree.tokens.is_empty() {
+            // Try to parse all tokens as a paragraph (default element type)
+            match parse_paragraph(&token_tree.tokens) {
+                Ok(paragraph) => {
+                    elements.push(ElementNode::ParagraphBlock(paragraph));
+                }
+                Err(_) => {
+                    // If it's not a paragraph, we'll handle other element types later
+                    // For now, skip unrecognized tokens
+                }
+            }
+        }
+
+        // Process child token trees recursively
+        for child_tree in &token_tree.children {
+            let child_elements = self.parse_blocks(child_tree.clone())?;
+            elements.extend(child_elements);
+        }
+
+        Ok(elements)
     }
 }
 

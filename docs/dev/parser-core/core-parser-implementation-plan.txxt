@@ -75,9 +75,12 @@ This document outlines the comprehensive implementation plan for the core parser
 
         2.1.1. Paragraphs
 
-            Parsing sequence:
-            - Single paragraph only file
-            - Multi-paragraph file (important to test single line, multiline paragraphs)
+            Parsing sequence using ensemble examples:
+            - Single paragraph only file: `01-simple-nosession-single-paragraph.txxt`
+            - Multi-paragraph file: `02-simple-nosession-multiple-paragraph.txxt`
+            - Single session with paragraph: `03-simple-flat-single-paragraph.txxt`
+            - Multiple sessions with paragraphs: `04-simple-flat-multiple-paragraph.txxt`
+            - Nested sessions with paragraphs: `05-simple-nested-multiple-paragraph.txxt`
 
             Rationale: Paragraphs are the simplest block element and foundation for all other content.
 
@@ -85,12 +88,12 @@ This document outlines the comprehensive implementation plan for the core parser
 
             Sessions require at least one content element and hence need to come after paragraphs.
 
-            Parsing sequence:
-            - Flat single session: title, blank line, paragraph
-            - Flat single session: title, blank line, multiple paragraphs  
-            - Flat multiple sessions: title, blank line(s), paragraph(s)
-            - Nested single session: title, blank line(s), paragraph(s)
-            - Nested multiple sessions: title, blank line(s), paragraph(s)
+            Parsing sequence using ensemble examples:
+            - Flat single session: `03-simple-flat-single-paragraph.txxt`
+            - Flat single session with multiple paragraphs: `04-simple-flat-multiple-paragraph.txxt`
+            - Flat multiple sessions: `04-simple-flat-multiple-paragraph.txxt`
+            - Nested single session: `05-simple-nested-multiple-paragraph.txxt`
+            - Nested multiple sessions: `05-simple-nested-multiple-paragraph.txxt`
 
             At this stage, we should be able to parse complex document structure, except for hard disambiguation cases (which will come later).
 
@@ -120,15 +123,43 @@ This document outlines the comprehensive implementation plan for the core parser
         - Only their simple forms
         - No structural edge cases
 
-        The formula for each is always the same, very similar to what we've seen before:
-        - Parse the element as the only content, in complete isolation
-        - Parse the element in a document with more same-type elements
-        - Parse the element mixed with paragraphs in a flat session document
-        - Parse the element mixed with paragraphs and itself in a nested session document
+        The formula for each is always the same, using ensemble examples:
+        - Parse the element as the only content, in complete isolation: `01-simple-nosession-single-<element>.txxt`
+        - Parse the element in a document with more same-type elements: `02-simple-nosession-multiple-<element>.txxt`
+        - Parse the element mixed with paragraphs in a flat session document: `03-simple-flat-single-<element>.txxt`
+        - Parse the element mixed with paragraphs and itself in a nested session document: `04-simple-flat-multiple-<element>.txxt` and `05-simple-nested-multiple-<element>.txxt`
 
         This sequence gives us growing confidence: we can parse the element, we can pick the element from surrounding elements, and we can do so against varying indentation.
 
         This will be done, in order, for: Definition, Verbatim, List, and Annotation.
+
+        **Definition Elements:**
+        - `01-simple-nosession-single-definition.txxt` - Single definition only
+        - `02-simple-nosession-multiple-definition.txxt` - Multiple definitions only
+        - `03-simple-flat-single-definition.txxt` - Single session with definition appearing first
+        - `04-simple-flat-multiple-definition.txxt` - Multiple sessions with definitions appearing first, middle, and last
+        - `05-simple-nested-multiple-definition.txxt` - Nested sessions with definitions at multiple levels
+
+        **Verbatim Elements:**
+        - `01-simple-nosession-single-verbatim.txxt` - Single verbatim block (in-flow mode)
+        - `02-simple-nosession-multiple-verbatim.txxt` - Multiple verbatim blocks (in-flow and stretched modes)
+        - `03-simple-flat-single-verbatim.txxt` - Single session with verbatim appearing first
+        - `04-simple-flat-multiple-verbatim.txxt` - Multiple sessions with verbatim appearing first, middle, and last
+        - `05-simple-nested-multiple-verbatim.txxt` - Nested sessions with verbatim at multiple levels
+
+        **List Elements:**
+        - `01-simple-nosession-single-list.txxt` - Single list (plain decoration)
+        - `02-simple-nosession-multiple-list.txxt` - Multiple lists (plain, numerical, alphabetical decorations)
+        - `03-simple-flat-single-list.txxt` - Single session with list appearing first
+        - `04-simple-flat-multiple-list.txxt` - Multiple sessions with lists appearing first, middle, and last
+        - `05-simple-nested-multiple-list.txxt` - Nested sessions with lists at multiple levels
+
+        **Annotation Elements:**
+        - `01-simple-nosession-single-annotation.txxt` - Single annotation only
+        - `02-simple-nosession-multiple-annotation.txxt` - Multiple annotations only
+        - `03-simple-flat-single-annotation.txxt` - Single session with annotation appearing first
+        - `04-simple-flat-multiple-annotation.txxt` - Multiple sessions with annotations appearing first, middle, and last
+        - `05-simple-nested-multiple-annotation.txxt` - Nested sessions with annotations at multiple levels
 
     3.2. Mixed/Combination Integrated Tests
 
@@ -182,10 +213,32 @@ This document outlines the comprehensive implementation plan for the core parser
     7.1. Testing Strategy
 
         Each phase should include:
-        - Unit tests for individual element parsing
-        - Integration tests for element combinations
-        - Regression tests for edge cases
+        - Unit tests for individual element parsing using ensemble examples
+        - Integration tests for element combinations using corpora system
+        - Regression tests for edge cases using complex corpora
         - Performance tests for complex documents
+
+        **Ensemble Examples System:**
+        Each element has a complete set of ensemble examples following the pattern:
+        - `01-simple-nosession-single-<element>.txxt` - Element in isolation
+        - `02-simple-nosession-multiple-<element>.txxt` - Multiple elements
+        - `03-simple-flat-single-<element>.txxt` - Element as first in session
+        - `04-simple-flat-multiple-<element>.txxt` - Element as first, middle, last in sessions
+        - `05-simple-nested-multiple-<element>.txxt` - Element at multiple nesting levels
+
+        **Corpora System:**
+        The corpora system extracts test cases from specification documents using labels:
+        - Simple cases: Basic forms without formatting, parameters, escapes, or nesting
+        - Complex cases: Advanced forms with formatting, parameters, nesting, and edge cases
+        - Invalid cases: Malformed syntax that should fail parsing
+
+        **Testing Integration:**
+        Tests use `TxxtCorpora::load()` to extract labeled examples from spec documents:
+        ```rust
+        let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
+        let result = parse(&corpus.source_text);
+        assert!(result.is_ok());
+        ```
 
     7.2. Error Handling
 
@@ -194,31 +247,13 @@ This document outlines the comprehensive implementation plan for the core parser
         - Clear error messages with position information
         - Validation of parsed structures against spec
 
-    7.3. Code Organization
-
-        - Separate parser modules for each element type
-        - Common utilities for shared parsing logic
-        - Clear interfaces between parsing phases
-        - Comprehensive documentation and examples
 
 8. Success Criteria
 
     8.1. Phase Completion Criteria
 
         Each phase is complete when:
-        - All planned element types parse correctly
-        - All test cases pass
+        - All planned element types parse correctly using ensemble examples
+        - All test cases pass using corpora system
         - Integration with lexer and assembler works
-        - Performance meets requirements
-        - Documentation is complete
 
-    8.2. Overall Success Criteria
-
-        The parser implementation is complete when:
-        - All txxt spec elements are supported
-        - All test corpora parse correctly
-        - Error handling is robust
-        - Performance is acceptable
-        - Code is maintainable and well-documented
-
-:: conclusion :: This plan provides a systematic, incremental approach to implementing the core parser, ensuring each phase builds solidly on the previous one while maintaining spec compliance and code quality.

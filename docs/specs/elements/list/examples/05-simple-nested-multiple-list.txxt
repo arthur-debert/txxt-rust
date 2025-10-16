@@ -1,0 +1,45 @@
+1. Main Topic
+
+    - First item
+    - Second item
+    - Third item
+
+    This is the introduction to the main topic. It provides an overview before diving into specific subtopics.
+
+    1.1. First Subtopic
+    
+        This subsection explores the first aspect of the main topic in detail. Notice how it is indented one level deeper than the main section.
+
+        1. First numbered item
+        2. Second numbered item
+        3. Third numbered item
+
+        a. First alphabetical item
+        b. Second alphabetical item
+        c. Third alphabetical item
+
+    1.2. Second Subtopic
+    
+        This subsection covers the second aspect. The hierarchical numbering (1.1, 1.2) makes the structure clear.
+
+        And one of the sessions will be three level deep.
+
+        1.2.1. Third Subtopic
+
+            i. First roman item
+            ii. Second roman item
+            iii. Third roman item
+
+            This is the deepest level of nesting, demonstrating how lists can appear at any level of the document hierarchy.
+
+            A. First uppercase alphabetical item
+            B. Second uppercase alphabetical item
+            C. Third uppercase alphabetical item
+
+2. Another Main Topic
+
+    This second main topic is at the same level as the first, demonstrating how nested and flat structures can combine.
+
+    I. First uppercase roman item
+    II. Second uppercase roman item
+    III. Third uppercase roman item

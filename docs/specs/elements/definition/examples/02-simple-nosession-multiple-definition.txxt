@@ -1,0 +1,8 @@
+Parser ::
+    A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
+
+Lexer ::
+    A program that breaks down text into tokens, which are the smallest meaningful units of the language being processed.
+
+AST ::
+    Abstract Syntax Tree - a tree representation of the syntactic structure of source code or text, where each node represents a construct occurring in the source.

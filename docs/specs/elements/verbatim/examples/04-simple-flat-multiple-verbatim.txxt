@@ -1,0 +1,34 @@
+1. Introduction
+
+    Code example:
+        def hello():
+            print("Hello, world!")
+        :: python
+
+    This session contains multiple verbatim blocks that introduce the main topic. The verbatim blocks provide context and set up the discussion for the sections that follow.
+
+    Configuration example:
+        server {
+            listen 80;
+            location / {
+                proxy_pass http://backend;
+            }
+        }
+        :: nginx
+
+2. Advanced Concepts
+
+    This session covers more advanced concepts with additional verbatim blocks.
+
+    Wide table example:
+     | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+     |----------|----------|----------|----------|----------|
+     | Data     | Data     | Data     | Data     | Data     |
+        :: markdown
+
+    Database schema:
+        CREATE TABLE users (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+        :: sql

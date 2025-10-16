@@ -1,0 +1,33 @@
+1. Main Topic
+
+    :: note :: This annotation appears first in the main topic.
+
+    This is the introduction to the main topic. It provides an overview before diving into specific subtopics.
+
+    1.1. First Subtopic
+    
+        This subsection explores the first aspect of the main topic in detail. Notice how it is indented one level deeper than the main section.
+
+        :: warning :: This annotation appears in the middle of the subtopic.
+
+        :: info :: This annotation appears last in the subtopic.
+
+    1.2. Second Subtopic
+    
+        This subsection covers the second aspect. The hierarchical numbering (1.1, 1.2) makes the structure clear.
+
+        And one of the sessions will be three level deep.
+
+        1.2.1. Third Subtopic
+
+            :: summary :: This annotation appears first in the deepest level.
+
+            This is the deepest level of nesting, demonstrating how annotations can appear at any level of the document hierarchy.
+
+            :: conclusion :: This annotation appears last in the deepest level.
+
+2. Another Main Topic
+
+    This second main topic is at the same level as the first, demonstrating how nested and flat structures can combine.
+
+    :: final :: This annotation appears last in the document.

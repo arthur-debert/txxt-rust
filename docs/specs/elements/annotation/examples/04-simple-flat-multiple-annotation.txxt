@@ -1,0 +1,15 @@
+1. Introduction
+
+    :: note :: This annotation appears first in the session.
+
+    This session contains multiple annotations that introduce the main topic. The annotations provide context and set up the discussion for the sections that follow.
+
+    :: warning :: This annotation appears in the middle of the session content.
+
+2. Advanced Concepts
+
+    This session covers more advanced concepts with additional annotations.
+
+    :: info :: This annotation appears last in the session.
+
+    :: summary :: This annotation provides a summary of the advanced concepts discussed.

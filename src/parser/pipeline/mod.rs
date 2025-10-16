@@ -6,17 +6,17 @@
 //! # Three-Phase Architecture
 //!
 //!  Phase 1: Lexer (string -> Stream of positioned tokens)
-//!      1.a Verbatim line marking and tokenization
-//!      1.b Tokenization-Stream -> Stream of tokens with source positions
-//!      1.c Tokenization-Tree -> Convert flat list into a token list tree
+//!      a Verbatim line marking and tokenization
+//!      b Tokenization-Stream -> Stream of tokens with source positions
+//!      c Tokenization-Tree -> Convert flat list into a token list tree
 //!
 //!  Phase 2: Parser  (Token-Tree -> AST Tree)
-//!     1.a  Block-Parsing Convert block groups into typed AST nodes-> ast tree of ast element nodes.
-//!     1.b Inline-Parsing Handle inlines within blocks (the same tree, but with inlines)
+//!     a  Block-Parsing Convert block groups into typed AST nodes-> ast tree of ast element nodes.
+//!     b Inline-Parsing Handle inlines within blocks (the same tree, but with inlines)
 //!
 //!  Phase 3: Assembly (AST Tree -> Document)
-//! - Document assembly and metadata attachment
-//! - Annotation attachment
+//!     a Document assembly (may include non content related metadata)
+//!     b Annotation attachment
 //!
 pub mod block_grouper;
 pub mod lexer;

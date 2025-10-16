@@ -27,6 +27,7 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use txxt::parser::pipeline::block_grouper::BlockGrouper;
+use txxt::parser::pipeline::post_processor::PostProcessor;
 use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use txxt::tokenizer::tokenize;
 
@@ -43,7 +44,7 @@ enum OutputFormat {
     AstTreeviz,
     AstJson,
 
-    // Phase 3: Assembly outputs (Future)
+    // Phase 3: Assembly outputs (Now Available)
     AstFullJson,
     AstFullTreeviz,
 }
@@ -123,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         OutputFormat::AstTreeviz => process_ast_treeviz(&content, input_path)?,
         OutputFormat::AstJson => process_ast_json(&content, input_path)?,
 
-        // Phase 3: Assembly outputs (Future)
+        // Phase 3: Assembly outputs (Now Available)
         OutputFormat::AstFullJson => process_ast_full_json(&content, input_path)?,
         OutputFormat::AstFullTreeviz => process_ast_full_treeviz(&content, input_path)?,
     };
@@ -243,17 +244,63 @@ fn process_ast_json(
 // Phase 3: Assembly processing functions (Future - return placeholder errors)
 
 fn process_ast_full_json(
-    _content: &str,
-    _source_path: &str,
+    content: &str,
+    source_path: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    Err("Phase 3 (Document assembly) not yet implemented. This will output complete document with metadata and annotations.".into())
+    // Phase 1: Tokenize and group blocks
+    let tokens = tokenize(content);
+    let block_grouper = BlockGrouper::new();
+    let block_tree = block_grouper.group_blocks(tokens)?;
+
+    // Phase 3a: Assemble document from block tree
+    let post_processor = PostProcessor::new();
+    let document = post_processor.assemble_document(block_tree, Some(source_path.to_string()))?;
+
+    // Serialize to JSON
+    let result = serde_json::json!({
+        "source": source_path,
+        "document": document
+    });
+
+    Ok(serde_json::to_string_pretty(&result)?)
 }
 
 fn process_ast_full_treeviz(
-    _content: &str,
-    _source_path: &str,
+    content: &str,
+    source_path: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    Err("Phase 3 (Document assembly) not yet implemented. This will output tree visualization of complete document with metadata.".into())
+    // Phase 1: Tokenize and group blocks
+    let tokens = tokenize(content);
+    let block_grouper = BlockGrouper::new();
+    let block_tree = block_grouper.group_blocks(tokens)?;
+
+    // Phase 3a: Assemble document from block tree
+    let post_processor = PostProcessor::new();
+    let document = post_processor.assemble_document(block_tree, Some(source_path.to_string()))?;
+
+    // For now, create a simple treeviz representation since Phase 2 parsing isn't implemented
+    // TODO: Use proper treeviz when Phase 2 is complete and we have ElementNode
+    let result = format!(
+        "⧉ Document: {}\n\
+         ├─ Ψ SessionContainer (placeholder)\n\
+         │   └─ 📋 Phase 2 parsing not yet implemented\n\
+         │       └─ Raw tokens: {} total\n\
+         └─ 📊 Assembly Info:\n\
+             ├─ Parser: {}\n\
+             ├─ Processed: {}\n\
+             └─ Stats: {} tokens, {} blocks, depth {}\n",
+        source_path,
+        document.assembly_info.stats.token_count,
+        document.assembly_info.parser_version,
+        document
+            .assembly_info
+            .processed_at
+            .unwrap_or("unknown".to_string()),
+        document.assembly_info.stats.token_count,
+        document.assembly_info.stats.block_count,
+        document.assembly_info.stats.max_depth
+    );
+    Ok(result)
 }
 
 fn print_format_help() {
@@ -269,7 +316,7 @@ fn print_format_help() {
     eprintln!("    ast-treeviz           - Tree visualization of AST with inlines");
     eprintln!("    ast-json              - JSON output of AST with inlines");
     eprintln!();
-    eprintln!("  Phase 3 (Assembly) - Future:");
+    eprintln!("  Phase 3 (Assembly) - Available:");
     eprintln!("    ast-full-json     - Complete document with metadata");
     eprintln!("    ast-full-treeviz  - Complete document visualization");
 }

@@ -4,7 +4,7 @@
 //! and ensemble documents. Leverages TxxtCorpora processing stages to
 //! reduce boilerplate and focus on parser logic.
 
-#[path = "../../../corpora.rs"]
+#[path = "../../../infrastructure/corpora.rs"]
 mod corpora;
 
 use corpora::{ProcessingStage, TxxtCorpora};

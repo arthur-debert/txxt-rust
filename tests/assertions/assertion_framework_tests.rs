@@ -2,12 +2,11 @@
 //!
 //! Validates that the assertion helpers work correctly with proper error messages.
 
-#[path = "assertions/mod.rs"]
-mod assertions;
+use super::*;
 
 #[cfg(feature = "new-ast")]
 mod framework_tests {
-    use super::assertions::{
+    use super::{
         assert_annotation, assert_content_container, assert_inline_content, assert_paragraph,
         assert_session_container, AnnotationExpected, ContentContainerExpected,
         InlineContentExpected, ParagraphExpected, SessionContainerExpected,

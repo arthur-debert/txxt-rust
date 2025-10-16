@@ -56,6 +56,11 @@ pub mod elements;
 // Legacy modules for backward compatibility
 pub mod validators;
 
+// Test modules
+mod assert_paragraph_complete_tests;
+mod assertion_framework_tests;
+mod component_assertion_tests;
+
 // Re-export expected structs for convenience
 #[cfg(feature = "new-ast")]
 pub use core::*;

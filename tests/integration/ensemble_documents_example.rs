@@ -34,7 +34,7 @@
 /// 3. Each success enables the next level
 /// 4. Failure indicates missing capability
 // Include the corpora module from the same directory
-#[path = "corpora.rs"]
+#[path = "../infrastructure/corpora.rs"]
 mod corpora;
 
 use corpora::{ProcessingStage, TxxtCorpora};

@@ -36,7 +36,7 @@
 //! See `tests/README.md` for complete documentation.
 
 mod corpora {
-    include!("corpora.rs");
+    include!("../infrastructure/corpora.rs");
 }
 
 use corpora::{ProcessingStage, TxxtCorpora};

@@ -18,7 +18,7 @@
 /// 3. Full document parsing (integration)
 /// 4. Error case handling (invalid input)
 /// 5. AST validation helpers (reusable utilities)
-#[path = "corpora.rs"]
+#[path = "../infrastructure/corpora.rs"]
 mod corpora;
 
 use corpora::TxxtCorpora;

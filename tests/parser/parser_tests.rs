@@ -8,5 +8,4 @@
 //! - src/parser/elements/ -> tests/parser/elements/
 //! - Individual element parsers are tested via their respective modules
 
-#[path = "parser/mod.rs"]
-mod parser;
+use super::*;

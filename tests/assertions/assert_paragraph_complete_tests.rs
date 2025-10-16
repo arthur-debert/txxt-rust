@@ -9,8 +9,7 @@
 //! 3. parameters: Parameters
 //! 4. tokens: TokenSequence
 
-#[path = "assertions/mod.rs"]
-mod assertions;
+use super::*;
 
 #[cfg(feature = "new-ast")]
 use txxt::ast::{
@@ -25,7 +24,7 @@ use txxt::ast::{
 };
 
 #[cfg(feature = "new-ast")]
-use assertions::{assert_paragraph, ParagraphExpected};
+use super::{assert_paragraph, ParagraphExpected};
 
 // ============================================================================
 // Helper: Create Hand-Crafted Paragraph AST

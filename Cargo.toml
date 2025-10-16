@@ -34,13 +34,9 @@ proptest = "1.4"
 insta = "1.34"
 
 [[bin]]
+name = "txxt"
+path = "src/bin/txxt.rs"
+
+[[bin]]
 name = "txxt-treeviz"
 path = "src/bin/txxt-treeviz.rs"
-
-# [[bin]]
-# name = "txxt"
-# path = "src/bin/txxt.rs"
-
-# [[bin]]
-# name = "block_grouper"
-# path = "src/bin/block_grouper.rs"

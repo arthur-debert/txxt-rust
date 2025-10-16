@@ -5,7 +5,7 @@
 //! This breaks nested list parsing and round-trip detokenization.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[test]
 fn test_indented_dash_not_recognized_as_sequence_marker() {

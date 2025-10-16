@@ -136,6 +136,7 @@
 // ============================================================================
 
 // NEW: Spec-aligned element structure (replaces nodes/)
+pub mod debug;
 pub mod elements;
 
 // REMOVED: Legacy nodes/ structure - replaced by spec-aligned elements/

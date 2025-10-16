@@ -1,44 +1,36 @@
 //! Parser Pipeline Components
 //!
-//! This module implements the three-phase TXXT parsing pipeline that converts
-//! token streams into fully processed AST structures.
+//! This module implements Phase 2 of the TXXT parsing pipeline that converts
+//! token trees into AST element nodes.
 //!
-//! # Three-Phase Architecture
+//! # Phase 2: Parser (Token-Tree -> AST Tree)
 //!
-//! ## Phase 1: Lexer (Completed - in tokenizer)
-//! - Verbatim line marking and tokenization
-//! - Implemented in `src/tokenizer/`
-//! - Output: Stream of positioned tokens
+//! ## 2.a Block Parsing
+//! - Converts token trees into typed AST nodes for block elements
+//! - Handles paragraphs, lists, definitions, annotations, verbatim blocks, sessions
+//! - **Input**: `TokenTree` from lexer (Phase 1c)
+//! - **Output**: AST tree of `ElementNode` variants
 //!
-//! ## Phase 2: Parser (To be implemented)
-//! ### Phase 2a: Block Grouping
-//! - Convert flat token stream into hierarchical block structure
-//! - Handle indentation-based nesting
-//! - Create container boundaries
+//! ## 2.b Inline Parsing  
+//! - Processes inline elements within block content
+//! - Handles formatting, references, links, inline annotations
+//! - **Input**: AST tree with block elements (from Phase 2a)
+//! - **Output**: Same AST tree with inline elements processed
 //!
-//! ### Phase 2b: Parsing  
-//! - Convert block groups into typed AST nodes
-//! - Apply element-specific parsing rules
-//! - Handle inline processing within blocks
+//! # Pipeline Stages
 //!
-//! ## Phase 3: Post-Processing (Planned)
-//! - Document assembly and metadata attachment
-//! - Cross-reference resolution
-//! - Annotation proximity processing
+//! - [`parse_blocks`] - Phase 2a: Block element parsing
+//! - [`parse_inlines`] - Phase 2b: Inline element parsing
 //!
-//! # Design Principles
+//! # Current Status
 //!
-//! - **Single-pass processing**: Each phase processes input once
-//! - **Error recovery**: Graceful handling of malformed input
-//! - **Incremental**: Foundation for future incremental parsing
-//! - **Testable**: Each phase can be tested independently
+//! Phase 2 is currently stubbed out with placeholder implementations.
+//! The actual parsing logic will be implemented as the AST element types
+//! and parsing requirements are finalized.
 
-pub mod block_grouper;
-pub mod lexer;
-pub mod parser;
-pub mod post_processor;
+pub mod parse_blocks;
+pub mod parse_inlines;
 
 // Re-export main interfaces
-pub use block_grouper::{BlockGroup, BlockGrouper};
-pub use parser::Parser;
-pub use post_processor::PostProcessor;
+pub use parse_blocks::{BlockParseError, BlockParser};
+pub use parse_inlines::{InlineParseError, InlineParser};

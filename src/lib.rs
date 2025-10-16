@@ -24,14 +24,12 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub mod annotation_parser;
+pub mod assembler;
 pub mod ast;
-pub mod ast_debug;
-pub mod commands;
+pub mod lexer;
 pub mod parser;
-pub mod tokenizer;
+pub mod pipeline;
 pub mod tools;
-pub mod tree;
-pub mod validator;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Annotation {

@@ -527,7 +527,7 @@ fn illustrated_debug_with_tree_visualization() {
     let document = parse_document(&corpus.source_text).unwrap();
 
     // Use tree visualizer for debugging
-    use txxt::ast_debug::AstTreeVisualizer;
+    use txxt::ast::debug::AstTreeVisualizer;
 
     let viz = AstTreeVisualizer::new();
     let tree_view = viz.visualize(&document);

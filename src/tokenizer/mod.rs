@@ -12,6 +12,9 @@
 //!   - [`core::indentation`] - Indentation tracking and container boundaries
 //!   - [`core::patterns`] - Core pattern matching utilities
 //!
+//! - [`pipeline`] - Token processing pipeline stages
+//!   - [`pipeline::token_tree_builder`] - Transform flat tokens into hierarchical token tree
+//!
 //! ## Element Modules (Organized by Specification)
 //!
 //! - [`elements`] - All element tokenization organized by type
@@ -41,6 +44,9 @@
 // Core tokenization logic
 pub mod core;
 
+// Token processing pipeline
+pub mod pipeline;
+
 // Element modules organized by specification structure
 pub mod elements;
 
@@ -50,6 +56,7 @@ pub mod infrastructure;
 // Re-export main interfaces
 pub use core::Lexer;
 pub use elements::verbatim::{VerbatimBlock, VerbatimScanner, VerbatimType};
+pub use pipeline::{TokenTree, TokenTreeBuilder};
 
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};

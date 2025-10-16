@@ -5,3 +5,6 @@
 
 // Tree visualization tool for AST inspection and debugging
 pub mod treeviz;
+
+// Detokenizer for round-trip verification
+pub mod detokenizer;

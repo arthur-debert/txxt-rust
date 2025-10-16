@@ -25,7 +25,7 @@
 //!
 //! ```rust,ignore
 //! use txxt::assembler::Assembler;
-//! use txxt::parser::pipeline::BlockGrouper;
+//! use txxt::tokenizer::pipeline::BlockGrouper;
 //! use txxt::tokenizer::tokenize;
 //!
 //! // Phase 1: Tokenization + Block Grouping
@@ -48,7 +48,7 @@ use crate::ast::{
         tokens::{Token, TokenSequence},
     },
 };
-use crate::parser::pipeline::block_grouper::BlockGroup;
+use crate::tokenizer::pipeline::block_grouper::BlockGroup;
 
 /// Phase 3 Assembler
 ///
@@ -336,8 +336,12 @@ impl std::fmt::Display for AssemblyError {
             AssemblyError::UnresolvedReference(msg) => {
                 write!(f, "Unresolved reference: {}", msg)
             }
-            AssemblyError::AnnotationAttachmentFailed(msg) => write!(f, "Annotation attachment failed: {}", msg),
-            AssemblyError::DocumentAssemblyFailed(msg) => write!(f, "Document assembly failed: {}", msg),
+            AssemblyError::AnnotationAttachmentFailed(msg) => {
+                write!(f, "Annotation attachment failed: {}", msg)
+            }
+            AssemblyError::DocumentAssemblyFailed(msg) => {
+                write!(f, "Document assembly failed: {}", msg)
+            }
         }
     }
 }

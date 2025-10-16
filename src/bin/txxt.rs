@@ -27,8 +27,8 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use txxt::assembler::Assembler;
-use txxt::parser::pipeline::block_grouper::BlockGrouper;
 use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
+use txxt::tokenizer::pipeline::BlockGrouper;
 use txxt::tokenizer::tokenize;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -202,9 +202,7 @@ fn process_token_tree(
 }
 
 /// Helper function to serialize BlockGroup to JSON
-fn serialize_block_group(
-    block: &txxt::parser::pipeline::block_grouper::BlockGroup,
-) -> serde_json::Value {
+fn serialize_block_group(block: &txxt::tokenizer::pipeline::BlockGroup) -> serde_json::Value {
     serde_json::json!({
         "tokens": block.tokens,
         "children": block.children.iter().map(serialize_block_group).collect::<Vec<_>>()

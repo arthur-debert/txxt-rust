@@ -14,8 +14,8 @@
 //! identical tokens.
 
 use crate::ast::tokens::Token;
-use crate::parser::pipeline::BlockGroup;
 use crate::tokenizer::core::indentation::INDENT_SIZE;
+use crate::tokenizer::pipeline::BlockGroup;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;

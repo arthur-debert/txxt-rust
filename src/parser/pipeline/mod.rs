@@ -18,7 +18,8 @@
 //!     a Document assembly (may include non content related metadata)
 //!     b Annotation attachment
 //!
-pub mod block_grouper;
-
-// Re-export main interfaces
-pub use block_grouper::{BlockGroup, BlockGrouper};
+//! Pipeline modules
+//!
+//! Note: Block grouping has been moved to src/tokenizer/pipeline/ as it operates
+//! on tokens rather than AST nodes. This pipeline is reserved for future
+//! Phase 2 parsing implementations.

@@ -36,7 +36,7 @@
 //!
 //! ```rust,ignore
 //! use txxt::assembler::Assembler;
-//! use txxt::parser::pipeline::BlockGrouper;
+//! use txxt::tokenizer::pipeline::BlockGrouper;
 //! use txxt::tokenizer::tokenize;
 //!
 //! // Phase 1: Tokenization + Block Grouping (working)
@@ -57,4 +57,4 @@
 pub mod pipeline;
 
 // Re-export main interfaces
-pub use pipeline::{BlockGroup, BlockGrouper};
+// Note: BlockGroup and BlockGrouper moved to src/tokenizer/pipeline/

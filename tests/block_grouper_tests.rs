@@ -4,7 +4,7 @@
 //! streams into hierarchical structures based on indentation.
 
 use txxt::ast::tokens::{Position, SourceSpan, Token};
-use txxt::parser::pipeline::{BlockGroup, BlockGrouper};
+use txxt::tokenizer::pipeline::{BlockGroup, BlockGrouper};
 use txxt::tokenizer::tokenize;
 
 /// Test simple flat content (no indentation)

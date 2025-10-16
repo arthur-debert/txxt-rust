@@ -20,3 +20,5 @@ mod issue_26_indented_sequence_markers;
 mod parser_integration;
 mod parser_tests;
 mod testing_framework_check;
+mod tools_detokenizer;
+mod tools_treeviz;

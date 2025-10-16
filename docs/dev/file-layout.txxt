@@ -78,3 +78,130 @@ Remember that tests file paths and name should mirror as mubh as possible the co
     ├── label.rs
     └── parameters.rs
 
+
+## Test File Layout
+
+Tests are organized to mirror the source code structure as closely as possible.
+This ensures that tests are easy to find and maintain, with clear mapping between
+code and its corresponding tests.
+
+### Test Directory Structure
+
+```
+tests/
+├── suite.rs                    # Main test suite integration - includes all test modules
+├── testing_framework_check.rs  # Only remaining top-level test file
+│
+├── assembler/                  # Tests for assembler components
+│   ├── mod.rs
+│   └── pipeline/
+│       └── mod.rs
+│
+├── assertions/                  # All assertion framework tests
+│   ├── mod.rs
+│   ├── assert_paragraph_complete_tests.rs
+│   ├── assertion_framework_tests.rs
+│   ├── component_assertion_tests.rs
+│   ├── core/
+│   ├── elements/
+│   └── validators.rs
+│
+├── ast_elements/               # Tests for AST elements
+│   ├── mod.rs
+│   ├── annotation/
+│   ├── components/
+│   ├── containers/
+│   ├── definition/
+│   ├── document/
+│   ├── formatting/
+│   ├── inlines/
+│   ├── list/
+│   ├── paragraph/
+│   ├── references/
+│   ├── session/
+│   └── verbatim/
+│
+├── ast_query/                  # Tests for AST query functionality
+│   └── mod.rs
+│
+├── lexer/                      # Tests for lexer components
+│   ├── mod.rs
+│   ├── annotation.rs
+│   ├── container.rs
+│   ├── core/
+│   ├── debug/
+│   ├── definition.rs
+│   ├── indentation/
+│   ├── inline/
+│   ├── labels.rs
+│   ├── list.rs
+│   ├── paragraph.rs
+│   ├── parameters.rs
+│   ├── pipeline/
+│   ├── session.rs
+│   └── verbatim/
+│
+├── parser/                     # All parser-related tests
+│   ├── mod.rs
+│   ├── parser_integration.rs
+│   ├── parser_tests.rs
+│   ├── issue_26_indented_sequence_markers.rs
+│   ├── elements/
+│   └── pipeline/
+│
+├── tools_detokenizer/          # Tests for detokenizer tool
+│   ├── mod.rs
+│   ├── detokenizer_debug_test.rs
+│   ├── detokenizer_simple_test.rs
+│   ├── detokenizer_span_test.rs
+│   ├── detokenizer_tests.rs
+│   └── detokenizer_walkthrough_tests.rs
+│
+├── tools_treeviz/              # Tests for tree visualization tool
+│   └── mod.rs
+│
+├── verbatim_scanner/           # Tests for verbatim scanner
+│   ├── mod.rs
+│   ├── test_runner.rs
+│   ├── correct/
+│   ├── errors/
+│   └── negative/
+│
+├── integration/                # Integration and example tests
+│   ├── mod.rs
+│   ├── ensemble_documents_example.rs
+│   └── illustrated_parser_test_example.rs
+│
+└── infrastructure/             # Shared test infrastructure
+    ├── mod.rs
+    └── corpora.rs
+```
+
+### Test Organization Principles
+
+1. **Mirror Source Structure**: Test directories should mirror the `src/` structure as closely as possible
+2. **Minimal Top-Level Files**: Only `suite.rs` and essential infrastructure files should be at the top level
+3. **Direct Module Inclusion**: `tests/suite.rs` includes directories directly, no `include_*` indirection files
+4. **Proper Module Structure**: Each test directory has a `mod.rs` file that exports its submodules
+5. **Clear Naming**: Test files should clearly indicate what they're testing
+
+### Adding New Tests
+
+When adding new tests:
+
+1. **Identify the Target**: Determine which source module your test is testing
+2. **Find the Test Directory**: Look for the corresponding directory in `tests/`
+3. **Add Your Test**: Place your test file in the appropriate subdirectory
+4. **Update mod.rs**: Add your test module to the relevant `mod.rs` file
+5. **Verify Discovery**: Run `cargo test --lib -- --list` to ensure your test is discovered
+
+### Example: Adding a Parser Test
+
+If you're testing a new parser element in `src/parser/elements/new_element/`:
+
+1. Create `tests/parser/elements/new_element/new_element_tests.rs`
+2. Add `mod new_element_tests;` to `tests/parser/elements/mod.rs`
+3. Your test will be automatically discovered by `tests/suite.rs`
+
+This structure ensures that tests are easy to find, maintain, and extend while keeping the test suite organized and discoverable.
+

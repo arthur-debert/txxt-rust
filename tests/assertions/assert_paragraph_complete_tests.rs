@@ -9,8 +9,6 @@
 //! 3. parameters: Parameters
 //! 4. tokens: TokenSequence
 
-use super::*;
-
 #[cfg(feature = "new-ast")]
 use txxt::ast::{
     elements::annotation::annotation_content::{Annotation, AnnotationContent},

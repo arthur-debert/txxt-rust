@@ -7,5 +7,3 @@
 //! Structure mirrors:
 //! - src/parser/elements/ -> tests/parser/elements/
 //! - Individual element parsers are tested via their respective modules
-
-use super::*;

@@ -15,7 +15,7 @@
 
 use crate::ast::tokens::Token;
 use crate::tokenizer::core::indentation::INDENT_SIZE;
-use crate::tokenizer::pipeline::BlockGroup;
+use crate::tokenizer::pipeline::TokenTree;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;
@@ -82,17 +82,17 @@ impl Detokenizer {
     ///
     /// Takes the output of Phase 2a (block grouping) and reconstructs
     /// the original source text for verification purposes.
-    pub fn detokenize(&self, blocks: &BlockGroup) -> Result<String, DetokenizeError> {
+    pub fn detokenize(&self, token_tree: &TokenTree) -> Result<String, DetokenizeError> {
         let mut result = String::new();
-        self.append_block_group(&mut result, blocks, 0)?;
+        self.append_token_tree(&mut result, token_tree, 0)?;
         Ok(result)
     }
 
-    /// Recursively append a block group to the result
-    fn append_block_group(
+    /// Recursively append a token tree to the result
+    fn append_token_tree(
         &self,
         result: &mut String,
-        block: &BlockGroup,
+        token_tree: &TokenTree,
         indent_level: usize,
     ) -> Result<(), DetokenizeError> {
         // Track whether we're at the start of a line
@@ -100,7 +100,7 @@ impl Detokenizer {
         let mut prev_token: Option<&Token> = None;
 
         // Process all tokens at this level
-        for token in &block.tokens {
+        for token in &token_tree.tokens {
             // Handle parameter tokens specially for separator logic
             if let Token::Parameter { key, value, .. } = token {
                 // Add appropriate separator before parameter
@@ -172,8 +172,8 @@ impl Detokenizer {
         }
 
         // Process all children with increased indentation
-        for child in &block.children {
-            self.append_block_group(result, child, indent_level + 1)?;
+        for child in &token_tree.children {
+            self.append_token_tree(result, child, indent_level + 1)?;
         }
 
         Ok(())
@@ -293,9 +293,9 @@ impl Detokenizer {
                 // The newline after a label comes as a separate Newline token
             }
             Token::Parameter { .. } => {
-                // Parameters are handled specially in append_block_group
+                // Parameters are handled specially in append_token_tree
                 // This case should not be reached
-                unreachable!("Parameter tokens should be handled in append_block_group");
+                unreachable!("Parameter tokens should be handled in append_token_tree");
             }
             Token::BoldDelimiter { .. } => {
                 result.push('*');
@@ -326,7 +326,7 @@ impl Detokenizer {
             }
             Token::Whitespace { content, .. } => {
                 // Whitespace tokens represent inline spacing (not indentation)
-                // Indentation is reconstructed from the BlockGroup hierarchy
+                // Indentation is reconstructed from the TokenTree hierarchy
                 result.push_str(content);
             }
             Token::Eof { .. } => {

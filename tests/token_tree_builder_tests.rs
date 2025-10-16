@@ -1,20 +1,20 @@
-//! Tests for Phase 2a: Block Grouping
+//! Tests for Phase 1c: Token Tree Building
 //!
-//! These tests verify the block grouper's ability to transform flat token
+//! These tests verify the token tree builder's ability to transform flat token
 //! streams into hierarchical structures based on indentation.
 
 use txxt::ast::tokens::{Position, SourceSpan, Token};
-use txxt::tokenizer::pipeline::{BlockGroup, BlockGrouper};
+use txxt::tokenizer::pipeline::{TokenTree, TokenTreeBuilder};
 use txxt::tokenizer::tokenize;
 
 /// Test simple flat content (no indentation)
 #[test]
-fn test_block_grouper_flat_content() {
+fn test_token_tree_builder_flat_content() {
     let source = "This is a simple paragraph.\nNo indentation here.";
     let tokens = tokenize(source);
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should have tokens at root level, no children
     assert!(!result.tokens.is_empty());
@@ -23,12 +23,12 @@ fn test_block_grouper_flat_content() {
 
 /// Test single level of indentation
 #[test]
-fn test_block_grouper_single_indent() {
+fn test_token_tree_builder_single_indent() {
     let source = "Parent content\n    Indented content\n    More indented";
     let tokens = tokenize(source);
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should have parent tokens and one child group
     assert!(!result.tokens.is_empty());
@@ -38,12 +38,12 @@ fn test_block_grouper_single_indent() {
 
 /// Test multiple indent/dedent cycles
 #[test]
-fn test_block_grouper_multiple_indent_cycles() {
+fn test_token_tree_builder_multiple_indent_cycles() {
     let source = "First block\n    Indented\nSecond block\n    Another indent";
     let tokens = tokenize(source);
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should have two child groups
     assert_eq!(result.children.len(), 2);
@@ -51,12 +51,12 @@ fn test_block_grouper_multiple_indent_cycles() {
 
 /// Test nested indentation
 #[test]
-fn test_block_grouper_nested_indentation() {
+fn test_token_tree_builder_nested_indentation() {
     let source = "Level 0\n    Level 1\n        Level 2\n    Back to 1";
     let tokens = tokenize(source);
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should have nested structure
     assert_eq!(result.children.len(), 1);
@@ -65,13 +65,13 @@ fn test_block_grouper_nested_indentation() {
 
 /// Test with walkthrough.txxt - first few lines
 #[test]
-fn test_block_grouper_walkthrough_simple() {
+fn test_token_tree_builder_walkthrough_simple() {
     // First paragraph from walkthrough - completely flat
     let first_paragraph = "TXXT :: A Radical Take on Minimal Structured Text";
     let tokens = tokenize(first_paragraph);
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should be flat - no indentation
     assert!(!result.tokens.is_empty());
@@ -80,7 +80,7 @@ fn test_block_grouper_walkthrough_simple() {
 
 /// Test walkthrough with session and indented content
 #[test]
-fn test_block_grouper_walkthrough_with_session() {
+fn test_token_tree_builder_walkthrough_with_session() {
     // Create a simplified version with session structure
     let session_example = r#"1. What is TXXT?
 
@@ -91,8 +91,8 @@ fn test_block_grouper_walkthrough_with_session() {
     - Machine parsability"#;
 
     let tokens = tokenize(session_example);
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should have session title at root, indented content as child
     assert!(!result.tokens.is_empty());
@@ -105,7 +105,7 @@ fn test_block_grouper_walkthrough_with_session() {
 
 /// Test complex nested structure from walkthrough
 #[test]
-fn test_block_grouper_walkthrough_complex_nesting() {
+fn test_token_tree_builder_walkthrough_complex_nesting() {
     // Complex example with multiple levels
     let complex_example = r#"1. Session Title
 
@@ -119,8 +119,8 @@ fn test_block_grouper_walkthrough_complex_nesting() {
             Nested content in list"#;
 
     let tokens = tokenize(complex_example);
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Verify the hierarchical structure
     assert_eq!(result.children.len(), 1); // Session container
@@ -133,15 +133,15 @@ fn test_block_grouper_walkthrough_complex_nesting() {
 /// Helper function to debug print block group structure
 #[cfg(test)]
 #[allow(dead_code)]
-fn debug_block_structure(group: &BlockGroup, indent: usize) {
+fn debug_block_structure(tree: &TokenTree, indent: usize) {
     let prefix = " ".repeat(indent * 2);
-    println!("{}BlockGroup {{", prefix);
-    println!("{}  tokens: {} items", prefix, group.tokens.len());
-    for (i, token) in group.tokens.iter().enumerate() {
+    println!("{}TokenTree {{", prefix);
+    println!("{}  tokens: {} items", prefix, tree.tokens.len());
+    for (i, token) in tree.tokens.iter().enumerate() {
         println!("{}    [{}]: {:?}", prefix, i, token_summary(token));
     }
-    println!("{}  children: {}", prefix, group.children.len());
-    for (i, child) in group.children.iter().enumerate() {
+    println!("{}  children: {}", prefix, tree.children.len());
+    for (i, child) in tree.children.iter().enumerate() {
         println!("{}  Child {}:", prefix, i);
         debug_block_structure(child, indent + 2);
     }
@@ -165,7 +165,7 @@ fn token_summary(token: &Token) -> String {
 
 /// Test error handling - unmatched dedent
 #[test]
-fn test_block_grouper_error_unmatched_dedent() {
+fn test_token_tree_builder_error_unmatched_dedent() {
     // Create tokens with unmatched dedent
     let tokens = vec![
         Token::Text {
@@ -177,24 +177,24 @@ fn test_block_grouper_error_unmatched_dedent() {
         }, // Dedent without indent
     ];
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens);
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens);
 
     assert!(result.is_err());
 }
 
 /// Test progressive walkthrough examples
 #[test]
-fn test_block_grouper_walkthrough_progressive() {
+fn test_token_tree_builder_walkthrough_progressive() {
     // Test 1: Just title
     let tokens = tokenize("TXXT :: A Radical Take on Minimal Structured Text");
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
     assert!(result.children.is_empty());
 
     // Test 2: Title + paragraph
     let tokens = tokenize("TXXT :: A Radical Take on Minimal Structured Text\n\nA new format.");
-    let result = grouper.group_blocks(tokens).unwrap();
+    let result = builder.build_tree(tokens).unwrap();
     assert!(result.children.is_empty()); // Still flat
 
     // Test 3: Add a session with content
@@ -205,7 +205,7 @@ fn test_block_grouper_walkthrough_progressive() {
 
     This is indented content."#,
     );
-    let result = grouper.group_blocks(tokens).unwrap();
+    let result = builder.build_tree(tokens).unwrap();
     assert_eq!(result.children.len(), 1); // One indented block
 
     // Test 4: Multiple sessions
@@ -220,13 +220,13 @@ fn test_block_grouper_walkthrough_progressive() {
 
     Second content."#,
     );
-    let result = grouper.group_blocks(tokens).unwrap();
+    let result = builder.build_tree(tokens).unwrap();
     assert_eq!(result.children.len(), 2); // Two indented blocks
 }
 
 /// Test verbatim block handling
 #[test]
-fn test_block_grouper_verbatim_blocks() {
+fn test_token_tree_builder_verbatim_blocks() {
     let verbatim_example = r#"Here is code:
 
 code::
@@ -236,8 +236,8 @@ code::
 ::"#;
 
     let tokens = tokenize(verbatim_example);
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Verbatim content should be grouped
     assert!(!result.tokens.is_empty());
@@ -246,10 +246,10 @@ code::
 
 /// Test empty input
 #[test]
-fn test_block_grouper_empty_input() {
+fn test_token_tree_builder_empty_input() {
     let tokens = tokenize("");
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should have only EOF token or be empty
     assert!(result.tokens.len() <= 1); // May have EOF token
@@ -258,12 +258,12 @@ fn test_block_grouper_empty_input() {
 
 /// Test multi-level dedent
 #[test]
-fn test_block_grouper_multi_level_dedent() {
+fn test_token_tree_builder_multi_level_dedent() {
     let source = "Level 0\n    Level 1\n        Level 2\nBack to 0";
     let tokens = tokenize(source);
 
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Should handle multi-level dedent correctly
     assert_eq!(result.children.len(), 1);
@@ -272,7 +272,7 @@ fn test_block_grouper_multi_level_dedent() {
 
 /// Debug test to visualize structure
 #[test]
-fn test_block_grouper_debug_structure() {
+fn test_token_tree_builder_debug_structure() {
     let source = r#"Root level
     First indent
         Second indent
@@ -280,8 +280,8 @@ fn test_block_grouper_debug_structure() {
 Another root"#;
 
     let tokens = tokenize(source);
-    let grouper = BlockGrouper::new();
-    let result = grouper.group_blocks(tokens).unwrap();
+    let builder = TokenTreeBuilder::new();
+    let result = builder.build_tree(tokens).unwrap();
 
     // Uncomment to debug:
     // debug_block_structure(&result, 0);

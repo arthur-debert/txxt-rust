@@ -13,7 +13,7 @@
 //!   - [`core::patterns`] - Core pattern matching utilities
 //!
 //! - [`pipeline`] - Token processing pipeline stages
-//!   - [`pipeline::block_grouper`] - Transform flat tokens into hierarchical token tree
+//!   - [`pipeline::token_tree_builder`] - Transform flat tokens into hierarchical token tree
 //!
 //! ## Element Modules (Organized by Specification)
 //!
@@ -56,7 +56,7 @@ pub mod infrastructure;
 // Re-export main interfaces
 pub use core::Lexer;
 pub use elements::verbatim::{VerbatimBlock, VerbatimScanner, VerbatimType};
-pub use pipeline::{BlockGroup, BlockGrouper};
+pub use pipeline::{TokenTree, TokenTreeBuilder};
 
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};

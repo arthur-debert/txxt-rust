@@ -5,16 +5,16 @@
 //!
 //! # Pipeline Stages
 //!
-//! ## Block Grouping (Phase 1c)
+//! ## Token Tree Building (Phase 1c)
 //! - **Input**: Flat token stream with Indent/Dedent markers
-//! - **Output**: Hierarchical token tree (BlockGroup)
+//! - **Output**: Hierarchical token tree (TokenTree)
 //! - **Purpose**: Transform flat token stream into structured token tree
-//! - **Location**: `block_grouper.rs`
+//! - **Location**: `token_tree_builder.rs`
 //!
 //! This is the final stage of the lexer pipeline, producing a token tree
 //! that reflects the document's indentation structure.
 
-pub mod block_grouper;
+pub mod token_tree_builder;
 
 // Re-export main interfaces
-pub use block_grouper::{BlockGroup, BlockGroupError, BlockGrouper};
+pub use token_tree_builder::{TokenTree, TokenTreeBuilder, TokenTreeError};

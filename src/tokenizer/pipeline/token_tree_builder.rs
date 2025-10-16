@@ -1,32 +1,32 @@
-//! Phase 2a: Block Grouping
+//! Phase 1c: Token Tree Building
 //!
-//! This module implements the block grouping phase that creates hierarchical
-//! structure from flat token streams using indentation analysis.
+//! This module implements the token tree building phase that creates hierarchical
+//! token structures from flat token streams using indentation analysis.
 //!
-//! The block grouper transforms a flat sequence of tokens (with Indent/Dedent markers)
-//! into a hierarchical structure that represents the document's nesting. This is a
+//! The token tree builder transforms a flat sequence of tokens (with Indent/Dedent markers)
+//! into a hierarchical token tree that represents the document's nesting. This is a
 //! purely structural transformation - no parsing or element identification happens here.
 
 use crate::ast::tokens::Token;
 
-/// Phase 2a Block Grouper
+/// Phase 1c Token Tree Builder
 ///
-/// Transforms flat token streams into hierarchical block structures
+/// Transforms flat token streams into hierarchical token tree structures
 /// based on indentation patterns detected by the lexer.
-pub struct BlockGrouper;
+pub struct TokenTreeBuilder;
 
-impl BlockGrouper {
-    /// Create a new block grouper instance
+impl TokenTreeBuilder {
+    /// Create a new token tree builder instance
     pub fn new() -> Self {
         Self
     }
 
-    /// Group tokens into hierarchical blocks based on indentation
+    /// Build hierarchical token tree from flat token stream
     ///
     /// Takes a flat stream of tokens with Indent/Dedent markers and
-    /// produces a nested structure reflecting document hierarchy.
-    pub fn group_blocks(&self, tokens: Vec<Token>) -> Result<BlockGroup, BlockGroupError> {
-        let mut builder = BlockGroupBuilder::new();
+    /// produces a nested token tree reflecting document hierarchy.
+    pub fn build_tree(&self, tokens: Vec<Token>) -> Result<TokenTree, TokenTreeError> {
+        let mut builder = TokenTreeBuilderInternal::new();
 
         for token in tokens {
             match &token {
@@ -46,34 +46,34 @@ impl BlockGrouper {
     }
 }
 
-impl Default for BlockGrouper {
+impl Default for TokenTreeBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Block group structure representing hierarchical token organization
+/// Token tree structure representing hierarchical token organization
 ///
 /// This structure preserves the exact token sequences while organizing them
-/// into a hierarchy based on indentation levels. Each BlockGroup represents
-/// a single indentation level and can contain child groups for nested content.
+/// into a hierarchy based on indentation levels. Each TokenTree represents
+/// a single indentation level and can contain child trees for nested content.
 #[derive(Debug, Clone)]
-pub struct BlockGroup {
+pub struct TokenTree {
     /// Tokens at this indentation level (excluding Indent/Dedent tokens)
     pub tokens: Vec<Token>,
-    /// Child block groups representing indented content
+    /// Child token trees representing indented content
     /// Each child starts after an Indent token and ends at the corresponding Dedent
-    pub children: Vec<BlockGroup>,
+    pub children: Vec<TokenTree>,
 }
 
-impl Default for BlockGroup {
+impl Default for TokenTree {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl BlockGroup {
-    /// Create a new empty block group
+impl TokenTree {
+    /// Create a new empty token tree
     pub fn new() -> Self {
         Self {
             tokens: Vec::new(),
@@ -81,40 +81,40 @@ impl BlockGroup {
         }
     }
 
-    /// Create placeholder block group for compilation
+    /// Create placeholder token tree for compilation
     pub fn placeholder() -> Self {
         Self::new()
     }
 
-    /// Check if this block group is empty (no tokens or children)
+    /// Check if this token tree is empty (no tokens or children)
     pub fn is_empty(&self) -> bool {
         self.tokens.is_empty() && self.children.is_empty()
     }
 
-    /// Add a token to this block group
+    /// Add a token to this token tree
     pub fn add_token(&mut self, token: Token) {
         self.tokens.push(token);
     }
 
-    /// Add a child block group
-    pub fn add_child(&mut self, child: BlockGroup) {
+    /// Add a child token tree
+    pub fn add_child(&mut self, child: TokenTree) {
         self.children.push(child);
     }
 }
 
-/// Internal builder for constructing block groups
-struct BlockGroupBuilder {
-    /// Stack of block groups at each indentation level
+/// Internal builder for constructing token trees
+struct TokenTreeBuilderInternal {
+    /// Stack of token trees at each indentation level
     /// The bottom of the stack (index 0) is always the root level
-    stack: Vec<BlockGroup>,
+    stack: Vec<TokenTree>,
     /// Current tokens being accumulated before the next indent
     current_tokens: Vec<Token>,
 }
 
-impl BlockGroupBuilder {
+impl TokenTreeBuilderInternal {
     fn new() -> Self {
         Self {
-            stack: vec![BlockGroup::new()],
+            stack: vec![TokenTree::new()],
             current_tokens: Vec::new(),
         }
     }
@@ -127,14 +127,14 @@ impl BlockGroupBuilder {
         // Flush current tokens to the current level
         self.flush_current_tokens();
 
-        // Create a new block group for the indented content
-        let new_group = BlockGroup::new();
-        self.stack.push(new_group);
+        // Create a new token tree for the indented content
+        let new_tree = TokenTree::new();
+        self.stack.push(new_tree);
     }
 
-    fn pop_dedent(&mut self) -> Result<(), BlockGroupError> {
+    fn pop_dedent(&mut self) -> Result<(), TokenTreeError> {
         if self.stack.len() <= 1 {
-            return Err(BlockGroupError::InvalidIndentation(
+            return Err(TokenTreeError::InvalidIndentation(
                 "Dedent without matching indent".to_string(),
             ));
         }
@@ -142,7 +142,7 @@ impl BlockGroupBuilder {
         // Flush any remaining tokens to the current level
         self.flush_current_tokens();
 
-        // Pop the completed block group and add it as a child to the parent
+        // Pop the completed token tree and add it as a child to the parent
         let completed = self.stack.pop().unwrap();
         self.stack.last_mut().unwrap().add_child(completed);
 
@@ -156,13 +156,13 @@ impl BlockGroupBuilder {
         }
     }
 
-    fn finalize(mut self) -> Result<BlockGroup, BlockGroupError> {
+    fn finalize(mut self) -> Result<TokenTree, TokenTreeError> {
         // Flush any remaining tokens
         self.flush_current_tokens();
 
         // Should end with exactly one item in stack (the root)
         if self.stack.len() != 1 {
-            return Err(BlockGroupError::InvalidIndentation(format!(
+            return Err(TokenTreeError::InvalidIndentation(format!(
                 "Unclosed indentation levels: expected 1, found {}",
                 self.stack.len()
             )));
@@ -172,25 +172,25 @@ impl BlockGroupBuilder {
     }
 }
 
-/// Block grouping error types
+/// Token tree building error types
 #[derive(Debug, Clone)]
-pub enum BlockGroupError {
+pub enum TokenTreeError {
     /// Invalid indentation structure
     InvalidIndentation(String),
     /// Malformed container boundaries
     MalformedContainer(String),
-    /// Unexpected token in grouping context
+    /// Unexpected token in tree building context
     UnexpectedToken(String),
 }
 
-impl std::fmt::Display for BlockGroupError {
+impl std::fmt::Display for TokenTreeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BlockGroupError::InvalidIndentation(msg) => write!(f, "Invalid indentation: {}", msg),
-            BlockGroupError::MalformedContainer(msg) => write!(f, "Malformed container: {}", msg),
-            BlockGroupError::UnexpectedToken(msg) => write!(f, "Unexpected token: {}", msg),
+            TokenTreeError::InvalidIndentation(msg) => write!(f, "Invalid indentation: {}", msg),
+            TokenTreeError::MalformedContainer(msg) => write!(f, "Malformed container: {}", msg),
+            TokenTreeError::UnexpectedToken(msg) => write!(f, "Unexpected token: {}", msg),
         }
     }
 }
 
-impl std::error::Error for BlockGroupError {}
+impl std::error::Error for TokenTreeError {}

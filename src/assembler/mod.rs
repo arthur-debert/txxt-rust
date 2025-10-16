@@ -48,7 +48,7 @@ use crate::ast::{
         tokens::{Token, TokenSequence},
     },
 };
-use crate::tokenizer::pipeline::block_grouper::BlockGroup;
+use crate::tokenizer::pipeline::TokenTree;
 
 /// Phase 3 Assembler
 ///
@@ -72,18 +72,18 @@ impl Assembler {
     /// This creates the basic document structure: `document.content.session[0][content].blocks`
     pub fn assemble_document(
         &self,
-        block_group: BlockGroup,
+        token_tree: TokenTree,
         source_path: Option<String>,
     ) -> Result<Document, AssemblyError> {
         // Phase 3b: Extract and attach annotations
-        let (document_annotations, content_annotations) = self.extract_annotations(&block_group)?;
+        let (document_annotations, content_annotations) = self.extract_annotations(&token_tree)?;
 
         // Create assembly info with processing stats
         let stats = ProcessingStats {
-            token_count: count_tokens_in_block_group(&block_group),
+            token_count: count_tokens_in_token_tree(&token_tree),
             annotation_count: document_annotations.len() + content_annotations.len(),
-            block_count: count_blocks_in_block_group(&block_group),
-            max_depth: calculate_max_depth(&block_group),
+            block_count: count_blocks_in_token_tree(&token_tree),
+            max_depth: calculate_max_depth(&token_tree),
         };
 
         let assembly_info = AssemblyInfo {
@@ -96,14 +96,14 @@ impl Assembler {
         // Convert document-level annotations to metadata
         let meta = self.extract_metadata_from_annotations(&document_annotations)?;
 
-        // Convert BlockGroup to SessionContainer
-        // For now, we'll create a simple session container that holds the raw block group
+        // Convert TokenTree to SessionContainer
+        // For now, we'll create a simple session container that holds the raw token tree
         // Later when Phase 2 is implemented, this will contain proper AST nodes
         let session_container = SessionContainer::new(
-            vec![], // TODO: Parse sessions from block_group when Phase 2 is implemented
+            vec![], // TODO: Parse sessions from token_tree when Phase 2 is implemented
             vec![], // TODO: Parse other blocks when Phase 2 is implemented
             Parameters::default(),
-            TokenSequence::new(), // TODO: Extract tokens from block_group
+            TokenSequence::new(), // TODO: Extract tokens from token_tree
         );
 
         // Create document with metadata from annotations
@@ -138,17 +138,17 @@ impl Assembler {
     /// - content_annotations: Other annotations (attach to elements or parents)
     fn extract_annotations(
         &self,
-        block_group: &BlockGroup,
+        token_tree: &TokenTree,
     ) -> Result<(Vec<Annotation>, Vec<Annotation>), AssemblyError> {
         let mut document_annotations = Vec::new();
         let mut content_annotations = Vec::new();
 
         // Extract annotations from root level first (document-level)
-        let root_annotations = self.extract_annotations_from_tokens(&block_group.tokens)?;
+        let root_annotations = self.extract_annotations_from_tokens(&token_tree.tokens)?;
         document_annotations.extend(root_annotations);
 
-        // Extract annotations from child groups (content-level)
-        for child in &block_group.children {
+        // Extract annotations from child trees (content-level)
+        for child in &token_tree.children {
             let child_annotations = self.extract_annotations_recursive(child)?;
             content_annotations.extend(child_annotations);
         }
@@ -156,19 +156,19 @@ impl Assembler {
         Ok((document_annotations, content_annotations))
     }
 
-    /// Recursively extract annotations from block groups
+    /// Recursively extract annotations from token trees
     fn extract_annotations_recursive(
         &self,
-        block_group: &BlockGroup,
+        token_tree: &TokenTree,
     ) -> Result<Vec<Annotation>, AssemblyError> {
         let mut annotations = Vec::new();
 
         // Extract from this level
-        let level_annotations = self.extract_annotations_from_tokens(&block_group.tokens)?;
+        let level_annotations = self.extract_annotations_from_tokens(&token_tree.tokens)?;
         annotations.extend(level_annotations);
 
         // Extract from children
-        for child in &block_group.children {
+        for child in &token_tree.children {
             let child_annotations = self.extract_annotations_recursive(child)?;
             annotations.extend(child_annotations);
         }
@@ -348,28 +348,28 @@ impl std::fmt::Display for AssemblyError {
 
 impl std::error::Error for AssemblyError {}
 
-/// Helper function to count total tokens in a block group
-fn count_tokens_in_block_group(block_group: &BlockGroup) -> usize {
-    let mut count = block_group.tokens.len();
-    for child in &block_group.children {
-        count += count_tokens_in_block_group(child);
+/// Helper function to count total tokens in a token tree
+fn count_tokens_in_token_tree(token_tree: &TokenTree) -> usize {
+    let mut count = token_tree.tokens.len();
+    for child in &token_tree.children {
+        count += count_tokens_in_token_tree(child);
     }
     count
 }
 
-/// Helper function to count blocks (non-empty groups) in a block group
-fn count_blocks_in_block_group(block_group: &BlockGroup) -> usize {
-    let mut count = if block_group.tokens.is_empty() { 0 } else { 1 };
-    for child in &block_group.children {
-        count += count_blocks_in_block_group(child);
+/// Helper function to count blocks (non-empty trees) in a token tree
+fn count_blocks_in_token_tree(token_tree: &TokenTree) -> usize {
+    let mut count = if token_tree.tokens.is_empty() { 0 } else { 1 };
+    for child in &token_tree.children {
+        count += count_blocks_in_token_tree(child);
     }
     count
 }
 
 /// Helper function to calculate maximum nesting depth
-fn calculate_max_depth(block_group: &BlockGroup) -> usize {
+fn calculate_max_depth(token_tree: &TokenTree) -> usize {
     let mut max_child_depth = 0;
-    for child in &block_group.children {
+    for child in &token_tree.children {
         max_child_depth = max_child_depth.max(calculate_max_depth(child));
     }
     1 + max_child_depth

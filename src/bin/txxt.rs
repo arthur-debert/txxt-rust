@@ -28,7 +28,7 @@ use std::path::Path;
 
 use txxt::assembler::Assembler;
 use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
-use txxt::tokenizer::pipeline::BlockGrouper;
+use txxt::tokenizer::pipeline::TokenTreeBuilder;
 use txxt::tokenizer::tokenize;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -187,11 +187,11 @@ fn process_token_tree(
     source_path: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let tokens = tokenize(content);
-    let block_grouper = BlockGrouper::new();
-    let block_tree = block_grouper.group_blocks(tokens)?;
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder.build_tree(tokens)?;
 
     // Convert block tree to serializable format
-    let serializable_tree = serialize_block_group(&block_tree);
+    let serializable_tree = serialize_token_tree(&token_tree);
 
     let result = serde_json::json!({
         "source": source_path,
@@ -201,11 +201,11 @@ fn process_token_tree(
     Ok(serde_json::to_string_pretty(&result)?)
 }
 
-/// Helper function to serialize BlockGroup to JSON
-fn serialize_block_group(block: &txxt::tokenizer::pipeline::BlockGroup) -> serde_json::Value {
+/// Helper function to serialize TokenTree to JSON
+fn serialize_token_tree(tree: &txxt::tokenizer::pipeline::TokenTree) -> serde_json::Value {
     serde_json::json!({
-        "tokens": block.tokens,
-        "children": block.children.iter().map(serialize_block_group).collect::<Vec<_>>()
+        "tokens": tree.tokens,
+        "children": tree.children.iter().map(serialize_token_tree).collect::<Vec<_>>()
     })
 }
 
@@ -247,12 +247,12 @@ fn process_ast_full_json(
 ) -> Result<String, Box<dyn std::error::Error>> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let block_grouper = BlockGrouper::new();
-    let block_tree = block_grouper.group_blocks(tokens)?;
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder.build_tree(tokens)?;
 
     // Phase 3a: Assemble document from block tree
     let assembler = Assembler::new();
-    let document = assembler.assemble_document(block_tree, Some(source_path.to_string()))?;
+    let document = assembler.assemble_document(token_tree, Some(source_path.to_string()))?;
 
     // Serialize to JSON
     let result = serde_json::json!({
@@ -269,12 +269,12 @@ fn process_ast_full_treeviz(
 ) -> Result<String, Box<dyn std::error::Error>> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let block_grouper = BlockGrouper::new();
-    let block_tree = block_grouper.group_blocks(tokens)?;
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder.build_tree(tokens)?;
 
     // Phase 3a: Assemble document from block tree
     let assembler = Assembler::new();
-    let document = assembler.assemble_document(block_tree, Some(source_path.to_string()))?;
+    let document = assembler.assemble_document(token_tree, Some(source_path.to_string()))?;
 
     // For now, create a simple treeviz representation since Phase 2 parsing isn't implemented
     // TODO: Use proper treeviz when Phase 2 is complete and we have ElementNode

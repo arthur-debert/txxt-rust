@@ -14,7 +14,7 @@ This document outlines the comprehensive implementation plan for the core parser
         Phase 1: Lexer (string → token tree)
             a. Verbatim Line Marking: Stateful isolation of verbatim content
             b. Tokenization: Character-precise token generation  
-            c. Token Tree: Hierarchical block grouping from indentation
+            c. Token Tree: Hierarchical list  grouping from indentation
 
         Phase 2: Parser (token tree → full AST node tree) ← THIS PLAN
             a. Block Parsing: Convert block groups into typed AST nodes
@@ -39,7 +39,7 @@ This document outlines the comprehensive implementation plan for the core parser
 
     1.3. Element Classification
 
-        txxt has three fundamental element types:
+        txxt has fundamental element types:
 
         Block Elements::
             Structural units that can contain other elements or content
@@ -53,6 +53,9 @@ This document outlines the comprehensive implementation plan for the core parser
             Special block elements that hold child elements of different types
             Examples: sessions, lists, definitions
             Note: Containers get indented, not their parent elements
+
+        Components::
+            Not stand alone, but part of block elements, as in parameters or label.
 
     1.4. Complexity Levels
 
@@ -123,7 +126,8 @@ This document outlines the comprehensive implementation plan for the core parser
         - Only their simple forms
         - No structural edge cases
 
-        The formula for each is always the same, using ensemble examples:
+        **The Pattern:**
+        The formula for each element is always the same, using ensemble examples:
         - Parse the element as the only content, in complete isolation: `01-simple-nosession-single-<element>.txxt`
         - Parse the element in a document with more same-type elements: `02-simple-nosession-multiple-<element>.txxt`
         - Parse the element mixed with paragraphs in a flat session document: `03-simple-flat-single-<element>.txxt`
@@ -131,35 +135,14 @@ This document outlines the comprehensive implementation plan for the core parser
 
         This sequence gives us growing confidence: we can parse the element, we can pick the element from surrounding elements, and we can do so against varying indentation.
 
-        This will be done, in order, for: Definition, Verbatim, List, and Annotation.
-
-        **Definition Elements:**
+        **Complete Example - Definition Elements:**
         - `01-simple-nosession-single-definition.txxt` - Single definition only
         - `02-simple-nosession-multiple-definition.txxt` - Multiple definitions only
         - `03-simple-flat-single-definition.txxt` - Single session with definition appearing first
         - `04-simple-flat-multiple-definition.txxt` - Multiple sessions with definitions appearing first, middle, and last
         - `05-simple-nested-multiple-definition.txxt` - Nested sessions with definitions at multiple levels
 
-        **Verbatim Elements:**
-        - `01-simple-nosession-single-verbatim.txxt` - Single verbatim block (in-flow mode)
-        - `02-simple-nosession-multiple-verbatim.txxt` - Multiple verbatim blocks (in-flow and stretched modes)
-        - `03-simple-flat-single-verbatim.txxt` - Single session with verbatim appearing first
-        - `04-simple-flat-multiple-verbatim.txxt` - Multiple sessions with verbatim appearing first, middle, and last
-        - `05-simple-nested-multiple-verbatim.txxt` - Nested sessions with verbatim at multiple levels
-
-        **List Elements:**
-        - `01-simple-nosession-single-list.txxt` - Single list (plain decoration)
-        - `02-simple-nosession-multiple-list.txxt` - Multiple lists (plain, numerical, alphabetical decorations)
-        - `03-simple-flat-single-list.txxt` - Single session with list appearing first
-        - `04-simple-flat-multiple-list.txxt` - Multiple sessions with lists appearing first, middle, and last
-        - `05-simple-nested-multiple-list.txxt` - Nested sessions with lists at multiple levels
-
-        **Annotation Elements:**
-        - `01-simple-nosession-single-annotation.txxt` - Single annotation only
-        - `02-simple-nosession-multiple-annotation.txxt` - Multiple annotations only
-        - `03-simple-flat-single-annotation.txxt` - Single session with annotation appearing first
-        - `04-simple-flat-multiple-annotation.txxt` - Multiple sessions with annotations appearing first, middle, and last
-        - `05-simple-nested-multiple-annotation.txxt` - Nested sessions with annotations at multiple levels
+        This will be done, in order, for: Definition, Verbatim, List, and Annotation.
 
     3.2. Mixed/Combination Integrated Tests
 
@@ -181,6 +164,8 @@ This document outlines the comprehensive implementation plan for the core parser
 
         Apply the same nested container approach to definition elements.
 
+    docs/specs/ensembles/11-full-document.txxt
+
 5. Phase 4: Hard Structural Ambiguity
 
     At this point, the only things missing are more intricate intra-element cases and the very hard cases for structure/indentation/disambiguation. The latter being what we will work on in this phase.
@@ -188,7 +173,7 @@ This document outlines the comprehensive implementation plan for the core parser
     This phase is not about one element in isolation, so the testing should be about:
     - Several edge case elements: but only one edge case per document (if one case messes up the document structure, the following ones will be in an unpredictable state, and it becomes very hard to debug)
 
-    We can finish off with a complicated ensemble document with several edge cases *after* we are sure we can parse each in isolation.
+    We can finish off with a complicated ensemble document with several edge cases *after* we are sure we can parse each in isolation. This is the document: docs/specs/ensembles/12-complex-sessions.txxt
 
 6. Phase 5: Element Complex Variations
 

@@ -41,15 +41,12 @@ Complete labeling scheme for all spec samples that will be extracted as test cor
         - edge: Boundary cases and disambiguation scenarios
 
 3. Per-Element Labeling Scheme
-
     3.1. Paragraph Element
-
         Valid cases:
         - txxt.core.spec.paragraph.valid.simple
         - txxt.core.spec.paragraph.valid.multiline
         - txxt.core.spec.paragraph.valid.with-formatting
         - txxt.core.spec.paragraph.valid.starts-with-dash
-        
         Edge cases:
         - txxt.core.spec.paragraph.edge.whitespace-only
         - txxt.core.spec.paragraph.edge.consistent-indent

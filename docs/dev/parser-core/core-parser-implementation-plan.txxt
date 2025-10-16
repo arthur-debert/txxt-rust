@@ -58,11 +58,12 @@ This document outlines the comprehensive implementation plan for the core parser
 
         Simple Cases::
             Basic, straightforward examples of each element type
-            Examples: key=value parameters, single-line paragraphs, flat lists
+            Examples: key=value parameters, single-line paragraphs, flat lists, verbatim in-flow and streched mode, annotation single and multi-line
 
         Complex Cases::
             Edge cases and intricate variations of each element type  
             Examples: keyfoo=" quoted",bar=a\=bar parameters, nested structures
+
 
         Important: Complex cases are not the hard, high-risk issues in txxt parsing. They matter and need to be tackled, but they are low risk and can be done at a later time.
 

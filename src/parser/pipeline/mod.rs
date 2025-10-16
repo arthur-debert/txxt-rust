@@ -5,34 +5,19 @@
 //!
 //! # Three-Phase Architecture
 //!
-//! ## Phase 1: Lexer (Completed - in tokenizer)
-//! - Verbatim line marking and tokenization
-//! - Implemented in `src/tokenizer/`
-//! - Output: Stream of positioned tokens
+//!  Phase 1: Lexer (string -> Stream of positioned tokens)
+//!      1.a Verbatim line marking and tokenization
+//!      1.b Tokenization-Stream -> Stream of tokens with source positions
+//!      1.c Tokenization-Tree -> Convert flat list into a token list tree
 //!
-//! ## Phase 2: Parser (To be implemented)
-//! ### Phase 2a: Block Grouping
-//! - Convert flat token stream into hierarchical block structure
-//! - Handle indentation-based nesting
-//! - Create container boundaries
+//!  Phase 2: Parser  (Token-Tree -> AST Tree)
+//!     1.a  Block-Parsing Convert block groups into typed AST nodes-> ast tree of ast element nodes.
+//!     1.b Inline-Parsing Handle inlines within blocks (the same tree, but with inlines)
 //!
-//! ### Phase 2b: Parsing  
-//! - Convert block groups into typed AST nodes
-//! - Apply element-specific parsing rules
-//! - Handle inline processing within blocks
-//!
-//! ## Phase 3: Post-Processing (Planned)
+//!  Phase 3: Assembly (AST Tree -> Document)
 //! - Document assembly and metadata attachment
-//! - Cross-reference resolution
-//! - Annotation proximity processing
+//! - Annotation attachment
 //!
-//! # Design Principles
-//!
-//! - **Single-pass processing**: Each phase processes input once
-//! - **Error recovery**: Graceful handling of malformed input
-//! - **Incremental**: Foundation for future incremental parsing
-//! - **Testable**: Each phase can be tested independently
-
 pub mod block_grouper;
 pub mod lexer;
 pub mod parser;

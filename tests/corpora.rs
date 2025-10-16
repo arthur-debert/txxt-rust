@@ -92,6 +92,13 @@ pub enum ProcessedData {
 
 /// Spec-driven test corpus loader for txxt parser testing.
 ///
+/// **Quick Usage:**
+/// ```rust
+/// // Load raw text: TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")
+/// // Load pre-tokenized: TxxtCorpora::load_with_processing("name", ProcessingStage::Tokens)
+/// // Load documents: TxxtCorpora::load_document("01-two-paragraphs")
+/// ```
+///
 /// Provides two loading modes:
 /// 1. **Fragments**: Isolated element samples from spec verbatim blocks
 /// 2. **Documents**: Complete files from ensembles directory

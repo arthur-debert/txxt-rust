@@ -62,17 +62,20 @@ mod assertion_framework_tests;
 mod component_assertion_tests;
 
 // Re-export expected structs for convenience
-#[cfg(feature = "new-ast")]
-pub use core::*;
-#[cfg(feature = "new-ast")]
-pub use elements::*;
+pub use core::expected::{
+    ContentContainerExpected, InlineContentExpected, SessionContainerExpected,
+};
+pub use elements::annotation::expected::AnnotationExpected;
+pub use elements::definition::expected::DefinitionExpected;
+pub use elements::list::expected::ListExpected;
+pub use elements::paragraph::expected::ParagraphExpected;
+pub use elements::session::expected::SessionExpected;
+pub use elements::verbatim::expected::VerbatimExpected;
 
-#[cfg(feature = "new-ast")]
 use txxt::ast::elements::{
     paragraph::ParagraphBlock, session::session_container::SessionContainerElement,
 };
 
-#[cfg(feature = "new-ast")]
 use validators::{
     validate_annotation_count, validate_has_annotation, validate_has_formatting,
     validate_parameter, validate_text_contains, validate_text_exact, validate_text_matches,
@@ -122,7 +125,6 @@ use validators::{
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 pub fn assert_paragraph<'a>(
     element: &'a SessionContainerElement,
     expected: ParagraphExpected<'a>,
@@ -229,7 +231,6 @@ pub fn assert_paragraph<'a>(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 pub fn assert_list<'a>(
     element: &'a SessionContainerElement,
     expected: ListExpected<'a>,
@@ -380,7 +381,6 @@ pub fn assert_list<'a>(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)] // Used in definition_parser_tests with new-ast feature
 pub fn assert_definition<'a>(
     element: &'a SessionContainerElement,
@@ -532,7 +532,6 @@ pub fn assert_definition<'a>(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)] // Used in session_parser_tests with new-ast feature
 pub fn assert_session<'a>(
     element: &'a SessionContainerElement,
@@ -697,7 +696,6 @@ pub fn assert_session<'a>(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)] // Used in verbatim_parser_tests with new-ast feature
 pub fn assert_verbatim<'a>(
     element: &'a SessionContainerElement,
@@ -854,7 +852,6 @@ pub fn assert_verbatim<'a>(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_annotation<'a>(
     element: &'a SessionContainerElement,
@@ -973,7 +970,6 @@ pub fn assert_annotation<'a>(
 // ============================================================================
 
 /// Extract all text from a ContentContainer recursively
-#[cfg(feature = "new-ast")]
 fn extract_text_from_content_container(
     container: &txxt::ast::elements::containers::content::ContentContainer,
 ) -> String {
@@ -1024,7 +1020,6 @@ fn extract_text_from_content_container(
 }
 
 /// Get the element type name from a ContentContainerElement
-#[cfg(feature = "new-ast")]
 fn content_element_type_name(
     element: &txxt::ast::elements::containers::content::ContentContainerElement,
 ) -> &'static str {
@@ -1041,7 +1036,6 @@ fn content_element_type_name(
 }
 
 /// Get the element type name from a SessionContainerElement
-#[cfg(feature = "new-ast")]
 fn session_element_type_name(
     element: &txxt::ast::elements::session::session_container::SessionContainerElement,
 ) -> &'static str {
@@ -1060,7 +1054,6 @@ fn session_element_type_name(
 }
 
 /// Check if ContentContainerElement matches the expected ElementType
-#[cfg(feature = "new-ast")]
 fn content_element_matches_type(
     element: &txxt::ast::elements::containers::content::ContentContainerElement,
     expected_type: &txxt::ast::elements::core::ElementType,
@@ -1082,7 +1075,6 @@ fn content_element_matches_type(
 }
 
 /// Check if SessionContainerElement matches the expected ElementType
-#[cfg(feature = "new-ast")]
 fn session_element_matches_type(
     element: &txxt::ast::elements::session::session_container::SessionContainerElement,
     expected_type: &txxt::ast::elements::core::ElementType,
@@ -1135,7 +1127,6 @@ fn session_element_matches_type(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_content_container(
     container: &txxt::ast::elements::containers::content::ContentContainer,
@@ -1255,7 +1246,6 @@ pub fn assert_content_container(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_session_container(
     container: &txxt::ast::elements::session::SessionContainer,
@@ -1369,7 +1359,6 @@ pub fn assert_session_container(
 ///     ..Default::default()
 /// });
 /// ```
-#[cfg(feature = "new-ast")]
 #[allow(dead_code)]
 pub fn assert_inline_content(
     content: &[txxt::ast::elements::inlines::TextTransform],
@@ -1447,7 +1436,6 @@ pub fn assert_inline_content(
 // ============================================================================
 
 /// Get element type name for error messages.
-#[cfg(feature = "new-ast")]
 fn element_type_name(element: &SessionContainerElement) -> &'static str {
     match element {
         SessionContainerElement::Paragraph(_) => "ParagraphBlock",

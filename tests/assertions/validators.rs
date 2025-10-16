@@ -24,6 +24,7 @@ use txxt::ast::{
 /// # Panics
 ///
 /// Panics if any expected parameter is missing or has wrong value.
+#[allow(dead_code)]
 pub fn validate_parameters(actual: &Parameters, expected: &HashMap<&str, &str>) {
     for (key, expected_value) in expected {
         match actual.get(key) {

@@ -9,7 +9,6 @@
 //! 3. parameters: Parameters
 //! 4. tokens: TokenSequence
 
-#[cfg(feature = "new-ast")]
 use txxt::ast::{
     elements::annotation::annotation_content::{Annotation, AnnotationContent},
     elements::components::parameters::Parameters,
@@ -21,14 +20,12 @@ use txxt::ast::{
     tokens::TokenSequence,
 };
 
-#[cfg(feature = "new-ast")]
-use super::{assert_paragraph, ParagraphExpected};
+use crate::assertions::{assert_paragraph, ParagraphExpected};
 
 // ============================================================================
 // Helper: Create Hand-Crafted Paragraph AST
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 fn make_paragraph(
     _text: &str,
     params: Vec<(&str, &str)>,
@@ -86,7 +83,6 @@ fn make_paragraph(
 // Field 1: Content (Vec<TextTransform>) Tests
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_content_basic() {
     let para = make_paragraph("Simple text", vec![], vec![]);
@@ -105,7 +101,6 @@ fn test_paragraph_field_content_basic() {
 // Field 2: Annotations (Vec<Annotation>) Tests
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_annotations_empty() {
     let para = make_paragraph("Text", vec![], vec![]);
@@ -121,7 +116,6 @@ fn test_paragraph_field_annotations_empty() {
     );
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_annotations_single() {
     let para = make_paragraph("Text", vec![], vec!["note"]);
@@ -138,7 +132,6 @@ fn test_paragraph_field_annotations_single() {
     );
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_annotations_multiple() {
     let para = make_paragraph("Text", vec![], vec!["note", "warning", "todo"]);
@@ -155,7 +148,6 @@ fn test_paragraph_field_annotations_multiple() {
     );
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 #[should_panic(expected = "Annotation count mismatch")]
 fn test_paragraph_field_annotations_count_wrong() {
@@ -176,7 +168,6 @@ fn test_paragraph_field_annotations_count_wrong() {
 // Field 3: Parameters (Parameters) Tests
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_parameters_empty() {
     let para = make_paragraph("Text", vec![], vec![]);
@@ -186,7 +177,6 @@ fn test_paragraph_field_parameters_empty() {
     assert_paragraph(&element, ParagraphExpected::default());
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_parameters_single() {
     let para = make_paragraph("Text", vec![("ref", "para-1")], vec![]);
@@ -202,7 +192,6 @@ fn test_paragraph_field_parameters_single() {
     );
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_parameters_multiple() {
     let para = make_paragraph(
@@ -222,7 +211,6 @@ fn test_paragraph_field_parameters_multiple() {
     );
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 #[should_panic(expected = "Parameter")]
 fn test_paragraph_field_parameters_missing() {
@@ -243,7 +231,6 @@ fn test_paragraph_field_parameters_missing() {
 // Field 4: Tokens (TokenSequence) Tests
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_field_tokens_preserved() {
     let para = make_paragraph("Text", vec![], vec![]);
@@ -257,7 +244,6 @@ fn test_paragraph_field_tokens_preserved() {
 // Combined: ALL Fields Together
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_all_fields_populated() {
     let para = make_paragraph(
@@ -284,7 +270,6 @@ fn test_paragraph_all_fields_populated() {
     );
 }
 
-#[cfg(feature = "new-ast")]
 #[test]
 #[should_panic(expected = "mismatch")]
 fn test_paragraph_all_fields_validation_catches_errors() {
@@ -305,7 +290,6 @@ fn test_paragraph_all_fields_validation_catches_errors() {
 // Summary Test: Proves Assertion Validates All Fields
 // ============================================================================
 
-#[cfg(feature = "new-ast")]
 #[test]
 fn test_paragraph_assertion_validates_all_ast_fields() {
     // This test documents what assert_paragraph() validates:

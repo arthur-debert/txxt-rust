@@ -93,89 +93,11 @@ tests/
 ├── testing_framework_check.rs  # Only remaining top-level test file
 │
 ├── assembler/                  # Tests for assembler components
-│   ├── mod.rs
+│   ├── mod.rs# mod.rs must export up to top level
+
 │   └── pipeline/
-│       └── mod.rs
-│
-├── assertions/                  # All assertion framework tests
-│   ├── mod.rs
-│   ├── assert_paragraph_complete_tests.rs
-│   ├── assertion_framework_tests.rs
-│   ├── component_assertion_tests.rs
-│   ├── core/
-│   ├── elements/
-│   └── validators.rs
-│
-├── ast_elements/               # Tests for AST elements
-│   ├── mod.rs
-│   ├── annotation/
-│   ├── components/
-│   ├── containers/
-│   ├── definition/
-│   ├── document/
-│   ├── formatting/
-│   ├── inlines/
-│   ├── list/
-│   ├── paragraph/
-│   ├── references/
-│   ├── session/
-│   └── verbatim/
-│
-├── ast_query/                  # Tests for AST query functionality
-│   └── mod.rs
-│
-├── lexer/                      # Tests for lexer components
-│   ├── mod.rs
-│   ├── annotation.rs
-│   ├── container.rs
-│   ├── core/
-│   ├── debug/
-│   ├── definition.rs
-│   ├── indentation/
-│   ├── inline/
-│   ├── labels.rs
-│   ├── list.rs
-│   ├── paragraph.rs
-│   ├── parameters.rs
-│   ├── pipeline/
-│   ├── session.rs
-│   └── verbatim/
-│
-├── parser/                     # All parser-related tests
-│   ├── mod.rs
-│   ├── parser_integration.rs
-│   ├── parser_tests.rs
-│   ├── issue_26_indented_sequence_markers.rs
-│   ├── elements/
-│   └── pipeline/
-│
-├── tools_detokenizer/          # Tests for detokenizer tool
-│   ├── mod.rs
-│   ├── detokenizer_debug_test.rs
-│   ├── detokenizer_simple_test.rs
-│   ├── detokenizer_span_test.rs
-│   ├── detokenizer_tests.rs
-│   └── detokenizer_walkthrough_tests.rs
-│
-├── tools_treeviz/              # Tests for tree visualization tool
-│   └── mod.rs
-│
-├── verbatim_scanner/           # Tests for verbatim scanner
-│   ├── mod.rs
-│   ├── test_runner.rs
-│   ├── correct/
-│   ├── errors/
-│   └── negative/
-│
-├── integration/                # Integration and example tests
-│   ├── mod.rs
-│   ├── ensemble_documents_example.rs
-│   └── illustrated_parser_test_example.rs
-│
-└── infrastructure/             # Shared test infrastructure
-    ├── mod.rs
-    └── corpora.rs
-```
+│       └── mod.rs                # mod.rs must export up to top level
+...
 
 ### Test Organization Principles
 

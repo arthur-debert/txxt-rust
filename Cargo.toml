@@ -8,10 +8,8 @@ keywords = ["parser", "markup", "txxt", "text-processing"]
 categories = ["parser-implementations", "text-processing"]
 
 [features]
-# Enable new type-safe AST system (under development)
-new-ast = []
 # Enable AST adapter for bridging old to new AST
-adapter = ["new-ast"]
+adapter = []
 
 [dependencies]
 walkdir = "2.5"

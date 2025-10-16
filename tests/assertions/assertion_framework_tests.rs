@@ -2,11 +2,10 @@
 //!
 //! Validates that the assertion helpers work correctly with proper error messages.
 
-use super::*;
+// use super::*; // Commented out until used
 
-#[cfg(feature = "new-ast")]
 mod framework_tests {
-    use super::{
+    use crate::assertions::{
         assert_annotation, assert_content_container, assert_inline_content, assert_paragraph,
         assert_session_container, AnnotationExpected, ContentContainerExpected,
         InlineContentExpected, ParagraphExpected, SessionContainerExpected,

@@ -16,9 +16,3 @@ pub mod session;
 pub mod verbatim;
 
 // Re-export all expected types for convenience
-pub use annotation::expected::*;
-pub use definition::expected::*;
-pub use list::expected::*;
-pub use paragraph::expected::*;
-pub use session::expected::*;
-pub use verbatim::expected::*;

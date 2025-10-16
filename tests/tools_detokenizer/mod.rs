@@ -5,5 +5,4 @@
 mod detokenizer_debug_test;
 mod detokenizer_simple_test;
 mod detokenizer_span_test;
-mod detokenizer_tests;
 mod detokenizer_walkthrough_tests;

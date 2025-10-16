@@ -1,7 +1,7 @@
-//! AST integration tests
+//! AST query integration tests
 //!
-//! Includes all AST tests from the tests/ast/ directory structure.
-//! This ensures that nested AST tests are discoverable by cargo test.
+//! Includes all AST query tests from the tests/ast_query/ directory structure.
+//! This ensures that nested AST query tests are discoverable by cargo test.
 
-#[path = "ast/mod.rs"]
-mod ast;
+#[path = "ast_query/mod.rs"]
+mod ast_query;

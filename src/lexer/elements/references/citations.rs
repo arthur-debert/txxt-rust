@@ -100,7 +100,7 @@ pub fn read_citation_ref<L: CitationRefLexer>(lexer: &mut L) -> Option<Token> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tokenizer::core::lexer::Lexer;
+    use crate::lexer::core::lexer::Lexer;
 
     #[test]
     fn test_simple_citation_ref() {

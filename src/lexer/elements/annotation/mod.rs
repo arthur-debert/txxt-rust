@@ -8,4 +8,4 @@
 pub mod annotation_tokenizer;
 
 // Re-export main interfaces
-pub use crate::tokenizer::elements::components::txxt_marker::read_annotation_marker;
+pub use crate::lexer::elements::components::txxt_marker::read_annotation_marker;

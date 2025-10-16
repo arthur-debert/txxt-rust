@@ -4,7 +4,7 @@
 //! by adding string length to column position, which fails for multi-byte characters.
 
 use txxt::ast::tokens::{SequenceMarkerType, Token};
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 #[test]
 fn test_sequence_marker_span_with_unicode() {

@@ -4,7 +4,7 @@
 //! making it impossible to reconstruct the original text with proper spacing.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 #[test]
 fn test_whitespace_preservation_in_text() {

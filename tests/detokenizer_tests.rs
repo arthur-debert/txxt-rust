@@ -4,7 +4,7 @@
 //! from tokens, enabling round-trip verification of the tokenization process.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 use txxt::tools::detokenizer::Detokenizer;
 
 /// Helper function to verify detokenization produces identical tokens for round-trip verification

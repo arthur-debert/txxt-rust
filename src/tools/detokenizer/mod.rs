@@ -14,8 +14,8 @@
 //! identical tokens.
 
 use crate::ast::tokens::Token;
-use crate::tokenizer::core::indentation::INDENT_SIZE;
-use crate::tokenizer::pipeline::TokenTree;
+use crate::lexer::core::indentation::INDENT_SIZE;
+use crate::lexer::pipeline::TokenTree;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;
@@ -249,7 +249,7 @@ impl Detokenizer {
                 result.push(']');
             }
             Token::FootnoteRef { footnote_type, .. } => {
-                use crate::tokenizer::elements::references::footnote_ref::FootnoteType;
+                use crate::lexer::elements::references::footnote_ref::FootnoteType;
                 match footnote_type {
                     FootnoteType::Naked(n) => {
                         result.push('[');

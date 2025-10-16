@@ -5,7 +5,7 @@
 //! functionality and any position-based features.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
 #[test]

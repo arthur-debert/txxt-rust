@@ -4,7 +4,7 @@
 //! without the trailing colon structural marker.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[cfg(test)]
 mod tests {

@@ -4,8 +4,8 @@
 //! streams into hierarchical structures based on indentation.
 
 use txxt::ast::tokens::{Position, SourceSpan, Token};
-use txxt::tokenizer::pipeline::{TokenTree, TokenTreeBuilder};
-use txxt::tokenizer::tokenize;
+use txxt::lexer::pipeline::{TokenTree, TokenTreeBuilder};
+use txxt::lexer::tokenize;
 
 /// Test simple flat content (no indentation)
 #[test]

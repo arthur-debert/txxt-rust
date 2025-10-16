@@ -1,6 +1,6 @@
 //! Test to understand token spans
 
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[test]
 fn analyze_token_spans() {

@@ -6,7 +6,7 @@
 //! - Namespaced keys (org.example.metadata)
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::core::lexer::Lexer;
+use crate::lexer::core::lexer::Lexer;
 
 /// Trait for parameter parsing
 pub trait ParameterLexer {

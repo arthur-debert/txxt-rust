@@ -5,7 +5,5 @@
 //!
 //! Sequence marker parsing for lists
 
-pub mod list_tokenizer;
-
-// Re-export main interfaces
-pub use crate::tokenizer::elements::components::sequence::read_sequence_marker;
+// Re-export the sequence marker reading function from infrastructure
+pub use crate::lexer::elements::components::sequence::read_sequence_marker;

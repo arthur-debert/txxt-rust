@@ -1,4 +1,4 @@
-use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
+use txxt::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 
 #[test]
 fn debug_stretched_both() {

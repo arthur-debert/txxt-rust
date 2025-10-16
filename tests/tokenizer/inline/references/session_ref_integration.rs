@@ -1,7 +1,7 @@
 //! Integration tests for session reference tokenization with main lexer
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[test]
 fn test_session_ref_integration_simple() {

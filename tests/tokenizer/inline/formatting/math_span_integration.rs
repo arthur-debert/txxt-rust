@@ -1,7 +1,7 @@
 //! Integration tests for math delimiter tokenization with main lexer
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[test]
 fn test_math_delimiter_integration_simple() {

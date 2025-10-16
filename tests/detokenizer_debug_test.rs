@@ -1,6 +1,6 @@
 //! Debug test for detokenizer issues
 
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 use txxt::tools::detokenizer::Detokenizer;
 
 #[test]

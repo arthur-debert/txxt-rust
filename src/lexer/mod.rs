@@ -51,7 +51,7 @@ pub mod pipeline;
 pub mod elements;
 
 // Infrastructure and utilities
-pub mod infrastructure;
+// pub mod infrastructure; // TODO: Add infrastructure modules when needed
 
 // Re-export main interfaces
 pub use core::Lexer;

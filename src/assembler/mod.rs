@@ -48,7 +48,7 @@ use crate::ast::{
         tokens::{Token, TokenSequence},
     },
 };
-use crate::tokenizer::pipeline::TokenTree;
+use crate::lexer::pipeline::TokenTree;
 
 /// Phase 3 Assembler
 ///

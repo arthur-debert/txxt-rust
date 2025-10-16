@@ -27,9 +27,9 @@ use std::io::{self, Write};
 use std::path::Path;
 
 use txxt::assembler::Assembler;
-use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
-use txxt::tokenizer::pipeline::TokenTreeBuilder;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
+use txxt::lexer::pipeline::TokenTreeBuilder;
+use txxt::lexer::tokenize;
 
 #[derive(Debug, Clone, PartialEq)]
 enum OutputFormat {
@@ -202,7 +202,7 @@ fn process_token_tree(
 }
 
 /// Helper function to serialize TokenTree to JSON
-fn serialize_token_tree(tree: &txxt::tokenizer::pipeline::TokenTree) -> serde_json::Value {
+fn serialize_token_tree(tree: &txxt::lexer::pipeline::TokenTree) -> serde_json::Value {
     serde_json::json!({
         "tokens": tree.tokens,
         "children": tree.children.iter().map(serialize_token_tree).collect::<Vec<_>>()

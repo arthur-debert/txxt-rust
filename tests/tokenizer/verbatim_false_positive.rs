@@ -1,7 +1,7 @@
 //! Tests for verbatim scanner false positive issue #31
 
-use txxt::tokenizer::tokenize;
-use txxt::tokenizer::Token;
+use txxt::lexer::tokenize;
+use txxt::lexer::Token;
 
 #[test]
 fn test_colon_followed_by_annotation_not_verbatim() {

@@ -4,7 +4,7 @@
 //! they handle Unicode correctly.
 
 use txxt::ast::tokens::{SourceSpan, Token};
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 /// List all places where we found column arithmetic
 #[allow(dead_code)]

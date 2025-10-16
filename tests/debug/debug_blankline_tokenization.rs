@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use txxt::tokenizer::tokenize;
+    use txxt::lexer::tokenize;
 
     #[test]
     fn debug_simple_blankline() {

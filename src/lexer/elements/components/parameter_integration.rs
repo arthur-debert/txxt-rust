@@ -4,7 +4,7 @@
 //! integration that maintain whitespace tokens and accurate source positions.
 
 use crate::ast::tokens::{Position, SourceSpan, Token};
-use crate::tokenizer::elements::components::parameters::ParameterLexer;
+use crate::lexer::elements::components::parameters::ParameterLexer;
 
 /// Process annotation tokens to integrate parameters while preserving whitespace
 pub fn integrate_annotation_parameters_fixed<L: ParameterLexer>(

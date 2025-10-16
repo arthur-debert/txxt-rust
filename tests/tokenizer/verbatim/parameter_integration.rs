@@ -5,7 +5,7 @@
 //! - Individual Parameter tokens for each key=value pair
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[cfg(test)]
 mod verbatim_parameter_integration_tests {

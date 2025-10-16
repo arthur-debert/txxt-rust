@@ -1,7 +1,7 @@
 //! Integration tests for citation reference tokenization with main lexer
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 #[test]
 fn test_citation_ref_integration_simple() {

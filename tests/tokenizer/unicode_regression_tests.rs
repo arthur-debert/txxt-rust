@@ -4,7 +4,7 @@
 //! tokenized and that column positions are calculated correctly.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 #[test]
 fn test_emoji_text_tokenization() {

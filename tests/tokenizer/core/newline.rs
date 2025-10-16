@@ -6,7 +6,7 @@
 use proptest::prelude::*;
 use rstest::rstest;
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 
 // =============================================================================
 // NEWLINE Token - Isolated Tests (rstest)

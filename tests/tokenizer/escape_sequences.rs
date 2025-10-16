@@ -4,7 +4,7 @@
 //! sequences for special characters that would otherwise be tokenized as
 //! formatting delimiters or structural elements.
 
-use txxt::tokenizer::{tokenize, Token};
+use txxt::lexer::{tokenize, Token};
 
 #[test]
 fn test_escaped_asterisk() {

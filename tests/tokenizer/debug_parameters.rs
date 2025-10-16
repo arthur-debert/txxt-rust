@@ -1,6 +1,6 @@
 //! Debug test to understand parameter tokenization
 
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 #[test]
 fn debug_annotation_parameters() {

@@ -2,8 +2,8 @@
 
 use rstest::rstest;
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::inline::references::footnote_ref::FootnoteType;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::inline::references::footnote_ref::FootnoteType;
+use txxt::lexer::tokenize;
 
 // =============================================================================
 // FootnoteRef Token - Naked Numerical Format Tests

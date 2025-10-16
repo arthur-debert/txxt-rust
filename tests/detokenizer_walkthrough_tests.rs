@@ -4,7 +4,7 @@
 //! using examples from the walkthrough documentation.
 
 use txxt::ast::tokens::Token;
-use txxt::tokenizer::tokenize;
+use txxt::lexer::tokenize;
 use txxt::tools::detokenizer::Detokenizer;
 
 /// Compare tokens for equality (ignoring source spans)

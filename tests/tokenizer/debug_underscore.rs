@@ -1,6 +1,6 @@
 //! Debug test to understand underscore tokenization
 
-use txxt::tokenizer::Lexer;
+use txxt::lexer::Lexer;
 
 #[test]
 fn debug_underscore_annotation() {

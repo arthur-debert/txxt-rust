@@ -11,13 +11,13 @@
 //! - **Verbatim Line Marking**: Stateful isolation of verbatim content
 //! - **Tokenization**: Character-precise token generation
 //! - **Token Tree**: Hierarchical block grouping from indentation
-//! - **Location**: Implemented in `src/tokenizer/` and `src/parser/pipeline/block_grouper.rs`
+//! - **Location**: Implemented in `src/lexer/`
 //! - **Output**: Stream of tokens with exact source positioning + hierarchical block structure
 //!
-//! ### Phase 2: Parser (TO BE IMPLEMENTED 🔄)
-//! - **Block Parsing**: Convert block groups into typed AST nodes
+//! ### Phase 2: Parser (STRUCTURED 🔄)
+//! - **Block Parsing**: Convert token trees into typed AST nodes
 //! - **Inline Parsing**: Handle inlines within blocks
-//! - **Location**: `src/parser/pipeline/` (to be implemented)
+//! - **Location**: `src/parser/pipeline/` (structured, implementation pending)
 //! - **Output**: Rich type-safe AST structure
 //!
 //! ### Phase 3: Assembly (IMPLEMENTED ✅)
@@ -28,33 +28,36 @@
 //!
 //! # Current Implementation Status
 //!
-//! - ✅ **Phase 1**: Complete (tokenizer + block grouping)
-//! - 🔄 **Phase 2**: To be implemented (parser stubs removed)
+//! - ✅ **Phase 1**: Complete (lexer + token tree building)
+//! - 🔄 **Phase 2**: Structured (parser pipeline ready, implementation pending)
 //! - ✅ **Phase 3**: Complete (assembler implemented)
 //!
 //! # Usage
 //!
 //! ```rust,ignore
 //! use txxt::assembler::Assembler;
-//! use txxt::tokenizer::pipeline::BlockGrouper;
-//! use txxt::tokenizer::tokenize;
+//! use txxt::lexer::pipeline::TokenTreeBuilder;
+//! use txxt::lexer::tokenize;
+//! use txxt::parser::pipeline::{BlockParser, InlineParser};
 //!
-//! // Phase 1: Tokenization + Block Grouping (working)
+//! // Phase 1: Lexer (working)
 //! let tokens = tokenize(input_text);
-//! let block_grouper = BlockGrouper::new();
-//! let blocks = block_grouper.group_blocks(tokens)?;
+//! let token_tree_builder = TokenTreeBuilder::new();
+//! let token_tree = token_tree_builder.build_tree(tokens)?;
 //!
-//! // Phase 2: Parsing (to be implemented)
-//! // let parser = Parser::new();
-//! // let ast = parser.parse(blocks)?;
+//! // Phase 2: Parser (structured, implementation pending)
+//! let block_parser = BlockParser::new();
+//! let blocks = block_parser.parse_blocks(token_tree)?;
+//! let inline_parser = InlineParser::new();
+//! let ast = inline_parser.parse_inlines(blocks)?;
 //!
 //! // Phase 3: Assembly (working)
 //! let assembler = Assembler::new();
-//! let document = assembler.assemble_document(blocks, Some("source.txxt".to_string()))?;
+//! let document = assembler.assemble_document(token_tree, Some("source.txxt".to_string()))?;
 //! ```
 
 // Pipeline modules
 pub mod pipeline;
 
 // Re-export main interfaces
-// Note: BlockGroup and BlockGrouper moved to src/tokenizer/pipeline/
+pub use pipeline::{BlockParseError, BlockParser, InlineParseError, InlineParser};

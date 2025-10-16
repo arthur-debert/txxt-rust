@@ -1,25 +1,36 @@
 //! Parser Pipeline Components
 //!
-//! This module implements the three-phase TXXT parsing pipeline that converts
-//! token streams into fully processed AST structures.
+//! This module implements Phase 2 of the TXXT parsing pipeline that converts
+//! token trees into AST element nodes.
 //!
-//! # Three-Phase Architecture
+//! # Phase 2: Parser (Token-Tree -> AST Tree)
 //!
-//!  Phase 1: Lexer (string -> Stream of positioned tokens)
-//!      a Verbatim line marking and tokenization
-//!      b Tokenization-Stream -> Stream of tokens with source positions
-//!      c Tokenization-Tree -> Convert flat list into a token list tree
+//! ## 2.a Block Parsing
+//! - Converts token trees into typed AST nodes for block elements
+//! - Handles paragraphs, lists, definitions, annotations, verbatim blocks, sessions
+//! - **Input**: `TokenTree` from lexer (Phase 1c)
+//! - **Output**: AST tree of `ElementNode` variants
 //!
-//!  Phase 2: Parser  (Token-Tree -> AST Tree)
-//!     a  Block-Parsing Convert block groups into typed AST nodes-> ast tree of ast element nodes.
-//!     b Inline-Parsing Handle inlines within blocks (the same tree, but with inlines)
+//! ## 2.b Inline Parsing  
+//! - Processes inline elements within block content
+//! - Handles formatting, references, links, inline annotations
+//! - **Input**: AST tree with block elements (from Phase 2a)
+//! - **Output**: Same AST tree with inline elements processed
 //!
-//!  Phase 3: Assembly (AST Tree -> Document)
-//!     a Document assembly (may include non content related metadata)
-//!     b Annotation attachment
+//! # Pipeline Stages
 //!
-//! Pipeline modules
+//! - [`parse_blocks`] - Phase 2a: Block element parsing
+//! - [`parse_inlines`] - Phase 2b: Inline element parsing
 //!
-//! Note: Block grouping has been moved to src/tokenizer/pipeline/ as it operates
-//! on tokens rather than AST nodes. This pipeline is reserved for future
-//! Phase 2 parsing implementations.
+//! # Current Status
+//!
+//! Phase 2 is currently stubbed out with placeholder implementations.
+//! The actual parsing logic will be implemented as the AST element types
+//! and parsing requirements are finalized.
+
+pub mod parse_blocks;
+pub mod parse_inlines;
+
+// Re-export main interfaces
+pub use parse_blocks::{BlockParseError, BlockParser};
+pub use parse_inlines::{InlineParseError, InlineParser};

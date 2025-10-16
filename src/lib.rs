@@ -30,6 +30,7 @@ pub mod ast_debug;
 pub mod commands;
 pub mod lexer;
 pub mod parser;
+pub mod pipeline;
 pub mod tools;
 pub mod tree;
 pub mod validator;

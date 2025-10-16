@@ -1,6 +1,6 @@
-//! Tokenizer test suite
+//! Lexer test suite
 //!
-//! Organized to mirror the src/tokenizer/ module structure for clear mapping
+//! Organized to mirror the src/lexer/ module structure for clear mapping
 //! between code and tests. Follows the specification-aligned organization.
 
 // Specification-aligned test modules
@@ -16,8 +16,10 @@ mod session;
 
 // Infrastructure and core tests
 mod core;
+mod debug;
 mod escape_sequences;
 mod inline;
+mod pipeline;
 mod verbatim;
 
 // Bug reproduction tests

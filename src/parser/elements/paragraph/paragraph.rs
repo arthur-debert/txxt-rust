@@ -31,6 +31,7 @@
 //! Paragraph AST:
 //!     ├── ParagraphBlock
 //!     │   ├── content: Vec<TextTransform>
+//!         Annotations attached to this element, post parsing at assembly (during time aanotations are regular items in container)
 //!     │   ├── annotations: Vec<Annotation>
 //!     │   ├── parameters: Parameters
 //!     │   └── tokens: TokenSequence
@@ -49,7 +50,7 @@
 //! pub struct ParagraphBlock {
 //!     /// Paragraph content with inline formatting
 //!     pub content: Vec<TextTransform>,
-//!     /// Annotations attached to this paragraph
+//!         Annotations attached to this paragraph
 //!     pub annotations: Vec<Annotation>,
 //!     /// Parameters for this paragraph
 //!     pub parameters: Parameters,

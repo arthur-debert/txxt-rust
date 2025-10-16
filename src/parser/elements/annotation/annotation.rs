@@ -45,7 +45,7 @@
 //!
 //! ## AST Node Declaration
 //!
-//! ```rust
+//! ```rust,ignore
 //! #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 //! pub struct AnnotationBlock {
 //!         Annotation label/type
@@ -81,7 +81,7 @@
 //!
 //! ## AST Assertion Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use tests::assertions::{assert_annotation, AnnotationExpected};
 //!
 //! // Minimal validation (one property)

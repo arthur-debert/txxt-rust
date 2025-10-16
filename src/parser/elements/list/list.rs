@@ -51,7 +51,7 @@
 //!
 //! ## AST Node Declaration
 //!
-//! ```rust
+//! ```rust,ignore
 //! #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 //! pub struct ListBlock {
 //!     /// List items with markers and content
@@ -87,7 +87,7 @@
 //!
 //! ## AST Assertion Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use tests::assertions::{assert_list, ListExpected};
 //!
 //! // Minimal validation (one property)

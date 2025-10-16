@@ -45,7 +45,7 @@
 //!
 //! ## AST Node Declaration
 //!
-//! ```rust
+//! ```rust,ignore
 //! #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 //! pub struct ParagraphBlock {
 //!     /// Paragraph content with inline formatting
@@ -81,7 +81,7 @@
 //!
 //! ## AST Assertion Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use tests::assertions::{assert_paragraph, ParagraphExpected};
 //!
 //! // Minimal validation (one property)

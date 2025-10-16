@@ -49,7 +49,7 @@
 //!
 //! ## AST Node Declaration
 //!
-//! ```rust
+//! ```rust,ignore
 //! #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 //! pub struct VerbatimBlock {
 //!     /// Optional verbatim title
@@ -87,7 +87,7 @@
 //!
 //! ## AST Assertion Example
 //!
-//! ```rust
+//! ```rust,ignore
 //! use tests::assertions::{assert_verbatim, VerbatimExpected};
 //!
 //! // Minimal validation (one property)

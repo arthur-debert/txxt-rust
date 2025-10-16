@@ -1,0 +1,223 @@
+:: title :: Core Parser Implementation Plan
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+:: status :: Planning
+
+This document outlines the comprehensive implementation plan for the core parser, the critical Phase 2 of the txxt parsing pipeline.
+
+1. Overview
+
+    1.1. Parsing Pipeline Context
+
+        The txxt parsing pipeline consists of three main phases:
+
+        Phase 1: Lexer (string → token tree)
+            a. Verbatim Line Marking: Stateful isolation of verbatim content
+            b. Tokenization: Character-precise token generation  
+            c. Token Tree: Hierarchical block grouping from indentation
+
+        Phase 2: Parser (token tree → full AST node tree) ← THIS PLAN
+            a. Block Parsing: Convert block groups into typed AST nodes
+            b. Inline Parsing: Handle inlines within blocks
+
+        Phase 3: Assembler (AST tree → document)
+            a. Document Assembly: Document metadata and annotation attachment
+            b. Annotation Attachment
+
+        Note: Phases 1 and 3 are complete. This plan focuses on Phase 2.
+
+    1.2. Implementation Philosophy
+
+        Key principles for successful parser implementation:
+
+        - Spec Correctness: Ensure txxt source spec compliance
+        - Incremental Development: Work incrementally over node types, complexity, and combinations
+        - Test-Driven: Support tooling for tests and inspections
+        - Consistency: Mirrored naming and structuring between specs, syntax, files & tests
+        - No Skipping: Complete each step before moving to the next
+        - Fix at Source: When issues are confirmed in lower layers, fix at source and update outer layers
+
+    1.3. Element Classification
+
+        txxt has three fundamental element types:
+
+        Block Elements::
+            Structural units that can contain other elements or content
+            Examples: paragraphs, sessions, lists, definitions, verbatim blocks
+
+        Inline Elements::
+            Formatting elements that exist within text lines
+            Examples: bold (*text*), italic (_text_), code (`text`), math (#formula#)
+
+        Container Elements::
+            Special block elements that hold child elements of different types
+            Examples: sessions, lists, definitions
+            Note: Containers get indented, not their parent elements
+
+    1.4. Complexity Levels
+
+        Simple Cases::
+            Basic, straightforward examples of each element type
+            Examples: key=value parameters, single-line paragraphs, flat lists
+
+        Complex Cases::
+            Edge cases and intricate variations of each element type  
+            Examples: keyfoo=" quoted",bar=a\=bar parameters, nested structures
+
+        Important: Complex cases are not the hard, high-risk issues in txxt parsing. They matter and need to be tackled, but they are low risk and can be done at a later time.
+
+2. Phase 1: Simple Elements Foundation
+
+    2.1. Core Elements
+
+        To parse document structure, you need sessions, and sessions require at least a content node as children. Hence, we begin with the groundworks: sessions and the simplest element type, paragraphs.
+
+        2.1.1. Paragraphs
+
+            Parsing sequence:
+            - Single paragraph only file
+            - Multi-paragraph file (important to test single line, multiline paragraphs)
+
+            Rationale: Paragraphs are the simplest block element and foundation for all other content.
+
+        2.1.2. Sessions
+
+            Sessions require at least one content element and hence need to come after paragraphs.
+
+            Parsing sequence:
+            - Flat single session: title, blank line, paragraph
+            - Flat single session: title, blank line, multiple paragraphs  
+            - Flat multiple sessions: title, blank line(s), paragraph(s)
+            - Nested single session: title, blank line(s), paragraph(s)
+            - Nested multiple sessions: title, blank line(s), paragraph(s)
+
+            At this stage, we should be able to parse complex document structure, except for hard disambiguation cases (which will come later).
+
+    2.2. Inline Elements
+
+        In this phase, we will start parsing paragraphs for inline content. This is done in parsing phase 2b. While inlines are very self-contained and simpler, doing this exercises the full pipeline, the general structure, and allows full cycles: txxt sources → parsed ASTs.
+
+        Since inlines are restricted to paragraphs, we don't need to do session mixing. For each step, we can have one or more paragraphs with inlines, in this order:
+
+        - Formatting inlines (bold, italic, code, and math): These are the same, only differing in token start and end characters and can be done at the same time
+        - First: one element per paragraph
+        - Then: multiple elements per paragraph
+
+    2.3. Full Pipeline Integration
+
+        Now that we can parse a simple but full txxt element, we should plug into Phase 3 and verify that these are correct and that the txxt binary can output the various phases.
+
+        Once this is done, we can fully end-to-end use `txxt <file.txxt> ast-full-json` and see the final parsed tree, make adjustments, and so on.
+
+3. Phase 2: More Elements
+
+    With the full parsing pipeline and all stages working, we will work on adding the remaining elements to the parser. We will do so systematically, in the planned order, and with the same caveats: no complex inputs, no hard cases for structure.
+
+    3.1. Simple Elements in Simple Combination
+
+        We will continue the work by learning to parse, one by one, all the remaining block elements, with two caveats:
+        - Only their simple forms
+        - No structural edge cases
+
+        The formula for each is always the same, very similar to what we've seen before:
+        - Parse the element as the only content, in complete isolation
+        - Parse the element in a document with more same-type elements
+        - Parse the element mixed with paragraphs in a flat session document
+        - Parse the element mixed with paragraphs and itself in a nested session document
+
+        This sequence gives us growing confidence: we can parse the element, we can pick the element from surrounding elements, and we can do so against varying indentation.
+
+        This will be done, in order, for: Definition, Verbatim, List, and Annotation.
+
+    3.2. Mixed/Combination Integrated Tests
+
+        At this stage, we are able to parse (almost) the full txxt spec (except parameters). So we want to test a few txxt documents that mix those elements in real documents with real nested and multiple sessions.
+
+4. Phase 3: Nested Containers
+
+    We will now tackle nested content containers.
+
+    4.1. Isolated Lists
+
+        Like before, first parse the element in isolation, then mix the nesting element with several others. The order looks like this: nested lists within lists, various nested lists edge cases, nested lists with other elements nested, the mix of these.
+
+    4.2. Document-Bound Lists
+
+        We first want to test the nested lists in isolation, then against a single, simple 1-session file, and finally against nested sessions, making sure to exercise these nested lists being session first, middle, and last children.
+
+    4.3. Other Elements: Definitions
+
+        Apply the same nested container approach to definition elements.
+
+5. Phase 4: Hard Structural Ambiguity
+
+    At this point, the only things missing are more intricate intra-element cases and the very hard cases for structure/indentation/disambiguation. The latter being what we will work on in this phase.
+
+    This phase is not about one element in isolation, so the testing should be about:
+    - Several edge case elements: but only one edge case per document (if one case messes up the document structure, the following ones will be in an unpredictable state, and it becomes very hard to debug)
+
+    We can finish off with a complicated ensemble document with several edge cases *after* we are sure we can parse each in isolation.
+
+6. Phase 5: Element Complex Variations
+
+    The only missing parsing to do - we can go back now and exercise more intricate variations for each element.
+
+    6.1. Parameters Simple
+
+        Several elements take parameters (verbatim, annotations, definitions). We will first write the parser component parameter that will be used by block elements.
+
+    6.2. Parameters Complex
+
+        Since many complex cases involve complex parameters, we will tackle complex parameters right away, which involve quoted strings, escaping, and so on.
+
+    6.3. Remaining Elements
+
+        Now with all the bases covered, we will, one by one, tackle an element's complex cases, in the same order as before:
+
+        Parameters, Session, Definition, Verbatim, Annotation, Inlines, References, Citations
+
+7. Implementation Guidelines
+
+    7.1. Testing Strategy
+
+        Each phase should include:
+        - Unit tests for individual element parsing
+        - Integration tests for element combinations
+        - Regression tests for edge cases
+        - Performance tests for complex documents
+
+    7.2. Error Handling
+
+        - Graceful degradation: fallback to paragraph on ambiguity
+        - Partial parse recovery: continue parsing when possible
+        - Clear error messages with position information
+        - Validation of parsed structures against spec
+
+    7.3. Code Organization
+
+        - Separate parser modules for each element type
+        - Common utilities for shared parsing logic
+        - Clear interfaces between parsing phases
+        - Comprehensive documentation and examples
+
+8. Success Criteria
+
+    8.1. Phase Completion Criteria
+
+        Each phase is complete when:
+        - All planned element types parse correctly
+        - All test cases pass
+        - Integration with lexer and assembler works
+        - Performance meets requirements
+        - Documentation is complete
+
+    8.2. Overall Success Criteria
+
+        The parser implementation is complete when:
+        - All txxt spec elements are supported
+        - All test corpora parse correctly
+        - Error handling is robust
+        - Performance is acceptable
+        - Code is maintainable and well-documented
+
+:: conclusion :: This plan provides a systematic, incremental approach to implementing the core parser, ensuring each phase builds solidly on the previous one while maintaining spec compliance and code quality.

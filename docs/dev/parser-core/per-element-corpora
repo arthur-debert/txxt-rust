@@ -105,11 +105,11 @@ Complete labeling scheme for all spec samples that will be extracted as test cor
         - txxt.core.spec.verbatim.valid.inflow-empty-lines-middle
         - txxt.core.spec.verbatim.valid.inflow-empty-lines-end
         
-        Valid cases - stretched:
+        Valid cases - complex:
         - txxt.core.spec.verbatim.valid.stretched-basic
         - txxt.core.spec.verbatim.valid.stretched-wide-table
         
-        Valid cases - labels/params:
+        Valid cases - comples:
         - txxt.core.spec.verbatim.valid.simple-label
         - txxt.core.spec.verbatim.valid.namespaced-label
         - txxt.core.spec.verbatim.valid.with-parameters

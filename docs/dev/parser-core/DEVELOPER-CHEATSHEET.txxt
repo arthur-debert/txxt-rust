@@ -8,44 +8,57 @@ Quick reference guide for implementing parser tasks following the master plan.
     - docs/specs/core/terminology.txxt - Element hierarchy (Span/Line/Block/Container)
     - docs/specs/elements/<element>.txxt - Spec for element you're implementing
     - docs/dev/parser-core/Parser-1.4.1-per-element-corpora.txxt - Test labels
+    - docs/dev/parser-core/core-parser-implementation-plan.txxt - Overall implementation plan
     
     Understand the pipeline:
-        Raw Text → Tokens → Blocks → Elements → AST → Document
+        Raw Text → Tokens → TokenTree → AST Elements → Document
 
-2. Implementation Workflow
+2. Implementation Guides
 
-    Step 1: Load test corpus
-        use tests::corpora::TxxtCorpora;
-        let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
+    Choose the appropriate guide for your work:
+    
+    2.1. Single Element Simple Implementation
+        - Location: docs/dev/parser-core/single-element-simple-guide.txxt
+        - Use for: Implementing individual element types in simple forms
+        - Focus: Element isolation, assertion validation, basic functionality
         
-    Step 2: Write failing test
-        #[test]
-        fn test_parse_simple_paragraph() {
-            let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
-            let result = parse_paragraph(&corpus.source_text);
-            assert!(result.is_ok());
-        }
+    2.2. Mixed Ensemble Implementation  
+        - Location: docs/dev/parser-core/mixed-ensemble-guide.txxt
+        - Use for: Testing elements together in realistic document structures
+        - Focus: Element interactions, nesting, content preservation
         
-    Step 3: Implement parser logic
-        - Check src/parser/elements/<element>.rs
-        - Follow spec rules exactly
-        - Use existing AST types from src/ast/elements/
-        
-    Step 4: Run test, iterate
-        cargo test test_parse_simple_paragraph
-        
-    Step 5: Validate with ensemble
-        cargo test --test ensemble_documents_example
-        
-    Step 6: Implement element assertion (~30 minutes)
-        - Copy assert_paragraph() from tests/assertions/mod.rs as template
-        - Update for your element type (e.g., assert_list())
-        - Reuse shared validators from validators.rs
-        - Add assertion tests to assertion_framework_tests.rs
+    2.3. Complex Element Implementation
+        - Location: docs/dev/parser-core/complex-element-guide.txxt
+        - Use for: Complex parameter parsing, edge cases, advanced features
+        - Focus: Parameter parsing, nested formatting, deep nesting
 
-3. Key APIs
+3. Current Implementation Status
 
-    3.1. Load Test Data
+    3.1. Completed Infrastructure ✅
+    
+        - Lexer (Phase 1): Complete with token tree building
+        - AST Types: All element types defined
+        - Assertion Framework: Complete for all elements (needs validation with real data)
+        - Corpora System: Test data organized by element and complexity
+        - Assembler (Phase 3): Complete
+        
+    3.2. Parser Implementation Status 🔄
+    
+        - Block Parser: Structured but not implemented
+        - Inline Parser: Structured but not implemented
+        - Element-specific parsing: Not implemented
+        - Integration testing: Not implemented
+        
+    3.3. Key Implementation Notes
+    
+        - Parser is designed to be stateless (uses TokenTree from lexer)
+        - Position tracking is handled by lexer (tokens include Position info)
+        - Block grouping is handled by lexer (TokenTree provides hierarchy)
+        - Assertions exist but need validation with real parsed data
+
+4. Key APIs
+
+    4.1. Load Test Data
     
         Fragments (isolated elements):
             TxxtCorpora::load("txxt.core.spec.element.validity.case")
@@ -59,7 +72,20 @@ Quick reference guide for implementing parser tasks following the master plan.
             assert!(corpus.is_error_case());
             assert_eq!(corpus.expected_error(), Some("ErrorType"));
     
-    3.2. AST Types (from src/ast/elements/)
+    4.2. Parser Pipeline APIs
+    
+        Current parser structure (src/parser/pipeline/):
+            BlockParser::new().parse_blocks(token_tree) -> Vec<ElementNode>
+            InlineParser::new().parse_inlines(blocks) -> Vec<ElementNode>
+            
+        Lexer integration:
+            let tokens = tokenize(input_text);
+            let token_tree = TokenTreeBuilder::new().build_tree(tokens)?;
+            
+        Assembler integration:
+            let document = Assembler::new().assemble_document(ast)?;
+    
+    4.3. AST Types (from src/ast/elements/)
     
         Blocks:
             - ParagraphBlock { content, annotations, tokens, parameters }
@@ -79,7 +105,24 @@ Quick reference guide for implementing parser tasks following the master plan.
             - BoldSpan, ItalicSpan, CodeSpan, MathSpan
             - ReferenceSpan, CitationSpan, etc.
     
-    3.3. Tree Traversal (from src/ast/traversal.rs)
+    4.4. Assertion Framework (from tests/assertions/)
+    
+        Element assertions (all implemented, need validation with real data):
+            assert_paragraph(element, ParagraphExpected { ... })
+            assert_list(element, ListExpected { ... })
+            assert_definition(element, DefinitionExpected { ... })
+            assert_session(element, SessionExpected { ... })
+            assert_verbatim(element, VerbatimExpected { ... })
+            assert_annotation(element, AnnotationExpected { ... })
+            
+        Shared validators:
+            validate_text_exact(content, expected)
+            validate_text_contains(content, needle)
+            validate_parameter(parameters, key, value)
+            validate_annotation_count(annotations, count)
+            validate_has_formatting(content, has_formatting)
+    
+    4.5. Tree Traversal (from src/ast/traversal.rs)
     
         Build tree:
             let traversable = TraversableDocument::from_document(&doc);
@@ -92,9 +135,9 @@ Quick reference guide for implementing parser tasks following the master plan.
         XPath:
             let results = traversable.xpath("//Block")?;
 
-4. Testing Patterns
+6. Testing Patterns
 
-    4.1. Basic Element Test
+    6.1. Basic Element Test
     
         #[test]
         fn test_element_simple() {
@@ -110,7 +153,7 @@ Quick reference guide for implementing parser tasks following the master plan.
             // Validate tokens
         }
     
-    4.2. Error Case Test
+    6.2. Error Case Test
     
         #[test]
         fn test_element_invalid() {
@@ -125,7 +168,7 @@ Quick reference guide for implementing parser tasks following the master plan.
             }
         }
     
-    4.3. Snapshot Test
+    6.3. Snapshot Test
     
         #[test]
         fn test_element_snapshot() {
@@ -135,7 +178,7 @@ Quick reference guide for implementing parser tasks following the master plan.
             insta::assert_yaml_snapshot!(ast);
         }
     
-    4.4. Progressive Document Test
+    6.4. Progressive Document Test
     
         #[test]
         fn test_progressive_parsing() {
@@ -152,9 +195,9 @@ Quick reference guide for implementing parser tasks following the master plan.
             assert!(parse_document(&doc11.source_text).is_ok());
         }
 
-5. Writing Custom Assertions
+7. Writing Custom Assertions
 
-    5.1. Using Existing Assertions
+    7.1. Using Existing Assertions
     
         For paragraphs (already implemented):
             use tests::assertions::{assert_paragraph, ParagraphExpected};
@@ -169,39 +212,25 @@ Quick reference guide for implementing parser tasks following the master plan.
                 ..Default::default()
             });
     
-    5.2. Implementing Your Element's Assertion
+    7.2. Validating Assertions with Real Data
     
-        Time required: ~30 minutes per element
+        **Critical**: Existing assertions are based on spec + AST definitions, not real data.
+        You must validate and fix them during implementation.
         
-        Step 1: Open tests/assertions/mod.rs
-        
-        Step 2: Find your element's stub function (e.g., assert_list())
-        
-        Step 3: Copy assert_paragraph() as template:
-            - Replace Paragraph with your element type
-            - Replace ParagraphExpected with your element's Expected struct
-            - Update the downcast match arm
-            - Implement element-specific validation
+        ```rust
+        #[test]
+        fn test_<element>_assertions_with_real_data() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.<element>.valid.simple").unwrap();
+            let element = parse_<element>(&corpus.source_text).unwrap();
             
-        Step 4: Reuse shared validators:
-            - validate_text_exact() - Exact text matching
-            - validate_text_contains() - Substring matching
-            - validate_text_matches() - Regex matching
-            - validate_parameter() - Parameter validation
-            - validate_annotation_count() - Annotation counting
-            - validate_has_annotation() - Annotation presence
-            - validate_has_formatting() - Formatting detection
-            
-        Step 5: Add tests to assertion_framework_tests.rs:
-            #[test]
-            fn test_assert_list_basic() {
-                let list = make_test_list("- Item 1\n- Item 2");
-                assert_list(&list, ListExpected {
-                    item_count: Some(2),
-                    style: Some(NumberingStyle::Plain),
-                    ..Default::default()
-                });
-            }
+            // Test assertion with real data
+            let container_element = SessionContainerElement::<Element>(element);
+            assert_<element>(&container_element, <Element>Expected {
+                // Test with actual values from corpus
+                ..Default::default()
+            });
+        }
+        ```
     
     5.3. Expected Struct Usage (Builder Pattern)
     
@@ -274,9 +303,9 @@ Quick reference guide for implementing parser tasks following the master plan.
                 });
             }
 
-6. Common Patterns
+8. Common Patterns
 
-    6.1. Element Recognition
+    8.1. Element Recognition
     
         Pattern matching order (highest to lowest priority):
         1. Annotations (:: label ::)
@@ -286,7 +315,7 @@ Quick reference guide for implementing parser tasks following the master plan.
         5. Sessions (title + indented content)
         6. Paragraphs (default fallback)
     
-    6.2. Container Creation
+    8.2. Container Creation
     
         When to use ContentContainer:
         - List item nested content
@@ -299,7 +328,7 @@ Quick reference guide for implementing parser tasks following the master plan.
         - Session content
         - Can contain sessions
     
-    6.3. Indentation Rules
+    8.3. Indentation Rules
     
         - All indentation is multiples of 4 spaces
         - Children are +1 level from parent (parent + 4 spaces)
@@ -307,9 +336,9 @@ Quick reference guide for implementing parser tasks following the master plan.
         - Session title at N, content at N+4
         - List item at N, nested content at N+4
 
-7. Debugging Tips
+9. Debugging Tips
 
-    7.1. When Tests Fail
+    9.1. When Tests Fail
     
         Check this order:
         1. Corpus loaded correctly? Print corpus.source_text
@@ -318,7 +347,7 @@ Quick reference guide for implementing parser tasks following the master plan.
         4. Element recognition correct? Check pattern matching
         5. AST structure correct? Use ast_debug visualization
         
-    7.2. Use Tree Visualization
+    9.2. Use Tree Visualization
     
         use txxt::ast_debug::AstTreeVisualizer;
         
@@ -326,15 +355,15 @@ Quick reference guide for implementing parser tasks following the master plan.
         let viz = AstTreeVisualizer::new();
         println!("{}", viz.visualize(&doc));
     
-    7.3. Use Traversal for Inspection
+    9.3. Use Traversal for Inspection
     
         let traversable = TraversableDocument::from_document(&doc);
         let stats = traversable.element_type_stats();
         println!("Elements: {:?}", stats);
 
-8. Commit Workflow
+10. Commit Workflow
 
-    8.1. Commit Message Format
+    10.1. Commit Message Format
     
         Pattern: Parser <step-number> <element> <details>
         
@@ -343,7 +372,7 @@ Quick reference guide for implementing parser tasks following the master plan.
             Parser 2.1.5 Session container flat structure
             Parser 2.2.3 Definition invalid cases handling
     
-    8.2. Before Each Commit
+    10.2. Before Each Commit
     
         Checklist:
         - [ ] All tests pass (cargo test)
@@ -352,7 +381,7 @@ Quick reference guide for implementing parser tasks following the master plan.
         - [ ] Documentation updated
         - [ ] Snapshot tests updated if needed
     
-    8.3. PR Creation
+    10.3. PR Creation
     
         Title: Parser <release>.<milestone> <milestone-title>
         Example: "Parser 1.2 Inspection Tooling"
@@ -362,47 +391,47 @@ Quick reference guide for implementing parser tasks following the master plan.
         - Test coverage summary
         - References to related issues
 
-9. Quick Reference
+11. Quick Reference
 
-    Assertion files:
-        Expected structs: tests/assertions/expected.rs
-        Validators: tests/assertions/validators.rs
-        Assertions: tests/assertions/mod.rs
-        Assertion tests: tests/assertion_framework_tests.rs
-        Implementation guide: tests/assertions/README.md
+    11.1. Implementation Guides
+        Single Element Simple: docs/dev/parser-core/single-element-simple-guide.txxt
+        Mixed Ensemble: docs/dev/parser-core/mixed-ensemble-guide.txxt
+        Complex Element: docs/dev/parser-core/complex-element-guide.txxt
+        Core Implementation Plan: docs/dev/parser-core/core-parser-implementation-plan.txxt
         
-
-    File locations:
+    11.2. File Locations
         Specs: docs/specs/elements/<element>.txxt
         AST types: src/ast/elements/<element>.rs
-        Parser impl: src/parser/elements/<element>.rs
+        Parser impl: src/parser/pipeline/parse_blocks.rs, parse_inlines.rs
         Tests: tests/<element>_parser_tests.rs
         Corpora labels: docs/dev/parser-core/Parser-1.4.1-per-element-corpora.txxt
         Ensembles: docs/specs/ensembles/NN-name.txxt
         
-    Commands:
+    11.3. Commands
         cargo test <element>_parser  # Run element tests
         cargo test --test ensemble_documents_example  # Integration tests
         cargo clippy --all-targets --all-features  # Lint check
         cargo test --test assertion_framework_tests  # Test assertions
         just test  # Run test suite (if using justfile)
 
-10. Common Pitfalls
+12. Common Pitfalls
 
     ❌ Don't anticipate future work
     ❌ Don't skip validation steps
     ❌ Don't break existing tests
     ❌ Don't commit with failing tests
     ❌ Don't merge without PR review
+    ❌ Don't assume existing assertions are correct
     
     ✅ Do follow spec exactly
     ✅ Do test progressively
     ✅ Do use corpora system
     ✅ Do validate with ensembles
     ✅ Do update docs when needed
-    ✅ Do implement assertions for your element
+    ✅ Do validate assertions with real data
+    ✅ Do fix assertion implementations
 
-11. Getting Help
+13. Getting Help
 
     When stuck:
     1. Review the element spec again
@@ -410,8 +439,10 @@ Quick reference guide for implementing parser tasks following the master plan.
     3. Look at existing tests for patterns
     4. Use tree visualization to inspect output
     5. Review corpora extraction to verify test data
+    6. Check assertion implementation for your element
     
     Resources:
+    - Implementation guides (see Quick Reference)
     - tests/ensemble_documents_example.rs - Test patterns
     - tests/assertion_framework_tests.rs - Assertion examples
     - tests/assertions/mod.rs - assert_paragraph() reference implementation

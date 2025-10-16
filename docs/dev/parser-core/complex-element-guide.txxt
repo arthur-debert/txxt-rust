@@ -1,0 +1,538 @@
+:: title :: Complex Element Implementation Guide
+:: author :: Arthur Debert
+:: pub-date :: 2025-01-12
+:: status :: Implementation Guide
+
+This guide covers implementing parser support for complex element variations - edge cases, intricate parameter handling, and advanced element features. This is Phase 5 of the parser implementation plan.
+
+1. Overview
+
+    This guide covers:
+    - Implementing complex parameter parsing (quoted strings, escaping)
+    - Handling edge cases and intricate element variations
+    - Testing with complex element corpora
+    - Validating complex element assertions
+
+    Key principle: Complex cases are low-risk but require careful attention to detail.
+
+2. Prerequisites
+
+    Before starting complex element work, ensure:
+    - All simple element implementations are complete
+    - Mixed ensemble testing passes
+    - Basic parameter parsing is working
+    - You understand complex case specifications
+
+3. Complex Element Types
+
+    3.1. Complex Parameters
+
+        Elements with intricate parameter handling:
+        - Quoted strings: `key="value with spaces"`
+        - Escaped characters: `key=value\=with\=equals`
+        - Multiple parameters: `key1=value1,key2=value2`
+        - Nested quotes: `key="value with \"nested\" quotes"`
+
+    3.2. Complex Inline Elements
+
+        Inline elements with edge cases:
+        - Nested formatting: `*bold with _italic_ inside*`
+        - Escaped formatting: `\*escaped asterisk\*`
+        - Complex references: `[target with spaces]`
+        - Mixed formatting: `*bold* and _italic_ and `code``
+
+    3.3. Complex Container Elements
+
+        Containers with intricate nesting:
+        - Deeply nested lists
+        - Lists with mixed content types
+        - Sessions with complex hierarchies
+        - Definitions with complex terms
+
+4. Implementation Workflow
+
+    4.1. Step 1: Load Complex Test Corpus
+
+        Load complex test corpora for your element:
+        ```rust
+        use tests::corpora::TxxtCorpora;
+        let corpus = TxxtCorpora::load("txxt.core.spec.<element>.valid.complex")?;
+        ```
+
+        Available complex corpora patterns:
+        - `txxt.core.spec.parameter.valid.complex` - Complex parameters
+        - `txxt.core.spec.inline.valid.complex` - Complex inline elements
+        - `txxt.core.spec.list.valid.complex` - Complex list structures
+        - `txxt.core.spec.session.valid.complex` - Complex session hierarchies
+
+    4.2. Step 2: Implement Parameter Parser
+
+        Create a robust parameter parser for complex cases:
+        ```rust
+        pub struct ParameterParser;
+
+        impl ParameterParser {
+            pub fn parse_complex_parameters(input: &str) -> Result<Parameters, ParseError> {
+                let mut parameters = Parameters::new();
+                let mut chars = input.chars().peekable();
+                
+                while let Some(ch) = chars.next() {
+                    match ch {
+                        '"' => {
+                            // Handle quoted strings
+                            let value = self.parse_quoted_string(&mut chars)?;
+                            parameters.add(key, value);
+                        }
+                        '\\' => {
+                            // Handle escaped characters
+                            let escaped = self.parse_escaped_char(&mut chars)?;
+                            // Add to current value
+                        }
+                        ',' => {
+                            // Parameter separator
+                            self.finalize_current_parameter(&mut parameters)?;
+                        }
+                        '=' => {
+                            // Key-value separator
+                            self.finalize_current_key(&mut current_key)?;
+                        }
+                        _ => {
+                            // Regular character
+                            self.add_to_current_value(ch);
+                        }
+                    }
+                }
+                
+                Ok(parameters)
+            }
+        }
+        ```
+
+    4.3. Step 3: Write Complex Test Cases
+
+        Create comprehensive test cases for complex variations:
+        ```rust
+        #[test]
+        fn test_complex_<element>_variations() {
+            let test_cases = vec![
+                // Complex parameters
+                ("key=\"quoted value\"", "quoted value"),
+                ("key=value\\=with\\=equals", "value=with=equals"),
+                ("key1=value1,key2=value2", "value1"),
+                
+                // Complex inline elements
+                ("*bold with _italic_ inside*", "bold with italic inside"),
+                ("\\*escaped asterisk\\*", "*escaped asterisk*"),
+                ("*bold* and _italic_ and `code`", "bold and italic and code"),
+                
+                // Complex container structures
+                ("- Item 1\n  - Nested item\n  - Another nested", 2),
+                ("1. First\n   1.1. Sub-first\n   1.2. Sub-second", 2),
+            ];
+            
+            for (input, expected) in test_cases {
+                let result = parse_<element>(input);
+                assert!(result.is_ok(), "Failed to parse: {}", input);
+                
+                let element = result.unwrap();
+                validate_complex_element(&element, expected);
+            }
+        }
+        ```
+
+    4.4. Step 4: Implement Complex Element Logic
+
+        Extend element parsing to handle complex cases:
+        ```rust
+        pub fn parse_<element>_complex(tokens: &[Token]) -> Result<ElementNode, ParseError> {
+            // Handle complex parameter parsing
+            let parameters = if has_complex_parameters(tokens) {
+                ParameterParser::parse_complex_parameters(extract_parameter_text(tokens)?)?
+            } else {
+                Parameters::new()
+            };
+            
+            // Handle complex content parsing
+            let content = if has_complex_content(tokens) {
+                parse_complex_content(tokens)?
+            } else {
+                parse_simple_content(tokens)?
+            };
+            
+            // Handle complex inline elements
+            let processed_content = if has_inline_elements(content) {
+                InlineParser::parse_complex_inlines(content)?
+            } else {
+                content
+            };
+            
+            // Create element with complex features
+            Ok(ElementNode::<Element>(<Element>Block {
+                content: processed_content,
+                parameters,
+                // ... other fields
+            }))
+        }
+        ```
+
+    4.5. Step 5: Validate Complex Assertions
+
+        Update assertions to handle complex cases:
+        ```rust
+        #[test]
+        fn test_complex_<element>_assertions() {
+            let corpus = TxxtCorpora::load("txxt.core.spec.<element>.valid.complex").unwrap();
+            let element = parse_<element>(&corpus.source_text).unwrap();
+            
+            // Test complex parameter assertions
+            let container_element = SessionContainerElement::<Element>(element);
+            assert_<element>(&container_element, <Element>Expected {
+                // Test complex parameters
+                has_parameter: Some(("complex_key", "complex_value")),
+                parameter_count: Some(3),
+                
+                // Test complex content
+                content_contains: Some("complex content"),
+                has_nested_formatting: Some(true),
+                
+                // Test complex structure
+                nested_levels: Some(2),
+                ..Default::default()
+            });
+        }
+        ```
+
+5. Complex Parameter Handling
+
+    5.1. Quoted String Parsing
+
+        Handle quoted strings with proper escaping:
+        ```rust
+        fn parse_quoted_string(chars: &mut Peekable<Chars>) -> Result<String, ParseError> {
+            let mut result = String::new();
+            
+            while let Some(ch) = chars.next() {
+                match ch {
+                    '"' => {
+                        // End of quoted string
+                        return Ok(result);
+                    }
+                    '\\' => {
+                        // Escaped character
+                        if let Some(next) = chars.next() {
+                            result.push(match next {
+                                'n' => '\n',
+                                't' => '\t',
+                                'r' => '\r',
+                                '\\' => '\\',
+                                '"' => '"',
+                                _ => next,
+                            });
+                        }
+                    }
+                    _ => {
+                        result.push(ch);
+                    }
+                }
+            }
+            
+            Err(ParseError::UnclosedQuote)
+        }
+        ```
+
+    5.2. Escaped Character Handling
+
+        Handle escaped characters in parameters:
+        ```rust
+        fn parse_escaped_char(chars: &mut Peekable<Chars>) -> Result<char, ParseError> {
+            match chars.next() {
+                Some('n') => Ok('\n'),
+                Some('t') => Ok('\t'),
+                Some('r') => Ok('\r'),
+                Some('\\') => Ok('\\'),
+                Some('"') => Ok('"'),
+                Some('=') => Ok('='),
+                Some(ch) => Ok(ch),
+                None => Err(ParseError::UnexpectedEof),
+            }
+        }
+        ```
+
+    5.3. Multiple Parameter Parsing
+
+        Handle multiple parameters in a single string:
+        ```rust
+        fn parse_multiple_parameters(input: &str) -> Result<Parameters, ParseError> {
+            let mut parameters = Parameters::new();
+            let mut current_key = String::new();
+            let mut current_value = String::new();
+            let mut in_quotes = false;
+            let mut escaped = false;
+            
+            for ch in input.chars() {
+                match (ch, in_quotes, escaped) {
+                    ('"', false, false) => {
+                        in_quotes = true;
+                    }
+                    ('"', true, false) => {
+                        in_quotes = false;
+                    }
+                    ('\\', _, false) => {
+                        escaped = true;
+                    }
+                    ('=', false, false) => {
+                        // Key-value separator
+                        if !current_key.is_empty() {
+                            return Err(ParseError::MultipleEquals);
+                        }
+                        current_key = current_value;
+                        current_value.clear();
+                    }
+                    (',', false, false) => {
+                        // Parameter separator
+                        if !current_key.is_empty() && !current_value.is_empty() {
+                            parameters.add(&current_key, &current_value);
+                            current_key.clear();
+                            current_value.clear();
+                        }
+                    }
+                    (ch, _, false) => {
+                        current_value.push(ch);
+                    }
+                    (ch, _, true) => {
+                        current_value.push(ch);
+                        escaped = false;
+                    }
+                }
+            }
+            
+            // Add final parameter
+            if !current_key.is_empty() && !current_value.is_empty() {
+                parameters.add(&current_key, &current_value);
+            }
+            
+            Ok(parameters)
+        }
+        ```
+
+6. Complex Inline Element Handling
+
+    6.1. Nested Formatting
+
+        Handle nested formatting elements:
+        ```rust
+        fn parse_nested_formatting(input: &str) -> Result<Vec<InlineElement>, ParseError> {
+            let mut result = Vec::new();
+            let mut chars = input.chars().peekable();
+            
+            while let Some(ch) = chars.next() {
+                match ch {
+                    '*' => {
+                        // Bold formatting
+                        let content = parse_until_marker(&mut chars, '*')?;
+                        let inline_elements = parse_nested_formatting(&content)?;
+                        result.push(InlineElement::Bold(BoldSpan {
+                            content: inline_elements,
+                        }));
+                    }
+                    '_' => {
+                        // Italic formatting
+                        let content = parse_until_marker(&mut chars, '_')?;
+                        let inline_elements = parse_nested_formatting(&content)?;
+                        result.push(InlineElement::Italic(ItalicSpan {
+                            content: inline_elements,
+                        }));
+                    }
+                    '`' => {
+                        // Code formatting
+                        let content = parse_until_marker(&mut chars, '`')?;
+                        result.push(InlineElement::Code(CodeSpan {
+                            content: content,
+                        }));
+                    }
+                    _ => {
+                        // Regular text
+                        result.push(InlineElement::Text(TextSpan {
+                            content: ch.to_string(),
+                        }));
+                    }
+                }
+            }
+            
+            Ok(result)
+        }
+        ```
+
+    6.2. Escaped Formatting
+
+        Handle escaped formatting characters:
+        ```rust
+        fn parse_escaped_formatting(input: &str) -> Result<Vec<InlineElement>, ParseError> {
+            let mut result = Vec::new();
+            let mut chars = input.chars().peekable();
+            
+            while let Some(ch) = chars.next() {
+                match ch {
+                    '\\' => {
+                        // Escaped character
+                        if let Some(next) = chars.next() {
+                            result.push(InlineElement::Text(TextSpan {
+                                content: next.to_string(),
+                            }));
+                        }
+                    }
+                    '*' | '_' | '`' => {
+                        // Formatting character
+                        let content = parse_until_marker(&mut chars, ch)?;
+                        let inline_elements = parse_escaped_formatting(&content)?;
+                        
+                        let element = match ch {
+                            '*' => InlineElement::Bold(BoldSpan { content: inline_elements }),
+                            '_' => InlineElement::Italic(ItalicSpan { content: inline_elements }),
+                            '`' => InlineElement::Code(CodeSpan { content: content }),
+                            _ => unreachable!(),
+                        };
+                        
+                        result.push(element);
+                    }
+                    _ => {
+                        // Regular text
+                        result.push(InlineElement::Text(TextSpan {
+                            content: ch.to_string(),
+                        }));
+                    }
+                }
+            }
+            
+            Ok(result)
+        }
+        ```
+
+7. Complex Container Handling
+
+    7.1. Deep Nesting
+
+        Handle deeply nested container structures:
+        ```rust
+        fn parse_deeply_nested_container(tokens: &[Token]) -> Result<ContainerElement, ParseError> {
+            let mut stack = Vec::new();
+            let mut current_level = 0;
+            
+            for token in tokens {
+                match token {
+                    Token::Indent { level } => {
+                        if *level > current_level {
+                            // Entering deeper nesting
+                            stack.push(create_container_at_level(*level)?);
+                            current_level = *level;
+                        }
+                    }
+                    Token::Dedent { level } => {
+                        if *level < current_level {
+                            // Exiting nesting
+                            while stack.len() > *level {
+                                let container = stack.pop().unwrap();
+                                if let Some(parent) = stack.last_mut() {
+                                    parent.add_child(container);
+                                }
+                            }
+                            current_level = *level;
+                        }
+                    }
+                    _ => {
+                        // Add token to current container
+                        if let Some(container) = stack.last_mut() {
+                            container.add_token(token.clone());
+                        }
+                    }
+                }
+            }
+            
+            // Finalize remaining containers
+            while stack.len() > 1 {
+                let container = stack.pop().unwrap();
+                if let Some(parent) = stack.last_mut() {
+                    parent.add_child(container);
+                }
+            }
+            
+            Ok(stack.pop().unwrap())
+        }
+        ```
+
+8. Testing Complex Cases
+
+    8.1. Comprehensive Test Coverage
+
+        Test all complex variations:
+        ```rust
+        #[test]
+        fn test_comprehensive_complex_cases() {
+            let test_cases = vec![
+                // Parameter complexity
+                ("simple=value", "simple parameter"),
+                ("quoted=\"value with spaces\"", "quoted parameter"),
+                ("escaped=value\\=with\\=equals", "escaped parameter"),
+                ("multiple=value1,key2=value2", "multiple parameters"),
+                
+                // Inline complexity
+                ("*bold*", "simple bold"),
+                ("*bold with _italic_ inside*", "nested formatting"),
+                ("\\*escaped\\*", "escaped formatting"),
+                ("*bold* and _italic_", "mixed formatting"),
+                
+                // Container complexity
+                ("- Item", "simple list"),
+                ("- Item\n  - Nested", "nested list"),
+                ("- Item\n  - Nested\n    - Deep", "deep nesting"),
+            ];
+            
+            for (input, description) in test_cases {
+                let result = parse_complex_element(input);
+                assert!(result.is_ok(), "Failed to parse {}: {}", description, input);
+                
+                let element = result.unwrap();
+                validate_complex_element(&element, description);
+            }
+        }
+        ```
+
+    8.2. Edge Case Testing
+
+        Test edge cases and boundary conditions:
+        ```rust
+        #[test]
+        fn test_complex_edge_cases() {
+            // Test empty parameters
+            test_empty_parameters();
+            
+            // Test malformed parameters
+            test_malformed_parameters();
+            
+            // Test extreme nesting
+            test_extreme_nesting();
+            
+            // Test mixed content types
+            test_mixed_content_types();
+        }
+        ```
+
+9. Success Criteria
+
+    Complex element implementation is complete when:
+    - [ ] All complex test cases pass
+    - [ ] Parameter parsing handles all edge cases
+    - [ ] Inline elements support nested formatting
+    - [ ] Container elements handle deep nesting
+    - [ ] Assertions work with complex data
+    - [ ] Performance is acceptable
+
+10. Next Steps
+
+    After completing complex element implementation:
+    1. Move to hard structural ambiguity cases
+    2. Implement remaining complex variations
+    3. Add performance optimization
+    4. Prepare for production deployment
+
+:: note :: This guide focuses on complex element variations. For simple elements or mixed ensembles, see the respective guides.

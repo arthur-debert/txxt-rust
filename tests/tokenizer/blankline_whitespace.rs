@@ -1,7 +1,7 @@
 //! Tests for BlankLine whitespace preservation (issue #30)
 
-use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::{tokenize, Token};
+use txxt::tools::detokenizer::Detokenizer;
 
 /// Helper to verify round-trip tokenization for verification purposes
 fn verify_blankline_round_trip(original: &str) {

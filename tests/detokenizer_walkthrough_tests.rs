@@ -4,8 +4,8 @@
 //! using examples from the walkthrough documentation.
 
 use txxt::ast::tokens::Token;
-use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::tokenize;
+use txxt::tools::detokenizer::Detokenizer;
 
 /// Compare tokens for equality (ignoring source spans)
 fn tokens_equal(t1: &Token, t2: &Token) -> bool {

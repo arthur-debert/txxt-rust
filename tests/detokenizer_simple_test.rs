@@ -1,7 +1,7 @@
 //! Simple debug test for detokenizer
 
-use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::tokenize;
+use txxt::tools::detokenizer::Detokenizer;
 
 #[test]
 fn debug_simple_text() {

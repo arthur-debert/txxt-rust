@@ -1,7 +1,7 @@
 //! Debug test for detokenizer issues
 
-use txxt::parser::detokenizer::Detokenizer;
 use txxt::tokenizer::tokenize;
+use txxt::tools::detokenizer::Detokenizer;
 
 #[test]
 fn debug_math_expression() {

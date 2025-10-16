@@ -26,8 +26,8 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 
+use txxt::assembler::Assembler;
 use txxt::parser::pipeline::block_grouper::BlockGrouper;
-use txxt::parser::pipeline::post_processor::PostProcessor;
 use txxt::tokenizer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use txxt::tokenizer::tokenize;
 
@@ -253,8 +253,8 @@ fn process_ast_full_json(
     let block_tree = block_grouper.group_blocks(tokens)?;
 
     // Phase 3a: Assemble document from block tree
-    let post_processor = PostProcessor::new();
-    let document = post_processor.assemble_document(block_tree, Some(source_path.to_string()))?;
+    let assembler = Assembler::new();
+    let document = assembler.assemble_document(block_tree, Some(source_path.to_string()))?;
 
     // Serialize to JSON
     let result = serde_json::json!({
@@ -275,8 +275,8 @@ fn process_ast_full_treeviz(
     let block_tree = block_grouper.group_blocks(tokens)?;
 
     // Phase 3a: Assemble document from block tree
-    let post_processor = PostProcessor::new();
-    let document = post_processor.assemble_document(block_tree, Some(source_path.to_string()))?;
+    let assembler = Assembler::new();
+    let document = assembler.assemble_document(block_tree, Some(source_path.to_string()))?;
 
     // For now, create a simple treeviz representation since Phase 2 parsing isn't implemented
     // TODO: Use proper treeviz when Phase 2 is complete and we have ElementNode

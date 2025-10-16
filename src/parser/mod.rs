@@ -20,21 +20,22 @@
 //! - **Location**: `src/parser/pipeline/` (to be implemented)
 //! - **Output**: Rich type-safe AST structure
 //!
-//! ### Phase 3: Assembly (PLANNED 📋)
+//! ### Phase 3: Assembly (IMPLEMENTED ✅)
 //! - **Document Assembly**: Document metadata and annotation attachment
 //! - **Validation**: Cross-reference resolution and validation
-//! - **Location**: `src/parser/pipeline/post_processor.rs`
+//! - **Location**: `src/assembler/`
 //! - **Output**: Complete document with all relationships resolved
 //!
 //! # Current Implementation Status
 //!
 //! - ✅ **Phase 1**: Complete (tokenizer + block grouping)
 //! - 🔄 **Phase 2**: To be implemented (parser stubs removed)
-//! - 📋 **Phase 3**: Planned (post-processor placeholder exists)
+//! - ✅ **Phase 3**: Complete (assembler implemented)
 //!
 //! # Usage
 //!
 //! ```rust,ignore
+//! use txxt::assembler::Assembler;
 //! use txxt::parser::pipeline::BlockGrouper;
 //! use txxt::tokenizer::tokenize;
 //!
@@ -47,13 +48,13 @@
 //! // let parser = Parser::new();
 //! // let ast = parser.parse(blocks)?;
 //!
-//! // Phase 3: Post-processing (planned)
-//! // let post_processor = PostProcessor::new();
-//! // let document = post_processor.assemble(ast)?;
+//! // Phase 3: Assembly (working)
+//! let assembler = Assembler::new();
+//! let document = assembler.assemble_document(blocks, Some("source.txxt".to_string()))?;
 //! ```
 
 // Pipeline modules
 pub mod pipeline;
 
 // Re-export main interfaces
-pub use pipeline::{BlockGrouper, PostProcessor};
+pub use pipeline::{BlockGroup, BlockGrouper};

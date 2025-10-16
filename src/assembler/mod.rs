@@ -1,7 +1,42 @@
-//! Phase 3: Post-Processing
+//! Phase 3: Assembly
 //!
-//! This module implements the post-processing phase that handles document
+//! This module implements the assembly phase that handles document
 //! assembly, annotation attachment, and cross-reference resolution.
+//!
+//! # Three-Phase Pipeline Position
+//!
+//! **Phase 3: Assembly (Final Output)**
+//!
+//! The assembly phase takes the hierarchical token structure from Phase 1c (BlockGroup)
+//! and produces the final document structure:
+//! - Phase 3a: Document Assembly - Wrap AST tree in Session container and Document node
+//! - Phase 3b: Annotation Attachment - Apply proximity rules to attach annotations
+//!
+//! Pipeline: `Tokens` → `Block Grouping` → **`Document Assembly`** → **`Final Document`**
+//!
+//! ## Assembly Process
+//!
+//! 1. **Document Wrapping**: Wrap token tree in SessionContainer and Document
+//! 2. **Annotation Attachment**: Apply proximity rules to attach annotations
+//! 3. **Metadata Extraction**: Convert annotations to structured metadata  
+//! 4. **Document Finalization**: Add assembly info (parser version, timestamps)
+//!
+//! # Usage
+//!
+//! ```rust,ignore
+//! use txxt::assembler::Assembler;
+//! use txxt::parser::pipeline::BlockGrouper;
+//! use txxt::tokenizer::tokenize;
+//!
+//! // Phase 1: Tokenization + Block Grouping
+//! let tokens = tokenize(input_text);
+//! let block_grouper = BlockGrouper::new();
+//! let block_tree = block_grouper.group_blocks(tokens)?;
+//!
+//! // Phase 3: Assembly
+//! let assembler = Assembler::new();
+//! let document = assembler.assemble_document(block_tree, Some("source.txxt".to_string()))?;
+//! ```
 
 use crate::ast::elements::components::parameters::Parameters;
 use crate::ast::{
@@ -15,14 +50,14 @@ use crate::ast::{
 };
 use crate::parser::pipeline::block_grouper::BlockGroup;
 
-/// Phase 3 Post-Processor
+/// Phase 3 Assembler
 ///
-/// Handles final document assembly, annotation processing, and
-/// cross-reference resolution after the main parsing phase.
-pub struct PostProcessor;
+/// Handles document assembly, annotation processing, and
+/// cross-reference resolution to produce the final document structure.
+pub struct Assembler;
 
-impl PostProcessor {
-    /// Create a new post-processor instance
+impl Assembler {
+    /// Create a new assembler instance
     pub fn new() -> Self {
         Self
     }
@@ -39,7 +74,7 @@ impl PostProcessor {
         &self,
         block_group: BlockGroup,
         source_path: Option<String>,
-    ) -> Result<Document, PostProcessError> {
+    ) -> Result<Document, AssemblyError> {
         // Phase 3b: Extract and attach annotations
         let (document_annotations, content_annotations) = self.extract_annotations(&block_group)?;
 
@@ -81,84 +116,21 @@ impl PostProcessor {
         Ok(document)
     }
 
-    /// Post-process parsed AST into final document
+    /// Process parsed AST into final document (for future Phase 2 integration)
     ///
-    /// Performs document assembly, annotation attachment using proximity rules,
-    /// and resolves cross-references between elements.
-    pub fn process(&self, _ast: Document) -> Result<Document, PostProcessError> {
-        // TODO: Implement full post-processing logic for when Phase 2 is complete
-        // - Document metadata assembly
-        // - Annotation proximity-based attachment
+    /// This method will be used when Phase 2 parsing is implemented to process
+    /// fully parsed AST nodes instead of raw token trees.
+    pub fn process_ast(&self, _ast: Document) -> Result<Document, AssemblyError> {
+        // TODO: Implement full assembly logic for when Phase 2 is complete
+        // - Document metadata assembly from AST annotations
+        // - Annotation proximity-based attachment to AST nodes
         // - Cross-reference resolution
         // - Final validation
-        Err(PostProcessError::NotImplemented(
-            "Full post-processor not yet implemented - Phase 2 parsing required".to_string(),
+        Err(AssemblyError::NotImplemented(
+            "Full AST assembly not yet implemented - Phase 2 parsing required".to_string(),
         ))
     }
-}
 
-impl Default for PostProcessor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Post-processing error types
-#[derive(Debug, Clone)]
-pub enum PostProcessError {
-    /// Feature not yet implemented
-    NotImplemented(String),
-    /// Cross-reference resolution failed
-    UnresolvedReference(String),
-    /// Annotation attachment failed
-    AnnotationError(String),
-    /// Document assembly failed
-    AssemblyError(String),
-}
-
-impl std::fmt::Display for PostProcessError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PostProcessError::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
-            PostProcessError::UnresolvedReference(msg) => {
-                write!(f, "Unresolved reference: {}", msg)
-            }
-            PostProcessError::AnnotationError(msg) => write!(f, "Annotation error: {}", msg),
-            PostProcessError::AssemblyError(msg) => write!(f, "Assembly error: {}", msg),
-        }
-    }
-}
-
-impl std::error::Error for PostProcessError {}
-
-/// Helper function to count total tokens in a block group
-fn count_tokens_in_block_group(block_group: &BlockGroup) -> usize {
-    let mut count = block_group.tokens.len();
-    for child in &block_group.children {
-        count += count_tokens_in_block_group(child);
-    }
-    count
-}
-
-/// Helper function to count blocks (non-empty groups) in a block group
-fn count_blocks_in_block_group(block_group: &BlockGroup) -> usize {
-    let mut count = if block_group.tokens.is_empty() { 0 } else { 1 };
-    for child in &block_group.children {
-        count += count_blocks_in_block_group(child);
-    }
-    count
-}
-
-/// Helper function to calculate maximum nesting depth
-fn calculate_max_depth(block_group: &BlockGroup) -> usize {
-    let mut max_child_depth = 0;
-    for child in &block_group.children {
-        max_child_depth = max_child_depth.max(calculate_max_depth(child));
-    }
-    1 + max_child_depth
-}
-
-impl PostProcessor {
     /// Phase 3b: Extract annotations from block group and apply proximity rules
     ///
     /// Returns (document_annotations, content_annotations) where:
@@ -167,7 +139,7 @@ impl PostProcessor {
     fn extract_annotations(
         &self,
         block_group: &BlockGroup,
-    ) -> Result<(Vec<Annotation>, Vec<Annotation>), PostProcessError> {
+    ) -> Result<(Vec<Annotation>, Vec<Annotation>), AssemblyError> {
         let mut document_annotations = Vec::new();
         let mut content_annotations = Vec::new();
 
@@ -188,7 +160,7 @@ impl PostProcessor {
     fn extract_annotations_recursive(
         &self,
         block_group: &BlockGroup,
-    ) -> Result<Vec<Annotation>, PostProcessError> {
+    ) -> Result<Vec<Annotation>, AssemblyError> {
         let mut annotations = Vec::new();
 
         // Extract from this level
@@ -208,7 +180,7 @@ impl PostProcessor {
     fn extract_annotations_from_tokens(
         &self,
         tokens: &[Token],
-    ) -> Result<Vec<Annotation>, PostProcessError> {
+    ) -> Result<Vec<Annotation>, AssemblyError> {
         let mut annotations = Vec::new();
         let mut i = 0;
 
@@ -236,7 +208,7 @@ impl PostProcessor {
         &self,
         tokens: &[Token],
         start_idx: usize,
-    ) -> Result<Option<(Annotation, usize)>, PostProcessError> {
+    ) -> Result<Option<(Annotation, usize)>, AssemblyError> {
         // Look for opening :: marker
         if !matches!(&tokens[start_idx], Token::AnnotationMarker { .. }) {
             return Ok(None);
@@ -276,7 +248,7 @@ impl PostProcessor {
     fn parse_annotation_content(
         &self,
         tokens: &[Token],
-    ) -> Result<(String, Parameters), PostProcessError> {
+    ) -> Result<(String, Parameters), AssemblyError> {
         let mut label = String::new();
         let parameters = Parameters::default();
 
@@ -304,7 +276,7 @@ impl PostProcessor {
     fn extract_metadata_from_annotations(
         &self,
         annotations: &[Annotation],
-    ) -> Result<Meta, PostProcessError> {
+    ) -> Result<Meta, AssemblyError> {
         let mut meta = Meta::default();
 
         for annotation in annotations {
@@ -331,9 +303,70 @@ impl PostProcessor {
     }
 
     /// Extract text content from an annotation
-    fn extract_annotation_text(&self, annotation: &Annotation) -> Result<String, PostProcessError> {
+    fn extract_annotation_text(&self, annotation: &Annotation) -> Result<String, AssemblyError> {
         // TODO: Extract text from annotation tokens
         // For now, return placeholder
         Ok(format!("[{}]", annotation.label))
     }
+}
+
+impl Default for Assembler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Assembly error types
+#[derive(Debug, Clone)]
+pub enum AssemblyError {
+    /// Feature not yet implemented
+    NotImplemented(String),
+    /// Cross-reference resolution failed
+    UnresolvedReference(String),
+    /// Annotation attachment failed
+    AnnotationAttachmentFailed(String),
+    /// Document assembly failed
+    DocumentAssemblyFailed(String),
+}
+
+impl std::fmt::Display for AssemblyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssemblyError::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
+            AssemblyError::UnresolvedReference(msg) => {
+                write!(f, "Unresolved reference: {}", msg)
+            }
+            AssemblyError::AnnotationAttachmentFailed(msg) => write!(f, "Annotation attachment failed: {}", msg),
+            AssemblyError::DocumentAssemblyFailed(msg) => write!(f, "Document assembly failed: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for AssemblyError {}
+
+/// Helper function to count total tokens in a block group
+fn count_tokens_in_block_group(block_group: &BlockGroup) -> usize {
+    let mut count = block_group.tokens.len();
+    for child in &block_group.children {
+        count += count_tokens_in_block_group(child);
+    }
+    count
+}
+
+/// Helper function to count blocks (non-empty groups) in a block group
+fn count_blocks_in_block_group(block_group: &BlockGroup) -> usize {
+    let mut count = if block_group.tokens.is_empty() { 0 } else { 1 };
+    for child in &block_group.children {
+        count += count_blocks_in_block_group(child);
+    }
+    count
+}
+
+/// Helper function to calculate maximum nesting depth
+fn calculate_max_depth(block_group: &BlockGroup) -> usize {
+    let mut max_child_depth = 0;
+    for child in &block_group.children {
+        max_child_depth = max_child_depth.max(calculate_max_depth(child));
+    }
+    1 + max_child_depth
 }

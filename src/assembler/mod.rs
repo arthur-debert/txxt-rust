@@ -7,12 +7,12 @@
 //!
 //! **Phase 3: Assembly (Final Output)**
 //!
-//! The assembly phase takes the hierarchical token structure from Phase 1c (BlockGroup)
+//! The assembly phase takes the hierarchical token structure from Phase 1c (TokenTree)
 //! and produces the final document structure:
 //! - Phase 3a: Document Assembly - Wrap AST tree in Session container and Document node
 //! - Phase 3b: Annotation Attachment - Apply proximity rules to attach annotations
 //!
-//! Pipeline: `Tokens` → `Block Grouping` → **`Document Assembly`** → **`Final Document`**
+//! Pipeline: `Tokens` → `Token Tree` → **`Document Assembly`** → **`Final Document`**
 //!
 //! ## Assembly Process
 //!
@@ -25,17 +25,17 @@
 //!
 //! ```rust,ignore
 //! use txxt::assembler::Assembler;
-//! use txxt::tokenizer::pipeline::BlockGrouper;
-//! use txxt::tokenizer::tokenize;
+//! use txxt::lexer::pipeline::TokenTreeBuilder;
+//! use txxt::lexer::tokenize;
 //!
-//! // Phase 1: Tokenization + Block Grouping
+//! // Phase 1: Lexer
 //! let tokens = tokenize(input_text);
-//! let block_grouper = BlockGrouper::new();
-//! let block_tree = block_grouper.group_blocks(tokens)?;
+//! let token_tree_builder = TokenTreeBuilder::new();
+//! let token_tree = token_tree_builder.build_tree(tokens)?;
 //!
 //! // Phase 3: Assembly
 //! let assembler = Assembler::new();
-//! let document = assembler.assemble_document(block_tree, Some("source.txxt".to_string()))?;
+//! let document = assembler.assemble_document(token_tree, Some("source.txxt".to_string()))?;
 //! ```
 
 use crate::ast::elements::components::parameters::Parameters;
@@ -49,6 +49,14 @@ use crate::ast::{
     },
 };
 use crate::lexer::pipeline::TokenTree;
+
+// Pipeline modules
+pub mod pipeline;
+
+// Re-export main interfaces
+pub use pipeline::{
+    AnnotationAttacher, AnnotationAttachmentError, DocumentAssembler, DocumentAssemblyError,
+};
 
 /// Phase 3 Assembler
 ///
@@ -64,9 +72,9 @@ impl Assembler {
 
     /// Phase 3a: Wrap token tree in Session container and Document node
     ///
-    /// Takes the hierarchical token structure from Phase 1c (BlockGroup) and
+    /// Takes the hierarchical token structure from Phase 1c (TokenTree) and
     /// wraps it in the proper document structure:
-    /// - BlockGroup → SessionContainer (content root)
+    /// - TokenTree → SessionContainer (content root)
     /// - SessionContainer → Document (with metadata)
     ///
     /// This creates the basic document structure: `document.content.session[0][content].blocks`

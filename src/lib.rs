@@ -26,7 +26,6 @@ use std::path::{Path, PathBuf};
 pub mod annotation_parser;
 pub mod assembler;
 pub mod ast;
-pub mod ast_debug;
 pub mod lexer;
 pub mod parser;
 pub mod pipeline;

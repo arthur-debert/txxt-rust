@@ -1,0 +1,4 @@
+Code example:
+    def hello():
+        print("Hello, world!")
+    :: python

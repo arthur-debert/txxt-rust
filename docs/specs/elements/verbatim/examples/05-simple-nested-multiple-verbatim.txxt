@@ -1,0 +1,63 @@
+1. Main Topic
+
+    Code example:
+        def hello():
+            print("Hello, world!")
+        :: python
+
+    This is the introduction to the main topic. It provides an overview before diving into specific subtopics.
+
+    1.1. First Subtopic
+    
+        This subsection explores the first aspect of the main topic in detail. Notice how it is indented one level deeper than the main section.
+
+        Configuration example:
+            server {
+                listen 80;
+                location / {
+                    proxy_pass http://backend;
+                }
+            }
+            :: nginx
+
+        Database schema:
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+            :: sql
+
+    1.2. Second Subtopic
+    
+        This subsection covers the second aspect. The hierarchical numbering (1.1, 1.2) makes the structure clear.
+
+        And one of the sessions will be three level deep.
+
+        1.2.1. Third Subtopic
+
+            Wide table example:
+             | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+             |----------|----------|----------|----------|----------|
+             | Data     | Data     | Data     | Data     | Data     |
+                :: markdown
+
+            This is the deepest level of nesting, demonstrating how verbatim blocks can appear at any level of the document hierarchy.
+
+            JSON example:
+                {
+                    "name": "example",
+                    "value": 42,
+                    "active": true
+                }
+                :: json
+
+2. Another Main Topic
+
+    This second main topic is at the same level as the first, demonstrating how nested and flat structures can combine.
+
+    HTML example:
+        <div class="container">
+            <h1>Title</h1>
+            <p>Content here</p>
+        </div>
+        :: html

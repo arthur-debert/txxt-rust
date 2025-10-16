@@ -28,4 +28,5 @@ Thumbs.db
 reference-no-git
 .padz
 ISSUES
-disposable/ 
+disposable/ .todos.db
+.todos.db

@@ -1,0 +1,20 @@
+1. Introduction
+
+    This session contains multiple definitions that introduce the main topic. The definitions provide context and set up the discussion for the sections that follow.
+
+    Parser ::
+        A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
+
+    Lexer ::
+        A program that breaks down text into tokens, which are the smallest meaningful units of the language being processed.
+
+2. Advanced Concepts
+
+    AST ::
+        Abstract Syntax Tree - a tree representation of the syntactic structure of source code or text, where each node represents a construct occurring in the source.
+	
+    This session covers more advanced concepts with additional definitions.
+
+
+    Compiler ::
+        A program that translates source code written in one programming language into another language, typically machine code or bytecode.

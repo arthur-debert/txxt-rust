@@ -66,42 +66,78 @@ where
         }
     }
 
-    // 2. Numbered markers: "1. ", "42. "
+    // 2. Numbered markers: "1. ", "42. ", "1.1. ", "1.2.3. "
     let mut number_str = String::new();
+    let mut has_period = false;
+
+    // Read digits and periods for hierarchical numbering
     while let Some(ch) = lexer.peek() {
         if ch.is_ascii_digit() {
             number_str.push(ch);
             lexer.advance();
+            has_period = false; // Reset period flag when we see a digit
+        } else if ch == '.' && !has_period {
+            number_str.push(ch);
+            lexer.advance();
+            has_period = true;
         } else {
             break;
         }
     }
 
-    if !number_str.is_empty() {
-        // Check for both . and ) endings
-        if let Some(punct) = lexer.peek() {
-            if punct == '.' || punct == ')' {
+    if !number_str.is_empty() && number_str.ends_with('.') {
+        // Check for space after the period
+        if lexer.peek() == Some(' ') {
+            lexer.advance();
+            let marker = number_str.clone();
+            let number = number_str
+                .split('.')
+                .next()
+                .unwrap_or("0")
+                .parse::<u64>()
+                .unwrap_or(0);
+            return Some(Token::SequenceMarker {
+                marker_type: SequenceMarkerType::Numerical(number, marker.clone()),
+                span: SourceSpan {
+                    start: start_pos,
+                    end: Position {
+                        row: start_pos.row,
+                        column: start_pos.column + marker.chars().count(),
+                    },
+                },
+            });
+        } else {
+            // Not a valid marker, backtrack
+            lexer.restore_state(saved_state.clone());
+        }
+    } else if !number_str.is_empty() {
+        // Check for ) ending (hierarchical or non-hierarchical)
+        if lexer.peek() == Some(')') {
+            lexer.advance();
+            if lexer.peek() == Some(' ') {
                 lexer.advance();
-                if lexer.peek() == Some(' ') {
-                    lexer.advance();
-                    let marker = format!("{}{}", number_str, punct);
-                    let number = number_str.parse::<u64>().unwrap_or(0);
-                    return Some(Token::SequenceMarker {
-                        marker_type: SequenceMarkerType::Numerical(number, marker.clone()),
-                        span: SourceSpan {
-                            start: start_pos,
-                            end: Position {
-                                row: start_pos.row,
-                                column: start_pos.column + marker.chars().count(),
-                            },
+                let marker = format!("{})", number_str);
+                // For hierarchical numbers, extract the first number
+                let number = number_str
+                    .split('.')
+                    .next()
+                    .unwrap_or("0")
+                    .parse::<u64>()
+                    .unwrap_or(0);
+                return Some(Token::SequenceMarker {
+                    marker_type: SequenceMarkerType::Numerical(number, marker.clone()),
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: Position {
+                            row: start_pos.row,
+                            column: start_pos.column + marker.chars().count(),
                         },
-                    });
-                }
+                    },
+                });
             }
         }
         // Not a valid marker, backtrack
         lexer.restore_state(saved_state.clone());
-        return None;
     }
 
     // 3. Roman numeral markers: "i. ", "ii) ", "I. ", "III) " - check before alphabetical

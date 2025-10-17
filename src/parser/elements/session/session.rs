@@ -216,9 +216,28 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
     // Find content after the blank line
     let content_start = title_end + 1; // Skip the blank line
     if content_start >= tokens.len() {
-        return Err(BlockParseError::InvalidStructure(
-            "No content found after title".to_string(),
-        ));
+        // No content after blank line - create empty session container
+        let content = SessionContainer {
+            content: Vec::new(),
+            annotations: Vec::new(),
+            parameters: crate::ast::elements::components::parameters::Parameters::new(),
+            tokens: TokenSequence::new(),
+        };
+
+        // Create token sequence for the session
+        let mut session_tokens = TokenSequence::new();
+        session_tokens.tokens = tokens.to_vec();
+
+        // Create the session block
+        let session = SessionBlock {
+            title,
+            content,
+            annotations: Vec::new(), // TODO: Parse annotations when implemented
+            parameters: crate::ast::elements::components::parameters::Parameters::new(),
+            tokens: session_tokens,
+        };
+
+        return Ok(session);
     }
 
     // Extract content tokens (everything after the blank line)

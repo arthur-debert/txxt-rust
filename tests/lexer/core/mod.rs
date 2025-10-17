@@ -4,5 +4,6 @@
 
 mod blankline;
 mod dash;
+mod hierarchical_sequence;
 mod newline;
 mod text;

@@ -183,7 +183,9 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         Numerical style markers:
             <number> = <digit>+
+            <hierarchical-number> = <digit>+ (<period> <digit>+)*
             <numerical-marker> = <number> <period> <whitespace>
+            <hierarchical-numerical-marker> = <hierarchical-number> <period> <whitespace>
             <numerical-paren-marker> = <number> <right-paren> <whitespace>
         :: grammar
 
@@ -202,7 +204,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         :: grammar
 
         Complete sequence marker:
-            <sequence-marker> = <plain-marker> | <numerical-marker> | <numerical-paren-marker> | <alphabetical-marker> | <alphabetical-paren-marker> | <roman-marker> | <roman-paren-marker>
+            <sequence-marker> = <plain-marker> | <numerical-marker> | <hierarchical-numerical-marker> | <numerical-paren-marker> | <alphabetical-marker> | <alphabetical-paren-marker> | <roman-marker> | <roman-paren-marker>
         :: grammar
 
     4.2. Annotation Markers

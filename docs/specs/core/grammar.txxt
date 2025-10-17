@@ -1,6 +1,12 @@
-:: title :: txxt Semantic Block Grammar
+:: title :: txxt Block Grammar
 :: author :: Gemini
 :: pub-date :: 2025-10-17
+
+This document is part of the txxt syntax tree documentation. Together with @semantic-tokens.txxt, it defines the complete syntax and structure of the txxt format.
+
+- Scanner Tokens [./scanner-tokens.txxt] defines the low-level scanner tokens
+- Semantic Tokens: [./semantic-tokens.txxt] defines semantic node types
+- Grammer [./grammar.txxt] (this document) defines how blocks are constructed from semantic tokens
 
 This document specifies how block elements in a txxt document are constructed from semantic nodes. It introduces container types to simplify the grammar.
 

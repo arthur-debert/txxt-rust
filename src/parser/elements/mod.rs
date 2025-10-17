@@ -5,6 +5,7 @@
 
 pub mod annotation;
 pub mod definition;
+pub mod inlines;
 pub mod list;
 pub mod paragraph;
 pub mod session;

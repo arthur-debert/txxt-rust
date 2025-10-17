@@ -1,6 +1,6 @@
 //! # Emphasis (Italic) Element Parser
 //!
-//! This module implements the parsing logic for emphasis (italic) formatting elements 
+//! This module implements the parsing logic for emphasis (italic) formatting elements
 //! using the `_content_` pattern.
 //!
 //! ## Overview
@@ -87,10 +87,10 @@ pub fn parse_emphasis(tokens: &[Token]) -> Result<TextTransform, InlineParseErro
 
     // Extract content between the underscores
     let content_tokens = extract_emphasis_content(tokens)?;
-    
+
     // Validate nesting rules
     validate_emphasis_nesting(&content_tokens)?;
-    
+
     // Convert content tokens to text (for now, simple implementation)
     let text_content = content_tokens
         .iter()
@@ -127,7 +127,7 @@ pub fn parse_emphasis(tokens: &[Token]) -> Result<TextTransform, InlineParseErro
 pub fn is_emphasis_pattern(tokens: &[Token]) -> bool {
     // TODO: Implement proper emphasis pattern detection
     // For now, return a simple check
-    
+
     if tokens.len() < 3 {
         return false;
     }
@@ -155,9 +155,9 @@ pub fn extract_emphasis_content(tokens: &[Token]) -> Result<Vec<Token>, InlinePa
 
     // TODO: Implement proper content extraction
     // For now, return all tokens except first and last (the underscores)
-    
+
     let content_tokens = tokens[1..tokens.len() - 1].to_vec();
-    
+
     if content_tokens.is_empty() {
         return Err(InlineParseError::EmptyContent(
             "Emphasis content cannot be empty".to_string(),
@@ -180,7 +180,7 @@ pub fn extract_emphasis_content(tokens: &[Token]) -> Result<Vec<Token>, InlinePa
 pub fn validate_emphasis_nesting(content_tokens: &[Token]) -> Result<(), InlineParseError> {
     // TODO: Implement proper nesting validation
     // For now, accept all content
-    
+
     // Check for nested underscores that would indicate invalid nesting
     for token in content_tokens {
         if let Token::Text { content, .. } = token {

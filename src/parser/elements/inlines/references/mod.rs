@@ -156,9 +156,9 @@ pub use page_ref::*;
 pub use session_ref::*;
 
 // Import necessary types
+use crate::ast::elements::formatting::inlines::Inline;
 use crate::ast::elements::references::reference_types::*;
 use crate::ast::elements::tokens::TokenSequence;
-use crate::ast::elements::formatting::inlines::Inline;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Extract reference content from bracketed tokens
@@ -171,10 +171,13 @@ use crate::parser::elements::inlines::InlineParseError;
 ///
 /// # Returns
 /// * `Result<String, InlineParseError>` - Content between brackets
-fn extract_reference_content(tokens: &[crate::ast::tokens::Token]) -> Result<String, InlineParseError> {
+fn extract_reference_content(
+    tokens: &[crate::ast::tokens::Token],
+) -> Result<String, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
-            "Reference must have at least opening bracket, content, and closing bracket".to_string(),
+            "Reference must have at least opening bracket, content, and closing bracket"
+                .to_string(),
         ));
     }
 
@@ -182,8 +185,10 @@ fn extract_reference_content(tokens: &[crate::ast::tokens::Token]) -> Result<Str
     let first_token = &tokens[0];
     let last_token = &tokens[tokens.len() - 1];
 
-    let starts_with_bracket = matches!(first_token, crate::ast::tokens::Token::Text { content, .. } if content == "[");
-    let ends_with_bracket = matches!(last_token, crate::ast::tokens::Token::Text { content, .. } if content == "]");
+    let starts_with_bracket =
+        matches!(first_token, crate::ast::tokens::Token::Text { content, .. } if content == "[");
+    let ends_with_bracket =
+        matches!(last_token, crate::ast::tokens::Token::Text { content, .. } if content == "]");
 
     if !starts_with_bracket || !ends_with_bracket {
         return Err(InlineParseError::InvalidStructure(
@@ -193,7 +198,7 @@ fn extract_reference_content(tokens: &[crate::ast::tokens::Token]) -> Result<Str
 
     // Extract content tokens (everything between brackets)
     let content_tokens = &tokens[1..tokens.len() - 1];
-    
+
     if content_tokens.is_empty() {
         return Err(InlineParseError::EmptyContent(
             "Reference content cannot be empty".to_string(),
@@ -275,11 +280,11 @@ fn parse_single_citation(citation_str: &str) -> Result<Option<CitationEntry>, In
     }
 
     let content = &citation_str[1..]; // Remove @ symbol
-    
+
     // Split by comma to separate key from locator
     let parts: Vec<&str> = content.splitn(2, ',').collect();
     let key = parts[0].trim().to_string();
-    
+
     if key.is_empty() {
         return Err(InlineParseError::InvalidStructure(
             "Citation key cannot be empty".to_string(),
@@ -288,7 +293,11 @@ fn parse_single_citation(citation_str: &str) -> Result<Option<CitationEntry>, In
 
     let locator = if parts.len() > 1 {
         let loc = parts[1].trim();
-        if loc.is_empty() { None } else { Some(loc.to_string()) }
+        if loc.is_empty() {
+            None
+        } else {
+            Some(loc.to_string())
+        }
     } else {
         None
     };
@@ -312,10 +321,10 @@ fn parse_single_citation(citation_str: &str) -> Result<Option<CitationEntry>, In
 /// * `SectionIdentifier` - Parsed section identifier
 fn parse_section_identifier(content: &str) -> SectionIdentifier {
     let content = content.trim();
-    
+
     // Check for negative indexing
-    let (negative_index, numeric_content) = if content.starts_with('-') {
-        (true, &content[1..])
+    let (negative_index, numeric_content) = if let Some(stripped) = content.strip_prefix('-') {
+        (true, stripped)
     } else {
         (false, content)
     };
@@ -383,7 +392,6 @@ pub fn parse_reference(
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
-    
     if tokens.is_empty() {
         return Err(InlineParseError::InvalidStructure(
             "Empty reference tokens".to_string(),
@@ -392,7 +400,7 @@ pub fn parse_reference(
 
     // Extract content to determine reference type
     let content = extract_reference_content(tokens)?;
-    
+
     // Classify reference type using the specification order
     let classifier = ReferenceClassifier::new();
     let ref_type = classifier.classify(&content);
@@ -420,13 +428,9 @@ pub fn parse_reference(
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_url_reference(
     tokens: &[crate::ast::tokens::Token],
-) -> Result<
-    crate::ast::elements::formatting::inlines::Inline,
-    InlineParseError,
-> {
-    
+) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
-    
+
     // Parse URL - could have fragment
     let (url, fragment) = if let Some(hash_pos) = content.find('#') {
         let url_part = content[..hash_pos].to_string();
@@ -463,13 +467,9 @@ fn parse_url_reference(
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_file_reference(
     tokens: &[crate::ast::tokens::Token],
-) -> Result<
-    crate::ast::elements::formatting::inlines::Inline,
-    InlineParseError,
-> {
-    
+) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
-    
+
     // Parse file path - could have section anchor
     let (path, section) = if let Some(hash_pos) = content.find('#') {
         let path_part = content[..hash_pos].to_string();
@@ -506,13 +506,9 @@ fn parse_file_reference(
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_tk_reference(
     tokens: &[crate::ast::tokens::Token],
-) -> Result<
-    crate::ast::elements::formatting::inlines::Inline,
-    InlineParseError,
-> {
-    
+) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
-    
+
     // TK references are treated as unresolved placeholders
     let reference_target = ReferenceTarget::Unresolved {
         content: content.clone(),
@@ -541,13 +537,9 @@ fn parse_tk_reference(
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_not_sure_reference(
     tokens: &[crate::ast::tokens::Token],
-) -> Result<
-    crate::ast::elements::formatting::inlines::Inline,
-    InlineParseError,
-> {
-    
+) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
-    
+
     let reference_target = ReferenceTarget::Unresolved {
         content: content.clone(),
         raw: format!("[{}]", content),
@@ -606,10 +598,10 @@ pub fn parse_citation(
 
     // Extract content from bracket pattern
     let content = extract_reference_content(tokens)?;
-    
+
     // Parse citation pattern (@key1; @key2, p. 123)
     let citations = parse_citation_entries(&content)?;
-    
+
     if citations.is_empty() {
         return Err(
             crate::parser::elements::inlines::InlineParseError::InvalidStructure(
@@ -676,11 +668,11 @@ pub fn parse_footnote_ref(
 
     // Extract content from bracket pattern
     let content = extract_reference_content(tokens)?;
-    
+
     // Determine if this is naked numerical or labeled footnote
-    let reference_target = if content.starts_with('^') {
+    let reference_target = if let Some(stripped) = content.strip_prefix('^') {
         // Labeled footnote [^label]
-        let label = content[1..].to_string();
+        let label = stripped.to_string();
         ReferenceTarget::NamedAnchor {
             anchor: label,
             raw: format!("[{}]", content),
@@ -688,10 +680,11 @@ pub fn parse_footnote_ref(
         }
     } else if content.chars().all(|c| c.is_ascii_digit()) {
         // Naked numerical footnote [1]
-        let number = content.parse::<u32>()
-            .map_err(|_| crate::parser::elements::inlines::InlineParseError::InvalidStructure(
+        let number = content.parse::<u32>().map_err(|_| {
+            crate::parser::elements::inlines::InlineParseError::InvalidStructure(
                 "Invalid footnote number".to_string(),
-            ))?;
+            )
+        })?;
         ReferenceTarget::NakedNumerical {
             number,
             raw: format!("[{}]", content),
@@ -743,7 +736,6 @@ pub fn parse_page_ref(
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
-    
     if tokens.is_empty() {
         return Err(
             crate::parser::elements::inlines::InlineParseError::InvalidStructure(
@@ -754,7 +746,7 @@ pub fn parse_page_ref(
 
     // Extract content from bracket pattern
     let content = extract_reference_content(tokens)?;
-    
+
     // Page references are treated as unresolved for now
     // In the future, this could parse page:123, pages:123-125, etc.
     let reference_target = ReferenceTarget::Unresolved {
@@ -815,10 +807,10 @@ pub fn parse_session_ref(
 
     // Extract content from bracket pattern
     let content = extract_reference_content(tokens)?;
-    
-    let identifier = if content.starts_with('#') {
+
+    let identifier = if let Some(stripped) = content.strip_prefix('#') {
         // Parse numeric section reference: #3, #2.1, #-1.2
-        parse_section_identifier(&content[1..])
+        parse_section_identifier(stripped)
     } else {
         // Named section reference: local-section
         SectionIdentifier::Named {

@@ -1,6 +1,6 @@
 //! # Code Element Parser
 //!
-//! This module implements the parsing logic for code formatting elements 
+//! This module implements the parsing logic for code formatting elements
 //! using the `` `content` `` pattern.
 //!
 //! ## Overview
@@ -88,10 +88,10 @@ pub fn parse_code(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
 
     // Extract content between the backticks
     let content_tokens = extract_code_content(tokens)?;
-    
+
     // Validate content (literal text only)
     validate_code_content(&content_tokens)?;
-    
+
     // Convert content tokens to literal text
     let text_content = extract_literal_text(&content_tokens);
 
@@ -120,7 +120,7 @@ pub fn parse_code(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
 pub fn is_code_pattern(tokens: &[Token]) -> bool {
     // TODO: Implement proper code pattern detection
     // For now, return a simple check
-    
+
     if tokens.len() < 3 {
         return false;
     }
@@ -149,9 +149,9 @@ pub fn extract_code_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseE
 
     // TODO: Implement proper content extraction
     // For now, return all tokens except first and last (the backticks)
-    
+
     let content_tokens = tokens[1..tokens.len() - 1].to_vec();
-    
+
     if content_tokens.is_empty() {
         return Err(InlineParseError::EmptyContent(
             "Code content cannot be empty".to_string(),
@@ -174,10 +174,10 @@ pub fn extract_code_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseE
 pub fn validate_code_content(_content_tokens: &[Token]) -> Result<(), InlineParseError> {
     // TODO: Implement proper content validation
     // For now, accept all content as literal
-    
+
     // Code elements should treat all content as literal
     // No validation needed for nesting since no formatting is processed
-    
+
     Ok(())
 }
 

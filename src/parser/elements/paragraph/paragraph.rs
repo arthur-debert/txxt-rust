@@ -170,9 +170,9 @@ use crate::parser::pipeline::parse_blocks::BlockParseError;
 pub fn parse_paragraph(tokens: &[Token]) -> Result<ParagraphBlock, BlockParseError> {
     // Step 1: Detect if this is a paragraph
     match detect_paragraph(tokens) {
-        ParagraphParseResult::ValidParagraph(paragraph) => {
-            // Step 2: Process inline content
-            let content = parse_inline_content(&paragraph.content)?;
+        ParagraphParseResult::ValidParagraph(_paragraph) => {
+            // Step 2: Process inline content using the actual tokens
+            let content = parse_inline_content(tokens)?;
 
             // Step 3: Create token sequence for reconstruction
             let mut token_sequence = TokenSequence::new();
@@ -202,15 +202,15 @@ pub fn parse_multiline_paragraph(
     line_tokens: &[Vec<Token>],
 ) -> Result<ParagraphBlock, BlockParseError> {
     // Step 1: Collect paragraph lines
-    let paragraph = collect_paragraph_lines(line_tokens).ok_or_else(|| {
+    let _paragraph = collect_paragraph_lines(line_tokens).ok_or_else(|| {
         BlockParseError::InvalidStructure("No valid paragraph content found".to_string())
     })?;
 
-    // Step 2: Process inline content
-    let content = parse_inline_content(&paragraph.content)?;
+    // Step 2: Process inline content using all tokens
+    let all_tokens: Vec<Token> = line_tokens.iter().flatten().cloned().collect();
+    let content = parse_inline_content(&all_tokens)?;
 
     // Step 3: Create token sequence from all line tokens
-    let all_tokens: Vec<Token> = line_tokens.iter().flatten().cloned().collect();
     let mut token_sequence = TokenSequence::new();
     token_sequence.tokens = all_tokens;
 
@@ -223,37 +223,88 @@ pub fn parse_multiline_paragraph(
     ))
 }
 
-/// Parse inline content from paragraph text
+/// Parse inline content from paragraph tokens
 ///
 /// For Phase 1 Simple Elements, we only handle plain text without
 /// inline formatting. This will be expanded in Phase 2.
 fn parse_inline_content(
-    text: &str,
+    tokens: &[Token],
 ) -> Result<Vec<crate::ast::elements::inlines::TextTransform>, BlockParseError> {
-    // For Phase 1 Simple Elements, we only create plain text transforms
-    // Inline formatting will be handled in Phase 2
-    if text.trim().is_empty() {
+    if tokens.is_empty() {
         return Ok(vec![]);
     }
 
-    // Create a simple text transform for the entire content
+    // Filter out non-content tokens (blank lines, etc.)
+    let content_tokens: Vec<Token> = tokens
+        .iter()
+        .filter(|token| !matches!(token, Token::BlankLine { .. }))
+        .cloned()
+        .collect();
+
+    if content_tokens.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Normalize whitespace between tokens for proper text flow
+    let mut normalized_tokens = Vec::new();
+    let mut prev_was_text = false;
+
+    for token in content_tokens {
+        match token {
+            Token::Text { .. } => {
+                if prev_was_text {
+                    // Add space between text tokens
+                    normalized_tokens.push(Token::Text {
+                        content: " ".to_string(),
+                        span: crate::ast::tokens::SourceSpan {
+                            start: crate::ast::tokens::Position { row: 0, column: 0 },
+                            end: crate::ast::tokens::Position { row: 0, column: 1 },
+                        },
+                    });
+                }
+                normalized_tokens.push(token);
+                prev_was_text = true;
+            }
+            Token::Whitespace { .. } => {
+                // Convert whitespace to space for normalization
+                normalized_tokens.push(Token::Text {
+                    content: " ".to_string(),
+                    span: crate::ast::tokens::SourceSpan {
+                        start: crate::ast::tokens::Position { row: 0, column: 0 },
+                        end: crate::ast::tokens::Position { row: 0, column: 1 },
+                    },
+                });
+                prev_was_text = true;
+            }
+            Token::Newline { .. } => {
+                // Convert newlines to spaces for paragraph flow
+                if prev_was_text {
+                    normalized_tokens.push(Token::Text {
+                        content: " ".to_string(),
+                        span: crate::ast::tokens::SourceSpan {
+                            start: crate::ast::tokens::Position { row: 0, column: 0 },
+                            end: crate::ast::tokens::Position { row: 0, column: 1 },
+                        },
+                    });
+                }
+                prev_was_text = true;
+            }
+            _ => {
+                normalized_tokens.push(token);
+                prev_was_text = false;
+            }
+        }
+    }
+
+    // Create a text span with the normalized tokens
     let mut text_span = TextSpan {
         tokens: TokenSequence::new(),
         annotations: Vec::new(),
         parameters: Parameters::new(),
     };
 
-    // Set the text content in the token sequence
-    text_span.tokens.tokens = vec![Token::Text {
-        content: text.to_string(),
-        span: crate::ast::tokens::SourceSpan {
-            start: crate::ast::tokens::Position { row: 0, column: 0 },
-            end: crate::ast::tokens::Position {
-                row: 0,
-                column: text.len(),
-            },
-        },
-    }];
+    // Use the normalized tokens instead of creating artificial ones
+    text_span.tokens.tokens = normalized_tokens;
 
     let text_transform = TextTransform::Identity(text_span);
 
@@ -340,7 +391,8 @@ mod tests {
 
     #[test]
     fn test_parse_inline_content() {
-        let result = parse_inline_content("Hello world");
+        let tokens = vec![create_text_token("Hello world")];
+        let result = parse_inline_content(&tokens);
         assert!(result.is_ok());
 
         let content = result.unwrap();
@@ -355,7 +407,8 @@ mod tests {
 
     #[test]
     fn test_parse_inline_content_empty() {
-        let result = parse_inline_content("");
+        let tokens = vec![];
+        let result = parse_inline_content(&tokens);
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }

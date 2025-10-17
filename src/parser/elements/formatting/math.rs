@@ -1,6 +1,6 @@
 //! # Math Element Parser
 //!
-//! This module implements the parsing logic for math formatting elements 
+//! This module implements the parsing logic for math formatting elements
 //! using the `#content#` pattern.
 //!
 //! ## Overview
@@ -88,10 +88,10 @@ pub fn parse_math(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
 
     // Extract content between the hashes
     let content_tokens = extract_math_content(tokens)?;
-    
+
     // Validate content (mathematical expression)
     validate_math_content(&content_tokens)?;
-    
+
     // Convert content tokens to mathematical expression
     let text_content = extract_math_expression(&content_tokens);
 
@@ -120,7 +120,7 @@ pub fn parse_math(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
 pub fn is_math_pattern(tokens: &[Token]) -> bool {
     // TODO: Implement proper math pattern detection
     // For now, return a simple check
-    
+
     if tokens.len() < 3 {
         return false;
     }
@@ -149,9 +149,9 @@ pub fn extract_math_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseE
 
     // TODO: Implement proper content extraction
     // For now, return all tokens except first and last (the hashes)
-    
+
     let content_tokens = tokens[1..tokens.len() - 1].to_vec();
-    
+
     if content_tokens.is_empty() {
         return Err(InlineParseError::EmptyContent(
             "Math content cannot be empty".to_string(),
@@ -174,10 +174,10 @@ pub fn extract_math_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseE
 pub fn validate_math_content(_content_tokens: &[Token]) -> Result<(), InlineParseError> {
     // TODO: Implement proper math content validation
     // For now, accept all content as valid math expression
-    
+
     // Math elements should treat all content as mathematical expression
     // Could add validation for valid mathematical syntax in the future
-    
+
     Ok(())
 }
 

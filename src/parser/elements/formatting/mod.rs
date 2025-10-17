@@ -1,12 +1,12 @@
 //! # Formatting Elements Parser Module
 //!
-//! This module contains the parsing logic for formatting inline elements - text 
+//! This module contains the parsing logic for formatting inline elements - text
 //! formatting elements that provide visual emphasis and semantic markup within txxt documents.
 //!
 //! ## Overview
 //!
-//! Formatting elements follow the general inline token pattern `<token>content<token>` 
-//! and provide visual emphasis and semantic markup for text content. They use the text 
+//! Formatting elements follow the general inline token pattern `<token>content<token>`
+//! and provide visual emphasis and semantic markup for text content. They use the text
 //! transform layer architecture for uniform processing across all text contexts.
 //!
 //! ## Element Types
@@ -74,16 +74,14 @@ use crate::parser::elements::inlines::InlineParseError;
 /// 3. **Strong elements** (asterisk tokens)
 /// 4. **Emphasis elements** (underscore tokens)
 /// 5. **Plain text** (default)
-pub fn parse_formatting_elements(
-    tokens: &[Token],
-) -> Result<Vec<TextTransform>, InlineParseError> {
+pub fn parse_formatting_elements(tokens: &[Token]) -> Result<Vec<TextTransform>, InlineParseError> {
     if tokens.is_empty() {
         return Ok(Vec::new());
     }
 
     // TODO: Implement proper formatting parsing with precedence
     // For now, return a simple identity transform as placeholder
-    
+
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
@@ -117,11 +115,8 @@ pub fn parse_formatting_elements(
 /// * `Result<Vec<Inline>, InlineParseError>`
 pub fn parse_formatting_inlines(tokens: &[Token]) -> Result<Vec<Inline>, InlineParseError> {
     let transforms = parse_formatting_elements(tokens)?;
-    
-    let inlines = transforms
-        .into_iter()
-        .map(|transform| Inline::TextLine(transform))
-        .collect();
-    
+
+    let inlines = transforms.into_iter().map(Inline::TextLine).collect();
+
     Ok(inlines)
 }

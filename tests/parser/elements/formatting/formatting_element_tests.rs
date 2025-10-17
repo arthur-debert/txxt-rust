@@ -3,9 +3,9 @@
 //! These tests validate the parsing of formatting inline elements
 //! (strong, emphasis, code, math) using the TxxtCorpora framework.
 
-use txxt::parser::elements::formatting::*;
 use txxt::ast::elements::formatting::inlines::TextTransform;
-use txxt::ast::elements::tokens::{Token, SourceSpan, Position};
+use txxt::ast::elements::tokens::{Position, SourceSpan, Token};
+use txxt::parser::elements::formatting::*;
 
 /// Helper function to create a test source span
 fn test_span() -> SourceSpan {
@@ -36,7 +36,7 @@ fn test_parse_strong_simple() {
 
     let result = parse_strong(&tokens);
     assert!(result.is_ok());
-    
+
     if let Ok(TextTransform::Strong(content)) = result {
         assert_eq!(content.len(), 1);
         match &content[0] {
@@ -71,7 +71,7 @@ fn test_parse_emphasis_simple() {
 
     let result = parse_emphasis(&tokens);
     assert!(result.is_ok());
-    
+
     if let Ok(TextTransform::Emphasis(content)) = result {
         assert_eq!(content.len(), 1);
         match &content[0] {
@@ -106,7 +106,7 @@ fn test_parse_code_simple() {
 
     let result = parse_code(&tokens);
     assert!(result.is_ok());
-    
+
     if let Ok(TextTransform::Code(text)) = result {
         assert_eq!(text.content(), "function_name");
     } else {
@@ -135,7 +135,7 @@ fn test_parse_math_simple() {
 
     let result = parse_math(&tokens);
     assert!(result.is_ok());
-    
+
     if let Ok(TextTransform::Math(text)) = result {
         assert_eq!(text.content(), "x = y + 2");
     } else {
@@ -233,22 +233,18 @@ fn test_formatting_empty_content_error() {
 /// Test nesting validation for strong elements
 #[test]
 fn test_strong_nesting_validation() {
-    let nested_asterisk_content = vec![
-        Token::Text {
-            content: "*".to_string(),
-            span: test_span(),
-        },
-    ];
+    let nested_asterisk_content = vec![Token::Text {
+        content: "*".to_string(),
+        span: test_span(),
+    }];
 
     // Should fail validation due to nested asterisk in content
     assert!(validate_strong_nesting(&nested_asterisk_content).is_err());
 
-    let valid_content_tokens = vec![
-        Token::Text {
-            content: "content".to_string(),
-            span: test_span(),
-        },
-    ];
+    let valid_content_tokens = vec![Token::Text {
+        content: "content".to_string(),
+        span: test_span(),
+    }];
 
     // Should pass validation
     assert!(validate_strong_nesting(&valid_content_tokens).is_ok());
@@ -258,19 +254,17 @@ fn test_strong_nesting_validation() {
 #[test]
 fn test_parse_formatting_elements_integration() {
     // Test with simple text tokens
-    let tokens = vec![
-        Token::Text {
-            content: "simple text".to_string(),
-            span: test_span(),
-        },
-    ];
+    let tokens = vec![Token::Text {
+        content: "simple text".to_string(),
+        span: test_span(),
+    }];
 
     let result = parse_formatting_elements(&tokens);
     assert!(result.is_ok());
-    
+
     let transforms = result.unwrap();
     assert_eq!(transforms.len(), 1);
-    
+
     match &transforms[0] {
         TextTransform::Identity(text) => {
             assert_eq!(text.content(), "simple text");
@@ -282,29 +276,25 @@ fn test_parse_formatting_elements_integration() {
 /// Test formatting inlines wrapper function
 #[test]
 fn test_parse_formatting_inlines() {
-    let tokens = vec![
-        Token::Text {
-            content: "test content".to_string(),
-            span: test_span(),
-        },
-    ];
+    let tokens = vec![Token::Text {
+        content: "test content".to_string(),
+        span: test_span(),
+    }];
 
     let result = parse_formatting_inlines(&tokens);
     assert!(result.is_ok());
-    
+
     let inlines = result.unwrap();
     assert_eq!(inlines.len(), 1);
-    
+
     // Should be wrapped in Inline::TextLine
     match &inlines[0] {
-        txxt::ast::elements::formatting::inlines::Inline::TextLine(transform) => {
-            match transform {
-                TextTransform::Identity(text) => {
-                    assert_eq!(text.content(), "test content");
-                }
-                _ => panic!("Expected Identity transform"),
+        txxt::ast::elements::formatting::inlines::Inline::TextLine(transform) => match transform {
+            TextTransform::Identity(text) => {
+                assert_eq!(text.content(), "test content");
             }
-        }
+            _ => panic!("Expected Identity transform"),
+        },
         _ => panic!("Expected TextLine inline"),
     }
 }

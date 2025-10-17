@@ -41,9 +41,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::{
-    tokens::{Token, TokenSequence},
-};
+use super::super::tokens::{Token, TokenSequence};
 
 /// Inline elements with text-transform layer
 ///

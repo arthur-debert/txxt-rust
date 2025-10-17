@@ -7,51 +7,9 @@
 #[path = "../../../infrastructure/corpora.rs"]
 mod corpora;
 
+use crate::assertions::{assert_paragraph, ParagraphExpected};
 use corpora::{ProcessingStage, TxxtCorpora};
 use txxt::parser::elements::paragraph::paragraph::parse_paragraph;
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/// Helper to assert paragraph content contains expected text
-fn assert_paragraph_contains_text(
-    paragraph: &txxt::ast::elements::paragraph::ParagraphBlock,
-    expected: &str,
-) {
-    assert_eq!(
-        paragraph.content.len(),
-        1,
-        "Paragraph should have exactly one content element"
-    );
-
-    if let txxt::ast::elements::inlines::TextTransform::Identity(text_span) = &paragraph.content[0]
-    {
-        let text = text_span.tokens.text();
-        assert!(
-            text.contains(expected),
-            "Text '{}' should contain '{}'",
-            text,
-            expected
-        );
-    } else {
-        panic!("Expected identity text transform");
-    }
-}
-
-/// Helper to assert paragraph has expected structure
-fn assert_paragraph_structure(paragraph: &txxt::ast::elements::paragraph::ParagraphBlock) {
-    assert_eq!(
-        paragraph.annotations.len(),
-        0,
-        "Simple paragraphs should have no annotations"
-    );
-    assert_eq!(
-        paragraph.parameters.map.len(),
-        0,
-        "Simple paragraphs should have no parameters"
-    );
-}
 
 // ============================================================================
 // Corpora Tests (Using Processing Stages)
@@ -83,8 +41,19 @@ fn test_corpora_simple_paragraph() {
     assert!(result.is_ok(), "Simple paragraph should parse successfully");
 
     let paragraph = result.unwrap();
-    assert_paragraph_structure(&paragraph);
-    assert_paragraph_contains_text(&paragraph, "paragraph");
+
+    // Use assertion framework for validation
+    assert_paragraph(
+        &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+            paragraph,
+        ),
+        ParagraphExpected {
+            text_contains: Some("paragraph"),
+            has_formatting: Some(false),
+            annotation_count: Some(0),
+            ..Default::default()
+        },
+    );
 }
 
 /// Test multiline paragraph from corpora
@@ -110,9 +79,19 @@ fn test_corpora_multiline_paragraph() {
     );
 
     let paragraph = result.unwrap();
-    assert_paragraph_structure(&paragraph);
-    assert_paragraph_contains_text(&paragraph, "line");
-    assert_paragraph_contains_text(&paragraph, "paragraph");
+
+    // Use assertion framework for validation
+    assert_paragraph(
+        &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+            paragraph,
+        ),
+        ParagraphExpected {
+            text_contains: Some("line"),
+            has_formatting: Some(false),
+            annotation_count: Some(0),
+            ..Default::default()
+        },
+    );
 }
 
 /// Test consistent indent paragraph from corpora
@@ -134,9 +113,19 @@ fn test_corpora_consistent_indent_paragraph() {
     );
 
     let paragraph = result.unwrap();
-    assert_paragraph_structure(&paragraph);
-    assert_paragraph_contains_text(&paragraph, "paragraph");
-    assert_paragraph_contains_text(&paragraph, "indentation");
+
+    // Use assertion framework for validation
+    assert_paragraph(
+        &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+            paragraph,
+        ),
+        ParagraphExpected {
+            text_contains: Some("paragraph"),
+            has_formatting: Some(false),
+            annotation_count: Some(0),
+            ..Default::default()
+        },
+    );
 }
 
 // ============================================================================
@@ -167,9 +156,19 @@ fn test_ensemble_single_paragraph() {
     );
 
     let paragraph = result.unwrap();
-    assert_paragraph_structure(&paragraph);
-    assert_paragraph_contains_text(&paragraph, "paragraph");
-    assert_paragraph_contains_text(&paragraph, "simple");
+
+    // Use assertion framework for validation
+    assert_paragraph(
+        &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+            paragraph,
+        ),
+        ParagraphExpected {
+            text_contains: Some("paragraph"),
+            has_formatting: Some(false),
+            annotation_count: Some(0),
+            ..Default::default()
+        },
+    );
 }
 
 /// Test multiple paragraphs ensemble document
@@ -206,8 +205,19 @@ fn test_ensemble_multiple_paragraphs() {
         assert!(result.is_ok(), "First paragraph should parse successfully");
 
         let paragraph = result.unwrap();
-        assert_paragraph_structure(&paragraph);
-        assert_paragraph_contains_text(&paragraph, "first paragraph");
+
+        // Use assertion framework for validation
+        assert_paragraph(
+            &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+                paragraph,
+            ),
+            ParagraphExpected {
+                text_contains: Some("This"),
+                has_formatting: Some(false),
+                annotation_count: Some(0),
+                ..Default::default()
+            },
+        );
     }
 }
 
@@ -246,8 +256,18 @@ fn test_block_parser_integration() {
 
     // Check that we got a paragraph element
     if let txxt::ast::ElementNode::ParagraphBlock(paragraph) = &elements[0] {
-        assert_paragraph_structure(paragraph);
-        assert_paragraph_contains_text(paragraph, "paragraph");
+        // Use assertion framework for validation
+        assert_paragraph(
+            &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+                paragraph.clone(),
+            ),
+            ParagraphExpected {
+                text_contains: Some("paragraph"),
+                has_formatting: Some(false),
+                annotation_count: Some(0),
+                ..Default::default()
+            },
+        );
     } else {
         panic!("Expected ParagraphBlock element");
     }
@@ -285,6 +305,113 @@ fn test_all_paragraph_corpora() {
         );
 
         let paragraph = result.unwrap();
-        assert_paragraph_structure(&paragraph);
+
+        // Use assertion framework for validation
+        assert_paragraph(
+            &txxt::ast::elements::session::session_container::SessionContainerElement::Paragraph(
+                paragraph,
+            ),
+            ParagraphExpected {
+                has_formatting: Some(false),
+                annotation_count: Some(0),
+                ..Default::default()
+            },
+        );
+    }
+}
+
+// ============================================================================
+// Manual AST Structure Validation Tests
+// ============================================================================
+
+/// Test manual AST structure validation for simple paragraph
+#[test]
+fn test_manual_ast_simple_paragraph() {
+    let corpus = TxxtCorpora::load_with_processing(
+        "txxt.core.spec.paragraph.valid.simple",
+        ProcessingStage::Tokens,
+    )
+    .expect("Corpus should exist in specs");
+
+    let tokens = txxt::lexer::tokenize(&corpus.source_text);
+    let result = parse_paragraph(&tokens);
+    assert!(result.is_ok(), "Simple paragraph should parse successfully");
+
+    let paragraph = result.unwrap();
+
+    // Manual AST structure validation
+    assert_eq!(paragraph.annotations.len(), 0, "Should have no annotations");
+    assert_eq!(
+        paragraph.parameters.map.len(),
+        0,
+        "Should have no parameters"
+    );
+    assert!(!paragraph.tokens.tokens.is_empty(), "Should have tokens");
+    assert_eq!(
+        paragraph.content.len(),
+        1,
+        "Should have one content element"
+    );
+
+    // Check content structure
+    if let txxt::ast::elements::inlines::TextTransform::Identity(text_span) = &paragraph.content[0]
+    {
+        assert!(
+            !text_span.tokens.tokens.is_empty(),
+            "Should have text tokens"
+        );
+        assert!(
+            text_span.tokens.text().contains("paragraph"),
+            "Should contain paragraph text"
+        );
+    } else {
+        panic!("Expected identity text transform");
+    }
+}
+
+/// Test manual AST structure validation for multiline paragraph
+#[test]
+fn test_manual_ast_multiline_paragraph() {
+    let corpus = TxxtCorpora::load_with_processing(
+        "txxt.core.spec.paragraph.valid.multiline",
+        ProcessingStage::Tokens,
+    )
+    .expect("Corpus should exist in specs");
+
+    let tokens = txxt::lexer::tokenize(&corpus.source_text);
+    let result = parse_paragraph(&tokens);
+    assert!(
+        result.is_ok(),
+        "Multiline paragraph should parse successfully"
+    );
+
+    let paragraph = result.unwrap();
+
+    // Manual AST structure validation
+    assert_eq!(paragraph.annotations.len(), 0, "Should have no annotations");
+    assert_eq!(
+        paragraph.parameters.map.len(),
+        0,
+        "Should have no parameters"
+    );
+    assert!(!paragraph.tokens.tokens.is_empty(), "Should have tokens");
+    assert_eq!(
+        paragraph.content.len(),
+        1,
+        "Should have one content element"
+    );
+
+    // Check content structure
+    if let txxt::ast::elements::inlines::TextTransform::Identity(text_span) = &paragraph.content[0]
+    {
+        assert!(
+            !text_span.tokens.tokens.is_empty(),
+            "Should have text tokens"
+        );
+        let text = text_span.tokens.text();
+        assert!(text.contains("line"), "Should contain line text");
+        assert!(text.contains("paragraph"), "Should contain paragraph text");
+    } else {
+        panic!("Expected identity text transform");
     }
 }

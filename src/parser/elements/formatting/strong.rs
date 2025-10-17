@@ -1,6 +1,6 @@
 //! # Strong (Bold) Element Parser
 //!
-//! This module implements the parsing logic for strong (bold) formatting elements 
+//! This module implements the parsing logic for strong (bold) formatting elements
 //! using the `*content*` pattern.
 //!
 //! ## Overview
@@ -87,10 +87,10 @@ pub fn parse_strong(tokens: &[Token]) -> Result<TextTransform, InlineParseError>
 
     // Extract content between the asterisks
     let content_tokens = extract_strong_content(tokens)?;
-    
+
     // Validate nesting rules
     validate_strong_nesting(&content_tokens)?;
-    
+
     // Convert content tokens to text (for now, simple implementation)
     let text_content = content_tokens
         .iter()
@@ -127,7 +127,7 @@ pub fn parse_strong(tokens: &[Token]) -> Result<TextTransform, InlineParseError>
 pub fn is_strong_pattern(tokens: &[Token]) -> bool {
     // TODO: Implement proper strong pattern detection
     // For now, return a simple check
-    
+
     if tokens.len() < 3 {
         return false;
     }
@@ -155,9 +155,9 @@ pub fn extract_strong_content(tokens: &[Token]) -> Result<Vec<Token>, InlinePars
 
     // TODO: Implement proper content extraction
     // For now, return all tokens except first and last (the asterisks)
-    
+
     let content_tokens = tokens[1..tokens.len() - 1].to_vec();
-    
+
     if content_tokens.is_empty() {
         return Err(InlineParseError::EmptyContent(
             "Strong content cannot be empty".to_string(),
@@ -180,7 +180,7 @@ pub fn extract_strong_content(tokens: &[Token]) -> Result<Vec<Token>, InlinePars
 pub fn validate_strong_nesting(content_tokens: &[Token]) -> Result<(), InlineParseError> {
     // TODO: Implement proper nesting validation
     // For now, accept all content
-    
+
     // Check for nested asterisks that would indicate invalid nesting
     for token in content_tokens {
         if let Token::Text { content, .. } = token {

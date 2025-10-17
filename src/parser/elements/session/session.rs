@@ -155,8 +155,14 @@
 
 use crate::ast::{
     elements::{
-        session::{block::SessionBlock, session_container::SessionContainer},
-        tokens::{Token, TokenSequence},
+        inlines::{TextSpan, TextTransform},
+        list::{NumberingForm, NumberingStyle},
+        session::{
+            block::{SessionBlock, SessionTitle},
+            session_container::{SessionContainer, SessionContainerElement},
+            SessionNumbering,
+        },
+        tokens::{SequenceMarkerType, Token, TokenSequence},
     },
     ElementNode,
 };
@@ -221,76 +227,178 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
     // Parse the content as a SessionContainer
     let content = parse_session_content(content_tokens)?;
 
+    // Create token sequence for the session
+    let mut session_tokens = TokenSequence::new();
+    session_tokens.tokens = tokens.to_vec();
+
     // Create the session block
     let session = SessionBlock {
         title,
         content,
         annotations: Vec::new(), // TODO: Parse annotations when implemented
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
-        tokens: TokenSequence::new(),
+        tokens: session_tokens,
     };
 
     Ok(session)
 }
 
 /// Parse a session title from tokens
-fn parse_session_title(
-    tokens: &[Token],
-) -> Result<crate::ast::elements::session::block::SessionTitle, BlockParseError> {
+fn parse_session_title(tokens: &[Token]) -> Result<SessionTitle, BlockParseError> {
     if tokens.is_empty() {
         return Err(BlockParseError::InvalidStructure(
             "Empty title tokens".to_string(),
         ));
     }
 
-    // For now, create a simple title without numbering detection
-    // TODO: Implement proper numbering detection and parsing
-    let title = crate::ast::elements::session::block::SessionTitle {
-        content: Vec::new(), // TODO: Parse inline content
-        numbering: None,     // TODO: Detect and parse numbering
+    let mut numbering = None;
+    let content_tokens;
+
+    // Check for sequence marker at the beginning
+    if let Some(Token::SequenceMarker {
+        marker_type,
+        span: _,
+        ..
+    }) = tokens.first()
+    {
+        let (style, form, marker) = match marker_type {
+            SequenceMarkerType::Plain(s) => (NumberingStyle::Plain, NumberingForm::Short, s),
+            SequenceMarkerType::Numerical(_, s) => {
+                (NumberingStyle::Numerical, NumberingForm::Short, s)
+            }
+            SequenceMarkerType::Alphabetical(_, s) => {
+                (NumberingStyle::Alphabetical, NumberingForm::Short, s)
+            }
+            SequenceMarkerType::Roman(_, s) => (NumberingStyle::Roman, NumberingForm::Short, s),
+        };
+
+        numbering = Some(SessionNumbering {
+            marker: marker.clone(),
+            style,
+            form,
+        });
+        content_tokens = &tokens[1..];
+    } else {
+        content_tokens = tokens;
+    }
+
+    // Parse inline content for the title using proper inline parser
+    let content = parse_inline_title_content(content_tokens)?;
+
+    // Create token sequence preserving all tokens
+    let mut token_sequence = TokenSequence::new();
+    token_sequence.tokens = tokens.to_vec();
+
+    Ok(SessionTitle {
+        content,
+        numbering,
+        tokens: token_sequence,
+    })
+}
+
+/// Parse inline content for a session title from tokens
+fn parse_inline_title_content(tokens: &[Token]) -> Result<Vec<TextTransform>, BlockParseError> {
+    if tokens.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // For now, create a simple text span from all tokens
+    // TODO: Implement proper inline parsing with formatting support
+    let text_content = tokens
+        .iter()
+        .filter_map(|t| match t {
+            Token::Text { content, .. } => Some(content.as_str()),
+            Token::Whitespace { content, .. } => Some(content.as_str()),
+            Token::Period { .. } => Some("."),
+            Token::Newline { .. } => Some("\n"),
+            _ => None, // Skip other tokens for now
+        })
+        .collect::<Vec<_>>()
+        .join("");
+
+    if text_content.trim().is_empty() {
+        return Ok(vec![]);
+    }
+
+    let mut text_span = TextSpan {
         tokens: TokenSequence::new(),
+        annotations: Vec::new(),
+        parameters: crate::ast::elements::components::parameters::Parameters::new(),
     };
 
-    Ok(title)
+    // Create a single text token from the content
+    text_span.tokens.tokens = vec![Token::Text {
+        content: text_content.clone(),
+        span: crate::ast::tokens::SourceSpan {
+            start: crate::ast::tokens::Position { row: 0, column: 0 },
+            end: crate::ast::tokens::Position {
+                row: 0,
+                column: text_content.len(),
+            },
+        },
+    }];
+
+    Ok(vec![TextTransform::Identity(text_span)])
 }
 
 /// Parse session content as a SessionContainer
 fn parse_session_content(tokens: &[Token]) -> Result<SessionContainer, BlockParseError> {
-    // Create a token tree from the content tokens
-    // For now, we'll create a simple flat structure
-    let token_tree = crate::lexer::pipeline::TokenTree {
-        tokens: tokens.to_vec(),
-        children: Vec::new(), // TODO: Handle nested indentation properly
-    };
+    if tokens.is_empty() {
+        return Err(BlockParseError::InvalidStructure(
+            "Session content cannot be empty".to_string(),
+        ));
+    }
+
+    // Use the TokenTreeBuilder to correctly handle indentation
+    let builder = crate::lexer::pipeline::TokenTreeBuilder::new();
+    let token_tree = builder
+        .build_tree(tokens.to_vec())
+        .map_err(|e| BlockParseError::InvalidStructure(e.to_string()))?;
 
     // Use the block parser to parse the content
     let block_parser = crate::parser::pipeline::parse_blocks::BlockParser::new();
     let elements = block_parser.parse_blocks(token_tree)?;
 
     // Convert ElementNode to SessionContainerElement
-    let content: Vec<crate::ast::elements::session::session_container::SessionContainerElement> = elements
+    let content: Vec<SessionContainerElement> = elements
         .into_iter()
         .map(|element| match element {
             ElementNode::ParagraphBlock(paragraph) => {
-                Ok(crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(paragraph))
+                Ok(SessionContainerElement::Paragraph(paragraph))
             }
-            ElementNode::SessionBlock(session) => {
-                Ok(crate::ast::elements::session::session_container::SessionContainerElement::Session(session))
+            ElementNode::SessionBlock(session) => Ok(SessionContainerElement::Session(session)),
+            ElementNode::ListBlock(list) => Ok(SessionContainerElement::List(list)),
+            ElementNode::DefinitionBlock(definition) => {
+                Ok(SessionContainerElement::Definition(definition))
+            }
+            ElementNode::VerbatimBlock(verbatim) => Ok(SessionContainerElement::Verbatim(verbatim)),
+            ElementNode::AnnotationBlock(annotation) => {
+                Ok(SessionContainerElement::Annotation(annotation))
+            }
+            ElementNode::BlankLine(blank_line) => {
+                Ok(SessionContainerElement::BlankLine(blank_line))
             }
             // TODO: Handle other element types as they're implemented
             _ => {
                 // For now, skip unsupported elements
-                Err(BlockParseError::InvalidStructure(format!("Unsupported element in session content: {:?}", element)))
+                Err(BlockParseError::InvalidStructure(format!(
+                    "Unsupported element in session content: {:?}",
+                    element
+                )))
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
+
+    // Create token sequence for the container
+    let mut container_tokens = TokenSequence::new();
+    container_tokens.tokens = tokens.to_vec();
 
     // Create the session container
     let container = SessionContainer {
         content,
         annotations: Vec::new(), // TODO: Parse annotations when implemented
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
-        tokens: TokenSequence::new(),
+        tokens: container_tokens,
     };
 
     Ok(container)

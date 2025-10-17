@@ -68,7 +68,7 @@
 //! - `txxt.core.spec.paragraph.valid.multiline` - Paragraph spanning multiple lines
 //! - `txxt.core.spec.paragraph.valid.multiple-with-blanks` - Multiple paragraphs with blank line separation
 //! - `txxt.core.spec.paragraph.valid.consistent-indent` - Paragraph with consistent indentation
-//ddd
+//
 //! ## Ensemble Examples
 //!
 //! From [`docs/specs/elements/paragraph/examples/`]:

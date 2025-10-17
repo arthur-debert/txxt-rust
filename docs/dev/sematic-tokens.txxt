@@ -83,7 +83,7 @@ Proposal: Semantic Token Stage
 			Tree structure containing SemanticTokens with hierarchical children.
 			Mirrors TokenTree structure but with higher-level semantic meaning.
 
-	4.2 Core Component Tokens
+	4.2 Semantic Tokens
 
 		TxxtMarker::
 			The fundamental :: marker used across annotations, definitions, and verbatim blocks.

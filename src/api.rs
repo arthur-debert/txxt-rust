@@ -12,6 +12,7 @@ use crate::assembler::Assembler;
 use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use crate::lexer::pipeline::TokenTreeBuilder;
 use crate::lexer::tokenize;
+use crate::parser::pipeline::{BlockParser, InlineParser};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputFormat {
@@ -88,19 +89,15 @@ pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
         OutputFormat::TokenStream => process_token_stream(&args.content, &args.source_path),
         OutputFormat::TokenTree => process_token_tree(&args.content, &args.source_path),
 
-        // Phase 2: Parser outputs (WIP)
-        OutputFormat::AstNoInlineTreeviz => Err(ProcessError::NotImplemented(
-            "Phase 2a (AST without inlines) not yet implemented. This will output tree visualization of AST nodes without inline processing.".to_string()
-        )),
-        OutputFormat::AstNoInlineJson => Err(ProcessError::NotImplemented(
-            "Phase 2a (AST without inlines) not yet implemented. This will output JSON of AST nodes without inline processing.".to_string()
-        )),
-        OutputFormat::AstTreeviz => Err(ProcessError::NotImplemented(
-            "Phase 2b (AST with inlines) not yet implemented. This will output tree visualization of complete AST with inline processing.".to_string()
-        )),
-        OutputFormat::AstJson => Err(ProcessError::NotImplemented(
-            "Phase 2b (AST with inlines) not yet implemented. This will output JSON of complete AST with inline processing.".to_string()
-        )),
+        // Phase 2: Parser outputs
+        OutputFormat::AstNoInlineTreeviz => {
+            process_ast_no_inline_treeviz(&args.content, &args.source_path)
+        }
+        OutputFormat::AstNoInlineJson => {
+            process_ast_no_inline_json(&args.content, &args.source_path)
+        }
+        OutputFormat::AstTreeviz => process_ast_treeviz(&args.content, &args.source_path),
+        OutputFormat::AstJson => process_ast_json(&args.content, &args.source_path),
 
         // Phase 3: Assembly outputs
         OutputFormat::AstFullJson => process_ast_full_json(&args.content, &args.source_path),
@@ -241,6 +238,141 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
     Ok(result)
 }
 
+// Phase 2: Parser processing functions
+
+fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Phase 1: Tokenize and group blocks
+    let tokens = tokenize(content);
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder
+        .build_tree(tokens)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+
+    // Phase 2a: Parse blocks (no inline processing)
+    let block_parser = BlockParser::new();
+    let ast_elements = block_parser
+        .parse_blocks(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Serialize AST elements to JSON
+    let result = serde_json::json!({
+        "source": source_path,
+        "ast_elements": ast_elements
+    });
+
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| ProcessError::SerializationError(e.to_string()))
+}
+
+fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Phase 1: Tokenize and group blocks
+    let tokens = tokenize(content);
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder
+        .build_tree(tokens)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+
+    // Phase 2a: Parse blocks (no inline processing)
+    let block_parser = BlockParser::new();
+    let ast_elements = block_parser
+        .parse_blocks(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Create treeviz representation
+    let mut result = format!("📄 AST (No Inlines): {}\n", source_path);
+    if ast_elements.is_empty() {
+        result.push_str("└─ (no elements parsed)\n");
+    } else {
+        for (i, element) in ast_elements.iter().enumerate() {
+            let is_last = i == ast_elements.len() - 1;
+            let prefix = if is_last { "└─" } else { "├─" };
+            result.push_str(&format!("{} {}\n", prefix, format_element_node(element)));
+        }
+    }
+
+    Ok(result)
+}
+
+fn process_ast_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Phase 1: Tokenize and group blocks
+    let tokens = tokenize(content);
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder
+        .build_tree(tokens)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+
+    // Phase 2a: Parse blocks
+    let block_parser = BlockParser::new();
+    let ast_elements = block_parser
+        .parse_blocks(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 2b: Parse inlines (stubbed - returns unchanged)
+    let inline_parser = InlineParser::new();
+    let ast_elements_with_inlines = inline_parser
+        .parse_inlines(ast_elements)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Serialize AST elements to JSON
+    let result = serde_json::json!({
+        "source": source_path,
+        "ast_elements": ast_elements_with_inlines,
+        "inline_processing": "stubbed (unchanged)"
+    });
+
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| ProcessError::SerializationError(e.to_string()))
+}
+
+fn process_ast_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Phase 1: Tokenize and group blocks
+    let tokens = tokenize(content);
+    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree = token_tree_builder
+        .build_tree(tokens)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+
+    // Phase 2a: Parse blocks
+    let block_parser = BlockParser::new();
+    let ast_elements = block_parser
+        .parse_blocks(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 2b: Parse inlines (stubbed - returns unchanged)
+    let inline_parser = InlineParser::new();
+    let ast_elements_with_inlines = inline_parser
+        .parse_inlines(ast_elements)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Create treeviz representation
+    let mut result = format!("📄 AST (With Inlines - Stubbed): {}\n", source_path);
+    if ast_elements_with_inlines.is_empty() {
+        result.push_str("└─ (no elements parsed)\n");
+    } else {
+        for (i, element) in ast_elements_with_inlines.iter().enumerate() {
+            let is_last = i == ast_elements_with_inlines.len() - 1;
+            let prefix = if is_last { "└─" } else { "├─" };
+            result.push_str(&format!("{} {}\n", prefix, format_element_node(element)));
+        }
+    }
+
+    Ok(result)
+}
+
+/// Helper function to format ElementNode for treeviz output
+fn format_element_node(element: &crate::ast::ElementNode) -> String {
+    match element {
+        crate::ast::ElementNode::ParagraphBlock(paragraph) => {
+            format!(
+                "📝 ParagraphBlock ({} content items)",
+                paragraph.content.len()
+            )
+        }
+        // Add other element types as they're implemented
+        _ => format!("❓ {:?}", element),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -298,14 +430,27 @@ mod tests {
     }
 
     #[test]
-    fn test_unimplemented_formats() {
-        let args = ProcessArgs {
-            content: "test".to_string(),
-            source_path: "test.txxt".to_string(),
-            format: OutputFormat::AstJson,
-        };
+    fn test_phase2_formats_implemented() {
+        // Test that all Phase 2 formats now work instead of returning NotImplemented
+        let content = "Hello world";
+        let source_path = "test.txxt";
 
-        let result = process(args);
-        assert!(matches!(result, Err(ProcessError::NotImplemented(_))));
+        let formats = vec![
+            OutputFormat::AstNoInlineJson,
+            OutputFormat::AstNoInlineTreeviz,
+            OutputFormat::AstJson,
+            OutputFormat::AstTreeviz,
+        ];
+
+        for format in formats {
+            let args = ProcessArgs {
+                content: content.to_string(),
+                source_path: source_path.to_string(),
+                format: format.clone(),
+            };
+
+            let result = process(args);
+            assert!(result.is_ok(), "Format {:?} should be implemented", format);
+        }
     }
 }

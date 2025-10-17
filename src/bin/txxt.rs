@@ -76,11 +76,11 @@ fn print_format_help() {
     eprintln!("    token-stream      - JSON output of positioned tokens");
     eprintln!("    token-tree        - JSON output of hierarchical token structure");
     eprintln!();
-    eprintln!("  Phase 2 (Parser) - WIP:");
+    eprintln!("  Phase 2 (Parser) - Available:");
     eprintln!("    ast-no-inline-treeviz - Tree visualization of AST without inlines");
     eprintln!("    ast-no-inline-json    - JSON output of AST without inlines");
-    eprintln!("    ast-treeviz           - Tree visualization of AST with inlines");
-    eprintln!("    ast-json              - JSON output of AST with inlines");
+    eprintln!("    ast-treeviz           - Tree visualization of AST with inlines (stubbed)");
+    eprintln!("    ast-json              - JSON output of AST with inlines (stubbed)");
     eprintln!();
     eprintln!("  Phase 3 (Assembly) - Available:");
     eprintln!("    ast-full-json     - Complete document with metadata");

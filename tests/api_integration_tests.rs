@@ -3,7 +3,7 @@
 //! These tests replace the shell-based tests with proper unit tests that call the API directly.
 //! Tests the public API without I/O operations or subprocess calls.
 
-use txxt::api::{process, OutputFormat, ProcessArgs, ProcessError};
+use txxt::api::{process, OutputFormat, ProcessArgs};
 
 #[test]
 fn test_verbatim_marks_format() {
@@ -98,7 +98,7 @@ fn test_ast_full_treeviz_format() {
 }
 
 #[test]
-fn test_unimplemented_phase_2_formats() {
+fn test_phase_2_formats_implemented() {
     let test_cases = vec![
         OutputFormat::AstNoInlineTreeviz,
         OutputFormat::AstNoInlineJson,
@@ -110,11 +110,11 @@ fn test_unimplemented_phase_2_formats() {
         let args = ProcessArgs {
             content: "test".to_string(),
             source_path: "test.txxt".to_string(),
-            format,
+            format: format.clone(),
         };
 
         let result = process(args);
-        assert!(matches!(result, Err(ProcessError::NotImplemented(_))));
+        assert!(result.is_ok(), "Format {:?} should be implemented", format);
     }
 }
 

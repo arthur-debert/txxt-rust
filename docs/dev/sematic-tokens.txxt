@@ -1,0 +1,143 @@
+Proposal: Semantic Token  Stage 
+
+1. Context
+
+	Currently txxt parsing happens as follows: 
+
+	Phase 1: Lexer (txxt str -> token tree)
+		a. Verbatim Scanner: marks verbatim lines that off-limits for processing as txxt
+		b. Token List: creates the token stream at low level tokens -> token list
+		c. Token Tree: converts the token list to a string, using indent/dedent tokens -> token tree
+	Phase 2: Parser  (token tree -> ast tree node)
+		a. Block Parsing: Convert token trees into typed AST nodes -> ast node (no inlines)
+		b. Inline Parsing: Handle inlines within blocks -> ast node
+	Phase 3: Assembly (ast tree node -> ast document node)
+		a. Document Wrapping: wraps the parsed ast in a Document node.
+		b. Annotatations Attachments: from the content tree to node's annotation's field.
+
+	While Phase 2, the block parsing is underway. The parser operates on low level tokens (as in <PERIOD>, <WHITESPACE>), which makes the mental mapping from low level tokens to full ast elements chanllenging and indirect.
+
+2. New Stage: Semantic  Parsing
+
+	In order to make the hardest parsing stage 2.a easier, we will introduce a new stage before 2.a, Line Parsing. 
+
+
+	2.1 Semantic Token Parsing (Token Tree -> Semantic Token Tree
+		- This new stage consumes the TokenTree.
+		- It iterates through the tokens field of each TokenTree node.
+		- It parses the flat list of tokens at that level into a structured list of Semantic Token  objects.
+		-  It recursively does this for all children.
+		-  The output is a new tree structure, let's call it a SemanticTree, which has 
+
+	2.2 The new Pipelien including 2.1
+		
+		Therefore, the new parsing pipeline will look like
+
+		Phase 1: Lexer (txxt str -> token tree)
+			a. Verbatim Scanner: marks verbatim lines that off-limits for processing as txxt
+			b. Token List: creates the token stream at low level tokens -> token list
+			c. Token Tree: converts the token list to a string, using indent/dedent tokens -> token tree
+		Phase 2: Parser  (token tree -> ast tree node)
+			a. Semantic Token Parsing: Convert token trees into Semantic Token trees
+			b. Block Parsing: Convert line trees into typed AST nodes -> ast node (no inlines)
+			b. Inline Parsing: Handle inlines within blocks -> ast node
+		Phase 3: Assembly (ast tree node -> ast document node)
+			a. Document Wrapping: wraps the parsed ast in a Document node.
+			b. Annotatations Attachments: from the content tree to node's annotation's field.
+
+3. Semantic Tokens: 
+
+	The converstion between scanner  and semantyc tokens is based on the syntax [./docs/specs/core/syntax.txxt] and aims to output a higher level representation that is much closer to the parser level . 
+
+	Verbatim: 
+
+		<text span> <period>
+			<verbatim line>
+			<verbatim line>
+		<identifier> <parameters>
+    :: syntax
+
+	And for annotations: 
+		<txxt marker> <identifier> <txxt-marker> <text-line> 
+	:: syntax
+
+	We should have both a <text-line> and a <sequence-text-line>, the latter being a : <sequence-markers> <text-span> <line-break>, that is it can be used as valid list items , sesstion titles or even pragraph( "1.0 I love dad" is a perfectly valid paragraph.) Which would make list vs others disambuation much eaiser: 
+
+    <blank-line>
+	<sequence-text-line>
+    <blank-line>
+		<indentation>
+		<sequence-text-line>
+	Much easier to parse, as encoding the rule "sequence text line cannot  be separated by whitespaces" map directly to tokens. 
+
+4. Changes
+
+
+		4.1 Propose Semantic Token Type
+
+		Though the ast and propose , type wise the token category.
+
+	4.2 List concrete Semantic Tokens
+	 
+		The converstion between scanner  and semantyc tokens is based on the syntax [./docs/specs/core/syntax.txxt] and aims to output a higher level representation that is much closer to the parser level . 
+
+		Verbatim: 
+
+			<text span> <period>
+				<verbatim line>
+				<verbatim line>
+			<identifier> <parameters>
+		:: syntax
+
+		And for annotations: 
+			<txxt marker> <identifier> <txxt-marker> <text-line> 
+		:: syntax
+
+		We should have both a <text-line> and a <sequence-text-line>, the latter being a : <sequence-markers> <text-span> <line-break>, that is it can be used as valid list items , sesstion titles or even pragraph( "1.0 I love dad" is a perfectly valid paragraph.) Which would make list vs others disambuation much eaiser: 
+
+		<blank-line>
+		<sequence-text-line>
+		<blank-line>
+			<indentation>
+			<sequence-text-line>
+		Much easier to parse, as encoding the rule "sequence text line cannot  be separated by whitespaces" map directly to tokens. 
+
+5 Implementation: 
+ 
+	5.1 Renaming Tokens
+
+		Now that we have two token types, haveing tokens vs semantic tokes is bound to create confusion. We will rename, in the ast, the current Tokens to ScannerTokens, as opossed to SemanticTokens.
+
+		While these do share considerably in traits/ types, they have specialization and being able to wok scanner or semantic trees with type safety will be worh it. 
+
+		These should reflect code, be it modules or package, as in ast/tokens.rs -> ast/scanner_tokens.rs
+
+
+	5.2 Validate Semantic Tokens definition List
+
+		This should be validated, then formalized in the docs/specs/core/syntax.txxt document.
+
+	5.3 Implement Infrastructure for Semantic Tokens
+
+		Ths ast nodes, etc.
+
+	5.4 Add Semantic Tree Token txxt-binary support
+
+		Add the support for txxt binary to output thes, as it's greatly useful for debugging.
+
+	5.5 Add Semantic Token support for Corpora
+
+		Out txxt source tool, corpora can generate the txxt data in all phases of the pipeline, which are useful for testing.
+
+	5.5 Implement the semantic-token parsing phase
+
+	5.6 Write Unit Tests
+
+		These should have a few tests per token . We can use the txxt binary or corpora to generate this correctly from actual parsing stages , but then we copy and use then manually in the tests, as to make it more visual what the transformation of input / output should look like
+
+	5.7 Don't brea parsing as it
+
+		This branch will not adapt the block parser to received semantic tokes. Hence we cannot just plug in the phase, else all will break. We will implement the phase, but not include it in the pipeline.
+
+
+

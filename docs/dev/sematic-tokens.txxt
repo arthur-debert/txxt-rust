@@ -1,53 +1,53 @@
-Proposal: Semantic Token  Stage 
+Proposal: Semantic Token Stage
 
 1. Context
 
 	Currently txxt parsing happens as follows: 
 
-	Phase 1: Lexer (txxt str -> token tree)
-		a. Verbatim Scanner: marks verbatim lines that off-limits for processing as txxt
+	Phase 1: Lexer (txxt str -> TokenTree)
+		a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
 		b. Token List: creates the token stream at low level tokens -> token list
-		c. Token Tree: converts the token list to a string, using indent/dedent tokens -> token tree
-	Phase 2: Parser  (token tree -> ast tree node)
-		a. Block Parsing: Convert token trees into typed AST nodes -> ast node (no inlines)
-		b. Inline Parsing: Handle inlines within blocks -> ast node
-	Phase 3: Assembly (ast tree node -> ast document node)
-		a. Document Wrapping: wraps the parsed ast in a Document node.
-		b. Annotatations Attachments: from the content tree to node's annotation's field.
+		c. Token Tree: converts the token list to a tree, using indent/dedent tokens -> TokenTree
+	Phase 2: Parser (TokenTree -> AST tree node)
+		a. Block Parsing: Convert TokenTrees into typed AST nodes -> AST node (no inlines)
+		b. Inline Parsing: Handle inlines within blocks -> AST node
+	Phase 3: Assembly (AST tree node -> AST document node)
+		a. Document Wrapping: wraps the parsed AST in a Document node.
+		b. Annotations Attachments: from the content tree to node's annotation's field.
 
-	While Phase 2, the block parsing is underway. The parser operates on low level tokens (as in <PERIOD>, <WHITESPACE>), which makes the mental mapping from low level tokens to full ast elements chanllenging and indirect.
+	While Phase 2, the block parsing is underway. The parser operates on low level tokens (as in <PERIOD>, <WHITESPACE>), which makes the mental mapping from low level tokens to full AST elements challenging and indirect.
 
-2. New Stage: Semantic  Parsing
+2. New Stage: Semantic Token Parsing
 
-	In order to make the hardest parsing stage 2.a easier, we will introduce a new stage before 2.a, Line Parsing. 
+	In order to make the hardest parsing stage 2.a easier, we will introduce a new stage before 2.a, Semantic Token Parsing. 
 
 
-	2.1 Semantic Token Parsing (Token Tree -> Semantic Token Tree
+	2.1 Semantic Token Parsing (TokenTree -> SemanticTokenTree)
 		- This new stage consumes the TokenTree.
 		- It iterates through the tokens field of each TokenTree node.
-		- It parses the flat list of tokens at that level into a structured list of Semantic Token  objects.
-		-  It recursively does this for all children.
-		-  The output is a new tree structure, let's call it a SemanticTree, which has 
+		- It parses the flat list of tokens at that level into a structured list of Semantic Token objects.
+		- It recursively does this for all children.
+		- The output is a new tree structure, called a SemanticTokenTree, which has the same hierarchical structure as TokenTree but with higher-level semantic tokens.
 
-	2.2 The new Pipelien including 2.1
+	2.2 The new Pipeline including 2.1
 		
 		Therefore, the new parsing pipeline will look like
 
-		Phase 1: Lexer (txxt str -> token tree)
-			a. Verbatim Scanner: marks verbatim lines that off-limits for processing as txxt
+		Phase 1: Lexer (txxt str -> TokenTree)
+			a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
 			b. Token List: creates the token stream at low level tokens -> token list
-			c. Token Tree: converts the token list to a string, using indent/dedent tokens -> token tree
-		Phase 2: Parser  (token tree -> ast tree node)
-			a. Semantic Token Parsing: Convert token trees into Semantic Token trees
-			b. Block Parsing: Convert line trees into typed AST nodes -> ast node (no inlines)
-			b. Inline Parsing: Handle inlines within blocks -> ast node
-		Phase 3: Assembly (ast tree node -> ast document node)
-			a. Document Wrapping: wraps the parsed ast in a Document node.
-			b. Annotatations Attachments: from the content tree to node's annotation's field.
+			c. Token Tree: converts the token list to a tree, using indent/dedent tokens -> TokenTree
+		Phase 2: Parser (TokenTree -> AST tree node)
+			a. Semantic Token Parsing: Convert TokenTrees into SemanticTokenTrees
+			b. Block Parsing: Convert SemanticTokenTrees into typed AST nodes -> AST node (no inlines)
+			c. Inline Parsing: Handle inlines within blocks -> AST node
+		Phase 3: Assembly (AST tree node -> AST document node)
+			a. Document Wrapping: wraps the parsed AST in a Document node.
+			b. Annotations Attachments: from the content tree to node's annotation's field.
 
 3. Semantic Tokens: 
 
-	The converstion between scanner  and semantyc tokens is based on the syntax [./docs/specs/core/syntax.txxt] and aims to output a higher level representation that is much closer to the parser level . 
+	The conversion between scanner and Semantic Tokens is based on the syntax [./docs/specs/core/syntax.txxt] and aims to output a higher level representation that is much closer to the parser level. 
 
 	Verbatim: 
 
@@ -61,83 +61,115 @@ Proposal: Semantic Token  Stage
 		<txxt marker> <identifier> <txxt-marker> <text-line> 
 	:: syntax
 
-	We should have both a <text-line> and a <sequence-text-line>, the latter being a : <sequence-markers> <text-span> <line-break>, that is it can be used as valid list items , sesstion titles or even pragraph( "1.0 I love dad" is a perfectly valid paragraph.) Which would make list vs others disambuation much eaiser: 
+	We should have both a <text-line> and a <sequence-text-line>, the latter being a: <sequence-markers> <text-span> <line-break>, that is it can be used as valid list items, session titles or even paragraphs ("1.0 I love dad" is a perfectly valid paragraph.) Which would make list vs others disambiguation much easier: 
 
     <blank-line>
 	<sequence-text-line>
     <blank-line>
 		<indentation>
 		<sequence-text-line>
-	Much easier to parse, as encoding the rule "sequence text line cannot  be separated by whitespaces" map directly to tokens. 
+	Much easier to parse, as encoding the rule "sequence text line cannot be separated by whitespaces" maps directly to tokens. 
 
-4. Changes
+4. Semantic Token Types and Definitions
 
+	4.1 Proposed SemanticToken AST Node Types
 
-		4.1 Propose Semantic Token Type
+		SemanticToken::
+			Component-level semantic tokens that bridge scanner tokens and AST elements.
+			Provides structured, reusable components rather than line-based tokens.
+			Emphasizes composability and eliminates duplication across elements.
 
-		Though the ast and propose , type wise the token category.
+		SemanticTokenTree::
+			Tree structure containing SemanticTokens with hierarchical children.
+			Mirrors TokenTree structure but with higher-level semantic meaning.
 
-	4.2 List concrete Semantic Tokens
-	 
-		The converstion between scanner  and semantyc tokens is based on the syntax [./docs/specs/core/syntax.txxt] and aims to output a higher level representation that is much closer to the parser level . 
+	4.2 Core Component Tokens
 
-		Verbatim: 
+		TxxtMarker::
+			The fundamental :: marker used across annotations, definitions, and verbatim blocks.
+			Identifies txxt structural elements and provides disambiguation anchor points.
+			Essential for recognizing txxt syntax vs plain text.
 
-			<text span> <period>
-				<verbatim line>
-				<verbatim line>
-			<identifier> <parameters>
-		:: syntax
+		Label::
+			Structured identifier component for annotations and verbatim blocks.
+			Supports namespaced identifiers like "python", "org.example.custom".
+			Reusable across annotation labels and verbatim labels.
 
-		And for annotations: 
-			<txxt marker> <identifier> <txxt-marker> <text-line> 
-		:: syntax
+		Parameters::
+			Key-value metadata component used in annotations and verbatim elements.
+			Structured parameter list with proper key-value pair parsing.
+			Example: "version=3.11,style=functional,author=\"Jane Doe\""
 
-		We should have both a <text-line> and a <sequence-text-line>, the latter being a : <sequence-markers> <text-span> <line-break>, that is it can be used as valid list items , sesstion titles or even pragraph( "1.0 I love dad" is a perfectly valid paragraph.) Which would make list vs others disambuation much eaiser: 
+		Sequence Marker::
+			List and session numbering component.
+			Handles numeric (1.), alphabetic (a.), roman (i.), and plain (-) markers.
+			Critical for session vs list disambiguation logic.
 
-		<blank-line>
-		<sequence-text-line>
-		<blank-line>
-			<indentation>
-			<sequence-text-line>
-		Much easier to parse, as encoding the rule "sequence text line cannot  be separated by whitespaces" map directly to tokens. 
+		Text Span::
+			Basic text content component without special formatting.
+			Building block for larger line constructs.
+			Preserves source span information for error reporting.
 
-5 Implementation: 
+		Sequence Text Line::
+			Line beginning with sequence marker followed by text content.
+			Combines Sequence Marker and Text Span components.
+			Used for list items, session titles, and numbered paragraphs.
+
+		Plain Text Line::
+			Simple text content without special markers or structure.
+			Contains single Text Span component.
+			Default fallback for unstructured content.
+
+		Verbatim Content Line::
+			Content line within a verbatim block.
+			Preserved exactly as written without txxt processing.
+			Stored as raw string with source span tracking.
+
+	4.4 Structural Tokens
+
+		Blank Line::
+			Line containing only whitespace or completely empty.
+			Critical for whitespace enclosure detection in sessions vs lists.
+			Sessions require blank line separation; lists cannot have blank lines between items.
+
+. 
+
+5. Implementation: 
  
 	5.1 Renaming Tokens
 
-		Now that we have two token types, haveing tokens vs semantic tokes is bound to create confusion. We will rename, in the ast, the current Tokens to ScannerTokens, as opossed to SemanticTokens.
+		Now that we have two token types, having tokens vs Semantic Tokens is bound to create confusion. We will rename, in the AST, the current Tokens to ScannerTokens, as opposed to SemanticTokens.
 
-		While these do share considerably in traits/ types, they have specialization and being able to wok scanner or semantic trees with type safety will be worh it. 
+		While these do share considerably in traits/types, they have specialization and being able to work with scanner or semantic trees with type safety will be worth it. 
 
-		These should reflect code, be it modules or package, as in ast/tokens.rs -> ast/scanner_tokens.rs
+		These should reflect code, be it modules or packages, as in ast/tokens.rs -> ast/scanner_tokens.rs
 
 
-	5.2 Validate Semantic Tokens definition List
+	5.2 Validate Semantic Token Definition List
 
 		This should be validated, then formalized in the docs/specs/core/syntax.txxt document.
 
 	5.3 Implement Infrastructure for Semantic Tokens
 
-		Ths ast nodes, etc.
+		The AST nodes, etc.
 
-	5.4 Add Semantic Tree Token txxt-binary support
+	5.4 Add SemanticTokenTree txxt-binary support
 
-		Add the support for txxt binary to output thes, as it's greatly useful for debugging.
+		Add the support for txxt binary to output these, as it's greatly useful for debugging.
 
 	5.5 Add Semantic Token support for Corpora
 
-		Out txxt source tool, corpora can generate the txxt data in all phases of the pipeline, which are useful for testing.
+		Our txxt source tool, corpora can generate the txxt data in all phases of the pipeline, which are useful for testing.
 
-	5.5 Implement the semantic-token parsing phase
+	5.6 Implement the Semantic Token parsing phase
 
-	5.6 Write Unit Tests
+	5.7 Write Unit Tests
 
-		These should have a few tests per token . We can use the txxt binary or corpora to generate this correctly from actual parsing stages , but then we copy and use then manually in the tests, as to make it more visual what the transformation of input / output should look like
+		These should have a few tests per token. We can use the txxt binary or corpora to generate this correctly from actual parsing stages, but then we copy and use them manually in the tests, to make it more visual what the transformation of input/output should look like
 
-	5.7 Don't brea parsing as it
+	5.8 Don't break parsing as it is
 
-		This branch will not adapt the block parser to received semantic tokes. Hence we cannot just plug in the phase, else all will break. We will implement the phase, but not include it in the pipeline.
+		This branch will not adapt the block parser to receive Semantic Tokens. Hence we cannot just plug in the phase, else all will break. We will implement the phase, but not include it in the pipeline.
 
 
 

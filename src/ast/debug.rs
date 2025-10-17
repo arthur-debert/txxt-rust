@@ -3,7 +3,6 @@
 //! This module provides tools for visualizing and debugging AST structures,
 //! including tree printing, structure comparison, and content inspection.
 
-#[cfg(feature = "new-ast")]
 use crate::ast::{
     base::Document,
     elements::{
@@ -13,7 +12,6 @@ use crate::ast::{
     },
 };
 
-#[cfg(feature = "new-ast")]
 use std::fmt::Write;
 
 /// Tree visualization configuration
@@ -44,19 +42,16 @@ impl Default for TreeConfig {
 }
 
 /// Tree visualization for AST debugging
-#[cfg(feature = "new-ast")]
 pub struct AstTreeVisualizer {
     config: TreeConfig,
 }
 
-#[cfg(feature = "new-ast")]
 impl Default for AstTreeVisualizer {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[cfg(feature = "new-ast")]
 impl AstTreeVisualizer {
     /// Create a new tree visualizer with default config
     pub fn new() -> Self {
@@ -457,10 +452,8 @@ impl AstTreeVisualizer {
 }
 
 /// AST comparison utilities for testing
-#[cfg(feature = "new-ast")]
 pub struct AstComparator;
 
-#[cfg(feature = "new-ast")]
 impl AstComparator {
     /// Compare two documents and return differences
     pub fn compare_documents(left: &Document, right: &Document) -> Vec<String> {
@@ -576,7 +569,6 @@ impl AstComparator {
 }
 
 /// Statistics collection for AST analysis
-#[cfg(feature = "new-ast")]
 pub struct AstStatistics {
     pub paragraph_count: usize,
     pub list_count: usize,
@@ -587,7 +579,6 @@ pub struct AstStatistics {
     pub total_characters: usize,
 }
 
-#[cfg(feature = "new-ast")]
 impl AstStatistics {
     /// Collect statistics from a document
     pub fn from_document(doc: &Document) -> Self {
@@ -733,7 +724,6 @@ impl AstStatistics {
     }
 }
 
-#[cfg(feature = "new-ast")]
 impl std::fmt::Display for AstStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "AST Statistics:")?;

@@ -6,4 +6,3 @@
 pub mod expected;
 
 // Re-export core expected types
-pub use expected::*;

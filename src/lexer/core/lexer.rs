@@ -748,6 +748,17 @@ impl Lexer {
             return false;
         }
 
+        // First check: if we're at a valid indentation level (not column 0),
+        // and the most recent token is whitespace, we might be at a valid position
+        if self.column > 0 && is_valid_indentation_level(self.column) {
+            if let Some(last_token) = tokens.last() {
+                if matches!(last_token, Token::Whitespace { .. }) {
+                    // We're at a valid indentation level with whitespace - this is a valid position
+                    return true;
+                }
+            }
+        }
+
         // We need to handle two cases:
         // 1. Just after an Indent token (possibly with following whitespace)
         // 2. After Newline + valid indentation whitespace (for continued indented lines)

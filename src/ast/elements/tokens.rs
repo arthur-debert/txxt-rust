@@ -348,4 +348,9 @@ impl TokenSequence {
             .collect::<Vec<_>>()
             .join("")
     }
+
+    /// Create a token sequence from a vector of tokens
+    pub fn from_tokens(tokens: Vec<Token>) -> Self {
+        Self { tokens }
+    }
 }

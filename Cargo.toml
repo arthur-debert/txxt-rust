@@ -8,10 +8,8 @@ keywords = ["parser", "markup", "txxt", "text-processing"]
 categories = ["parser-implementations", "text-processing"]
 
 [features]
-# Enable new type-safe AST system (under development)
-new-ast = []
 # Enable AST adapter for bridging old to new AST
-adapter = ["new-ast"]
+adapter = []
 
 [dependencies]
 walkdir = "2.5"
@@ -36,7 +34,3 @@ insta = "1.34"
 [[bin]]
 name = "txxt"
 path = "src/bin/txxt.rs"
-
-[[bin]]
-name = "txxt-treeviz"
-path = "src/bin/txxt-treeviz.rs"

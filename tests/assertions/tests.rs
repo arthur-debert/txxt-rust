@@ -7,7 +7,7 @@
 //! - Shared validators behave consistently
 
 #[cfg(test)]
-#[cfg(feature = "new-ast")]
+
 mod assertion_tests {
     use super::super::{assert_paragraph, ParagraphExpected};
     use txxt::ast::{
@@ -143,7 +143,7 @@ mod validator_tests {
     use std::collections::HashMap;
 
     #[test]
-    #[cfg(feature = "new-ast")]
+    
     fn test_validate_parameters_succeeds() {
         use txxt::ast::elements::components::parameters::Parameters;
         
@@ -161,7 +161,7 @@ mod validator_tests {
 
     #[test]
     #[should_panic(expected = "Parameter validation failed for key")]
-    #[cfg(feature = "new-ast")]
+    
     fn test_validate_parameters_value_mismatch() {
         use txxt::ast::elements::components::parameters::Parameters;
         
@@ -177,7 +177,7 @@ mod validator_tests {
 
     #[test]
     #[should_panic(expected = "missing key")]
-    #[cfg(feature = "new-ast")]
+    
     fn test_validate_parameters_missing_key() {
         use txxt::ast::elements::components::parameters::Parameters;
         

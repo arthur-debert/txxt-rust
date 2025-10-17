@@ -41,10 +41,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::{
-    references::reference_types::ReferenceTarget,
-    tokens::{Token, TokenSequence},
-};
+use super::super::tokens::{Token, TokenSequence};
 
 /// Inline elements with text-transform layer
 ///
@@ -81,16 +78,7 @@ pub enum Inline {
 
     /// Reference to document elements (citations, cross-refs, etc.)
     /// Examples: [filename.txxt], [#section], [@smith2023], [#hello-world], [1]
-    Reference {
-        /// Comprehensive reference target with full type information
-        target: ReferenceTarget,
-
-        /// Optional custom display content (if not auto-generated)
-        content: Option<Vec<Inline>>,
-
-        /// Raw tokens for language server support
-        tokens: TokenSequence,
-    },
+    Reference(crate::ast::elements::references::Reference),
 
     /// Future extensibility for custom inline types
     Custom {
@@ -138,6 +126,10 @@ pub enum TextTransform {
     /// Inline code transform - monospace formatting
     /// Code cannot contain nested transforms (by design)
     Code(Text),
+
+    /// Math transform - mathematical expressions
+    /// Math cannot contain nested transforms (by design)
+    Math(Text),
 
     /// Composed transform - for complex nested cases
     /// Used when multiple transforms need to be applied
@@ -219,6 +211,7 @@ impl TextTransform {
                 .collect::<Vec<_>>()
                 .join(""),
             TextTransform::Code(text) => text.content(),
+            TextTransform::Math(text) => text.content(),
             TextTransform::Composed(transforms) => transforms
                 .iter()
                 .map(|t| t.text_content())

@@ -231,6 +231,11 @@ pub static DEFAULT_ICON_CONFIG: std::sync::LazyLock<IconConfig> = std::sync::Laz
         ContentExtractor::with_format("key", "children", "[@{}]"),
     );
 
+    config.add_extractor(
+        "SessionContainer".to_string(),
+        ContentExtractor::with_format("len", "content", "{} elements"),
+    );
+
     config
 });
 
@@ -276,6 +281,7 @@ pub fn get_node_type_name(node: &ElementNode) -> String {
         ElementNode::ContentContainer(_) => "ContentContainer".to_string(),
         ElementNode::SessionContainer(_) => "SessionContainer".to_string(),
         ElementNode::IgnoreContainer(_) => "IgnoreContainer".to_string(),
+        // Note: SessionTitle is not an ElementNode variant, it's part of SessionBlock
     }
 }
 
@@ -301,14 +307,30 @@ fn extract_content_by_type(node: &ElementNode, extractor: &ContentExtractor) -> 
         ElementNode::FootnoteReferenceSpan(_) => "footnote reference".to_string(),
         ElementNode::TextLine(_) => "text line".to_string(),
         ElementNode::BlankLine(_) => "".to_string(),
-        ElementNode::ParagraphBlock(_) => "paragraph content".to_string(),
+        ElementNode::ParagraphBlock(paragraph) => {
+            // Extract paragraph text content
+            // For now, we'll use a simple placeholder since paragraph content extraction is complex
+            if paragraph.content.is_empty() {
+                "empty paragraph".to_string()
+            } else {
+                format!("paragraph ({} lines)", paragraph.content.len())
+            }
+        }
         ElementNode::ListBlock(_) => "list".to_string(),
         ElementNode::DefinitionBlock(_) => "definition term".to_string(),
         ElementNode::VerbatimBlock(_) => "verbatim content".to_string(),
-        ElementNode::SessionBlock(_) => "session title".to_string(),
+        ElementNode::SessionBlock(session) => {
+            // Extract session title content
+            let title_text = session.title.text_content();
+            if title_text.is_empty() {
+                "untitled session".to_string()
+            } else {
+                title_text
+            }
+        }
         ElementNode::AnnotationBlock(_) => "annotation".to_string(),
         ElementNode::ContentContainer(_) => "content container".to_string(),
-        ElementNode::SessionContainer(_) => "session container".to_string(),
+        ElementNode::SessionContainer(container) => container.len().to_string(),
         ElementNode::IgnoreContainer(_) => "ignore container".to_string(),
     };
 

@@ -1,5 +1,7 @@
-//! Parser test suite
-//!
-//! Tests for Phase 2: Parser components.
+//! Parser tests
+mod elements;
 
-mod pipeline;
+// Parser integration and bug tests
+mod issue_26_indented_sequence_markers;
+mod parser_integration;
+mod parser_tests;

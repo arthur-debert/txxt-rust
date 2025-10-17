@@ -59,5 +59,8 @@
 // Pipeline modules
 pub mod pipeline;
 
+// Element parsers
+pub mod elements;
+
 // Re-export main interfaces
 pub use pipeline::{BlockParseError, BlockParser, InlineParseError, InlineParser};

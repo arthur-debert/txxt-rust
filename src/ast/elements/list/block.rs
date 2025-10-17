@@ -51,10 +51,8 @@ pub struct ListDecorationType {
 pub enum NumberingStyle {
     Plain,
     Numerical,
-    AlphabeticalLower,
-    AlphabeticalUpper,
-    RomanLower,
-    RomanUpper,
+    Alphabetical,
+    Roman,
 }
 
 /// Numbering form affects hierarchical display

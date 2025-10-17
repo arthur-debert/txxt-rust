@@ -108,13 +108,47 @@ fn get_node_children(node: &ElementNode) -> Vec<ElementNode> {
         ElementNode::ListBlock(_) => vec![],      // Would contain ListItems
         ElementNode::DefinitionBlock(_) => vec![], // Would contain term + content
         ElementNode::VerbatimBlock(_) => vec![],  // Would contain verbatim lines
-        ElementNode::SessionBlock(_) => vec![],   // Would contain title + container
+        ElementNode::SessionBlock(session) => {
+            // Extract children from SessionBlock (just the content container)
+            vec![ElementNode::SessionContainer(session.content.clone())]
+        }
         ElementNode::AnnotationBlock(_) => vec![], // Would contain content
 
         // Container elements - these are the main ones with children
         ElementNode::ContentContainer(_) => vec![], // Would contain blocks
-        ElementNode::SessionContainer(_) => vec![], // Would contain blocks + sessions
-        ElementNode::IgnoreContainer(_) => vec![],  // Would contain ignore lines
+        ElementNode::SessionContainer(container) => {
+            // Extract children from SessionContainer
+            container.content.iter().map(|element| match element {
+                crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(p) => {
+                    ElementNode::ParagraphBlock(p.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::List(l) => {
+                    ElementNode::ListBlock(l.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::Definition(d) => {
+                    ElementNode::DefinitionBlock(d.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::Verbatim(v) => {
+                    ElementNode::VerbatimBlock(v.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::Annotation(a) => {
+                    ElementNode::AnnotationBlock(a.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::Session(s) => {
+                    ElementNode::SessionBlock(s.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::ContentContainer(c) => {
+                    ElementNode::ContentContainer(c.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::SessionContainer(s) => {
+                    ElementNode::SessionContainer(s.clone())
+                }
+                crate::ast::elements::session::session_container::SessionContainerElement::BlankLine(b) => {
+                    ElementNode::BlankLine(b.clone())
+                }
+            }).collect()
+        }
+        ElementNode::IgnoreContainer(_) => vec![], // Would contain ignore lines
     }
 }
 

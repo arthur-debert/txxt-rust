@@ -139,6 +139,10 @@ pub enum TextTransform {
     /// Code cannot contain nested transforms (by design)
     Code(Text),
 
+    /// Math transform - mathematical expressions
+    /// Math cannot contain nested transforms (by design)
+    Math(Text),
+
     /// Composed transform - for complex nested cases
     /// Used when multiple transforms need to be applied
     /// Example: **_bold italic_** becomes Strong(vec![Emphasis(...)])
@@ -219,6 +223,7 @@ impl TextTransform {
                 .collect::<Vec<_>>()
                 .join(""),
             TextTransform::Code(text) => text.content(),
+            TextTransform::Math(text) => text.content(),
             TextTransform::Composed(transforms) => transforms
                 .iter()
                 .map(|t| t.text_content())

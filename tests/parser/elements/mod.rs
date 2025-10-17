@@ -4,6 +4,7 @@
 
 mod annotation;
 mod definition;
+mod formatting;
 mod list;
 mod paragraph;
 mod session;

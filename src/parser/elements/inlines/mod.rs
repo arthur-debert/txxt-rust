@@ -242,33 +242,8 @@ pub fn parse_inlines(
 pub fn parse_formatting(
     tokens: &[crate::ast::tokens::Token],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::TextTransform>, InlineParseError> {
-    // TODO: Implement formatting parsing logic
-    // For now, return a placeholder
-
-    if tokens.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Convert all tokens to plain text for now
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
-
-    if text_content.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Create a simple identity transform
-    let identity_transform = crate::ast::elements::formatting::inlines::TextTransform::Identity(
-        crate::ast::elements::formatting::inlines::Text::simple(&text_content),
-    );
-
-    Ok(vec![identity_transform])
+    // Delegate to the formatting module
+    crate::parser::elements::formatting::parse_formatting_elements(tokens)
 }
 
 /// Parse reference inline elements (citations, footnotes, page refs, session refs)

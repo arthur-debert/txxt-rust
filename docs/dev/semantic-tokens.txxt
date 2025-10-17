@@ -51,24 +51,16 @@ Proposal: Semantic Token Stage
 
 	Verbatim: 
 
-		<text span> <period>
-			<verbatim line>
-			<verbatim line>
-		<identifier> <parameters>
+		<text span> <colon>
+			<ignore line>
+		<label> <parameters>?
     :: syntax
 
 	And for annotations: 
-		<txxt marker> <identifier> <txxt-marker> <text-line> 
+		<txxt marker> <label> <txxt-marker> <text-line> 
 	:: syntax
 
-	We should have both a <text-line> and a <sequence-text-line>, the latter being a: <sequence-markers> <text-span> <line-break>, that is it can be used as valid list items, session titles or even paragraphs ("1.0 I love dad" is a perfectly valid paragraph.) Which would make list vs others disambiguation much easier: 
-
-    <blank-line>
-	<sequence-text-line>
-    <blank-line>
-		<indentation>
-		<sequence-text-line>
-	Much easier to parse, as encoding the rule "sequence text line cannot be separated by whitespaces" maps directly to tokens. 
+ .  Note that semantic tokes are not element bound, as in annotation token of any sorts. We won't know about elements until parsing has taken place, which will come later. Semenatic tokes group lower level character tokens into higher level langauge concepts as parameters, label, sequence text line.
 
 4. Semantic Token Types and Definitions
 
@@ -83,56 +75,9 @@ Proposal: Semantic Token Stage
 			Tree structure containing SemanticTokens with hierarchical children.
 			Mirrors TokenTree structure but with higher-level semantic meaning.
 
-	4.2 Semantic Tokens
+	4.2 Semantic Tokens Definitions
 
-		TxxtMarker::
-			The fundamental :: marker used across annotations, definitions, and verbatim blocks.
-			Identifies txxt structural elements and provides disambiguation anchor points.
-			Essential for recognizing txxt syntax vs plain text.
-
-		Label::
-			Structured identifier component for annotations and verbatim blocks.
-			Supports namespaced identifiers like "python", "org.example.custom".
-			Reusable across annotation labels and verbatim labels.
-
-		Parameters::
-			Key-value metadata component used in annotations and verbatim elements.
-			Structured parameter list with proper key-value pair parsing.
-			Example: "version=3.11,style=functional,author=\"Jane Doe\""
-
-		Sequence Marker::
-			List and session numbering component.
-			Handles numeric (1.), alphabetic (a.), roman (i.), and plain (-) markers.
-			Critical for session vs list disambiguation logic.
-
-		Text Span::
-			Basic text content component without special formatting.
-			Building block for larger line constructs.
-			Preserves source span information for error reporting.
-
-		Sequence Text Line::
-			Line beginning with sequence marker followed by text content.
-			Combines Sequence Marker and Text Span components.
-			Used for list items, session titles, and numbered paragraphs.
-
-		Plain Text Line::
-			Simple text content without special markers or structure.
-			Contains single Text Span component.
-			Default fallback for unstructured content.
-
-		Verbatim Content Line::
-			Content line within a verbatim block.
-			Preserved exactly as written without txxt processing.
-			Stored as raw string with source span tracking.
-
-	4.4 Structural Tokens
-
-		Blank Line::
-			Line containing only whitespace or completely empty.
-			Critical for whitespace enclosure detection in sessions vs lists.
-			Sessions require blank line separation; lists cannot have blank lines between items.
-
-. 
+		These are describe in the semantic nodes [docs/specs/core/semantic-nodes.txxt]
 
 5. Implementation: 
  
@@ -170,6 +115,3 @@ Proposal: Semantic Token Stage
 	5.8 Don't break parsing as it is
 
 		This branch will not adapt the block parser to receive Semantic Tokens. Hence we cannot just plug in the phase, else all will break. We will implement the phase, but not include it in the pipeline.
-
-
-

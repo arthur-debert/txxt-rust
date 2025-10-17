@@ -234,21 +234,48 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
         .parse_inlines(ast_elements)
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
 
-    // Phase 3: Create document structure with parsed AST elements
-    let result = format!(
-        "⧉ Document: {}\n\
-         ├─ Ψ SessionContainer\n\
-         │   └─ {} elements\n\
-         └─ 📊 Assembly Info:\n\
-             ├─ Parser: {}\n\
-             ├─ Processed: {}\n\
-             └─ Elements: {}\n",
-        source_path,
-        ast_elements_with_inlines.len(),
-        env!("CARGO_PKG_VERSION"),
-        chrono::Utc::now().to_rfc3339(),
-        ast_elements_with_inlines.len()
+    // Convert ElementNode to SessionContainerElement
+    let container_elements: Vec<crate::ast::elements::session::session_container::SessionContainerElement> = ast_elements_with_inlines
+        .into_iter()
+        .map(|element| match element {
+            crate::ast::ElementNode::ParagraphBlock(paragraph) => {
+                crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(paragraph)
+            }
+            crate::ast::ElementNode::SessionBlock(session) => {
+                crate::ast::elements::session::session_container::SessionContainerElement::Session(session)
+            }
+            // For now, we'll convert other types to paragraphs as placeholders
+            // TODO: Implement proper conversion for all ElementNode types
+            _ => {
+                // Create a placeholder paragraph for unsupported element types
+                let placeholder_paragraph = crate::ast::elements::paragraph::block::ParagraphBlock {
+                    content: vec![], // Empty content for now
+                    annotations: Vec::new(),
+                    parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                    tokens: crate::ast::tokens::TokenSequence::new(),
+                };
+                crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(placeholder_paragraph)
+            }
+        })
+        .collect();
+
+    // Create a document root node containing all the parsed elements
+    let document_root = crate::ast::ElementNode::SessionContainer(
+        crate::ast::elements::session::session_container::SessionContainer {
+            content: container_elements,
+            annotations: Vec::new(),
+            parameters: crate::ast::elements::components::parameters::Parameters::new(),
+            tokens: crate::ast::tokens::TokenSequence::new(),
+        },
     );
+
+    // Use the proper treeviz system to render the AST
+    let treeviz_output = crate::tools::treeviz::ast_to_tree_notation(&document_root)
+        .map_err(|e| ProcessError::AssemblyError(format!("Treeviz rendering failed: {}", e)))?;
+
+    // Format with document header
+    let result = format!("⧉ Document: {}\n{}", source_path, treeviz_output);
+
     Ok(result)
 }
 

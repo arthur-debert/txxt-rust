@@ -254,11 +254,30 @@ impl BlockParser {
             ));
         }
 
+        // Extract title text from tokens (simple implementation for now)
+        let title_text = tokens
+            .iter()
+            .filter_map(|token| match token {
+                crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join("");
+
+        // Create a simple text transform for the title
+        let title_content = if title_text.is_empty() {
+            Vec::new()
+        } else {
+            vec![crate::ast::elements::inlines::TextTransform::Identity(
+                crate::ast::elements::inlines::TextSpan::simple(&title_text),
+            )]
+        };
+
         // For now, create a simple title without numbering detection
         // TODO: Implement proper numbering detection and parsing
         let title = crate::ast::elements::session::block::SessionTitle {
-            content: Vec::new(), // TODO: Parse inline content
-            numbering: None,     // TODO: Detect and parse numbering
+            content: title_content,
+            numbering: None, // TODO: Detect and parse numbering
             tokens: crate::ast::elements::tokens::TokenSequence::new(),
         };
 

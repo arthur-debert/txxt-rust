@@ -149,8 +149,8 @@ mod tests {
         ));
 
         let content = extract_content_from_node(&session_container, config);
-        // The function returns the type name when no specific extractor is found
-        assert_eq!(content, "SessionContainer");
+        // The function returns the formatted element count for SessionContainer
+        assert_eq!(content, "0 elements");
     }
 
     #[test]

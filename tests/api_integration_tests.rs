@@ -93,8 +93,8 @@ fn test_ast_full_treeviz_format() {
 
     // Verify treeviz structure
     assert!(result.contains("⧉ Document: test.txxt"));
-    assert!(result.contains("📊 Assembly Info:"));
-    assert!(result.contains("Elements:"));
+    assert!(result.contains("Ψ")); // SessionContainer icon
+    assert!(result.contains("¶")); // Paragraph icon
 }
 
 #[test]

@@ -152,3 +152,146 @@
 //!  content, they fall back to paragraph parsing. This disambiguation rule ensures
 //!  clear structural intent and prevents accidental session creation.
 //!
+
+use crate::ast::{
+    elements::{
+        session::{block::SessionBlock, session_container::SessionContainer},
+        tokens::{Token, TokenSequence},
+    },
+    ElementNode,
+};
+use crate::parser::pipeline::parse_blocks::BlockParseError;
+
+/// Parse a session from a sequence of tokens
+///
+/// A session consists of:
+/// 1. A title line (with optional numbering)
+/// 2. A blank line
+/// 3. Indented content (at least one level deeper)
+///
+/// Returns an error if the structure is not a valid session.
+pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> {
+    if tokens.is_empty() {
+        return Err(BlockParseError::InvalidStructure(
+            "Empty token sequence".to_string(),
+        ));
+    }
+
+    // Find the title line (first non-blank token)
+    let title_start = tokens
+        .iter()
+        .position(|t| !matches!(t, Token::BlankLine { .. }));
+    let title_start = match title_start {
+        Some(pos) => pos,
+        None => {
+            return Err(BlockParseError::InvalidStructure(
+                "No title found".to_string(),
+            ))
+        }
+    };
+
+    // Find the end of the title line (next blank line or end of tokens)
+    let title_end = tokens[title_start..]
+        .iter()
+        .position(|t| matches!(t, Token::BlankLine { .. }))
+        .map(|pos| title_start + pos)
+        .unwrap_or(tokens.len());
+
+    if title_end == title_start {
+        return Err(BlockParseError::InvalidStructure("Empty title".to_string()));
+    }
+
+    // Extract title tokens
+    let title_tokens = &tokens[title_start..title_end];
+
+    // Parse the title
+    let title = parse_session_title(title_tokens)?;
+
+    // Find content after the blank line
+    let content_start = title_end + 1; // Skip the blank line
+    if content_start >= tokens.len() {
+        return Err(BlockParseError::InvalidStructure(
+            "No content found after title".to_string(),
+        ));
+    }
+
+    // Extract content tokens (everything after the blank line)
+    let content_tokens = &tokens[content_start..];
+
+    // Parse the content as a SessionContainer
+    let content = parse_session_content(content_tokens)?;
+
+    // Create the session block
+    let session = SessionBlock {
+        title,
+        content,
+        annotations: Vec::new(), // TODO: Parse annotations when implemented
+        parameters: crate::ast::elements::components::parameters::Parameters::new(),
+        tokens: TokenSequence::new(),
+    };
+
+    Ok(session)
+}
+
+/// Parse a session title from tokens
+fn parse_session_title(
+    tokens: &[Token],
+) -> Result<crate::ast::elements::session::block::SessionTitle, BlockParseError> {
+    if tokens.is_empty() {
+        return Err(BlockParseError::InvalidStructure(
+            "Empty title tokens".to_string(),
+        ));
+    }
+
+    // For now, create a simple title without numbering detection
+    // TODO: Implement proper numbering detection and parsing
+    let title = crate::ast::elements::session::block::SessionTitle {
+        content: Vec::new(), // TODO: Parse inline content
+        numbering: None,     // TODO: Detect and parse numbering
+        tokens: TokenSequence::new(),
+    };
+
+    Ok(title)
+}
+
+/// Parse session content as a SessionContainer
+fn parse_session_content(tokens: &[Token]) -> Result<SessionContainer, BlockParseError> {
+    // Create a token tree from the content tokens
+    // For now, we'll create a simple flat structure
+    let token_tree = crate::lexer::pipeline::TokenTree {
+        tokens: tokens.to_vec(),
+        children: Vec::new(), // TODO: Handle nested indentation properly
+    };
+
+    // Use the block parser to parse the content
+    let block_parser = crate::parser::pipeline::parse_blocks::BlockParser::new();
+    let elements = block_parser.parse_blocks(token_tree)?;
+
+    // Convert ElementNode to SessionContainerElement
+    let content: Vec<crate::ast::elements::session::session_container::SessionContainerElement> = elements
+        .into_iter()
+        .map(|element| match element {
+            ElementNode::ParagraphBlock(paragraph) => {
+                Ok(crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(paragraph))
+            }
+            ElementNode::SessionBlock(session) => {
+                Ok(crate::ast::elements::session::session_container::SessionContainerElement::Session(session))
+            }
+            // TODO: Handle other element types as they're implemented
+            _ => {
+                // For now, skip unsupported elements
+                Err(BlockParseError::InvalidStructure(format!("Unsupported element in session content: {:?}", element)))
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // Create the session container
+    let container = SessionContainer {
+        content,
+        annotations: Vec::new(), // TODO: Parse annotations when implemented
+        parameters: crate::ast::elements::components::parameters::Parameters::new(),
+        tokens: TokenSequence::new(),
+    };
+
+    Ok(container)
+}

@@ -94,7 +94,7 @@ fn test_ast_full_treeviz_format() {
     // Verify treeviz structure
     assert!(result.contains("⧉ Document: test.txxt"));
     assert!(result.contains("📊 Assembly Info:"));
-    assert!(result.contains("Stats:"));
+    assert!(result.contains("Elements:"));
 }
 
 #[test]

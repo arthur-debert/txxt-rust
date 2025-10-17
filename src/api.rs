@@ -8,7 +8,6 @@ use serde_json;
 use std::error::Error;
 use std::fmt;
 
-use crate::assembler::Assembler;
 use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use crate::lexer::pipeline::TokenTreeBuilder;
 use crate::lexer::tokenize;
@@ -184,16 +183,31 @@ fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, Pro
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 3a: Assemble document from block tree
-    let assembler = Assembler::new();
-    let document = assembler
-        .assemble_document(token_tree, Some(source_path.to_string()))
-        .map_err(|e| ProcessError::AssemblyError(e.to_string()))?;
+    // Phase 2: Parse blocks (our session parsing implementation)
+    let block_parser = BlockParser::new();
+    let ast_elements = block_parser
+        .parse_blocks(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
 
-    // Serialize to JSON
+    // Phase 2b: Parse inlines (stubbed - returns unchanged)
+    let inline_parser = InlineParser::new();
+    let ast_elements_with_inlines = inline_parser
+        .parse_inlines(ast_elements)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 3: Create document structure with parsed AST elements
     let result = serde_json::json!({
         "source": source_path,
-        "document": document
+        "document": {
+            "content": {
+                "elements": ast_elements_with_inlines,
+                "element_count": ast_elements_with_inlines.len()
+            },
+            "assembly_info": {
+                "parser_version": env!("CARGO_PKG_VERSION"),
+                "processed_at": chrono::Utc::now().to_rfc3339()
+            }
+        }
     });
 
     serde_json::to_string_pretty(&result)
@@ -208,32 +222,32 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 3a: Assemble document from block tree
-    let assembler = Assembler::new();
-    let document = assembler
-        .assemble_document(token_tree, Some(source_path.to_string()))
-        .map_err(|e| ProcessError::AssemblyError(e.to_string()))?;
+    // Phase 2: Parse blocks (our session parsing implementation)
+    let block_parser = BlockParser::new();
+    let ast_elements = block_parser
+        .parse_blocks(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
 
-    // For now, create a simple treeviz representation since Phase 2 parsing isn't implemented
+    // Phase 2b: Parse inlines (stubbed - returns unchanged)
+    let inline_parser = InlineParser::new();
+    let ast_elements_with_inlines = inline_parser
+        .parse_inlines(ast_elements)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 3: Create document structure with parsed AST elements
     let result = format!(
         "⧉ Document: {}\n\
-         ├─ Ψ SessionContainer (placeholder)\n\
-         │   └─ 📋 Phase 2 parsing not yet implemented\n\
-         │       └─ Raw tokens: {} total\n\
+         ├─ Ψ SessionContainer\n\
+         │   └─ {} elements\n\
          └─ 📊 Assembly Info:\n\
              ├─ Parser: {}\n\
              ├─ Processed: {}\n\
-             └─ Stats: {} tokens, {} blocks, depth {}\n",
+             └─ Elements: {}\n",
         source_path,
-        document.assembly_info.stats.token_count,
-        document.assembly_info.parser_version,
-        document
-            .assembly_info
-            .processed_at
-            .unwrap_or("unknown".to_string()),
-        document.assembly_info.stats.token_count,
-        document.assembly_info.stats.block_count,
-        document.assembly_info.stats.max_depth
+        ast_elements_with_inlines.len(),
+        env!("CARGO_PKG_VERSION"),
+        chrono::Utc::now().to_rfc3339(),
+        ast_elements_with_inlines.len()
     );
     Ok(result)
 }
@@ -366,6 +380,12 @@ fn format_element_node(element: &crate::ast::ElementNode) -> String {
             format!(
                 "📝 ParagraphBlock ({} content items)",
                 paragraph.content.len()
+            )
+        }
+        crate::ast::ElementNode::SessionBlock(session) => {
+            format!(
+                "📖 SessionBlock ({} content items)",
+                session.content.content.len()
             )
         }
         // Add other element types as they're implemented

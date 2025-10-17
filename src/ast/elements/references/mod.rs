@@ -46,4 +46,20 @@ pub struct ReferenceSpan {
     pub tokens: TokenSequence,
 }
 
+/// Reference inline element for the formatting system
+///
+/// This is the core reference type used in the inline formatting system.
+/// It provides a simpler interface than ReferenceSpan for basic reference parsing.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Reference {
+    /// Reference target with comprehensive type information
+    pub target: ReferenceTarget,
+
+    /// Optional content (usually None for simple references)
+    pub content: Option<Vec<TextTransform>>,
+
+    /// Source tokens for positioning
+    pub tokens: TokenSequence,
+}
+
 // ReferenceSpan is already defined above, no need to re-export

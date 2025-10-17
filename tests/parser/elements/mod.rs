@@ -7,5 +7,6 @@ mod definition;
 mod formatting;
 mod list;
 mod paragraph;
+mod references;
 mod session;
 mod verbatim;

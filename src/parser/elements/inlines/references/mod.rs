@@ -155,6 +155,415 @@ pub use footnote_ref::*;
 pub use page_ref::*;
 pub use session_ref::*;
 
+// Import necessary types
+use crate::ast::elements::references::reference_types::*;
+use crate::ast::elements::tokens::TokenSequence;
+use crate::ast::elements::formatting::inlines::Inline;
+use crate::parser::elements::inlines::InlineParseError;
+
+/// Extract reference content from bracketed tokens
+///
+/// Removes the opening and closing brackets and returns the inner content.
+/// This is used by all reference type parsers.
+///
+/// # Arguments
+/// * `tokens` - Sequence of tokens containing bracketed reference
+///
+/// # Returns
+/// * `Result<String, InlineParseError>` - Content between brackets
+fn extract_reference_content(tokens: &[crate::ast::tokens::Token]) -> Result<String, InlineParseError> {
+    if tokens.len() < 3 {
+        return Err(InlineParseError::InvalidStructure(
+            "Reference must have at least opening bracket, content, and closing bracket".to_string(),
+        ));
+    }
+
+    // Check for proper bracket pattern
+    let first_token = &tokens[0];
+    let last_token = &tokens[tokens.len() - 1];
+
+    let starts_with_bracket = matches!(first_token, crate::ast::tokens::Token::Text { content, .. } if content == "[");
+    let ends_with_bracket = matches!(last_token, crate::ast::tokens::Token::Text { content, .. } if content == "]");
+
+    if !starts_with_bracket || !ends_with_bracket {
+        return Err(InlineParseError::InvalidStructure(
+            "Reference must be enclosed in square brackets".to_string(),
+        ));
+    }
+
+    // Extract content tokens (everything between brackets)
+    let content_tokens = &tokens[1..tokens.len() - 1];
+    
+    if content_tokens.is_empty() {
+        return Err(InlineParseError::EmptyContent(
+            "Reference content cannot be empty".to_string(),
+        ));
+    }
+
+    // Convert tokens to string content
+    let content = content_tokens
+        .iter()
+        .filter_map(|token| match token {
+            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("");
+
+    if content.trim().is_empty() {
+        return Err(InlineParseError::EmptyContent(
+            "Reference content cannot be empty".to_string(),
+        ));
+    }
+
+    Ok(content)
+}
+
+/// Parse citation entries from citation content
+///
+/// Handles formats like "@key1; @key2, p. 123" and extracts individual citations.
+///
+/// # Arguments
+/// * `content` - Citation content string (without brackets)
+///
+/// # Returns
+/// * `Result<Vec<CitationEntry>, InlineParseError>` - Parsed citation entries
+fn parse_citation_entries(content: &str) -> Result<Vec<CitationEntry>, InlineParseError> {
+    if !content.starts_with('@') {
+        return Err(InlineParseError::InvalidStructure(
+            "Citation must start with @ symbol".to_string(),
+        ));
+    }
+
+    // Simple citation parsing - split by semicolons for multiple citations
+    let citation_parts: Vec<&str> = content.split(';').collect();
+    let mut citations = Vec::new();
+
+    for part in citation_parts {
+        let trimmed = part.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        // Parse individual citation: @key or @key, locator
+        if let Some(citation) = parse_single_citation(trimmed)? {
+            citations.push(citation);
+        }
+    }
+
+    if citations.is_empty() {
+        return Err(InlineParseError::InvalidStructure(
+            "No valid citations found".to_string(),
+        ));
+    }
+
+    Ok(citations)
+}
+
+/// Parse a single citation entry
+///
+/// Handles formats like "@key" or "@key, p. 123".
+///
+/// # Arguments
+/// * `citation_str` - Single citation string
+///
+/// # Returns
+/// * `Result<Option<CitationEntry>, InlineParseError>` - Parsed citation or None if invalid
+fn parse_single_citation(citation_str: &str) -> Result<Option<CitationEntry>, InlineParseError> {
+    if !citation_str.starts_with('@') {
+        return Ok(None);
+    }
+
+    let content = &citation_str[1..]; // Remove @ symbol
+    
+    // Split by comma to separate key from locator
+    let parts: Vec<&str> = content.splitn(2, ',').collect();
+    let key = parts[0].trim().to_string();
+    
+    if key.is_empty() {
+        return Err(InlineParseError::InvalidStructure(
+            "Citation key cannot be empty".to_string(),
+        ));
+    }
+
+    let locator = if parts.len() > 1 {
+        let loc = parts[1].trim();
+        if loc.is_empty() { None } else { Some(loc.to_string()) }
+    } else {
+        None
+    };
+
+    Ok(Some(CitationEntry {
+        key,
+        locator,
+        prefix: None,
+        suffix: None,
+    }))
+}
+
+/// Parse section identifier from section reference content
+///
+/// Handles numeric formats like "3", "2.1", "-1.2" and mixed formats.
+///
+/// # Arguments
+/// * `content` - Section reference content (after # symbol)
+///
+/// # Returns
+/// * `SectionIdentifier` - Parsed section identifier
+fn parse_section_identifier(content: &str) -> SectionIdentifier {
+    let content = content.trim();
+    
+    // Check for negative indexing
+    let (negative_index, numeric_content) = if content.starts_with('-') {
+        (true, &content[1..])
+    } else {
+        (false, content)
+    };
+
+    // Try to parse as numeric levels (e.g., "1.2.3")
+    if let Ok(levels) = parse_numeric_levels(numeric_content) {
+        if !levels.is_empty() {
+            return SectionIdentifier::Numeric {
+                levels,
+                negative_index,
+            };
+        }
+    }
+
+    // Fall back to named identifier
+    SectionIdentifier::Named {
+        name: content.to_string(),
+    }
+}
+
+/// Parse numeric section levels from string
+///
+/// Converts "1.2.3" to vec![1, 2, 3].
+///
+/// # Arguments
+/// * `content` - Numeric content string
+///
+/// # Returns
+/// * `Result<Vec<u32>, InlineParseError>` - Parsed numeric levels
+fn parse_numeric_levels(content: &str) -> Result<Vec<u32>, InlineParseError> {
+    if content.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let parts: Vec<&str> = content.split('.').collect();
+    let mut levels = Vec::new();
+
+    for part in parts {
+        if let Ok(level) = part.parse::<u32>() {
+            levels.push(level);
+        } else {
+            // If any part isn't numeric, this isn't a numeric identifier
+            return Err(InlineParseError::InvalidStructure(
+                "Invalid numeric section level".to_string(),
+            ));
+        }
+    }
+
+    Ok(levels)
+}
+
+/// General reference parser that dispatches to specific type parsers
+///
+/// Uses the ReferenceClassifier to determine reference type and route to
+/// the appropriate parser function.
+///
+/// # Arguments
+/// * `tokens` - Sequence of tokens containing reference
+///
+/// # Returns
+/// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
+pub fn parse_reference(
+    tokens: &[crate::ast::tokens::Token],
+) -> Result<
+    crate::ast::elements::formatting::inlines::Inline,
+    crate::parser::elements::inlines::InlineParseError,
+> {
+    
+    if tokens.is_empty() {
+        return Err(InlineParseError::InvalidStructure(
+            "Empty reference tokens".to_string(),
+        ));
+    }
+
+    // Extract content to determine reference type
+    let content = extract_reference_content(tokens)?;
+    
+    // Classify reference type using the specification order
+    let classifier = ReferenceClassifier::new();
+    let ref_type = classifier.classify(&content);
+
+    // Route to appropriate parser based on type
+    match ref_type {
+        SimpleReferenceType::Citation => parse_citation(tokens),
+        SimpleReferenceType::Footnote => parse_footnote_ref(tokens),
+        SimpleReferenceType::Section => parse_session_ref(tokens),
+        SimpleReferenceType::Url => parse_url_reference(tokens),
+        SimpleReferenceType::File => parse_file_reference(tokens),
+        SimpleReferenceType::ToComeTK => parse_tk_reference(tokens),
+        SimpleReferenceType::NotSure => parse_not_sure_reference(tokens),
+    }
+}
+
+/// Parse URL reference from tokens
+///
+/// Handles URL patterns like "https://example.com" or "example.com".
+///
+/// # Arguments
+/// * `tokens` - Sequence of tokens containing URL reference
+///
+/// # Returns
+/// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
+fn parse_url_reference(
+    tokens: &[crate::ast::tokens::Token],
+) -> Result<
+    crate::ast::elements::formatting::inlines::Inline,
+    InlineParseError,
+> {
+    
+    let content = extract_reference_content(tokens)?;
+    
+    // Parse URL - could have fragment
+    let (url, fragment) = if let Some(hash_pos) = content.find('#') {
+        let url_part = content[..hash_pos].to_string();
+        let fragment_part = content[hash_pos + 1..].to_string();
+        (url_part, Some(fragment_part))
+    } else {
+        (content.clone(), None)
+    };
+
+    let reference_target = ReferenceTarget::Url {
+        url,
+        fragment,
+        raw: format!("[{}]", content),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    Ok(Inline::Reference(reference))
+}
+
+/// Parse file reference from tokens
+///
+/// Handles file patterns like "./file.txt" or "../dir/file.txt".
+///
+/// # Arguments
+/// * `tokens` - Sequence of tokens containing file reference
+///
+/// # Returns
+/// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
+fn parse_file_reference(
+    tokens: &[crate::ast::tokens::Token],
+) -> Result<
+    crate::ast::elements::formatting::inlines::Inline,
+    InlineParseError,
+> {
+    
+    let content = extract_reference_content(tokens)?;
+    
+    // Parse file path - could have section anchor
+    let (path, section) = if let Some(hash_pos) = content.find('#') {
+        let path_part = content[..hash_pos].to_string();
+        let section_part = content[hash_pos + 1..].to_string();
+        (path_part, Some(section_part))
+    } else {
+        (content.clone(), None)
+    };
+
+    let reference_target = ReferenceTarget::File {
+        path,
+        section,
+        raw: format!("[{}]", content),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    Ok(Inline::Reference(reference))
+}
+
+/// Parse TK (To Come) reference from tokens
+///
+/// Handles TK patterns like "TK" or "TK-identifier".
+///
+/// # Arguments
+/// * `tokens` - Sequence of tokens containing TK reference
+///
+/// # Returns
+/// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
+fn parse_tk_reference(
+    tokens: &[crate::ast::tokens::Token],
+) -> Result<
+    crate::ast::elements::formatting::inlines::Inline,
+    InlineParseError,
+> {
+    
+    let content = extract_reference_content(tokens)?;
+    
+    // TK references are treated as unresolved placeholders
+    let reference_target = ReferenceTarget::Unresolved {
+        content: content.clone(),
+        raw: format!("[{}]", content),
+        reason: Some("TK placeholder".to_string()),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    Ok(Inline::Reference(reference))
+}
+
+/// Parse unresolved/not-sure reference from tokens
+///
+/// Handles references that don't match any specific pattern.
+///
+/// # Arguments
+/// * `tokens` - Sequence of tokens containing unresolved reference
+///
+/// # Returns
+/// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
+fn parse_not_sure_reference(
+    tokens: &[crate::ast::tokens::Token],
+) -> Result<
+    crate::ast::elements::formatting::inlines::Inline,
+    InlineParseError,
+> {
+    
+    let content = extract_reference_content(tokens)?;
+    
+    let reference_target = ReferenceTarget::Unresolved {
+        content: content.clone(),
+        raw: format!("[{}]", content),
+        reason: Some("Unresolved reference type".to_string()),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    Ok(Inline::Reference(reference))
+}
+
 /// Parse citation references from tokens
 ///
 /// Handles academic and scholarly citations using the `[@key]` pattern.
@@ -184,8 +593,8 @@ pub fn parse_citation(
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
-    // TODO: Implement citation parsing logic
-    // For now, return a placeholder
+    use crate::ast::elements::references::reference_types::*;
+    use crate::ast::elements::tokens::TokenSequence;
 
     if tokens.is_empty() {
         return Err(
@@ -195,32 +604,34 @@ pub fn parse_citation(
         );
     }
 
-    // Convert all tokens to plain text for now
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
-
-    if text_content.is_empty() {
+    // Extract content from bracket pattern
+    let content = extract_reference_content(tokens)?;
+    
+    // Parse citation pattern (@key1; @key2, p. 123)
+    let citations = parse_citation_entries(&content)?;
+    
+    if citations.is_empty() {
         return Err(
-            crate::parser::elements::inlines::InlineParseError::EmptyContent(
-                "Empty citation content".to_string(),
+            crate::parser::elements::inlines::InlineParseError::InvalidStructure(
+                "No valid citation entries found".to_string(),
             ),
         );
     }
 
-    // Create a simple text inline for now
-    let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
-        crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
-        ),
-    );
+    // Create Reference AST node with Citation target
+    let reference_target = ReferenceTarget::Citation {
+        citations,
+        raw: format!("[{}]", content),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
 
-    Ok(text_inline)
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
+
+    Ok(Inline::Reference(reference))
 }
 
 /// Parse footnote references from tokens
@@ -252,8 +663,8 @@ pub fn parse_footnote_ref(
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
-    // TODO: Implement footnote reference parsing logic
-    // For now, return a placeholder
+    use crate::ast::elements::references::reference_types::*;
+    use crate::ast::elements::tokens::TokenSequence;
 
     if tokens.is_empty() {
         return Err(
@@ -263,32 +674,44 @@ pub fn parse_footnote_ref(
         );
     }
 
-    // Convert all tokens to plain text for now
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
-
-    if text_content.is_empty() {
+    // Extract content from bracket pattern
+    let content = extract_reference_content(tokens)?;
+    
+    // Determine if this is naked numerical or labeled footnote
+    let reference_target = if content.starts_with('^') {
+        // Labeled footnote [^label]
+        let label = content[1..].to_string();
+        ReferenceTarget::NamedAnchor {
+            anchor: label,
+            raw: format!("[{}]", content),
+            tokens: TokenSequence::from_tokens(tokens.to_vec()),
+        }
+    } else if content.chars().all(|c| c.is_ascii_digit()) {
+        // Naked numerical footnote [1]
+        let number = content.parse::<u32>()
+            .map_err(|_| crate::parser::elements::inlines::InlineParseError::InvalidStructure(
+                "Invalid footnote number".to_string(),
+            ))?;
+        ReferenceTarget::NakedNumerical {
+            number,
+            raw: format!("[{}]", content),
+            tokens: TokenSequence::from_tokens(tokens.to_vec()),
+        }
+    } else {
         return Err(
-            crate::parser::elements::inlines::InlineParseError::EmptyContent(
-                "Empty footnote content".to_string(),
+            crate::parser::elements::inlines::InlineParseError::InvalidStructure(
+                "Invalid footnote format".to_string(),
             ),
         );
-    }
+    };
 
-    // Create a simple text inline for now
-    let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
-        crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
-        ),
-    );
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
 
-    Ok(text_inline)
+    Ok(Inline::Reference(reference))
 }
 
 /// Parse page references from tokens
@@ -320,9 +743,7 @@ pub fn parse_page_ref(
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
-    // TODO: Implement page reference parsing logic
-    // For now, return a placeholder
-
+    
     if tokens.is_empty() {
         return Err(
             crate::parser::elements::inlines::InlineParseError::InvalidStructure(
@@ -331,32 +752,25 @@ pub fn parse_page_ref(
         );
     }
 
-    // Convert all tokens to plain text for now
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
+    // Extract content from bracket pattern
+    let content = extract_reference_content(tokens)?;
+    
+    // Page references are treated as unresolved for now
+    // In the future, this could parse page:123, pages:123-125, etc.
+    let reference_target = ReferenceTarget::Unresolved {
+        content: content.clone(),
+        raw: format!("[{}]", content),
+        reason: Some("Page reference not fully implemented".to_string()),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
 
-    if text_content.is_empty() {
-        return Err(
-            crate::parser::elements::inlines::InlineParseError::EmptyContent(
-                "Empty page reference content".to_string(),
-            ),
-        );
-    }
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
 
-    // Create a simple text inline for now
-    let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
-        crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
-        ),
-    );
-
-    Ok(text_inline)
+    Ok(Inline::Reference(reference))
 }
 
 /// Parse session references from tokens
@@ -388,8 +802,8 @@ pub fn parse_session_ref(
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
-    // TODO: Implement session reference parsing logic
-    // For now, return a placeholder
+    use crate::ast::elements::references::reference_types::*;
+    use crate::ast::elements::tokens::TokenSequence;
 
     if tokens.is_empty() {
         return Err(
@@ -399,30 +813,30 @@ pub fn parse_session_ref(
         );
     }
 
-    // Convert all tokens to plain text for now
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
+    // Extract content from bracket pattern
+    let content = extract_reference_content(tokens)?;
+    
+    let identifier = if content.starts_with('#') {
+        // Parse numeric section reference: #3, #2.1, #-1.2
+        parse_section_identifier(&content[1..])
+    } else {
+        // Named section reference: local-section
+        SectionIdentifier::Named {
+            name: content.clone(),
+        }
+    };
 
-    if text_content.is_empty() {
-        return Err(
-            crate::parser::elements::inlines::InlineParseError::EmptyContent(
-                "Empty session reference content".to_string(),
-            ),
-        );
-    }
+    let reference_target = ReferenceTarget::Section {
+        identifier,
+        raw: format!("[{}]", content),
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
 
-    // Create a simple text inline for now
-    let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
-        crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
-        ),
-    );
+    let reference = crate::ast::elements::references::Reference {
+        target: reference_target,
+        content: None,
+        tokens: TokenSequence::from_tokens(tokens.to_vec()),
+    };
 
-    Ok(text_inline)
+    Ok(Inline::Reference(reference))
 }

@@ -42,7 +42,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use super::super::{
-    references::reference_types::ReferenceTarget,
     tokens::{Token, TokenSequence},
 };
 
@@ -81,16 +80,7 @@ pub enum Inline {
 
     /// Reference to document elements (citations, cross-refs, etc.)
     /// Examples: [filename.txxt], [#section], [@smith2023], [#hello-world], [1]
-    Reference {
-        /// Comprehensive reference target with full type information
-        target: ReferenceTarget,
-
-        /// Optional custom display content (if not auto-generated)
-        content: Option<Vec<Inline>>,
-
-        /// Raw tokens for language server support
-        tokens: TokenSequence,
-    },
+    Reference(crate::ast::elements::references::Reference),
 
     /// Future extensibility for custom inline types
     Custom {

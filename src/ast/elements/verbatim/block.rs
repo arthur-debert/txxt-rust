@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::{
@@ -40,7 +40,7 @@ pub struct VerbatimBlock {
     pub annotations: Vec<Annotation>,
 
     /// Raw tokens for source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Types of verbatim blocks
@@ -58,7 +58,7 @@ impl TxxtElement for VerbatimBlock {
         ElementType::Block
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -86,7 +86,7 @@ impl VerbatimBlock {
         verbatim_type: VerbatimType,
         parameters: Parameters,
         annotations: Vec<Annotation>,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             title,

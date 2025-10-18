@@ -28,11 +28,11 @@
 //!
 //! # Input/Output
 //!
-//! - **Input**: `TokenTree` from lexer (Phase 1c)
+//! - **Input**: `ScannerTokenTree` from lexer (Phase 1c)
 //! - **Output**: AST tree of `ElementNode` variants
 
 use crate::ast::ElementNode;
-use crate::lexer::pipeline::TokenTree;
+use crate::lexer::pipeline::ScannerTokenTree;
 use crate::parser::elements::{
     paragraph::paragraph::parse_paragraph, session::session::parse_session,
 };
@@ -82,7 +82,7 @@ impl BlockParser {
     ///
     /// 2. Baz       // This is a LIST (no blank line before)
     /// ```
-    pub fn parse_blocks(&self, token_tree: TokenTree) -> Result<Vec<ElementNode>, BlockParseError> {
+    pub fn parse_blocks(&self, token_tree: ScannerTokenTree) -> Result<Vec<ElementNode>, BlockParseError> {
         let mut elements = Vec::new();
         let root_tokens = token_tree.tokens.as_slice();
         let mut children = token_tree.children.as_slice();
@@ -94,8 +94,8 @@ impl BlockParser {
             .filter(|token| {
                 !matches!(
                     token,
-                    crate::ast::tokens::Token::Eof { .. }
-                        | crate::ast::tokens::Token::BlankLine { .. }
+                    crate::ast::scanner_tokens::ScannerToken::Eof { .. }
+                        | crate::ast::scanner_tokens::ScannerToken::BlankLine { .. }
                 )
             })
             .cloned()
@@ -106,7 +106,7 @@ impl BlockParser {
             // Extract the first line of tokens
             let line_end = root_tokens
                 .iter()
-                .position(|t| matches!(t, crate::ast::tokens::Token::Newline { .. }))
+                .position(|t| matches!(t, crate::ast::scanner_tokens::ScannerToken::Newline { .. }))
                 .map(|p| p + 1)
                 .unwrap_or(root_tokens.len());
 
@@ -136,7 +136,7 @@ impl BlockParser {
                     if self.is_potential_session(line_tokens, &children[0]) {
                         // This is a SESSION - it has proper whitespace enclosure
                         let mut session_tokens = line_tokens.to_vec();
-                        session_tokens.push(crate::ast::tokens::Token::BlankLine {
+                        session_tokens.push(crate::ast::scanner_tokens::ScannerToken::BlankLine {
                             whitespace: String::new(),
                             span: children[0].tokens[0].span().clone(),
                         });
@@ -250,15 +250,15 @@ impl BlockParser {
     /// Sessions are identified by patterns like:
     /// - Text title followed by blank line followed by indented content
     /// - Sequence marker followed by text followed by blank line followed by indented content
-    fn find_session_boundaries(&self, tokens: &[crate::ast::tokens::Token]) -> Vec<usize> {
+    fn find_session_boundaries(&self, tokens: &[crate::ast::scanner_tokens::ScannerToken]) -> Vec<usize> {
         let mut boundaries = Vec::new();
 
         for (i, token) in tokens.iter().enumerate() {
             // Look for text tokens that could be session titles
-            if matches!(token, crate::ast::tokens::Token::Text { .. }) {
+            if matches!(token, crate::ast::scanner_tokens::ScannerToken::Text { .. }) {
                 // Check if this text is at the start of a line (after whitespace or at beginning)
                 let is_at_line_start =
-                    i == 0 || matches!(tokens[i - 1], crate::ast::tokens::Token::Whitespace { .. });
+                    i == 0 || matches!(tokens[i - 1], crate::ast::scanner_tokens::ScannerToken::Whitespace { .. });
 
                 if is_at_line_start {
                     // Look ahead to see if this is followed by a blank line and then indented content
@@ -280,11 +280,11 @@ impl BlockParser {
     /// Find a blank line after a given position
     fn find_blank_line_after(
         &self,
-        tokens: &[crate::ast::tokens::Token],
+        tokens: &[crate::ast::scanner_tokens::ScannerToken],
         start_pos: usize,
     ) -> Option<usize> {
         for (i, token) in tokens.iter().enumerate().skip(start_pos + 1) {
-            if matches!(token, crate::ast::tokens::Token::BlankLine { .. }) {
+            if matches!(token, crate::ast::scanner_tokens::ScannerToken::BlankLine { .. }) {
                 return Some(i);
             }
         }
@@ -294,13 +294,13 @@ impl BlockParser {
     /// Find indented content after a blank line
     fn find_indented_content_after(
         &self,
-        tokens: &[crate::ast::tokens::Token],
+        tokens: &[crate::ast::scanner_tokens::ScannerToken],
         blank_line_pos: usize,
     ) -> Option<usize> {
         for (i, token) in tokens.iter().enumerate().skip(blank_line_pos + 1) {
-            if matches!(token, crate::ast::tokens::Token::Whitespace { .. }) {
+            if matches!(token, crate::ast::scanner_tokens::ScannerToken::Whitespace { .. }) {
                 // Check if this whitespace represents indentation (multiple spaces)
-                if let crate::ast::tokens::Token::Whitespace { content, .. } = token {
+                if let crate::ast::scanner_tokens::ScannerToken::Whitespace { content, .. } = token {
                     if content.len() >= 4 {
                         // At least 4 spaces for indentation
                         return Some(i);
@@ -314,12 +314,12 @@ impl BlockParser {
     /// Try to parse tokens as a session
     fn try_parse_as_session(
         &self,
-        tokens: &[crate::ast::tokens::Token],
+        tokens: &[crate::ast::scanner_tokens::ScannerToken],
     ) -> Result<crate::ast::elements::session::SessionBlock, BlockParseError> {
         // Find the first line (up to newline)
         let line_end = tokens
             .iter()
-            .position(|t| matches!(t, crate::ast::tokens::Token::Newline { .. }))
+            .position(|t| matches!(t, crate::ast::scanner_tokens::ScannerToken::Newline { .. }))
             .map(|p| p + 1)
             .unwrap_or(tokens.len());
 
@@ -327,11 +327,11 @@ impl BlockParser {
 
         // Add a blank line after the title for session parsing
         let mut session_tokens = title_tokens.to_vec();
-        session_tokens.push(crate::ast::tokens::Token::BlankLine {
+        session_tokens.push(crate::ast::scanner_tokens::ScannerToken::BlankLine {
             whitespace: String::new(),
-            span: crate::ast::tokens::SourceSpan {
-                start: crate::ast::tokens::Position { row: 0, column: 0 },
-                end: crate::ast::tokens::Position { row: 0, column: 0 },
+            span: crate::ast::scanner_tokens::SourceSpan {
+                start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
+                end: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
             },
         });
 
@@ -342,21 +342,21 @@ impl BlockParser {
     }
 
     /// Check if tokens represent a definition marker (ends with ::)
-    fn is_definition_marker(&self, tokens: &[crate::ast::tokens::Token]) -> bool {
+    fn is_definition_marker(&self, tokens: &[crate::ast::scanner_tokens::ScannerToken]) -> bool {
         // Look for :: at the end of the line
         // This is a simplified check - in practice we'd need to look for two consecutive colons
         tokens
             .iter()
-            .any(|token| matches!(token, crate::ast::tokens::Token::Colon { .. }))
+            .any(|token| matches!(token, crate::ast::scanner_tokens::ScannerToken::Colon { .. }))
     }
 
     /// Check if tokens represent an annotation marker (starts with ::)
-    fn is_annotation_marker(&self, tokens: &[crate::ast::tokens::Token]) -> bool {
+    fn is_annotation_marker(&self, tokens: &[crate::ast::scanner_tokens::ScannerToken]) -> bool {
         // Look for :: at the start of the line
         // This is a simplified check - in practice we'd need to look for two consecutive colons
         tokens
             .first()
-            .is_some_and(|token| matches!(token, crate::ast::tokens::Token::Colon { .. }))
+            .is_some_and(|token| matches!(token, crate::ast::scanner_tokens::ScannerToken::Colon { .. }))
     }
 
     /// Check if a line with indented content is a potential session
@@ -369,8 +369,8 @@ impl BlockParser {
     /// the indented content represents a session container.
     fn is_potential_session(
         &self,
-        line_tokens: &[crate::ast::tokens::Token],
-        child_tree: &TokenTree,
+        line_tokens: &[crate::ast::scanner_tokens::ScannerToken],
+        child_tree: &ScannerTokenTree,
     ) -> bool {
         // A session is identified by:
         // 1. Having indented content (we know this is true)
@@ -380,7 +380,7 @@ impl BlockParser {
         // Check if the child tree starts with a blank line (whitespace enclosure)
         // This indicates the content is properly separated and likely a session
         if let Some(first_token) = child_tree.tokens.first() {
-            if matches!(first_token, crate::ast::tokens::Token::BlankLine { .. }) {
+            if matches!(first_token, crate::ast::scanner_tokens::ScannerToken::BlankLine { .. }) {
                 return true;
             }
         }
@@ -389,11 +389,11 @@ impl BlockParser {
         // Sessions can have sequence markers or be plain text
         let has_sequence_marker = line_tokens
             .iter()
-            .any(|token| matches!(token, crate::ast::tokens::Token::SequenceMarker { .. }));
+            .any(|token| matches!(token, crate::ast::scanner_tokens::ScannerToken::SequenceMarker { .. }));
 
         let has_text_content = line_tokens
             .iter()
-            .any(|token| matches!(token, crate::ast::tokens::Token::Text { .. }));
+            .any(|token| matches!(token, crate::ast::scanner_tokens::ScannerToken::Text { .. }));
 
         // If it has either a sequence marker or text content, and has indented children,
         // it's likely a session (as opposed to a list which would have different patterns)
@@ -403,10 +403,10 @@ impl BlockParser {
     /// Split tokens into paragraph groups based on BlankLine boundaries
     fn split_into_paragraphs(
         &self,
-        tokens: &[crate::ast::tokens::Token],
-    ) -> Vec<Vec<crate::ast::tokens::Token>> {
+        tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    ) -> Vec<Vec<crate::ast::scanner_tokens::ScannerToken>> {
         tokens
-            .split(|token| matches!(token, crate::ast::tokens::Token::BlankLine { .. }))
+            .split(|token| matches!(token, crate::ast::scanner_tokens::ScannerToken::BlankLine { .. }))
             .map(|s| s.to_vec())
             .filter(|s| !s.is_empty())
             .collect()
@@ -422,7 +422,7 @@ pub enum BlockParseError {
     UnsupportedBlockType(String),
     /// Parse error at specific position
     ParseError {
-        position: crate::ast::tokens::Position,
+        position: crate::ast::scanner_tokens::Position,
         message: String,
     },
 }
@@ -446,7 +446,7 @@ impl std::error::Error for BlockParseError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::tokens::{Position, SourceSpan, Token};
+    use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
 
     #[test]
     fn test_block_parser_creation() {
@@ -458,7 +458,7 @@ mod tests {
     #[test]
     fn test_parse_blocks_placeholder() {
         let parser = BlockParser::new();
-        let token_tree = TokenTree {
+        let token_tree = ScannerTokenTree {
             tokens: vec![],
             children: vec![],
         };
@@ -475,28 +475,28 @@ mod tests {
 
         // Create tokens for "This is a simple paragraph."
         let tokens = vec![
-            Token::Text {
+            ScannerToken::Text {
                 content: "This".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 0 },
                     end: Position { row: 0, column: 4 },
                 },
             },
-            Token::Whitespace {
+            ScannerToken::Whitespace {
                 content: " ".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 4 },
                     end: Position { row: 0, column: 5 },
                 },
             },
-            Token::Text {
+            ScannerToken::Text {
                 content: "is".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 5 },
                     end: Position { row: 0, column: 7 },
                 },
             },
-            Token::Period {
+            ScannerToken::Period {
                 span: SourceSpan {
                     start: Position { row: 0, column: 7 },
                     end: Position { row: 0, column: 8 },
@@ -524,75 +524,75 @@ mod tests {
 
         // Create tokens for "This is a simple paragraph."
         let tokens = vec![
-            Token::Whitespace {
+            ScannerToken::Whitespace {
                 content: " ".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 4 },
                     end: Position { row: 0, column: 5 },
                 },
             },
-            Token::Text {
+            ScannerToken::Text {
                 content: "is".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 5 },
                     end: Position { row: 0, column: 7 },
                 },
             },
-            Token::Whitespace {
+            ScannerToken::Whitespace {
                 content: " ".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 7 },
                     end: Position { row: 0, column: 8 },
                 },
             },
-            Token::Text {
+            ScannerToken::Text {
                 content: "a".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 8 },
                     end: Position { row: 0, column: 9 },
                 },
             },
-            Token::Whitespace {
+            ScannerToken::Whitespace {
                 content: " ".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 9 },
                     end: Position { row: 0, column: 10 },
                 },
             },
-            Token::Text {
+            ScannerToken::Text {
                 content: "simple".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 10 },
                     end: Position { row: 0, column: 16 },
                 },
             },
-            Token::Whitespace {
+            ScannerToken::Whitespace {
                 content: " ".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 16 },
                     end: Position { row: 0, column: 17 },
                 },
             },
-            Token::Text {
+            ScannerToken::Text {
                 content: "paragraph".to_string(),
                 span: SourceSpan {
                     start: Position { row: 0, column: 17 },
                     end: Position { row: 0, column: 26 },
                 },
             },
-            Token::Period {
+            ScannerToken::Period {
                 span: SourceSpan {
                     start: Position { row: 0, column: 26 },
                     end: Position { row: 0, column: 27 },
                 },
             },
-            Token::Newline {
+            ScannerToken::Newline {
                 span: SourceSpan {
                     start: Position { row: 0, column: 27 },
                     end: Position { row: 1, column: 0 },
                 },
             },
-            Token::Eof {
+            ScannerToken::Eof {
                 span: SourceSpan {
                     start: Position { row: 1, column: 0 },
                     end: Position { row: 1, column: 0 },
@@ -600,7 +600,7 @@ mod tests {
             },
         ];
 
-        let token_tree = TokenTree {
+        let token_tree = ScannerTokenTree {
             tokens,
             children: vec![],
         };

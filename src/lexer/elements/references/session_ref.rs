@@ -10,7 +10,7 @@
 //! within documents and better language server support compared to generic
 //! reference markers.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
 
 /// Lexer trait for session reference parsing
 pub trait SessionRefLexer {
@@ -25,7 +25,7 @@ pub trait SessionRefLexer {
 }
 
 /// Read a session reference token ([#1.2])
-pub fn read_session_ref<L: SessionRefLexer>(lexer: &mut L) -> Option<Token> {
+pub fn read_session_ref<L: SessionRefLexer>(lexer: &mut L) -> Option<ScannerToken> {
     let start_pos = lexer.current_position();
     let saved_position = lexer.position();
     let saved_row = lexer.row();
@@ -56,7 +56,7 @@ pub fn read_session_ref<L: SessionRefLexer>(lexer: &mut L) -> Option<Token> {
             if is_valid_session_content(&content) {
                 lexer.advance(); // consume ]
 
-                return Some(Token::SessionRef {
+                return Some(ScannerToken::SessionRef {
                     content,
                     span: SourceSpan {
                         start: start_pos,
@@ -113,7 +113,7 @@ fn is_valid_session_content(content: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::tokens::Position;
+    use crate::ast::scanner_tokens::Position;
 
     struct MockLexer {
         input: Vec<char>,
@@ -190,7 +190,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, "1");
             }
             _ => panic!("Expected SessionRef token"),
@@ -204,7 +204,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, "1.2");
             }
             _ => panic!("Expected SessionRef token"),
@@ -218,7 +218,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, "1.2.3");
             }
             _ => panic!("Expected SessionRef token"),
@@ -232,7 +232,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, "10.20.30");
             }
             _ => panic!("Expected SessionRef token"),
@@ -302,7 +302,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, "-1");
             }
             _ => panic!("Expected SessionRef token"),
@@ -316,7 +316,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, "1.-1.2");
             }
             _ => panic!("Expected SessionRef token"),

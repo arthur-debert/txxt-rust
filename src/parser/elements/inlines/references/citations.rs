@@ -53,7 +53,7 @@
 //!     │   │   │   └── suffix: Option<String>
 //!     │   │   └── locator: Option<String>
 //!     │   ├── content: Option<Vec<Inline>>
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! ## Processing Rules
@@ -137,7 +137,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("[@smith2023, p. 123]");
 /// let citation = parse_citation(&tokens)?;
 /// ```
-pub fn parse_citation(tokens: &[crate::ast::tokens::Token]) -> Result<Inline, InlineParseError> {
+pub fn parse_citation(tokens: &[crate::ast::scanner_tokens::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement citation parsing logic
     // For now, return a placeholder
 
@@ -151,7 +151,7 @@ pub fn parse_citation(tokens: &[crate::ast::tokens::Token]) -> Result<Inline, In
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
+            crate::ast::scanner_tokens::ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()

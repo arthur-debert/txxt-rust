@@ -36,11 +36,11 @@
 //!     │   ├── items: Vec<ListItem>
 //!     │   │   ├── marker: SequenceMarker
 //!     │   │   ├── content: Vec<Inline>
-//!     │   │   └── tokens: TokenSequence
+//!     │   │   └── tokens: ScannerTokenSequence
 //!     │   ├── decoration: ListDecoration
 //!         Annotations attached to this element, post parsing at assembly (during time aanotations are regular items in container)
 //!     │   ├── annotations: Vec<Annotation>
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! Key structural properties:
@@ -61,7 +61,7 @@
 //!         Annotations attached to this list
 //!     pub annotations: Vec<Annotation>,
 //!     /// Raw tokens for precise source reconstruction
-//!     pub tokens: TokenSequence,
+//!     pub tokens: ScannerTokenSequence,
 //! }
 //! ```
 //!

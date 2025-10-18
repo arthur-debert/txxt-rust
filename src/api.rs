@@ -9,7 +9,7 @@ use std::error::Error;
 use std::fmt;
 
 use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
-use crate::lexer::pipeline::TokenTreeBuilder;
+use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
 use crate::parser::pipeline::{BlockParser, InlineParser};
 
@@ -18,7 +18,7 @@ pub enum OutputFormat {
     // Phase 1: Lexer outputs
     VerbatimMarks,
     TokenStream,
-    TokenTree,
+    ScannerTokenTree,
 
     // Phase 2: Parser outputs (WIP)
     AstNoInlineTreeviz,
@@ -38,7 +38,7 @@ impl std::str::FromStr for OutputFormat {
         match s {
             "verbatim-marks" => Ok(OutputFormat::VerbatimMarks),
             "token-stream" => Ok(OutputFormat::TokenStream),
-            "token-tree" => Ok(OutputFormat::TokenTree),
+            "token-tree" => Ok(OutputFormat::ScannerTokenTree),
             "ast-no-inline-treeviz" => Ok(OutputFormat::AstNoInlineTreeviz),
             "ast-no-inline-json" => Ok(OutputFormat::AstNoInlineJson),
             "ast-treeviz" => Ok(OutputFormat::AstTreeviz),
@@ -86,7 +86,7 @@ pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
         // Phase 1: Lexer outputs
         OutputFormat::VerbatimMarks => process_verbatim_marks(&args.content, &args.source_path),
         OutputFormat::TokenStream => process_token_stream(&args.content, &args.source_path),
-        OutputFormat::TokenTree => process_token_tree(&args.content, &args.source_path),
+        OutputFormat::ScannerTokenTree => process_token_tree(&args.content, &args.source_path),
 
         // Phase 2: Parser outputs
         OutputFormat::AstNoInlineTreeviz => {
@@ -148,7 +148,7 @@ fn process_token_stream(content: &str, source_path: &str) -> Result<String, Proc
 
 fn process_token_tree(content: &str, source_path: &str) -> Result<String, ProcessError> {
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -165,8 +165,8 @@ fn process_token_tree(content: &str, source_path: &str) -> Result<String, Proces
         .map_err(|e| ProcessError::SerializationError(e.to_string()))
 }
 
-/// Helper function to serialize TokenTree to JSON
-fn serialize_token_tree(tree: &crate::lexer::pipeline::TokenTree) -> serde_json::Value {
+/// Helper function to serialize ScannerTokenTree to JSON
+fn serialize_token_tree(tree: &crate::lexer::pipeline::ScannerTokenTree) -> serde_json::Value {
     serde_json::json!({
         "tokens": tree.tokens,
         "children": tree.children.iter().map(serialize_token_tree).collect::<Vec<_>>()
@@ -178,7 +178,7 @@ fn serialize_token_tree(tree: &crate::lexer::pipeline::TokenTree) -> serde_json:
 fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -217,7 +217,7 @@ fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, Pro
 fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -252,7 +252,7 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
                     content: vec![], // Empty content for now
                     annotations: Vec::new(),
                     parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                    tokens: crate::ast::tokens::TokenSequence::new(),
+                    tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
                 };
                 crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(placeholder_paragraph)
             }
@@ -265,7 +265,7 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
             content: container_elements,
             annotations: Vec::new(),
             parameters: crate::ast::elements::components::parameters::Parameters::new(),
-            tokens: crate::ast::tokens::TokenSequence::new(),
+            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
         },
     );
 
@@ -284,7 +284,7 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
 fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -308,7 +308,7 @@ fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String
 fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -337,7 +337,7 @@ fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<Str
 fn process_ast_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -368,7 +368,7 @@ fn process_ast_json(content: &str, source_path: &str) -> Result<String, ProcessE
 fn process_ast_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
@@ -455,7 +455,7 @@ mod tests {
         let args = ProcessArgs {
             content: "Hello world".to_string(),
             source_path: "test.txxt".to_string(),
-            format: OutputFormat::TokenTree,
+            format: OutputFormat::ScannerTokenTree,
         };
 
         let result = process(args).unwrap();

@@ -46,7 +46,7 @@
 //! - **Tokenizer**: [`src/lexer/elements/formatting/delimiters.rs`]
 
 use crate::ast::elements::formatting::inlines::{Text, TextTransform};
-use crate::ast::tokens::Token;
+use crate::ast::scanner_tokens::ScannerToken;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Parse an emphasis (italic) formatting element from tokens
@@ -71,7 +71,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("_`italic code`_");
 /// let emphasis = parse_emphasis(&tokens)?;
 /// ```
-pub fn parse_emphasis(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
+pub fn parse_emphasis(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseError> {
     if tokens.is_empty() {
         return Err(InlineParseError::InvalidStructure(
             "Empty emphasis tokens".to_string(),
@@ -95,7 +95,7 @@ pub fn parse_emphasis(tokens: &[Token]) -> Result<TextTransform, InlineParseErro
     let text_content = content_tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.clone()),
+            ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -124,7 +124,7 @@ pub fn parse_emphasis(tokens: &[Token]) -> Result<TextTransform, InlineParseErro
 ///
 /// # Returns
 /// * `bool` - True if tokens represent valid emphasis pattern
-pub fn is_emphasis_pattern(tokens: &[Token]) -> bool {
+pub fn is_emphasis_pattern(tokens: &[ScannerToken]) -> bool {
     // TODO: Implement proper emphasis pattern detection
     // For now, return a simple check
 
@@ -133,8 +133,8 @@ pub fn is_emphasis_pattern(tokens: &[Token]) -> bool {
     }
 
     // Very basic pattern check - should be enhanced
-    matches!(tokens.first(), Some(Token::Text { content, .. }) if content == "_")
-        && matches!(tokens.last(), Some(Token::Text { content, .. }) if content == "_")
+    matches!(tokens.first(), Some(ScannerToken::Text { content, .. }) if content == "_")
+        && matches!(tokens.last(), Some(ScannerToken::Text { content, .. }) if content == "_")
 }
 
 /// Extract content tokens from an emphasis pattern
@@ -145,8 +145,8 @@ pub fn is_emphasis_pattern(tokens: &[Token]) -> bool {
 /// * `tokens` - Sequence of tokens in emphasis pattern
 ///
 /// # Returns
-/// * `Result<Vec<Token>, InlineParseError>`
-pub fn extract_emphasis_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseError> {
+/// * `Result<Vec<ScannerToken>, InlineParseError>`
+pub fn extract_emphasis_content(tokens: &[ScannerToken]) -> Result<Vec<ScannerToken>, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
             "Emphasis pattern requires at least 3 tokens".to_string(),
@@ -177,13 +177,13 @@ pub fn extract_emphasis_content(tokens: &[Token]) -> Result<Vec<Token>, InlinePa
 ///
 /// # Returns
 /// * `Result<(), InlineParseError>`
-pub fn validate_emphasis_nesting(content_tokens: &[Token]) -> Result<(), InlineParseError> {
+pub fn validate_emphasis_nesting(content_tokens: &[ScannerToken]) -> Result<(), InlineParseError> {
     // TODO: Implement proper nesting validation
     // For now, accept all content
 
     // Check for nested underscores that would indicate invalid nesting
     for token in content_tokens {
-        if let Token::Text { content, .. } = token {
+        if let ScannerToken::Text { content, .. } = token {
             if content == "_" {
                 return Err(InlineParseError::InvalidNesting(
                     "Emphasis elements cannot be nested within other emphasis elements".to_string(),

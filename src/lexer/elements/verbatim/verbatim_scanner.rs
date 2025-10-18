@@ -102,7 +102,7 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::ast::tokens::{SourceSpan, Token};
+use crate::ast::scanner_tokens::{SourceSpan, ScannerToken};
 use crate::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 use regex::Regex;
 
@@ -555,7 +555,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
     fn get_absolute_position(&self) -> usize;
 
     /// Read verbatim block if current position matches a verbatim block start
-    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<Token>> {
+    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<ScannerToken>> {
         let current_line = self.row();
         let current_char_pos = self.get_absolute_position();
 
@@ -587,7 +587,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
     }
 
     /// Tokenize a verbatim block into VerbatimTitle and VerbatimContent tokens
-    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<Token> {
+    fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<ScannerToken> {
         let mut tokens = Vec::new();
 
         // Create VerbatimTitle token for the title line
@@ -618,7 +618,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
             }
         }
 
-        tokens.push(Token::VerbatimTitle {
+        tokens.push(ScannerToken::VerbatimTitle {
             content: title_content.trim_start().to_string(),
             span: SourceSpan {
                 start: title_start_pos,
@@ -689,7 +689,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
         }
 
         if !content.is_empty() {
-            tokens.push(Token::VerbatimContent {
+            tokens.push(ScannerToken::VerbatimContent {
                 content,
                 span: SourceSpan {
                     start: content_start_pos,
@@ -728,7 +728,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
                         let params_str = &label_and_params_str[colon_pos + 1..];
 
                         // Add the clean verbatim label
-                        tokens.push(Token::VerbatimLabel {
+                        tokens.push(ScannerToken::VerbatimLabel {
                             content: label.to_string(),
                             span: SourceSpan {
                                 start: terminator_start_pos,
@@ -741,7 +741,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
                         tokens.append(&mut param_tokens);
                     } else {
                         // No parameters - just the label
-                        tokens.push(Token::VerbatimLabel {
+                        tokens.push(ScannerToken::VerbatimLabel {
                             content: label_and_params_str.to_string(),
                             span: SourceSpan {
                                 start: terminator_start_pos,
@@ -752,7 +752,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
                 }
             } else {
                 // Fallback: if regex doesn't match, use the full content (shouldn't happen)
-                tokens.push(Token::VerbatimLabel {
+                tokens.push(ScannerToken::VerbatimLabel {
                     content: terminator_content,
                     span: SourceSpan {
                         start: terminator_start_pos,

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::{
     annotations::Annotation, parameters::Parameters, reference_types::ReferenceTarget,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
@@ -42,7 +42,7 @@ pub struct ReferenceSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for language server support
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for ReferenceSpan {
@@ -50,7 +50,7 @@ impl TxxtElement for ReferenceSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -90,7 +90,7 @@ impl ReferenceSpan {
         content: Option<Vec<TextTransform>>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             target,

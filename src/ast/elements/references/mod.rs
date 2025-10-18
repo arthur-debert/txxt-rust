@@ -21,7 +21,7 @@ pub use session_ref::SessionReferenceSpan;
 use crate::ast::elements::formatting::inlines::TextTransform;
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +43,7 @@ pub struct ReferenceSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for language server support
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Reference inline element for the formatting system
@@ -59,7 +59,7 @@ pub struct Reference {
     pub content: Option<Vec<TextTransform>>,
 
     /// Source tokens for positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 // ReferenceSpan is already defined above, no need to re-export

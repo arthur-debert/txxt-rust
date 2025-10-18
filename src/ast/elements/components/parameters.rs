@@ -39,7 +39,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::tokens::TokenSequence;
+use super::super::scanner_tokens::ScannerTokenSequence;
 
 /// Parameter collection for AST nodes
 ///
@@ -58,7 +58,7 @@ pub struct Parameters {
     pub map: HashMap<String, String>,
 
     /// Raw tokens for source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Parameter validation and processing
@@ -79,7 +79,7 @@ impl Parameters {
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         }
     }
 
@@ -87,7 +87,7 @@ impl Parameters {
     pub fn from_map(map: HashMap<String, String>) -> Self {
         Self {
             map,
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         }
     }
 

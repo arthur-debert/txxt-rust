@@ -79,7 +79,7 @@ impl DocumentAssembler {
                 vec![], // TODO: Create sessions from elements
                 vec![], // TODO: Handle other blocks
                 crate::ast::elements::components::parameters::Parameters::default(),
-                crate::ast::elements::tokens::TokenSequence::new(),
+                crate::ast::elements::scanner_tokens::ScannerTokenSequence::new(),
             ),
             assembly_info,
         };
@@ -97,7 +97,7 @@ pub enum DocumentAssemblyError {
     MissingComponents(String),
     /// Assembly error at specific position
     AssemblyError {
-        position: crate::ast::tokens::Position,
+        position: crate::ast::scanner_tokens::Position,
         message: String,
     },
 }

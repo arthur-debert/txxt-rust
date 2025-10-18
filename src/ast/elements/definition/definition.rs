@@ -4,7 +4,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{annotations::Annotation, parameters::Parameters, tokens::TokenSequence};
+use crate::ast::{annotations::Annotation, parameters::Parameters, scanner_tokens::ScannerTokenSequence};
 
 use super::super::{
     containers::ContentContainer,
@@ -30,7 +30,7 @@ pub struct DefinitionBlock {
     pub annotations: Vec<Annotation>,
 
     /// Raw tokens for source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Term part of a definition
@@ -40,7 +40,7 @@ pub struct DefinitionTerm {
     pub content: Vec<TextTransform>,
 
     /// Raw tokens for exact positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for DefinitionBlock {
@@ -48,7 +48,7 @@ impl TxxtElement for DefinitionBlock {
         ElementType::Block
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -72,7 +72,7 @@ impl TxxtElement for DefinitionTerm {
         ElementType::Line // Definition terms are line elements
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -95,7 +95,7 @@ impl DefinitionBlock {
         content: ContentContainer,
         parameters: Parameters,
         annotations: Vec<Annotation>,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             term,
@@ -124,7 +124,7 @@ impl DefinitionBlock {
 
 impl DefinitionTerm {
     /// Create a new definition term
-    pub fn new(content: Vec<TextTransform>, tokens: TokenSequence) -> Self {
+    pub fn new(content: Vec<TextTransform>, tokens: ScannerTokenSequence) -> Self {
         Self { content, tokens }
     }
 

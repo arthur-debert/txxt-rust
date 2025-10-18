@@ -10,7 +10,7 @@
 //!
 //! The AST handles both tokens and parsed structure to facilitate language server features,
 //! source mapping, and round-tripping. Every text element maintains character-level precision
-//! through [`TokenSequence`] for:
+//! through [`ScannerTokenSequence`] for:
 //! - Hover information at exact cursor positions
 //! - Autocomplete triggering within identifiers  
 //! - Precise syntax highlighting and error underlining
@@ -163,7 +163,7 @@ pub use elements::{
 pub use elements::{
     blocks,
     document as base, // base.rs moved to elements/document/document.rs
-    tokens,
+    scanner_tokens,
     traversal,
 };
 

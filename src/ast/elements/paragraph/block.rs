@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::{
@@ -35,7 +35,7 @@ pub struct ParagraphBlock {
     pub parameters: Parameters,
 
     /// Raw tokens for precise source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for ParagraphBlock {
@@ -43,7 +43,7 @@ impl TxxtElement for ParagraphBlock {
         ElementType::Block
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -77,7 +77,7 @@ impl ParagraphBlock {
         content: Vec<TextTransform>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,

@@ -7,7 +7,7 @@
 //!
 //! ## Token Tree Building (Phase 1c)
 //! - **Input**: Flat token stream with Indent/Dedent markers
-//! - **Output**: Hierarchical token tree (TokenTree)
+//! - **Output**: Hierarchical token tree (ScannerTokenTree)
 //! - **Purpose**: Transform flat token stream into structured token tree
 //! - **Location**: `token_tree_builder.rs`
 //!
@@ -17,4 +17,4 @@
 pub mod token_tree_builder;
 
 // Re-export main interfaces
-pub use token_tree_builder::{TokenTree, TokenTreeBuilder, TokenTreeError};
+pub use token_tree_builder::{ScannerTokenTree, ScannerTokenTreeBuilder, ScannerTokenTreeError};

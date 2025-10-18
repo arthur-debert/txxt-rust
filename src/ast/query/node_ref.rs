@@ -10,7 +10,7 @@ use crate::ast::{
     inlines::Inline,
     parameters::Parameters,
     structure::{BlankLine, Container, IgnoreLine, Paragraph, Session},
-    tokens::TokenSequence,
+    tokens::ScannerTokenSequence,
 };
 
 /// Core trait for all AST nodes enabling uniform traversal

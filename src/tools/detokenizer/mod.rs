@@ -13,9 +13,9 @@
 //! and punctuation that wasn't tokenized, but re-tokenizing will produce
 //! identical tokens.
 
-use crate::ast::tokens::Token;
+use crate::ast::scanner_tokens::ScannerToken;
 use crate::lexer::core::indentation::INDENT_SIZE;
-use crate::lexer::pipeline::TokenTree;
+use crate::lexer::pipeline::ScannerTokenTree;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;
@@ -30,24 +30,24 @@ impl Detokenizer {
     ///
     /// This is a simplified version that reconstructs text from tokens without
     /// complex indentation tracking, suitable for round-trip verification tests.
-    pub fn detokenize_for_verification(&self, tokens: &[Token]) -> Result<String, DetokenizeError> {
+    pub fn detokenize_for_verification(&self, tokens: &[ScannerToken]) -> Result<String, DetokenizeError> {
         let mut result = String::new();
-        let mut prev_token: Option<&Token> = None;
+        let mut prev_token: Option<&ScannerToken> = None;
 
         for token in tokens {
             // Skip Indent/Dedent tokens as they're structural markers, not content
-            if matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
+            if matches!(token, ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }) {
                 continue;
             }
 
             // Handle parameter separators based on previous token
-            if let Token::Parameter { key, value, .. } = token {
+            if let ScannerToken::Parameter { key, value, .. } = token {
                 if let Some(prev) = prev_token {
                     match prev {
-                        Token::VerbatimLabel { .. } => {
+                        ScannerToken::VerbatimLabel { .. } => {
                             result.push(':'); // First param after verbatim label
                         }
-                        Token::Parameter { .. } => {
+                        ScannerToken::Parameter { .. } => {
                             result.push(','); // Subsequent params
                         }
                         _ => {}
@@ -82,7 +82,7 @@ impl Detokenizer {
     ///
     /// Takes the output of Phase 2a (block grouping) and reconstructs
     /// the original source text for verification purposes.
-    pub fn detokenize(&self, token_tree: &TokenTree) -> Result<String, DetokenizeError> {
+    pub fn detokenize(&self, token_tree: &ScannerTokenTree) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         self.append_token_tree(&mut result, token_tree, 0)?;
         Ok(result)
@@ -92,27 +92,27 @@ impl Detokenizer {
     fn append_token_tree(
         &self,
         result: &mut String,
-        token_tree: &TokenTree,
+        token_tree: &ScannerTokenTree,
         indent_level: usize,
     ) -> Result<(), DetokenizeError> {
         // Track whether we're at the start of a line
         let mut at_line_start = result.is_empty() || result.ends_with('\n');
-        let mut prev_token: Option<&Token> = None;
+        let mut prev_token: Option<&ScannerToken> = None;
 
         // Process all tokens at this level
         for token in &token_tree.tokens {
             // Handle parameter tokens specially for separator logic
-            if let Token::Parameter { key, value, .. } = token {
+            if let ScannerToken::Parameter { key, value, .. } = token {
                 // Add appropriate separator before parameter
                 if let Some(prev) = prev_token {
                     match prev {
-                        Token::VerbatimLabel { .. } => {
+                        ScannerToken::VerbatimLabel { .. } => {
                             result.push(':'); // First param after verbatim label
                         }
-                        Token::Colon { .. } => {
+                        ScannerToken::Colon { .. } => {
                             // After a colon in annotation context, no separator needed
                         }
-                        Token::Parameter { .. } => {
+                        ScannerToken::Parameter { .. } => {
                             result.push(','); // Subsequent params
                         }
                         _ => {}
@@ -138,7 +138,7 @@ impl Detokenizer {
             }
 
             // Handle BlankLine tokens specially
-            if let Token::BlankLine { whitespace, .. } = token {
+            if let ScannerToken::BlankLine { whitespace, .. } = token {
                 // For blank lines, preserve the whitespace as-is
                 result.push_str(whitespace);
                 result.push('\n');
@@ -148,10 +148,10 @@ impl Detokenizer {
             }
 
             // Add indentation at the start of each line
-            if at_line_start && !matches!(token, Token::Indent { .. } | Token::Dedent { .. }) {
+            if at_line_start && !matches!(token, ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }) {
                 // For child blocks, skip leading whitespace tokens as they represent
                 // the original indentation that we're replacing
-                if indent_level > 0 && matches!(token, Token::Whitespace { .. }) {
+                if indent_level > 0 && matches!(token, ScannerToken::Whitespace { .. }) {
                     continue;
                 }
 
@@ -166,7 +166,7 @@ impl Detokenizer {
             prev_token = Some(token);
 
             // Track if we just added a newline
-            if matches!(token, Token::Newline { .. }) {
+            if matches!(token, ScannerToken::Newline { .. }) {
                 at_line_start = true;
             }
         }
@@ -183,72 +183,72 @@ impl Detokenizer {
     fn append_token(
         &self,
         result: &mut String,
-        token: &Token,
+        token: &ScannerToken,
         current_indent_level: usize,
     ) -> Result<(), DetokenizeError> {
         match token {
-            Token::Text { content, .. } => {
+            ScannerToken::Text { content, .. } => {
                 result.push_str(content);
             }
-            Token::Newline { .. } => {
+            ScannerToken::Newline { .. } => {
                 result.push('\n');
             }
-            Token::BlankLine { whitespace, .. } => {
+            ScannerToken::BlankLine { whitespace, .. } => {
                 // Add the whitespace content of the blank line, then newline
                 result.push_str(whitespace);
                 result.push('\n');
             }
-            Token::Indent { .. } => {
+            ScannerToken::Indent { .. } => {
                 // Indent tokens track indent level changes, not actual whitespace
                 // The whitespace is handled by Whitespace tokens
             }
-            Token::Dedent { .. } => {
+            ScannerToken::Dedent { .. } => {
                 // Dedent tokens are consumed during block grouping
                 // They don't produce output directly
             }
-            Token::SequenceMarker { marker_type, .. } => {
+            ScannerToken::SequenceMarker { marker_type, .. } => {
                 result.push_str(marker_type.content());
                 result.push(' ');
             }
-            Token::AnnotationMarker { content, .. } => {
+            ScannerToken::AnnotationMarker { content, .. } => {
                 result.push_str(content);
             }
-            Token::DefinitionMarker { content, .. } => {
+            ScannerToken::DefinitionMarker { content, .. } => {
                 result.push_str(content);
             }
-            Token::Dash { .. } => {
+            ScannerToken::Dash { .. } => {
                 result.push('-');
             }
-            Token::Period { .. } => {
+            ScannerToken::Period { .. } => {
                 result.push('.');
             }
-            Token::LeftBracket { .. } => {
+            ScannerToken::LeftBracket { .. } => {
                 result.push('[');
             }
-            Token::RightBracket { .. } => {
+            ScannerToken::RightBracket { .. } => {
                 result.push(']');
             }
-            Token::AtSign { .. } => {
+            ScannerToken::AtSign { .. } => {
                 result.push('@');
             }
-            Token::LeftParen { .. } => {
+            ScannerToken::LeftParen { .. } => {
                 result.push('(');
             }
-            Token::RightParen { .. } => {
+            ScannerToken::RightParen { .. } => {
                 result.push(')');
             }
-            Token::Colon { .. } => {
+            ScannerToken::Colon { .. } => {
                 result.push(':');
             }
-            Token::Identifier { content, .. } => {
+            ScannerToken::Identifier { content, .. } => {
                 result.push_str(content);
             }
-            Token::RefMarker { content, .. } => {
+            ScannerToken::RefMarker { content, .. } => {
                 result.push('[');
                 result.push_str(content);
                 result.push(']');
             }
-            Token::FootnoteRef { footnote_type, .. } => {
+            ScannerToken::FootnoteRef { footnote_type, .. } => {
                 use crate::lexer::elements::references::footnote_ref::FootnoteType;
                 match footnote_type {
                     FootnoteType::Naked(n) => {
@@ -264,12 +264,12 @@ impl Detokenizer {
                     }
                 }
             }
-            Token::VerbatimTitle { content, .. } => {
+            ScannerToken::VerbatimTitle { content, .. } => {
                 result.push_str(content);
                 result.push(':');
                 result.push('\n');
             }
-            Token::VerbatimContent { content, .. } => {
+            ScannerToken::VerbatimContent { content, .. } => {
                 // For verbatim content, we need to add the wall indentation back
                 // Split content into lines and add proper indentation to each
                 let lines: Vec<&str> = content.split('\n').collect();
@@ -285,51 +285,51 @@ impl Detokenizer {
                 }
                 result.push('\n');
             }
-            Token::VerbatimLabel { content, .. } => {
+            ScannerToken::VerbatimLabel { content, .. } => {
                 result.push_str("::");
                 result.push(' ');
                 result.push_str(content);
                 // Note: VerbatimLabel tokens don't include a trailing newline
                 // The newline after a label comes as a separate Newline token
             }
-            Token::Parameter { .. } => {
+            ScannerToken::Parameter { .. } => {
                 // Parameters are handled specially in append_token_tree
                 // This case should not be reached
                 unreachable!("Parameter tokens should be handled in append_token_tree");
             }
-            Token::BoldDelimiter { .. } => {
+            ScannerToken::BoldDelimiter { .. } => {
                 result.push('*');
             }
-            Token::ItalicDelimiter { .. } => {
+            ScannerToken::ItalicDelimiter { .. } => {
                 result.push('_');
             }
-            Token::CodeDelimiter { .. } => {
+            ScannerToken::CodeDelimiter { .. } => {
                 result.push('`');
             }
-            Token::MathDelimiter { .. } => {
+            ScannerToken::MathDelimiter { .. } => {
                 result.push('#');
             }
-            Token::CitationRef { content, .. } => {
+            ScannerToken::CitationRef { content, .. } => {
                 result.push_str("[@");
                 result.push_str(content);
                 result.push(']');
             }
-            Token::PageRef { content, .. } => {
+            ScannerToken::PageRef { content, .. } => {
                 result.push_str("[p.");
                 result.push_str(content);
                 result.push(']');
             }
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 result.push_str("[#");
                 result.push_str(content);
                 result.push(']');
             }
-            Token::Whitespace { content, .. } => {
+            ScannerToken::Whitespace { content, .. } => {
                 // Whitespace tokens represent inline spacing (not indentation)
-                // Indentation is reconstructed from the TokenTree hierarchy
+                // Indentation is reconstructed from the ScannerTokenTree hierarchy
                 result.push_str(content);
             }
-            Token::Eof { .. } => {
+            ScannerToken::Eof { .. } => {
                 // EOF doesn't produce output
             }
         }

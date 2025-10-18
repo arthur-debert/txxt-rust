@@ -215,7 +215,7 @@
 //! | All AST nodes      | `Node`          | type, data, position                     |
 //! | Container nodes    | `Parent`        | Has `children` array                     |
 //! | Text content       | `Literal`       | Leaf nodes with `value`                  |
-//! | TokenSequence      | `Position`      | Source location with start/end Points    |
+//! | ScannerTokenSequence      | `Position`      | Source location with start/end Points    |
 //! | Parameters         | `data`          | Custom metadata per ecosystem            |
 //!
 //! ## Interoperability Benefits
@@ -232,7 +232,7 @@
 //! We provide Unist compatibility through:
 //!
 //! 1. **Adapter Layer**: [`NodeRef`] implements Unist Node interface
-//! 2. **Position Mapping**: TokenSequence maps to Unist Position/Point
+//! 2. **Position Mapping**: ScannerTokenSequence maps to Unist Position/Point
 //! 3. **Type Safety**: Rust enums provide stronger guarantees than Unist's type strings
 //! 4. **Zero Cost**: Adapter is compile-time only, no runtime overhead
 //!

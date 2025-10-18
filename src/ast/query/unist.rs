@@ -91,7 +91,7 @@
 //! }
 //! ```
 //!
-//! TXXT's `TokenSequence` maps directly to Unist's `Position`.
+//! TXXT's `ScannerTokenSequence` maps directly to Unist's `Position`.
 //!
 //! # Usage Examples
 //!

@@ -1,19 +1,21 @@
-//! Token-level AST nodes for character-precise language server support
+//! Scanner token-level AST nodes for character-precise language server support
 //!
-//! This module defines the lowest-level AST nodes that maintain exact source
-//! positions for every character. This enables precise language server features
-//! like hover, autocomplete, go-to-definition, and syntax highlighting.
+//! This module defines the lowest-level scanner tokens that maintain exact source
+//! positions for every character. These are distinct from semantic tokens which
+//! represent higher-level syntactic structures. Scanner tokens enable precise 
+//! language server features like hover, autocomplete, go-to-definition, and 
+//! syntax highlighting.
 //!
 //! # Parsing Pipeline Position
 //!
-//! **Phase 1.b: Tokenization**
+//! **Phase 1.b: Scanner Tokenization**
 //!
-//! These tokens are produced by the lexer after verbatim line marking (1.a).
-//! The tokenizer converts raw source text into character-precise tokens with
+//! These scanner tokens are produced by the lexer after verbatim line marking (1.a).
+//! The tokenizer converts raw source text into character-precise scanner tokens with
 //! exact source positions. This is the foundation for all subsequent parsing
 //! phases and language server precision.
 //!
-//! Pipeline: `Source Text` → `Verbatim Marking` → **`Tokens`** → `Block Grouping` → `AST Nodes`
+//! Pipeline: `Source Text` → `Verbatim Marking` → **`Scanner Tokens`** → `Semantic Tokens` → `Block Grouping` → `AST Nodes`
 
 use serde::{Deserialize, Serialize};
 
@@ -83,13 +85,15 @@ pub struct SourceSpan {
     pub end: Position,
 }
 
-/// Individual token with precise source location
+/// Individual scanner token with precise source location
 ///
-/// Type-safe token variants based on TXXT reference implementation.
+/// Type-safe scanner token variants based on TXXT reference implementation.
 /// Each variant represents a specific syntactic element for precise
-/// language server support and type safety.
+/// language server support and type safety. These are low-level tokens
+/// from the lexer, distinct from semantic tokens which represent higher-level
+/// syntactic structures.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum Token {
+pub enum ScannerToken {
     /// Regular text content (words, sentences, paragraphs)
     Text { content: String, span: SourceSpan },
 
@@ -201,134 +205,134 @@ pub enum Token {
     Eof { span: SourceSpan },
 }
 
-impl Token {
-    /// Get the source span for this token
+impl ScannerToken {
+    /// Get the source span for this scanner token
     pub fn span(&self) -> &SourceSpan {
         match self {
-            Token::Text { span, .. } => span,
-            Token::Whitespace { span, .. } => span,
-            Token::Newline { span } => span,
-            Token::BlankLine { span, .. } => span,
-            Token::Indent { span } => span,
-            Token::Dedent { span } => span,
-            Token::SequenceMarker { span, .. } => span,
-            Token::AnnotationMarker { span, .. } => span,
-            Token::DefinitionMarker { span, .. } => span,
-            Token::Dash { span } => span,
-            Token::Period { span } => span,
-            Token::LeftBracket { span } => span,
-            Token::RightBracket { span } => span,
-            Token::AtSign { span } => span,
-            Token::LeftParen { span } => span,
-            Token::RightParen { span } => span,
-            Token::Colon { span } => span,
-            Token::Identifier { span, .. } => span,
-            Token::RefMarker { span, .. } => span,
-            Token::FootnoteRef { span, .. } => span,
-            Token::VerbatimTitle { span, .. } => span,
-            Token::VerbatimContent { span, .. } => span,
-            Token::VerbatimLabel { span, .. } => span,
-            Token::Parameter { span, .. } => span,
-            Token::BoldDelimiter { span } => span,
-            Token::ItalicDelimiter { span } => span,
-            Token::CodeDelimiter { span } => span,
-            Token::MathDelimiter { span } => span,
-            Token::CitationRef { span, .. } => span,
-            Token::PageRef { span, .. } => span,
-            Token::SessionRef { span, .. } => span,
-            Token::Eof { span } => span,
+            ScannerToken::Text { span, .. } => span,
+            ScannerToken::Whitespace { span, .. } => span,
+            ScannerToken::Newline { span } => span,
+            ScannerToken::BlankLine { span, .. } => span,
+            ScannerToken::Indent { span } => span,
+            ScannerToken::Dedent { span } => span,
+            ScannerToken::SequenceMarker { span, .. } => span,
+            ScannerToken::AnnotationMarker { span, .. } => span,
+            ScannerToken::DefinitionMarker { span, .. } => span,
+            ScannerToken::Dash { span } => span,
+            ScannerToken::Period { span } => span,
+            ScannerToken::LeftBracket { span } => span,
+            ScannerToken::RightBracket { span } => span,
+            ScannerToken::AtSign { span } => span,
+            ScannerToken::LeftParen { span } => span,
+            ScannerToken::RightParen { span } => span,
+            ScannerToken::Colon { span } => span,
+            ScannerToken::Identifier { span, .. } => span,
+            ScannerToken::RefMarker { span, .. } => span,
+            ScannerToken::FootnoteRef { span, .. } => span,
+            ScannerToken::VerbatimTitle { span, .. } => span,
+            ScannerToken::VerbatimContent { span, .. } => span,
+            ScannerToken::VerbatimLabel { span, .. } => span,
+            ScannerToken::Parameter { span, .. } => span,
+            ScannerToken::BoldDelimiter { span } => span,
+            ScannerToken::ItalicDelimiter { span } => span,
+            ScannerToken::CodeDelimiter { span } => span,
+            ScannerToken::MathDelimiter { span } => span,
+            ScannerToken::CitationRef { span, .. } => span,
+            ScannerToken::PageRef { span, .. } => span,
+            ScannerToken::SessionRef { span, .. } => span,
+            ScannerToken::Eof { span } => span,
         }
     }
 
-    /// Get the text content of this token (empty for structural tokens)
+    /// Get the text content of this scanner token (empty for structural tokens)
     pub fn content(&self) -> &str {
         match self {
-            Token::Text { content, .. } => content,
-            Token::Whitespace { content, .. } => content,
-            Token::SequenceMarker { marker_type, .. } => marker_type.content(),
-            Token::AnnotationMarker { content, .. } => content,
-            Token::DefinitionMarker { content, .. } => content,
-            Token::Identifier { content, .. } => content,
-            Token::RefMarker { content, .. } => content,
-            Token::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
-            Token::VerbatimTitle { content, .. } => content,
-            Token::VerbatimContent { content, .. } => content,
-            Token::VerbatimLabel { content, .. } => content,
-            Token::Parameter { key, .. } => key, // Return key for content (value accessible separately)
-            Token::BoldDelimiter { .. } => "*",
-            Token::ItalicDelimiter { .. } => "_",
-            Token::CodeDelimiter { .. } => "`",
-            Token::MathDelimiter { .. } => "#",
-            Token::CitationRef { content, .. } => content,
-            Token::PageRef { content, .. } => content,
-            Token::SessionRef { content, .. } => content,
-            Token::Newline { .. } => "\n",
-            Token::BlankLine { whitespace, .. } => whitespace,
-            Token::Indent { .. } => "",
-            Token::Dedent { .. } => "",
-            Token::Dash { .. } => "-",
-            Token::Period { .. } => ".",
-            Token::LeftBracket { .. } => "[",
-            Token::RightBracket { .. } => "]",
-            Token::AtSign { .. } => "@",
-            Token::LeftParen { .. } => "(",
-            Token::RightParen { .. } => ")",
-            Token::Colon { .. } => ":",
-            Token::Eof { .. } => "",
+            ScannerToken::Text { content, .. } => content,
+            ScannerToken::Whitespace { content, .. } => content,
+            ScannerToken::SequenceMarker { marker_type, .. } => marker_type.content(),
+            ScannerToken::AnnotationMarker { content, .. } => content,
+            ScannerToken::DefinitionMarker { content, .. } => content,
+            ScannerToken::Identifier { content, .. } => content,
+            ScannerToken::RefMarker { content, .. } => content,
+            ScannerToken::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
+            ScannerToken::VerbatimTitle { content, .. } => content,
+            ScannerToken::VerbatimContent { content, .. } => content,
+            ScannerToken::VerbatimLabel { content, .. } => content,
+            ScannerToken::Parameter { key, .. } => key, // Return key for content (value accessible separately)
+            ScannerToken::BoldDelimiter { .. } => "*",
+            ScannerToken::ItalicDelimiter { .. } => "_",
+            ScannerToken::CodeDelimiter { .. } => "`",
+            ScannerToken::MathDelimiter { .. } => "#",
+            ScannerToken::CitationRef { content, .. } => content,
+            ScannerToken::PageRef { content, .. } => content,
+            ScannerToken::SessionRef { content, .. } => content,
+            ScannerToken::Newline { .. } => "\n",
+            ScannerToken::BlankLine { whitespace, .. } => whitespace,
+            ScannerToken::Indent { .. } => "",
+            ScannerToken::Dedent { .. } => "",
+            ScannerToken::Dash { .. } => "-",
+            ScannerToken::Period { .. } => ".",
+            ScannerToken::LeftBracket { .. } => "[",
+            ScannerToken::RightBracket { .. } => "]",
+            ScannerToken::AtSign { .. } => "@",
+            ScannerToken::LeftParen { .. } => "(",
+            ScannerToken::RightParen { .. } => ")",
+            ScannerToken::Colon { .. } => ":",
+            ScannerToken::Eof { .. } => "",
         }
     }
 
-    /// Get the parameter value (only valid for Parameter tokens)
+    /// Get the parameter value (only valid for Parameter scanner tokens)
     pub fn parameter_value(&self) -> Option<&str> {
         match self {
-            Token::Parameter { value, .. } => Some(value),
+            ScannerToken::Parameter { value, .. } => Some(value),
             _ => None,
         }
     }
 
-    /// Get the semantic sequence marker information (only valid for SequenceMarker tokens)
+    /// Get the semantic sequence marker information (only valid for SequenceMarker scanner tokens)
     pub fn sequence_marker_type(&self) -> Option<&SequenceMarkerType> {
         match self {
-            Token::SequenceMarker { marker_type, .. } => Some(marker_type),
+            ScannerToken::SequenceMarker { marker_type, .. } => Some(marker_type),
             _ => None,
         }
     }
 
-    /// Get the footnote type information (only valid for FootnoteRef tokens)
+    /// Get the footnote type information (only valid for FootnoteRef scanner tokens)
     pub fn footnote_type(
         &self,
     ) -> Option<&crate::lexer::elements::references::footnote_ref::FootnoteType> {
         match self {
-            Token::FootnoteRef { footnote_type, .. } => Some(footnote_type),
+            ScannerToken::FootnoteRef { footnote_type, .. } => Some(footnote_type),
             _ => None,
         }
     }
 }
 
-/// Collection of tokens that forms a logical text unit
+/// Collection of scanner tokens that forms a logical text unit
 ///
-/// This bridges the gap between character-level precision (tokens) and
+/// This bridges the gap between character-level precision (scanner tokens) and
 /// semantic structure (blocks/inlines). Most semantic operations work
-/// with TokenSequence, while language server operations drill down to
-/// individual tokens.
+/// with ScannerTokenSequence, while language server operations drill down to
+/// individual scanner tokens.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct TokenSequence {
-    pub tokens: Vec<Token>,
+pub struct ScannerTokenSequence {
+    pub tokens: Vec<ScannerToken>,
 }
 
-impl Default for TokenSequence {
+impl Default for ScannerTokenSequence {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl TokenSequence {
-    /// Create a new empty token sequence
+impl ScannerTokenSequence {
+    /// Create a new empty scanner token sequence
     pub fn new() -> Self {
         Self { tokens: Vec::new() }
     }
 
-    /// Get the overall source span covering all tokens
+    /// Get the overall source span covering all scanner tokens
     pub fn span(&self) -> Option<SourceSpan> {
         if self.tokens.is_empty() {
             return None;
@@ -340,7 +344,7 @@ impl TokenSequence {
         Some(SourceSpan { start, end })
     }
 
-    /// Get the text content by concatenating all token content
+    /// Get the text content by concatenating all scanner token content
     pub fn text(&self) -> String {
         self.tokens
             .iter()
@@ -349,8 +353,8 @@ impl TokenSequence {
             .join("")
     }
 
-    /// Create a token sequence from a vector of tokens
-    pub fn from_tokens(tokens: Vec<Token>) -> Self {
+    /// Create a scanner token sequence from a vector of scanner tokens
+    pub fn from_tokens(tokens: Vec<ScannerToken>) -> Self {
         Self { tokens }
     }
 }

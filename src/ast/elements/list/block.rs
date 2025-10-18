@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::{
@@ -33,7 +33,7 @@ pub struct ListBlock {
     pub parameters: Parameters,
 
     /// Raw tokens for source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// List decoration/styling information
@@ -81,7 +81,7 @@ pub struct ListItem {
     pub parameters: Parameters,
 
     /// Raw tokens for precise reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for ListBlock {
@@ -89,7 +89,7 @@ impl TxxtElement for ListBlock {
         ElementType::Block
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -113,7 +113,7 @@ impl TxxtElement for ListItem {
         ElementType::Block // List items are block-level within lists
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -133,7 +133,7 @@ impl ListBlock {
         items: Vec<ListItem>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             decoration_type,
@@ -173,7 +173,7 @@ impl ListItem {
         nested: Option<ContentContainer>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             marker,

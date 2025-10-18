@@ -4,7 +4,7 @@
 //! according to the TXXT specification. Citation references are used to reference
 //! external sources and bibliographic entries.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
 
 /// Trait for lexer state that can parse citation references
 pub trait CitationRefLexer {
@@ -34,7 +34,7 @@ pub trait CitationRefLexer {
 }
 
 /// Read a complete citation reference ([@key]) if present at current position
-pub fn read_citation_ref<L: CitationRefLexer>(lexer: &mut L) -> Option<Token> {
+pub fn read_citation_ref<L: CitationRefLexer>(lexer: &mut L) -> Option<ScannerToken> {
     let start_pos = lexer.current_position();
 
     // Must start with [
@@ -88,7 +88,7 @@ pub fn read_citation_ref<L: CitationRefLexer>(lexer: &mut L) -> Option<Token> {
         return None;
     }
 
-    Some(Token::CitationRef {
+    Some(ScannerToken::CitationRef {
         content,
         span: SourceSpan {
             start: start_pos,
@@ -109,7 +109,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::CitationRef { content, span } => {
+            ScannerToken::CitationRef { content, span } => {
                 assert_eq!(content, "smith2020");
                 assert_eq!(span.start.row, 0);
                 assert_eq!(span.start.column, 0);
@@ -127,7 +127,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::CitationRef { content, .. } => {
+            ScannerToken::CitationRef { content, .. } => {
                 assert_eq!(content, "smith-jones.2020");
             }
             _ => panic!("Expected CitationRef token"),
@@ -141,7 +141,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::CitationRef { content, .. } => {
+            ScannerToken::CitationRef { content, .. } => {
                 assert_eq!(content, "author:smith2020");
             }
             _ => panic!("Expected CitationRef token"),
@@ -202,7 +202,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::CitationRef { content, .. } => {
+            ScannerToken::CitationRef { content, .. } => {
                 assert_eq!(content, "ref123");
             }
             _ => panic!("Expected CitationRef token"),
@@ -216,7 +216,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::CitationRef { content, .. } => {
+            ScannerToken::CitationRef { content, .. } => {
                 assert_eq!(content, "my_ref_2020");
             }
             _ => panic!("Expected CitationRef token"),

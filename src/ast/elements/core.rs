@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 /// Element type classification according to specification terminology
@@ -44,7 +44,7 @@ pub trait TxxtElement {
     fn element_type(&self) -> ElementType;
 
     /// Access the token sequence for source reconstruction and language server features
-    fn tokens(&self) -> &TokenSequence;
+    fn tokens(&self) -> &ScannerTokenSequence;
 
     /// Access annotations attached to this element
     fn annotations(&self) -> &[Annotation];
@@ -201,7 +201,7 @@ impl ElementNode {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlankLine {
     /// Source position information
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for BlankLine {
@@ -209,7 +209,7 @@ impl TxxtElement for BlankLine {
         ElementType::Line
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 

@@ -4,7 +4,7 @@
 //! according to the TXXT specification. Page references are used to reference
 //! specific pages or page ranges in documents.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
 
 /// Trait for lexer state that can parse page references
 pub trait PageRefLexer {
@@ -34,7 +34,7 @@ pub trait PageRefLexer {
 }
 
 /// Read a complete page reference ([p.123] or [p.123-125]) if present at current position
-pub fn read_page_ref<L: PageRefLexer>(lexer: &mut L) -> Option<Token> {
+pub fn read_page_ref<L: PageRefLexer>(lexer: &mut L) -> Option<ScannerToken> {
     let start_pos = lexer.current_position();
 
     // Must start with [
@@ -96,7 +96,7 @@ pub fn read_page_ref<L: PageRefLexer>(lexer: &mut L) -> Option<Token> {
         return None;
     }
 
-    Some(Token::PageRef {
+    Some(ScannerToken::PageRef {
         content,
         span: SourceSpan {
             start: start_pos,
@@ -142,7 +142,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::PageRef { content, span } => {
+            ScannerToken::PageRef { content, span } => {
                 assert_eq!(content, "123");
                 assert_eq!(span.start.row, 0);
                 assert_eq!(span.start.column, 0);
@@ -160,7 +160,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::PageRef { content, .. } => {
+            ScannerToken::PageRef { content, .. } => {
                 assert_eq!(content, "123-125");
             }
             _ => panic!("Expected PageRef token"),
@@ -174,7 +174,7 @@ mod tests {
 
         assert!(token.is_some());
         match token.unwrap() {
-            Token::PageRef { content, .. } => {
+            ScannerToken::PageRef { content, .. } => {
                 assert_eq!(content, "5");
             }
             _ => panic!("Expected PageRef token"),

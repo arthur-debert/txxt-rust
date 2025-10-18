@@ -46,7 +46,7 @@
 //! - **Tokenizer**: [`src/lexer/elements/formatting/delimiters.rs`]
 
 use crate::ast::elements::formatting::inlines::{Text, TextTransform};
-use crate::ast::tokens::Token;
+use crate::ast::scanner_tokens::ScannerToken;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Parse a strong (bold) formatting element from tokens
@@ -71,7 +71,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("*_bold italic_*");
 /// let strong = parse_strong(&tokens)?;
 /// ```
-pub fn parse_strong(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
+pub fn parse_strong(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseError> {
     if tokens.is_empty() {
         return Err(InlineParseError::InvalidStructure(
             "Empty strong tokens".to_string(),
@@ -95,7 +95,7 @@ pub fn parse_strong(tokens: &[Token]) -> Result<TextTransform, InlineParseError>
     let text_content = content_tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.clone()),
+            ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -124,7 +124,7 @@ pub fn parse_strong(tokens: &[Token]) -> Result<TextTransform, InlineParseError>
 ///
 /// # Returns
 /// * `bool` - True if tokens represent valid strong pattern
-pub fn is_strong_pattern(tokens: &[Token]) -> bool {
+pub fn is_strong_pattern(tokens: &[ScannerToken]) -> bool {
     // TODO: Implement proper strong pattern detection
     // For now, return a simple check
 
@@ -133,8 +133,8 @@ pub fn is_strong_pattern(tokens: &[Token]) -> bool {
     }
 
     // Very basic pattern check - should be enhanced
-    matches!(tokens.first(), Some(Token::Text { content, .. }) if content == "*")
-        && matches!(tokens.last(), Some(Token::Text { content, .. }) if content == "*")
+    matches!(tokens.first(), Some(ScannerToken::Text { content, .. }) if content == "*")
+        && matches!(tokens.last(), Some(ScannerToken::Text { content, .. }) if content == "*")
 }
 
 /// Extract content tokens from a strong pattern
@@ -145,8 +145,8 @@ pub fn is_strong_pattern(tokens: &[Token]) -> bool {
 /// * `tokens` - Sequence of tokens in strong pattern
 ///
 /// # Returns
-/// * `Result<Vec<Token>, InlineParseError>`
-pub fn extract_strong_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseError> {
+/// * `Result<Vec<ScannerToken>, InlineParseError>`
+pub fn extract_strong_content(tokens: &[ScannerToken]) -> Result<Vec<ScannerToken>, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
             "Strong pattern requires at least 3 tokens".to_string(),
@@ -177,13 +177,13 @@ pub fn extract_strong_content(tokens: &[Token]) -> Result<Vec<Token>, InlinePars
 ///
 /// # Returns
 /// * `Result<(), InlineParseError>`
-pub fn validate_strong_nesting(content_tokens: &[Token]) -> Result<(), InlineParseError> {
+pub fn validate_strong_nesting(content_tokens: &[ScannerToken]) -> Result<(), InlineParseError> {
     // TODO: Implement proper nesting validation
     // For now, accept all content
 
     // Check for nested asterisks that would indicate invalid nesting
     for token in content_tokens {
-        if let Token::Text { content, .. } = token {
+        if let ScannerToken::Text { content, .. } = token {
             if content == "*" {
                 return Err(InlineParseError::InvalidNesting(
                     "Strong elements cannot be nested within other strong elements".to_string(),

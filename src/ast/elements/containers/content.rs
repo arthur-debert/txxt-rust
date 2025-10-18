@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::core::{ContainerElement, ContainerType, ElementType, TxxtElement};
@@ -52,7 +52,7 @@ pub struct ContentContainer {
     pub parameters: Parameters,
 
     /// Source position information
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Elements that can be contained in a content container
@@ -89,7 +89,7 @@ impl TxxtElement for ContentContainer {
         ElementType::Container
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -133,7 +133,7 @@ impl ContentContainer {
         content: Vec<ContentContainerElement>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,

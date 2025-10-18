@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
@@ -28,7 +28,7 @@ pub struct BoldSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for precise positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Italic span - emphasis formatting
@@ -46,7 +46,7 @@ pub struct ItalicSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for precise positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Code span - inline code formatting
@@ -64,7 +64,7 @@ pub struct CodeSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for precise positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Math span - mathematical expression formatting
@@ -82,7 +82,7 @@ pub struct MathSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for precise positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 // Implement TxxtElement for all formatting spans
@@ -92,7 +92,7 @@ impl TxxtElement for BoldSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -124,7 +124,7 @@ impl TxxtElement for ItalicSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -156,7 +156,7 @@ impl TxxtElement for CodeSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -184,7 +184,7 @@ impl TxxtElement for MathSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -215,7 +215,7 @@ impl BoldSpan {
         content: Vec<TextTransform>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,
@@ -232,7 +232,7 @@ impl ItalicSpan {
         content: Vec<TextTransform>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,
@@ -249,7 +249,7 @@ impl CodeSpan {
         content: TextSpan,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,
@@ -266,7 +266,7 @@ impl MathSpan {
         content: TextSpan,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::{
@@ -35,7 +35,7 @@ pub struct SessionBlock {
     pub parameters: Parameters,
 
     /// Raw tokens for source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Session title with hierarchical numbering support
@@ -48,7 +48,7 @@ pub struct SessionTitle {
     pub numbering: Option<SessionNumbering>,
 
     /// Raw tokens for exact source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Session numbering information
@@ -69,7 +69,7 @@ impl TxxtElement for SessionBlock {
         ElementType::Block
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -97,7 +97,7 @@ impl TxxtElement for SessionTitle {
         ElementType::Line // Session titles are line elements
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -120,7 +120,7 @@ impl SessionBlock {
         content: SessionContainer,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             title,
@@ -157,7 +157,7 @@ impl SessionTitle {
     pub fn new(
         content: Vec<TextTransform>,
         numbering: Option<SessionNumbering>,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             content,

@@ -47,7 +47,7 @@
 //! - **Tokenizer**: [`src/lexer/elements/formatting/delimiters.rs`]
 
 use crate::ast::elements::formatting::inlines::{Text, TextTransform};
-use crate::ast::tokens::Token;
+use crate::ast::scanner_tokens::ScannerToken;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Parse a math formatting element from tokens
@@ -72,7 +72,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("#∫ x² dx = x³/3 + C#");
 /// let math = parse_math(&tokens)?;
 /// ```
-pub fn parse_math(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
+pub fn parse_math(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseError> {
     if tokens.is_empty() {
         return Err(InlineParseError::InvalidStructure(
             "Empty math tokens".to_string(),
@@ -117,7 +117,7 @@ pub fn parse_math(tokens: &[Token]) -> Result<TextTransform, InlineParseError> {
 ///
 /// # Returns
 /// * `bool` - True if tokens represent valid math pattern
-pub fn is_math_pattern(tokens: &[Token]) -> bool {
+pub fn is_math_pattern(tokens: &[ScannerToken]) -> bool {
     // TODO: Implement proper math pattern detection
     // For now, return a simple check
 
@@ -126,8 +126,8 @@ pub fn is_math_pattern(tokens: &[Token]) -> bool {
     }
 
     // Very basic pattern check - should be enhanced
-    matches!(tokens.first(), Some(Token::Text { content, .. }) if content == "#")
-        && matches!(tokens.last(), Some(Token::Text { content, .. }) if content == "#")
+    matches!(tokens.first(), Some(ScannerToken::Text { content, .. }) if content == "#")
+        && matches!(tokens.last(), Some(ScannerToken::Text { content, .. }) if content == "#")
 }
 
 /// Extract content tokens from a math pattern
@@ -139,8 +139,8 @@ pub fn is_math_pattern(tokens: &[Token]) -> bool {
 /// * `tokens` - Sequence of tokens in math pattern
 ///
 /// # Returns
-/// * `Result<Vec<Token>, InlineParseError>`
-pub fn extract_math_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseError> {
+/// * `Result<Vec<ScannerToken>, InlineParseError>`
+pub fn extract_math_content(tokens: &[ScannerToken]) -> Result<Vec<ScannerToken>, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
             "Math pattern requires at least 3 tokens".to_string(),
@@ -171,7 +171,7 @@ pub fn extract_math_content(tokens: &[Token]) -> Result<Vec<Token>, InlineParseE
 ///
 /// # Returns
 /// * `Result<(), InlineParseError>`
-pub fn validate_math_content(_content_tokens: &[Token]) -> Result<(), InlineParseError> {
+pub fn validate_math_content(_content_tokens: &[ScannerToken]) -> Result<(), InlineParseError> {
     // TODO: Implement proper math content validation
     // For now, accept all content as valid math expression
 
@@ -191,11 +191,11 @@ pub fn validate_math_content(_content_tokens: &[Token]) -> Result<(), InlinePars
 ///
 /// # Returns
 /// * `String` - Mathematical expression content
-pub fn extract_math_expression(content_tokens: &[Token]) -> String {
+pub fn extract_math_expression(content_tokens: &[ScannerToken]) -> String {
     content_tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.clone()),
+            ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()

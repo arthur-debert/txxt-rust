@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::core::{ContainerElement, ContainerType, ElementType, TxxtElement};
@@ -36,7 +36,7 @@ pub struct IgnoreContainer {
     pub parameters: Parameters,
 
     /// Source position information
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Ignore line - raw verbatim content preserved exactly
@@ -49,7 +49,7 @@ pub struct IgnoreLine {
     pub content: String,
 
     /// Source position information
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for IgnoreContainer {
@@ -57,7 +57,7 @@ impl TxxtElement for IgnoreContainer {
         ElementType::Container
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -99,7 +99,7 @@ impl TxxtElement for IgnoreLine {
         ElementType::Line
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -122,7 +122,7 @@ impl IgnoreContainer {
         blank_lines: Vec<super::super::core::BlankLine>,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             ignore_lines,
@@ -158,7 +158,7 @@ impl IgnoreContainer {
 
 impl IgnoreLine {
     /// Create a new ignore line
-    pub fn new(content: String, tokens: TokenSequence) -> Self {
+    pub fn new(content: String, tokens: ScannerTokenSequence) -> Self {
         Self { content, tokens }
     }
 

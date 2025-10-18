@@ -102,7 +102,7 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan, WallType};
 use crate::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 use regex::Regex;
 
@@ -589,7 +589,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
         self.column() == 0
     }
 
-    /// Tokenize a verbatim block into VerbatimTitle and VerbatimContent tokens
+    /// Tokenize a verbatim block into VerbatimTitle, IndentationWall, and IgnoreTextSpan tokens
     fn tokenize_verbatim_block(&mut self, block: &VerbatimBlock) -> Vec<ScannerToken> {
         let mut tokens = Vec::new();
 
@@ -629,76 +629,106 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
             },
         });
 
-        // Create VerbatimContent token for the block content
-        let content_start_pos = self.current_position();
-        let mut content = String::new();
-
-        // Calculate the wall position for in-flow verbatim blocks
-        let wall_indent = match block.block_type {
-            VerbatimType::Normal => block.title_indent + INDENT_SIZE,
-            VerbatimType::Stretched => 0,
-            VerbatimType::Empty => 0,
+        // Calculate the wall position and type
+        let (wall_level, wall_type) = match block.block_type {
+            VerbatimType::Normal => (
+                block.title_indent + INDENT_SIZE,
+                WallType::InFlow(block.title_indent),
+            ),
+            VerbatimType::Stretched => (0, WallType::Stretched), // Content starts at column 0
+            VerbatimType::Empty => (0, WallType::Stretched), // No content, but use stretched for consistency
         };
 
-        // Advance through all content lines until terminator
-        let mut current_line = self.row();
-        while current_line < (block.block_end - 1) {
-            // Convert 1-based to 0-based
-            let mut line_content = String::new();
+        // Process content lines if they exist
+        if let (Some(_content_start), Some(_content_end)) = (block.content_start, block.content_end)
+        {
+            let mut current_line = self.row();
+            let mut all_content = String::new();
+            let mut first_line_start_pos = None;
+            let mut last_line_end_pos = None;
 
-            // Read the entire line
-            while let Some(ch) = self.peek() {
-                if ch == '\n' || ch == '\r' {
-                    // Add the line content (after stripping wall indentation)
-                    if block.block_type == VerbatimType::Normal {
-                        // For in-flow verbatim, strip the wall indentation
-                        let mut stripped_line = String::new();
-                        let mut col = 0;
-                        for ch in line_content.chars() {
-                            if col >= wall_indent {
-                                stripped_line.push(ch);
-                            }
-                            col += if ch == '\t' { 4 } else { 1 };
+            while current_line < (block.block_end - 1) {
+                // Convert 1-based to 0-based
+                let line_start_pos = self.current_position();
+                if first_line_start_pos.is_none() {
+                    first_line_start_pos = Some(line_start_pos);
+                }
+                let mut line_content = String::new();
+
+                // Read the entire line
+                while let Some(ch) = self.peek() {
+                    if ch == '\n' || ch == '\r' {
+                        // Add the newline to content
+                        line_content.push(ch);
+                        self.advance();
+                        if ch == '\r' && self.peek() == Some('\n') {
+                            line_content.push('\n');
+                            self.advance(); // Handle CRLF
                         }
-                        content.push_str(&stripped_line);
+                        break;
                     } else {
-                        // For stretched verbatim, keep the entire line
-                        content.push_str(&line_content);
+                        line_content.push(ch);
+                        self.advance();
                     }
+                }
 
-                    // Add the newline
-                    content.push(ch);
-                    self.advance();
-                    if ch == '\r' && self.peek() == Some('\n') {
-                        content.push('\n');
-                        self.advance(); // Handle CRLF
+                // Strip wall indentation from content for IgnoreTextSpan
+                let mut content_without_wall = String::new();
+                let mut col = 0;
+                for ch in line_content.chars() {
+                    if col >= wall_level {
+                        content_without_wall.push(ch);
                     }
-                    break;
-                } else {
-                    line_content.push(ch);
-                    self.advance();
+                    col += if ch == '\t' { 4 } else { 1 };
+                }
+
+                // Add to all content
+                all_content.push_str(&content_without_wall);
+                last_line_end_pos = Some(self.current_position());
+
+                current_line = self.row();
+            }
+
+            // Remove trailing newline from all content
+            if all_content.ends_with('\n') {
+                all_content.pop();
+                if all_content.ends_with('\r') {
+                    all_content.pop();
                 }
             }
-            current_line = self.row();
-        }
 
-        // Don't include the terminator line in content
-        // Remove trailing newline if it exists
-        if content.ends_with('\n') {
-            content.pop();
-            if content.ends_with('\r') {
-                content.pop();
+            if !all_content.is_empty() {
+                // Create wall position span (from start of first line to wall position)
+                let wall_span = SourceSpan {
+                    start: first_line_start_pos.unwrap(),
+                    end: Position {
+                        row: first_line_start_pos.unwrap().row,
+                        column: first_line_start_pos.unwrap().column + wall_level,
+                    },
+                };
+
+                // Create content span (from wall position to end of last line)
+                let content_span = SourceSpan {
+                    start: Position {
+                        row: first_line_start_pos.unwrap().row,
+                        column: first_line_start_pos.unwrap().column + wall_level,
+                    },
+                    end: last_line_end_pos.unwrap(),
+                };
+
+                // Emit IndentationWall token
+                tokens.push(ScannerToken::IndentationWall {
+                    level: wall_level,
+                    wall_type: wall_type.clone(),
+                    span: wall_span,
+                });
+
+                // Emit IgnoreTextSpan token with all content without wall indentation
+                tokens.push(ScannerToken::IgnoreTextSpan {
+                    content: all_content,
+                    span: content_span,
+                });
             }
-        }
-
-        if !content.is_empty() {
-            tokens.push(ScannerToken::VerbatimContent {
-                content,
-                span: SourceSpan {
-                    start: content_start_pos,
-                    end: self.current_position(),
-                },
-            });
         }
 
         // Parse the terminator line to extract label and parameters

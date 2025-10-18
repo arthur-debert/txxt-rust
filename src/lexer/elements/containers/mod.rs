@@ -104,7 +104,8 @@ pub fn validate_container_content(
             // Ignore containers should only contain verbatim content and blank lines
             for token in content_tokens {
                 match token {
-                    ScannerToken::VerbatimContent { .. }
+                    ScannerToken::IndentationWall { .. }
+                    | ScannerToken::IgnoreTextSpan { .. }
                     | ScannerToken::BlankLine { .. }
                     | ScannerToken::Newline { .. } => {
                         // These are allowed in ignore containers

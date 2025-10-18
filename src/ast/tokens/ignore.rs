@@ -16,10 +16,21 @@ pub struct VerbatimTitleToken {
     pub span: SourceSpan,
 }
 
-/// Verbatim block content (preserved exactly)
+/// Indentation wall marker for verbatim blocks
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct VerbatimContentToken {
-    /// The verbatim content
+pub struct IndentationWallToken {
+    /// Wall column position
+    pub level: usize,
+    /// Type of wall (InFlow or Stretched)
+    pub wall_type: crate::ast::elements::scanner_tokens::WallType,
+    /// Source span of the wall
+    pub span: SourceSpan,
+}
+
+/// Raw content after indentation wall (preserved exactly)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IgnoreTextSpanToken {
+    /// The raw content (wall-relative)
     pub content: String,
     /// Source span of the content
     pub span: SourceSpan,

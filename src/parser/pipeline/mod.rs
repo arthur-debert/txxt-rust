@@ -28,11 +28,13 @@
 //! The actual parsing logic will be implemented as the AST element types
 //! and parsing requirements are finalized.
 
+pub mod ast_constructor;
 pub mod parse_blocks;
 pub mod parse_inlines;
 pub mod semantic_analysis;
 
 // Re-export main interfaces
+pub use ast_constructor::{AstConstructionError, AstConstructor};
 pub use parse_blocks::{BlockParseError, BlockParser};
 pub use parse_inlines::{InlineParseError, InlineParser};
 pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};

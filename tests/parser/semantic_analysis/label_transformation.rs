@@ -437,3 +437,58 @@ fn test_label_validation_helpers() {
     assert!(!analyzer.is_valid_label_char('@'));
     assert!(!analyzer.is_valid_label_char('!'));
 }
+
+/// Test semantic analysis behavior with underscore tokens that should be italic delimiters
+#[test]
+fn test_semantic_analysis_underscore_issue() {
+    use txxt::lexer::Lexer;
+
+    let input = ":: _0 ::";
+    let mut lexer = Lexer::new(input);
+    let scanner_tokens = lexer.tokenize();
+
+    println!("Scanner tokens for ':: _0 ::':");
+    for (i, token) in scanner_tokens.iter().enumerate() {
+        println!("  {}: {:?}", i, token);
+    }
+
+    let analyzer = SemanticAnalyzer::new();
+    let result = analyzer.analyze(scanner_tokens);
+
+    match result {
+        Ok(semantic_tokens) => {
+            println!("\nSemantic tokens:");
+            for (i, token) in semantic_tokens.tokens.iter().enumerate() {
+                println!("  {}: {:?}", i, token);
+            }
+        }
+        Err(e) => {
+            println!("\nSemantic analysis error: {:?}", e);
+        }
+    }
+
+    // Test actual italic text
+    println!("\n\nTesting actual italic text '_hello_':");
+    let input2 = "_hello_";
+    let mut lexer2 = Lexer::new(input2);
+    let scanner_tokens2 = lexer2.tokenize();
+
+    println!("Scanner tokens for '_hello_':");
+    for (i, token) in scanner_tokens2.iter().enumerate() {
+        println!("  {}: {:?}", i, token);
+    }
+
+    let result2 = analyzer.analyze(scanner_tokens2);
+
+    match result2 {
+        Ok(semantic_tokens) => {
+            println!("\nSemantic tokens:");
+            for (i, token) in semantic_tokens.tokens.iter().enumerate() {
+                println!("  {}: {:?}", i, token);
+            }
+        }
+        Err(e) => {
+            println!("\nSemantic analysis error: {:?}", e);
+        }
+    }
+}

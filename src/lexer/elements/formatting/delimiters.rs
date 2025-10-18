@@ -61,8 +61,12 @@ fn is_likely_identifier_underscore<L: InlineDelimiterLexer>(lexer: &L) -> bool {
                 } else if ch.is_alphanumeric() {
                     pos += 1;
                     continue;
+                } else if ch.is_whitespace() {
+                    // Continue past whitespace to look for closing underscore in spans like "_italic text_"
+                    pos += 1;
+                    continue;
                 } else {
-                    // Hit non-alphanumeric, non-underscore - likely end of identifier
+                    // Hit non-alphanumeric, non-whitespace, non-underscore - likely end of identifier
                     break;
                 }
             }

@@ -47,10 +47,12 @@ fn test_label_basic_transformation() {
 fn test_label_namespaced_transformation() {
     let analyzer = SemanticAnalyzer::new();
 
-    let test_cases = ["org.example.custom",
+    let test_cases = [
+        "org.example.custom",
         "com.company.product",
         "io.github.project",
-        "a.b.c.d.e"];
+        "a.b.c.d.e",
+    ];
 
     for label_text in test_cases.iter() {
         let span = SourceSpan {

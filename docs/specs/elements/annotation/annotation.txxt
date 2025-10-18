@@ -59,18 +59,18 @@ Complete specification for annotations - metadata elements that attach informati
 
     3.1. Grammar
 
-        Annotations follow the grammar defined in [syntax.txxt] section 5.6. The syntax supports inline, block, and parameterized forms using the txxt marker (::).
+        Annotations follow the grammar defined in @grammar.txxt. The syntax supports inline, block, and parameterized forms using the txxt marker semantic token.
 
-        For complete annotation grammar including `<annotation-inline>`, `<annotation-block>`, `<param-annotation>`, and `<annotation-label>` definitions, see [syntax.txxt] section 5.6.
+        For complete annotation grammar including `<AnnotationBlock>` definitions, see @grammar.txxt section 2.6.
 
-        Annotation labels use the standard label syntax, and parameters follow the parameter list grammar. See [labels.txxt] and [parameters.txxt] for complete specifications.
+        Annotation labels use the standard Label semantic token, and parameters follow the Parameters semantic token grammar. See [labels.txxt] and [parameters.txxt] for complete specifications.
 
         For complete parameter syntax, quoting rules, and examples, see [parameters.txxt].
 
     3.2. Label Rules
 
-        Annotation labels follow the standard txxt label system:
-            <annotation-label> = <label>
+        Annotation labels use the Label semantic token:
+            <annotation-label> = Label
         :: grammar
 
         For complete label syntax, validation rules, and conventions, see [labels.txxt].

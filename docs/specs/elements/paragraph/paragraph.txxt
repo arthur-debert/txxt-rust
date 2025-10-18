@@ -41,15 +41,13 @@ Complete specification for paragraphs - the fundamental text blocks that contain
 
     3.1. Paragraph Structure
 
-        A paragraph consists of one or more consecutive text lines, optionally terminated by a blank line.
+        A paragraph consists of one or more consecutive Plain Text Line semantic tokens, optionally terminated by a Blank Line semantic token.
 
-            <paragraph> = <text-line>+ <blank-line>?
+            <paragraph> = PlainTextLine+ BlankLine?
 
-        A text line contains span elements and ends with a line break.
-
-            <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
+        Plain Text Line semantic tokens contain text content without special markers or structure.
         
-        For a full definition of `<span-element>`, see [syntax.txxt].
+        For complete paragraph grammar, see @grammar.txxt section 2.1.
         :: grammar
 
     3.2. Line Continuation Rules

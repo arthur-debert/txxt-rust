@@ -62,11 +62,11 @@ Complete specification for sessions - the hierarchical organizational units that
 
     3.1. Session Structure
 
-        Sessions follow the grammar defined in [syntax.txxt] section 5.3. The structure requires blank line separation and indented content to distinguish sessions from paragraphs.
+        Sessions follow the grammar defined in @grammar.txxt section 2.5. The structure requires blank line separation and indented content to distinguish sessions from paragraphs.
 
-        For complete session grammar including `<session>`, `<session-title>`, `<session-numbering>`, and `<session-container>` definitions, see [syntax.txxt] section 5.3.
+        For complete session grammar including `<Session>` definitions, see @grammar.txxt section 2.5.
 
-        Session numbering uses the same sequence marker patterns as lists. For sequence marker definitions, see [syntax.txxt] section 4.1.
+        Session numbering uses the Sequence Marker semantic token, same as lists. For Sequence Marker definitions, see @semantic-tokens.txxt.
 
     3.3. Boundary Rules
 
@@ -215,7 +215,7 @@ Complete specification for sessions - the hierarchical organizational units that
         Beyond standard parser integration, sessions require:
         - Blank line detection before titles (boundary requirement)
         - Indentation level tracking after titles
-        - Sequence marker recognition and preservation using patterns from [syntax.txxt]
+        - Sequence marker recognition and preservation using Sequence Marker semantic token
         - Recursive content parsing including nested sessions
         - Session Container boundary validation
 

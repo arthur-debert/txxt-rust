@@ -621,15 +621,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
             }
         }
 
-        tokens.push(ScannerToken::VerbatimTitle {
-            content: title_content.trim_start().to_string(),
-            span: SourceSpan {
-                start: title_start_pos,
-                end: self.current_position(),
-            },
-        });
-
-        // Calculate the wall position and type
+        // Calculate the wall position and type first
         let (wall_level, wall_type) = match block.block_type {
             VerbatimType::Normal => (
                 block.title_indent + INDENT_SIZE,
@@ -638,6 +630,25 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
             VerbatimType::Stretched => (0, WallType::Stretched), // Content starts at column 0
             VerbatimType::Empty => (0, WallType::Stretched), // No content, but use stretched for consistency
         };
+
+        // Emit IndentationWall token first
+        tokens.push(ScannerToken::IndentationWall {
+            level: wall_level,
+            wall_type: wall_type.clone(),
+            span: SourceSpan {
+                start: title_start_pos,
+                end: title_start_pos,
+            },
+        });
+
+        // Create VerbatimTitle token
+        tokens.push(ScannerToken::VerbatimTitle {
+            content: title_content.trim_start().to_string(),
+            span: SourceSpan {
+                start: title_start_pos,
+                end: self.current_position(),
+            },
+        });
 
         // Process content lines if they exist
         if let (Some(_content_start), Some(_content_end)) = (block.content_start, block.content_end)
@@ -699,7 +710,7 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
 
             if !all_content.is_empty() {
                 // Create wall position span (from start of first line to wall position)
-                let wall_span = SourceSpan {
+                let _wall_span = SourceSpan {
                     start: first_line_start_pos.unwrap(),
                     end: Position {
                         row: first_line_start_pos.unwrap().row,
@@ -715,13 +726,6 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
                     },
                     end: last_line_end_pos.unwrap(),
                 };
-
-                // Emit IndentationWall token
-                tokens.push(ScannerToken::IndentationWall {
-                    level: wall_level,
-                    wall_type: wall_type.clone(),
-                    span: wall_span,
-                });
 
                 // Emit IgnoreTextSpan token with all content without wall indentation
                 tokens.push(ScannerToken::IgnoreTextSpan {

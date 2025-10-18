@@ -96,6 +96,62 @@ impl Detokenizer {
                 continue;
             }
 
+            // Handle VerbatimTitle tokens with proper indentation
+            if let ScannerToken::VerbatimTitle { content, span, .. } = token {
+                // Use the wall information to determine correct indentation
+                if let Some((_, wall_type)) = &current_wall_info {
+                    match wall_type {
+                        crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                            // For in-flow verbatim, title should have base_indent spaces
+                            let indent_ws = " ".repeat(*base_indent);
+                            result.push_str(&indent_ws);
+                        }
+                        crate::ast::scanner_tokens::WallType::Stretched => {
+                            // For stretched verbatim, title starts at column 1 (to disambiguate from regular TXXT content)
+                            result.push(' ');
+                        }
+                    }
+                } else {
+                    // Fallback: use span information
+                    let original_indent = span.start.column;
+                    let indent_ws = " ".repeat(original_indent);
+                    result.push_str(&indent_ws);
+                }
+                result.push_str(content);
+                result.push(':');
+                result.push('\n');
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Handle VerbatimLabel tokens with proper indentation
+            if let ScannerToken::VerbatimLabel { content, span, .. } = token {
+                // Use the wall information to determine correct indentation
+                if let Some((_, wall_type)) = &current_wall_info {
+                    match wall_type {
+                        crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                            // For in-flow verbatim, label should have base_indent spaces
+                            let indent_ws = " ".repeat(*base_indent);
+                            result.push_str(&indent_ws);
+                        }
+                        crate::ast::scanner_tokens::WallType::Stretched => {
+                            // For stretched verbatim, label starts at column 1 (to disambiguate from regular TXXT content)
+                            result.push(' ');
+                        }
+                    }
+                } else {
+                    // Fallback: use span information
+                    let original_indent = span.start.column;
+                    let indent_ws = " ".repeat(original_indent);
+                    result.push_str(&indent_ws);
+                }
+                result.push_str("::");
+                result.push(' ');
+                result.push_str(content);
+                prev_token = Some(token);
+                continue;
+            }
+
             // Handle IndentationWall tokens to store wall information
             if let ScannerToken::IndentationWall {
                 level, wall_type, ..
@@ -207,6 +263,19 @@ impl Detokenizer {
 
                 prev_token = Some(token);
                 at_line_start = false;
+                continue;
+            }
+
+            // Handle VerbatimTitle tokens with proper indentation
+            if let ScannerToken::VerbatimTitle { content, .. } = token {
+                // Add proper indentation for verbatim title
+                let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
+                result.push_str(&indent_ws);
+                result.push_str(content);
+                result.push(':');
+                result.push('\n');
+                prev_token = Some(token);
+                at_line_start = true;
                 continue;
             }
 
@@ -392,10 +461,9 @@ impl Detokenizer {
                     }
                 }
             }
-            ScannerToken::VerbatimTitle { content, .. } => {
-                result.push_str(content);
-                result.push(':');
-                result.push('\n');
+            ScannerToken::VerbatimTitle { .. } => {
+                // VerbatimTitle tokens are handled in append_token_tree method
+                unreachable!("VerbatimTitle tokens should be handled in append_token_tree");
             }
             ScannerToken::IndentationWall { .. } => {
                 // Wall tokens are handled in append_token_tree method

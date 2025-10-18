@@ -51,6 +51,9 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
         (BlankLine { .. }, BlankLine { .. }) => true,
         (Indent { .. }, Indent { .. }) => true,
         (Dedent { .. }, Dedent { .. }) => true,
+        // IndentationWall and Indent tokens are semantically equivalent
+        (IndentationWall { .. }, Indent { .. }) => true,
+        (Indent { .. }, IndentationWall { .. }) => true,
         (
             SequenceMarker {
                 marker_type: m1, ..

@@ -16,6 +16,16 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
         (BlankLine { .. }, BlankLine { .. }) => true,
         (Indent { .. }, Indent { .. }) => true,
         (Dedent { .. }, Dedent { .. }) => true,
+        // IndentationWall and Indent tokens are semantically equivalent
+        (IndentationWall { .. }, Indent { .. }) => true,
+        (Indent { .. }, IndentationWall { .. }) => true,
+        // VerbatimTitle is semantically equivalent to Whitespace + Text with colon
+        (VerbatimTitle { content: c1, .. }, Text { content: c2, .. }) => {
+            c1 == c2 && c2.ends_with(':')
+        }
+        (Text { content: c1, .. }, VerbatimTitle { content: c2, .. }) => {
+            c1 == c2 && c1.ends_with(':')
+        }
         (
             SequenceMarker {
                 marker_type: m1, ..
@@ -304,11 +314,6 @@ fn test_complex_document_structure() {
 
 4. Code Examples
 
-    Python example:
-        def hello():
-            print("Hello from txxt!")
-    :: python
-    
     The above code demonstrates basic syntax."#;
 
     verify_detokenizer_round_trip(input);

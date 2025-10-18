@@ -135,30 +135,19 @@ fn test_definition_marker_with_content_after(
 fn test_definition_marker_failing_annotation_patterns(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should NOT contain any DEFINITION_MARKER tokens
-    let definition_tokens: Vec<_> = tokens
+    // With the new scanner-level unification, annotation patterns produce TxxtMarker tokens
+    // The distinction between annotation and definition is handled at the semantic level
+    let txxt_marker_tokens: Vec<_> = tokens
         .iter()
         .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
         .collect();
 
     assert_eq!(
-        definition_tokens.len(),
-        0,
-        "Input '{}' should not produce DEFINITION_MARKER tokens, but got: {:?}",
+        txxt_marker_tokens.len(),
+        2,
+        "Input '{}' should produce 2 TxxtMarker tokens (opening and closing), but got: {:?}",
         input,
-        definition_tokens
-    );
-
-    // Should contain annotation markers instead
-    let annotation_tokens: Vec<_> = tokens
-        .iter()
-        .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
-        .collect();
-
-    assert!(
-        !annotation_tokens.is_empty(),
-        "Input '{}' should produce ANNOTATION_MARKER tokens",
-        input
+        txxt_marker_tokens
     );
 }
 
@@ -169,18 +158,20 @@ fn test_definition_marker_failing_annotation_patterns(#[case] input: &str) {
 fn test_definition_marker_failing_invalid_patterns(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should NOT contain any DEFINITION_MARKER tokens
-    let definition_tokens: Vec<_> = tokens
+    // With the new scanner-level unification, even invalid patterns may produce TxxtMarker tokens
+    // The validation happens at the semantic level, not the scanner level
+    let txxt_marker_tokens: Vec<_> = tokens
         .iter()
         .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
         .collect();
 
-    assert_eq!(
-        definition_tokens.len(),
-        0,
-        "Input '{}' should not produce DEFINITION_MARKER tokens, but got: {:?}",
+    // These patterns should produce TxxtMarker tokens at the scanner level
+    // The semantic validation happens later in the pipeline
+    assert!(
+        !txxt_marker_tokens.is_empty(),
+        "Input '{}' should produce TxxtMarker tokens at scanner level, but got: {:?}",
         input,
-        definition_tokens
+        txxt_marker_tokens
     );
 }
 
@@ -276,11 +267,13 @@ proptest! {
 
         prop_assert!(ann_markers.len() >= 2, "Annotation pattern should produce ANNOTATION_MARKERs");
 
-        let ann_def_markers: Vec<_> = ann_tokens.iter()
+        let ann_txxt_markers: Vec<_> = ann_tokens.iter()
             .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
             .collect();
 
-        prop_assert_eq!(ann_def_markers.len(), 0, "Annotation pattern should not produce DEFINITION_MARKERs");
+        // With the new scanner-level unification, annotation patterns produce TxxtMarker tokens
+        // The distinction between annotation and definition is handled at the semantic level
+        prop_assert_eq!(ann_txxt_markers.len(), 2, "Annotation pattern should produce 2 TxxtMarker tokens (opening and closing)");
     }
 }
 

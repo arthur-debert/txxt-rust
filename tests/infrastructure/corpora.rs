@@ -3,6 +3,10 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
+// Import the lexer and semantic analysis for processing
+use txxt::lexer::tokenize;
+use txxt::parser::pipeline::semantic_analysis::SemanticAnalyzer;
+
 /// Processing stages for test corpora.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[allow(dead_code)] // Some variants are for future integration
@@ -12,6 +16,8 @@ pub enum ProcessingStage {
     Raw,
     /// Tokenized stream from the tokenizer
     Tokens,
+    /// Semantic tokens from the semantic analysis phase
+    SemanticTokens,
     /// Block-grouped tokens after lexical analysis
     BlockedTokens,
     /// Parsed AST structure
@@ -37,6 +43,15 @@ impl Corpus {
         match &self.processed_data {
             Some(ProcessedData::Tokens(tokens)) => Some(tokens),
             Some(ProcessedData::BlockedTokens(tokens)) => Some(tokens),
+            _ => None,
+        }
+    }
+
+    /// Get the processed data as semantic tokens, if available.
+    #[allow(dead_code)] // Will be used by parser tests
+    pub fn semantic_tokens(&self) -> Option<&str> {
+        match &self.processed_data {
+            Some(ProcessedData::SemanticTokens(tokens)) => Some(tokens),
             _ => None,
         }
     }
@@ -82,6 +97,8 @@ pub enum ProcessedData {
     Raw,
     /// Tokenized representation
     Tokens(Vec<String>), // Placeholder - will be replaced with actual token types
+    /// Semantic tokens representation
+    SemanticTokens(String), // JSON serialized semantic tokens for inspection
     /// Block-grouped tokens
     BlockedTokens(Vec<String>), // Placeholder - will be replaced with actual block types
     /// Parsed AST
@@ -147,7 +164,7 @@ pub enum ProcessedData {
 ///
 /// # Processing Stages
 ///
-/// Both modes support pipeline stages: `Raw` (default), `Tokens`, `BlockedTokens`,
+/// Both modes support pipeline stages: `Raw` (default), `Tokens`, `SemanticTokens`, `BlockedTokens`,
 /// `ParsedAst`, `FullDocument`.
 ///
 /// ```rust
@@ -156,7 +173,7 @@ pub enum ProcessedData {
 /// // Fragment with processing
 /// let corpus = TxxtCorpora::load_with_processing(
 ///     "txxt.core.spec.list.valid.plain-flat",
-///     ProcessingStage::Tokens
+///     ProcessingStage::SemanticTokens
 /// )?;
 ///
 /// // Document with processing
@@ -488,6 +505,11 @@ impl TxxtCorpora {
                 let tokens = Self::placeholder_tokenize(&corpus.source_text)?;
                 corpus.processed_data = Some(ProcessedData::Tokens(tokens));
             }
+            ProcessingStage::SemanticTokens => {
+                // Apply lexer and semantic analysis to extract semantic tokens
+                let semantic_tokens = Self::process_semantic_tokens(&corpus.source_text)?;
+                corpus.processed_data = Some(ProcessedData::SemanticTokens(semantic_tokens));
+            }
             ProcessingStage::BlockedTokens => {
                 // TODO: Integrate with actual block grouper when available
                 let tokens = Self::placeholder_tokenize(&corpus.source_text)?;
@@ -512,6 +534,32 @@ impl TxxtCorpora {
     fn placeholder_tokenize(text: &str) -> Result<Vec<String>, CorpusError> {
         // Simple word-based tokenization as placeholder
         Ok(text.split_whitespace().map(|s| s.to_string()).collect())
+    }
+
+    /// Process text through lexer and semantic analysis to extract semantic tokens.
+    ///
+    /// This method applies the complete lexer -> semantic analysis pipeline
+    /// to extract semantic tokens from the input text. The result is serialized
+    /// as JSON for inspection in tests and CLI tools.
+    ///
+    /// # Arguments
+    /// * `text` - The input text to process
+    ///
+    /// # Returns
+    /// * `Result<String, CorpusError>` - JSON serialized semantic tokens
+    fn process_semantic_tokens(text: &str) -> Result<String, CorpusError> {
+        // Step 1: Apply lexer to get scanner tokens
+        let scanner_tokens = tokenize(text);
+
+        // Step 2: Apply semantic analysis to get semantic tokens
+        let analyzer = SemanticAnalyzer::new();
+        let semantic_tokens = analyzer
+            .analyze(scanner_tokens)
+            .map_err(|e| CorpusError::ProcessingError(format!("Semantic analysis error: {}", e)))?;
+
+        // Step 3: Serialize to JSON for inspection
+        serde_json::to_string_pretty(&semantic_tokens)
+            .map_err(|e| CorpusError::ProcessingError(format!("JSON serialization error: {}", e)))
     }
 
     /// Extract a specific corpus from a file.
@@ -732,6 +780,7 @@ pub enum CorpusError {
     CorpusNotFound(String),
     DocumentNotFound(String),
     TitleLineNotFound(String),
+    ProcessingError(String),
 }
 
 impl std::fmt::Display for CorpusError {
@@ -761,6 +810,9 @@ impl std::fmt::Display for CorpusError {
             }
             CorpusError::TitleLineNotFound(name) => {
                 write!(f, "Title line not found for corpus '{}'", name)
+            }
+            CorpusError::ProcessingError(msg) => {
+                write!(f, "Processing error: {}", msg)
             }
         }
     }
@@ -860,5 +912,12 @@ mod tests {
             corpus.tokens(),
             Some(&vec!["test".to_string(), "content".to_string()])
         );
+
+        // Test semantic tokens access
+        assert!(corpus.semantic_tokens().is_none());
+        corpus.processed_data = Some(ProcessedData::SemanticTokens(
+            r#"{"tokens": []}"#.to_string(),
+        ));
+        assert_eq!(corpus.semantic_tokens(), Some(r#"{"tokens": []}"#));
     }
 }

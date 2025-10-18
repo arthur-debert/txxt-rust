@@ -1,7 +1,6 @@
 //! Tests for BlankLine whitespace preservation (issue #30)
-use txxt::lexer::ScannerToken;
 
-use txxt::lexer::{tokenize, Token};
+use txxt::lexer::{tokenize, ScannerToken};
 use txxt::tools::detokenizer::Detokenizer;
 
 /// Helper to verify round-trip tokenization for verification purposes

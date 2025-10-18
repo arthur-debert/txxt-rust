@@ -1,10 +1,9 @@
 //! Comprehensive audit of all span calculations in tokenizers
-use txxt::lexer::ScannerToken;
 //!
 //! This systematically tests every tokenizer that creates spans to ensure
 //! they handle Unicode correctly.
 
-use txxt::ast::scanner_tokens::{SourceSpan, Token};
+use txxt::ast::scanner_tokens::{SourceSpan, ScannerToken};
 use txxt::lexer::Lexer;
 
 /// List all places where we found column arithmetic
@@ -202,7 +201,7 @@ fn audit_sequence_marker_with_unicode_context() {
 
 // Helper functions
 
-fn find_sequence_marker(tokens: &[Token]) -> &ScannerToken {
+fn find_sequence_marker(tokens: &[ScannerToken]) -> &ScannerToken {
     tokens
         .iter()
         .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))

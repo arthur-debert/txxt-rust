@@ -1,5 +1,4 @@
 //! Tests for parameter tokenization functionality
-use txxt::lexer::ScannerToken;
 //!
 //! Tests the key=value,key2=value2 parameter syntax parsing with support for:
 //! - Basic key=value pairs
@@ -9,7 +8,7 @@ use txxt::lexer::ScannerToken;
 
 use proptest::prelude::*;
 use std::collections::HashMap;
-use txxt::ast::scanner_tokens::{Position, Token};
+use txxt::ast::scanner_tokens::{Position, ScannerToken};
 use txxt::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 
 /// Mock lexer for testing parameter parsing
@@ -52,7 +51,7 @@ impl ParameterLexer for MockParameterLexer {
 }
 
 /// Extract parameter data from tokens for easier testing
-fn extract_parameters(tokens: &[Token]) -> HashMap<String, String> {
+fn extract_parameters(tokens: &[ScannerToken]) -> HashMap<String, String> {
     let mut params = HashMap::new();
     for token in tokens {
         if let ScannerToken::Parameter { key, value, .. } = token {

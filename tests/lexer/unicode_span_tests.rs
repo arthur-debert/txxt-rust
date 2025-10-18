@@ -651,7 +651,7 @@ fn test_mixed_unicode_content() {
 
 // Helper functions
 
-fn get_token_span(token: &ScannerToken) -> &txxt::ast::tokens::SourceSpan {
+fn get_token_span(token: &ScannerToken) -> &txxt::ast::scanner_tokens::SourceSpan {
     match token {
         ScannerToken::Text { span, .. }
         | ScannerToken::Identifier { span, .. }

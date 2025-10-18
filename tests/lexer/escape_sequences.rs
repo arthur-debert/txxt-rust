@@ -1,11 +1,9 @@
 //! Tests for escape sequence handling in text tokens
-use txxt::lexer::ScannerToken;
-//!
 //! These tests verify that the tokenizer correctly handles backslash escape
 //! sequences for special characters that would otherwise be tokenized as
 //! formatting delimiters or structural elements.
 
-use txxt::lexer::{tokenize, Token};
+use txxt::lexer::{tokenize, ScannerToken};
 
 #[test]
 fn test_escaped_asterisk() {

@@ -1,5 +1,4 @@
 //! Tests for the AST assertion framework.
-use txxt::lexer::ScannerToken;
 //!
 //! Validates that the assertion helpers work correctly with proper error messages.
 
@@ -21,7 +20,7 @@ mod framework_tests {
             paragraph::ParagraphBlock,
             session::{session_container::SessionContainerElement, SessionContainer},
         },
-        tokens::{Position, SourceSpan, ScannerToken, ScannerTokenSequence},
+        scanner_tokens::{Position, SourceSpan, ScannerToken, ScannerTokenSequence},
     };
 
     /// Helper to create a simple paragraph for testing

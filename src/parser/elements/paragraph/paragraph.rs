@@ -324,7 +324,7 @@ mod tests {
         }
     }
 
-    fn create_text_token(content: &str) -> Token {
+    fn create_text_token(content: &str) -> ScannerToken {
         ScannerToken::Text {
             content: content.to_string(),
             span: create_test_span(),

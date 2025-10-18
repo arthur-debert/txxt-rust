@@ -1,5 +1,4 @@
 //! Verify that the tokenizer actually handles Unicode correctly
-use txxt::lexer::ScannerToken;
 
 use txxt::lexer::Lexer;
 

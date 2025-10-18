@@ -4,7 +4,7 @@
 //! sequence markers like "1.1.", "1.2.3.", etc. as defined in the extended form
 //! specification.
 
-use txxt::ast::scanner_tokens::{SequenceMarkerType, Token};
+use txxt::ast::scanner_tokens::{SequenceMarkerType, ScannerToken};
 use txxt::lexer::Lexer;
 
 #[test]

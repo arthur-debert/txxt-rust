@@ -233,14 +233,14 @@ mod tests {
         }
     }
 
-    fn create_text_token(content: &str) -> Token {
+    fn create_text_token(content: &str) -> ScannerToken {
         ScannerToken::Text {
             content: content.to_string(),
             span: create_test_span(),
         }
     }
 
-    fn create_sequence_token(content: &str) -> Token {
+    fn create_sequence_token(content: &str) -> ScannerToken {
         ScannerToken::SequenceMarker {
             marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Plain(content.to_string()),
             span: create_test_span(),

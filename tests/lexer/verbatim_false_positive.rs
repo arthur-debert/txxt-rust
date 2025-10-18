@@ -2,7 +2,6 @@
 use txxt::lexer::ScannerToken;
 
 use txxt::lexer::tokenize;
-use txxt::lexer::Token;
 
 #[test]
 fn test_colon_followed_by_annotation_not_verbatim() {

@@ -31,7 +31,7 @@ fn make_paragraph(
     params: Vec<(&str, &str)>,
     annotations: Vec<&str>,
 ) -> ParagraphBlock {
-    use txxt::ast::scanner_tokens::{Position, SourceSpan, Token};
+    use txxt::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
 
     // Field 1: content (Vec<TextTransform>)
     // Create a Text token with the actual text

@@ -37,7 +37,9 @@ use std::collections::VecDeque;
 use std::fmt;
 
 use crate::ast::elements::components::parameters::Parameters;
+use crate::ast::elements::containers::ContentContainer;
 use crate::ast::elements::core::ElementNode;
+use crate::ast::elements::definition::{DefinitionBlock, DefinitionTerm};
 use crate::ast::elements::inlines::{TextSpan, TextTransform};
 use crate::ast::elements::list::{
     ListBlock, ListDecorationType, ListItem, NumberingForm, NumberingStyle,
@@ -80,6 +82,10 @@ struct ContainerContext {
     current_list_item_text: Vec<String>,
     /// Current list item marker
     current_list_item_marker: Option<String>,
+    /// Whether we're currently processing definition content
+    in_definition_content: bool,
+    /// Index of the definition being populated (if in_definition_content is true)
+    current_definition_index: Option<usize>,
 }
 
 /// Container type for parsing context
@@ -193,6 +199,8 @@ impl AstConstructor {
             current_list_items: Vec::new(),
             current_list_item_text: Vec::new(),
             current_list_item_marker: None,
+            in_definition_content: false,
+            current_definition_index: None,
         });
 
         // Process tokens sequentially
@@ -370,6 +378,14 @@ impl AstConstructor {
         self.finalize_current_paragraph()?;
         self.finalize_current_list()?;
 
+        // If we're in definition content, stop processing definition content
+        if let Some(current_container) = self.container_stack.last_mut() {
+            if current_container.in_definition_content {
+                current_container.in_definition_content = false;
+                current_container.current_definition_index = None;
+            }
+        }
+
         // If we're in session content, finalize the session
         if let Some(current_container) = self.container_stack.last_mut() {
             if current_container.in_session_content
@@ -439,16 +455,42 @@ impl AstConstructor {
                 let text_span = TextSpan::simple(&paragraph_text);
                 let content = vec![TextTransform::Identity(text_span)];
 
-                let paragraph = ParagraphBlock {
-                    content,
-                    annotations: Vec::new(),
-                    parameters: Parameters::new(),
-                    tokens: ScannerTokenSequence::new(),
-                };
+                // Check if we're processing definition content
+                if current_container.in_definition_content {
+                    if let Some(definition_index) = current_container.current_definition_index {
+                        // Add paragraph to the definition's content container
+                        let paragraph = ParagraphBlock {
+                            content,
+                            annotations: Vec::new(),
+                            parameters: Parameters::new(),
+                            tokens: ScannerTokenSequence::new(),
+                        };
 
-                current_container
-                    .elements
-                    .push(ElementNode::ParagraphBlock(paragraph));
+                        // Get the definition and add the paragraph to its content
+                        if let Some(ElementNode::DefinitionBlock(ref mut definition)) =
+                            current_container.elements.get_mut(definition_index)
+                        {
+                            use crate::ast::elements::containers::content::ContentContainerElement;
+                            definition
+                                .content
+                                .content
+                                .push(ContentContainerElement::Paragraph(paragraph));
+                        }
+                    }
+                } else {
+                    // Regular paragraph creation
+                    let paragraph = ParagraphBlock {
+                        content,
+                        annotations: Vec::new(),
+                        parameters: Parameters::new(),
+                        tokens: ScannerTokenSequence::new(),
+                    };
+
+                    current_container
+                        .elements
+                        .push(ElementNode::ParagraphBlock(paragraph));
+                }
+
                 current_container.current_paragraph_text.clear();
             }
         }
@@ -538,9 +580,16 @@ impl AstConstructor {
     }
 
     /// Handle definition (definition block)
-    fn handle_definition(&mut self, _token: SemanticToken) -> Result<(), AstConstructionError> {
-        // TODO: Implement definition block creation
-        // For Phase 1, we'll stub this out
+    fn handle_definition(&mut self, token: SemanticToken) -> Result<(), AstConstructionError> {
+        let definition = self.create_definition_from_token(token)?;
+
+        // Add to current container
+        if let Some(current_container) = self.container_stack.last_mut() {
+            current_container
+                .elements
+                .push(ElementNode::DefinitionBlock(definition));
+        }
+
         Ok(())
     }
 
@@ -788,12 +837,67 @@ impl AstConstructor {
     fn handle_txxt_marker(
         &mut self,
         _marker_token: SemanticToken,
-        _remaining_tokens: &mut VecDeque<SemanticToken>,
+        remaining_tokens: &mut VecDeque<SemanticToken>,
     ) -> Result<(), AstConstructionError> {
-        // For Phase 2: TxxtMarkers indicate definitions, but the pattern detection is more complex
-        // Since the term comes before the marker, we would need to look backward or restructure
-        // For now, let's skip this approach and handle definitions when we see the complete pattern
-        // TODO: Implement definition detection when we have the complete term + :: + content pattern
+        // Check if this TxxtMarker represents a definition pattern
+        // Pattern: Text + Whitespace + TxxtMarker + Newline + Indent
+        // This is more specific than just Text + :: to avoid conflicts with annotations
+        
+        let term_text = if let Some(current_container) = self.container_stack.last() {
+            if !current_container.current_paragraph_text.is_empty() {
+                Some(current_container.current_paragraph_text.join(""))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        if let Some(term_text) = term_text {
+            if !term_text.trim().is_empty() {
+                // Check if this looks like a definition by looking ahead for the pattern:
+                // TxxtMarker + TextSpan("\n") + Indent
+                let mut iter = remaining_tokens.iter();
+                let is_definition_pattern = if let Some(SemanticToken::TextSpan { content, .. }) = iter.next() {
+                    if content == "\n" {
+                        // Next should be Indent for definition content
+                        matches!(iter.next(), Some(SemanticToken::Indent { .. }))
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                if is_definition_pattern {
+                    // This looks like a definition pattern - create definition
+                    let definition = self.create_definition_from_pattern(term_text.trim())?;
+
+                    if let Some(current_container) = self.container_stack.last_mut() {
+                        let definition_index = current_container.elements.len();
+                        current_container
+                            .elements
+                            .push(ElementNode::DefinitionBlock(definition));
+                        current_container.current_paragraph_text.clear();
+
+                        // Mark that we're now processing definition content
+                        current_container.in_definition_content = true;
+                        current_container.current_definition_index = Some(definition_index);
+                    }
+
+                    return Ok(());
+                }
+            }
+        }
+
+        // If not a definition pattern, treat as regular content
+        // Add the :: marker to current paragraph text
+        if let Some(current_container) = self.container_stack.last_mut() {
+            current_container
+                .current_paragraph_text
+                .push("::".to_string());
+        }
+
         Ok(())
     }
 
@@ -829,6 +933,89 @@ impl AstConstructor {
                 "Expected PlainTextLine token".to_string(),
             )),
         }
+    }
+
+    /// Create a definition block from a definition semantic token
+    fn create_definition_from_token(
+        &self,
+        token: SemanticToken,
+    ) -> Result<DefinitionBlock, AstConstructionError> {
+        match token {
+            SemanticToken::Definition {
+                term,
+                parameters: _,
+                span: _,
+            } => {
+                // Extract term content from the nested semantic token
+                let term_content = match *term {
+                    SemanticToken::TextSpan { content, .. } => content,
+                    _ => {
+                        return Err(AstConstructionError::MalformedElement(
+                            "Definition term must contain TextSpan".to_string(),
+                        ))
+                    }
+                };
+
+                // Create definition term - convert text to inline elements
+                let term_text_span = TextSpan::simple(&term_content);
+                let term_inline = vec![TextTransform::Identity(term_text_span)];
+
+                let definition_term = DefinitionTerm {
+                    content: term_inline,
+                    tokens: ScannerTokenSequence::new(),
+                };
+
+                // Create empty content container for now - will be populated by indented content parsing
+                let content_container = ContentContainer {
+                    content: vec![], // Will be populated when we process the indented definition content
+                    annotations: Vec::new(),
+                    parameters: Parameters::new(),
+                    tokens: ScannerTokenSequence::new(),
+                };
+
+                Ok(DefinitionBlock {
+                    term: definition_term,
+                    content: content_container,
+                    parameters: Parameters::new(),
+                    annotations: Vec::new(),
+                    tokens: ScannerTokenSequence::new(),
+                })
+            }
+            _ => Err(AstConstructionError::MalformedElement(
+                "Expected Definition token".to_string(),
+            )),
+        }
+    }
+
+    /// Create a definition block from a term pattern (Text + :: pattern recognition)
+    fn create_definition_from_pattern(
+        &self,
+        term_text: &str,
+    ) -> Result<DefinitionBlock, AstConstructionError> {
+        // Create definition term from the recognized text pattern
+        let term_text_span = TextSpan::simple(term_text);
+        let term_inline = vec![TextTransform::Identity(term_text_span)];
+
+        let definition_term = DefinitionTerm {
+            content: term_inline,
+            tokens: ScannerTokenSequence::new(),
+        };
+
+        // Create empty content container for now - will be populated by indented content parsing
+        let content_container = ContentContainer {
+            content: vec![], // Will be populated when we process the indented definition content
+            annotations: Vec::new(),
+            parameters: Parameters::new(),
+            tokens: ScannerTokenSequence::new(),
+        };
+
+        Ok(DefinitionBlock {
+            term: definition_term,
+            content: content_container,
+            parameters: Parameters::new(),
+            annotations: Vec::new(),
+            tokens: ScannerTokenSequence::new(),
+        })
     }
 
     /// Finalize construction and return the root element

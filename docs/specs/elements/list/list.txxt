@@ -87,6 +87,8 @@ Complete specification for lists - ordered and unordered collections of items wi
         
         **Critical Rule**: Single items at the top level are parsed as paragraphs, not lists. Lists require multiple items at the root level to disambiguate from dialog and ensure clear intent. However, single items are allowed within nested contexts.
 
+        For detailed disambiguation rules between sessions, lists, and paragraphs, see @12-complex-sessions.txxt.
+
         For complete list grammar, see @grammar.txxt section 2.2.
         :: grammar
 

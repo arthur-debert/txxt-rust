@@ -95,6 +95,8 @@ Complete specification for paragraphs - the fundamental text blocks that contain
         - Line not at increased indentation from current level
         - Serves as default element type when no other pattern matches
 
+        For detailed disambiguation rules between sessions, lists, and paragraphs, see @12-complex-sessions.txxt.
+
     5.2. Line Grouping
 
         Paragraph-specific content collection:

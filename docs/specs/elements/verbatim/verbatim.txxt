@@ -306,28 +306,6 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
         The verbatim title is indented +1 from list item, content is +1 from title.
 
-9. Migration from Old Syntax
 
-    9.1. Conversion Rules
-
-        Old parentheses syntax:
-            Title:
-                content
-            (label)
-
-        New txxt marker syntax:
-            Title:
-                content
-            :: label
-
-    9.2. Parameter Migration
-
-        Old parameter syntax:
-            (python:version=3.11)
-
-        New parameter syntax:
-            :: python:version=3.11
-
-    The new syntax is cleaner, more consistent with txxt philosophy, and easier to parse due to unambiguous termination.
 
 :: note :: Verbatim blocks are the only txxt element that requires stateful pre-parsing to protect their content from normal tokenization. This architectural requirement keeps parsing complexity isolated to a single, well-defined phase.

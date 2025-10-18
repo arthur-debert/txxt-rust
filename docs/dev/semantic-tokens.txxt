@@ -28,28 +28,56 @@ Proposal: Semantic Token Stage
 	On the actual block parsing, we can use the direct mapping grammar where Semantic Tokens + Indentation Tokens can easily be parsed as Elements. 
 	In this layer, the indent token gets consumed by a new element , and the parser keeps tabs of dedentes to actually build a tree.
 
+	2.1 Pipeline Overview
+	 
+		Here is what this looks Like
 
-	Here is what this looks Like
+		Phase 1: Lexer: Operates On Strings (txxt str -> ScannerTokenList)
+			a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
+			b. Token List: creates the token stream at low level tokens -> scanner token list
+		Phase 2: Parser Operates on Tokens (ScannerTokenList -> AST tree node)
+			a. Semantic Analysis  (ScannerTokenList → SemanticTokenList)
+				Elevates the low-level scanner token stream into a higher-level stream of semantic nodes, which represent the syntactic structure of individual lines.  This stage consumes the flat `ScannerToken` stream. It groups tokens on a line-by-line basis into the `SemanticNode` types defined in [docs/specs/core/semantic-nodes.txxt].
+					- Example: `SequenceMarker`, `Whitespace`, `Text`, `Newline` are grouped into a single `SequenceLine` node.
+					- Crucially, structural tokens like `Indent`, `Dedent`, and `BlankLine` are *passed through unchanged*.
+				Output Stream Example:
+				[AnnotationLine, Indent, SequenceLine, SequenceLine, Dedent, BlankLine, TextLine, ...]( Token List)
+			b. AST Construction (SemanticTokenList -> Ast Tree Node)
+				This is the final and *only* phase that builds a tree. It consumes the rich, flat stream from Phase 2 and applies the grammar to construct the final AST.
+				This parser now has everything it needs to apply the grammar from [docs/specs/core/grammar.txxt] directly. It can be implemented as a simple recursive-descent or state-machine parser.
+				- On seeing `TextLine` + `BlankLine` + `Indent`, it knows it's parsing a `Session` and can recursively call itself to parse the `SessionContainer`.
+				- On seeing a `Dedent` token, it knows a container has closed and returns from the recursion.
+			c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node). In the text spans, inlines will still be in token form, hence if parses that into ast inline nodes.
+		Phase 3: Assembly (AST tree node -> AST document node)
+			a. Document Wrapping: wraps the parsed AST in a Document node.
+			b. Annotations Attachments: from the content tree to node's annotation's field.
+	
+	2.2 Parallel Pipeline handlings
 
-	Phase 1: Lexer: Operates On Strings (txxt str -> ScannerTokenList)
-		a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
-		b. Token List: creates the token stream at low level tokens -> scanner token list
-	Phase 2: Parser Operates on Tokens (ScannerTokenList -> AST tree node)
-		a. Semantic Analysis  (ScannerTokenList → SemanticTokenList)
-			 Elevates the low-level scanner token stream into a higher-level stream of semantic nodes, which represent the syntactic structure of individual lines.  This stage consumes the flat `ScannerToken` stream. It groups tokens on a line-by-line basis into the `SemanticNode` types defined in [docs/specs/core/semantic-nodes.txxt].
-            	- Example: `SequenceMarker`, `Whitespace`, `Text`, `Newline` are grouped into a single `SequenceLine` node.
-            	- Crucially, structural tokens like `Indent`, `Dedent`, and `BlankLine` are *passed through unchanged*.
-        	Output Stream Example:
-            [AnnotationLine, Indent, SequenceLine, SequenceLine, Dedent, BlankLine, TextLine, ...]( Token List)
-		b. AST Construction (SemanticTokenList -> Ast Tree Node)
-        	This is the final and *only* phase that builds a tree. It consumes the rich, flat stream from Phase 2 and applies the grammar to construct the final AST.
-        	This parser now has everything it needs to apply the grammar from [docs/specs/core/grammar.txxt] directly. It can be implemented as a simple recursive-descent or state-machine parser.
-            - On seeing `TextLine` + `BlankLine` + `Indent`, it knows it's parsing a `Session` and can recursively call itself to parse the `SessionContainer`.
-            - On seeing a `Dedent` token, it knows a container has closed and returns from the recursion.
-		c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node). In the text spans, inlines will still be in token form, hence if parses that into ast inline nodes.
-	Phase 3: Assembly (AST tree node -> AST document node)
-		a. Document Wrapping: wraps the parsed AST in a Document node.
-		b. Annotations Attachments: from the content tree to node's annotation's field.
+		As to not break all tests and allow for the co-existence of the two pipelines, we propose a new pipeline, which: 
+		- Keeps 1.a and 1.b as is, 3.a and 3.b as it it
+		- Removes 1.c, 2.a
+		- Moves inline parsing from 2.b to 2.c
+		- Creates two new phases Semantic Analysis (2.a) and AST Construction (2.b)
+
+		This would allows to keep current code as it, and current tests passing as is, 
+		but sequencing: 
+		 
+		1. First Work on the new semantic analysis and ast construction.
+
+			This would allow us to write and test each phase in isolation. 
+
+		2. Test new Phase 2 and 3 in integration
+
+			After we're confident over 2.a and 2.b impelmentations we can integrate test from 2.a to final 3.b. Not that all this requires no change to curernt code or pipiline, as it adds new stages and tests their combination.
+
+			At this point we're fairly assured that from 1.b -> onwards things are working.
+
+		3. Alter the actual pipeline.
+
+			Remove step 1.c and alter the pipeline to replace the former 2.a with the later 2.a and 2.b
+
+				
 
 3. Semantic Tokens: 
 
@@ -77,9 +105,9 @@ Proposal: Semantic Token Stage
 			Provides structured, reusable components rather than line-based tokens.
 			Emphasizes composability and eliminates duplication across elements.
 
-		SemanticTokenTree::
-			Tree structure containing SemanticTokens with hierarchical children.
-			Mirrors TokenTree structure but with higher-level semantic meaning.
+		SemanticTokenList::
+			List structure containing SemanticTokens with flat lists children.
+			Mirrors TokenList structure but with higher-level semantic meaning, still has indentation tokens.
 
 	4.2 Semantic Tokens Definitions
 
@@ -95,29 +123,20 @@ Proposal: Semantic Token Stage
 
 		These should reflect code, be it modules or packages, as in ast/tokens.rs -> ast/scanner_tokens.rs
 
-
-	5.2 Validate Semantic Token Definition List
-
-		This should be validated, then formalized in the docs/specs/core/syntax.txxt document.
-
-	5.3 Implement Infrastructure for Semantic Tokens
+	5.2 Implement Infrastructure for Semantic Tokens
 
 		The AST nodes, etc.
 
-	5.4 Add SemanticTokenTree txxt-binary support
+	5.3 Implement the Semantic Token (2.a) Phase
+	
+	5.4 Add SemanticTokenList txxt-binary support
 
 		Add the support for txxt binary to output these, as it's greatly useful for debugging.
 
 	5.5 Add Semantic Token support for Corpora
 
 		Our txxt source tool, corpora can generate the txxt data in all phases of the pipeline, which are useful for testing.
+	
+	5.6 Implement the AST Construction (2.b) Phase
 
-	5.6 Implement the Semantic Token parsing phase
-
-	5.7 Write Unit Tests
-
-		These should have a few tests per token. We can use the txxt binary or corpora to generate this correctly from actual parsing stages, but then we copy and use them manually in the tests, to make it more visual what the transformation of input/output should look like
-
-	5.8 Don't break parsing as it is
-
-		This branch will not adapt the block parser to receive Semantic Tokens. Hence we cannot just plug in the phase, else all will break. We will implement the phase, but not include it in the pipeline.
+	5.7. Replace the old with the new pipeline

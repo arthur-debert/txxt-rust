@@ -219,26 +219,25 @@ This document outlines the comprehensive implementation plan for the core parser
 
         **Testing Integration:**
         Tests use `TxxtCorpora::load()` to extract labeled examples from spec documents:
-        ```rust
-        let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
-        let result = parse(&corpus.source_text);
-        assert!(result.is_ok());
-        ```
+            let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple").unwrap();
+            let result = parse(&corpus.source_text);
+            assert!(result.is_ok());
+        ::rust
 
-    7.2. Error Handling
+        7.2. Error Handling
 
-        - Graceful degradation: fallback to paragraph on ambiguity
-        - Partial parse recovery: continue parsing when possible
-        - Clear error messages with position information
-        - Validation of parsed structures against spec
+            - Graceful degradation: fallback to paragraph on ambiguity
+            - Partial parse recovery: continue parsing when possible
+            - Clear error messages with position information
+            - Validation of parsed structures against spec
 
 
-8. Success Criteria
+    8. Success Criteria
 
-    8.1. Phase Completion Criteria
+        8.1. Phase Completion Criteria
 
-        Each phase is complete when:
-        - All planned element types parse correctly using ensemble examples
-        - All test cases pass using corpora system
-        - Integration with lexer and assembler works
+            Each phase is complete when:
+            - All planned element types parse correctly using ensemble examples
+            - All test cases pass using corpora system
+            - Integration with lexer and assembler works
 

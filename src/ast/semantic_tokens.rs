@@ -55,6 +55,13 @@ pub enum SemanticToken {
         span: SourceSpan,
     },
 
+    /// Fundamental :: marker used across annotations, definitions, and verbatim blocks
+    /// Identifies txxt structural elements and provides disambiguation anchor points
+    TxxtMarker {
+        /// Source span of the marker
+        span: SourceSpan,
+    },
+
     /// Key-value metadata component used in annotations and verbatim elements
     /// Structured parameter list with proper key-value pair parsing
     Parameters {
@@ -244,6 +251,7 @@ impl SemanticTokenSpan for SemanticToken {
     fn span(&self) -> &SourceSpan {
         match self {
             SemanticToken::Label { span, .. }
+            | SemanticToken::TxxtMarker { span }
             | SemanticToken::Parameters { span, .. }
             | SemanticToken::SequenceMarker { span, .. }
             | SemanticToken::TextSpan { span, .. }
@@ -307,6 +315,11 @@ impl SemanticTokenBuilder {
     /// Create a label semantic token
     pub fn label(text: String, span: SourceSpan) -> SemanticToken {
         SemanticToken::Label { text, span }
+    }
+
+    /// Create a txxt marker semantic token
+    pub fn txxt_marker(span: SourceSpan) -> SemanticToken {
+        SemanticToken::TxxtMarker { span }
     }
 
     /// Create a parameters semantic token

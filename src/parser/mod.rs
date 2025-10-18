@@ -63,4 +63,7 @@ pub mod pipeline;
 pub mod elements;
 
 // Re-export main interfaces
-pub use pipeline::{BlockParseError, BlockParser, InlineParseError, InlineParser};
+pub use pipeline::{
+    BlockParseError, BlockParser, InlineParseError, InlineParser, SemanticAnalysisError,
+    SemanticAnalyzer,
+};

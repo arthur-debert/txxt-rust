@@ -1,0 +1,81 @@
+Proposal Musical Support for txxt
+
+As it's goal of being a universal idea encoder txxt must cater to non textual forms, as images , video, audio (as it does), but should also encode muisical notation.
+
+Here the approach is simliar to Math: complex cases are best handled by verbatim blocks of bes-in-breed formats, like latex, complemented by an inline notation for sipmler manetions.
+
+1. Complex use cases
+
+	These are left open, with the recomendation for LillyPond. 
+
+	Ode To Joy: 
+		\version "2.22.0"
+		\header {
+		title = "Ode to Joy"
+		composer = "Ludwig van Beethoven"
+		}
+		\score {
+		<<
+			\new Staff {
+			\set Staff.instrumentName = "Violin"
+			\key g \major
+			\time 4/4
+			\relative c'' {
+				g2 a4 g2 e4 | % First two bars of the melody
+				f2 g4 f2 e2 |
+			}
+			}
+		>>
+		\layout { }
+		}
+	:: lillypond
+
+
+2. Inline Notation
+
+	For shorter , in text, singing, we'll use ABC's notation. 
+
+	Inline Marker: ♪ (under consideration)
+
+	ABC syntax is rich with special characters:
+		GABc    # notes (case = octave)
+		^C _D   # sharp/flat
+		C2 C/2  # duration
+		[CEG]   # chord
+		|       # bar line
+		::      # repeat (conflicts with txxt!)
+	:: syntax
+
+	And in text, one can always whistle a tune ♪CE#AD♪ when life gets gloomy.
+
+3. Considerations
+
+	Two remaning hurdles remain to be weighted.
+	
+	3.1 Inline Marker: ♪
+
+		The music unicode character (♪) has a lot going for it: it's short, visually disctinct,  expressive and doesn't conflic with any other txxt sytax.
+
+		It does however, uses a non ascii character, which is not easy to type, and has thus far being avoided. 
+
+		Aleternatives are still in discussion. As far as settling for a unicode char, we're damn happy about ♪, hence the alternatives are about a ascii range character.
+
+		a Sharp Char (#)
+		 
+			One natural candidate would be the pund (#) symbol.
+			However, it conflicts with ABC's own syntax and is currently used in Math (which we could arrange for a change need be).
+
+		b Pipe Char (|)
+
+			Line the sharp, it has many qualitties but conflict's with ABC's notation.
+
+		c. Ampersand Char (&)
+
+			The ampersand has several positives: 
+			- ASCII 
+			- Not used in txxt
+			- Not used in ABC
+
+			On the less positive side: 
+			- Non direct cognitive represnentation to music.
+			- Might be more conflict prone, as &Ampersand is normally used with no spaces to other chars.

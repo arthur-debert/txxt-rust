@@ -670,6 +670,9 @@ fn get_token_span(token: &ScannerToken) -> &txxt::ast::scanner_tokens::SourceSpa
         | ScannerToken::LeftParen { span }
         | ScannerToken::RightParen { span }
         | ScannerToken::Colon { span }
+        | ScannerToken::Equals { span }
+        | ScannerToken::Comma { span }
+        | ScannerToken::TxxtMarker { span }
         | ScannerToken::Dash { span }
         | ScannerToken::Period { span }
         | ScannerToken::Newline { span }

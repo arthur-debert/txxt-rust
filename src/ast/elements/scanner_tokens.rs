@@ -152,6 +152,15 @@ pub enum ScannerToken {
     /// Colon character (:)
     Colon { span: SourceSpan },
 
+    /// Equals character (=)
+    Equals { span: SourceSpan },
+
+    /// Comma character (,)
+    Comma { span: SourceSpan },
+
+    /// TXXT marker (::) - fundamental structural element
+    TxxtMarker { span: SourceSpan },
+
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
@@ -226,6 +235,9 @@ impl ScannerToken {
             ScannerToken::LeftParen { span } => span,
             ScannerToken::RightParen { span } => span,
             ScannerToken::Colon { span } => span,
+            ScannerToken::Equals { span } => span,
+            ScannerToken::Comma { span } => span,
+            ScannerToken::TxxtMarker { span } => span,
             ScannerToken::Identifier { span, .. } => span,
             ScannerToken::RefMarker { span, .. } => span,
             ScannerToken::FootnoteRef { span, .. } => span,
@@ -278,6 +290,9 @@ impl ScannerToken {
             ScannerToken::LeftParen { .. } => "(",
             ScannerToken::RightParen { .. } => ")",
             ScannerToken::Colon { .. } => ":",
+            ScannerToken::Equals { .. } => "=",
+            ScannerToken::Comma { .. } => ",",
+            ScannerToken::TxxtMarker { .. } => "::",
             ScannerToken::Eof { .. } => "",
         }
     }

@@ -251,6 +251,15 @@ impl Detokenizer {
             ScannerToken::Colon { .. } => {
                 result.push(':');
             }
+            ScannerToken::Equals { .. } => {
+                result.push('=');
+            }
+            ScannerToken::Comma { .. } => {
+                result.push(',');
+            }
+            ScannerToken::TxxtMarker { .. } => {
+                result.push_str("::");
+            }
             ScannerToken::Identifier { content, .. } => {
                 result.push_str(content);
             }

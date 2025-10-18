@@ -12,14 +12,22 @@ pub fn integrate_annotation_parameters_v2(tokens: Vec<ScannerToken>) -> Vec<Scan
 
     while i < tokens.len() {
         if matches!(&tokens[i], ScannerToken::TxxtMarker { .. }) {
-            // Found opening annotation marker
-            result.push(tokens[i].clone());
-            i += 1;
+            // Check if this is the start of an annotation pattern (:: label:params ::)
+            // vs a definition pattern (term:params ::)
+            if is_annotation_start(&tokens[i..]) {
+                // Found opening annotation marker
+                result.push(tokens[i].clone());
+                i += 1;
 
-            // Process tokens until closing marker
-            let (processed, consumed) = process_until_annotation_end(&tokens[i..]);
-            result.extend(processed);
-            i += consumed;
+                // Process tokens until closing marker
+                let (processed, consumed) = process_until_annotation_end(&tokens[i..]);
+                result.extend(processed);
+                i += consumed;
+            } else {
+                // This is a definition marker, not an annotation marker
+                result.push(tokens[i].clone());
+                i += 1;
+            }
         } else {
             result.push(tokens[i].clone());
             i += 1;
@@ -310,6 +318,34 @@ fn process_definition_term(tokens: &[ScannerToken]) -> (Vec<ScannerToken>, usize
 }
 
 // Helper functions
+
+fn is_annotation_start(tokens: &[ScannerToken]) -> bool {
+    // An annotation pattern starts with :: and has the form :: label:params ::
+    // A definition pattern ends with :: and has the form term:params ::
+    
+    // If this is the first token in the stream, it's likely an annotation start
+    if tokens.len() == 1 {
+        return true;
+    }
+    
+    // Look backwards to see if there's content before this TxxtMarker
+    // If there's significant content (not just whitespace), this is likely a definition end
+    for i in (0..tokens.len() - 1).rev() {
+        match &tokens[i] {
+            ScannerToken::Whitespace { .. } => continue,
+            ScannerToken::Newline { .. } => continue,
+            ScannerToken::BlankLine { .. } => continue,
+            _ => {
+                // Found non-whitespace content before the TxxtMarker
+                // This suggests it's a definition end, not an annotation start
+                return false;
+            }
+        }
+    }
+    
+    // No significant content before the TxxtMarker, likely an annotation start
+    true
+}
 
 fn has_label_before_colon(tokens: &[ScannerToken]) -> bool {
     // Check if there's a text or identifier token before the colon

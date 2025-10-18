@@ -3,27 +3,7 @@
 //! This module defines the content container blocks that structure document
 //! content but cannot host new document sessions (unlike sessions).
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 1.a: Verbatim Line Marking** (VerbatimBlock)
-//! **Phase 2.b: Parsing** (Lists, Definitions, Block AST)
-//!
-//! Verbatim blocks are the only stateful part of parsing - they're identified and
-//! marked during the initial lexer pass to prevent their content from being processed
-//! as TXXT. All other blocks are parsed during the main parsing phase from grouped tokens.
-//!
-//! Pipeline: `Source` → **`Verbatim Marking`** → `Tokens` → `Grouping` → **`Block Parsing`** → `Assembly`
-//!
-//! ## Verbatim Handling (1.a)
-//!
-//! Verbatim blocks require special stateful processing during lexing because their
-//! content is sacred and must not be processed as TXXT syntax. This is the ONLY
-//! stateful part of the entire parsing pipeline, keeping complexity isolated.
-//!
-//! ## Block Parsing (2.b)
-//!
-//! Lists, definitions, and other blocks are parsed from grouped token lists into
-//! rich semantic structures with sophisticated styling and metadata support.
+//! src/parser/mod.rs has the full architecture overview.
 
 use serde::{Deserialize, Serialize};
 

@@ -6,16 +6,7 @@
 //! language server features like hover, autocomplete, go-to-definition, and
 //! syntax highlighting.
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 1.b: Scanner Tokenization**
-//!
-//! These scanner tokens are produced by the lexer after verbatim line marking (1.a).
-//! The tokenizer converts raw source text into character-precise scanner tokens with
-//! exact source positions. This is the foundation for all subsequent parsing
-//! phases and language server precision.
-//!
-//! Pipeline: `Source Text` → `Verbatim Marking` → **`Scanner Tokens`** → `Semantic Tokens` → `Block Grouping` → `AST Nodes`
+//! src/parser/mod.rs has the full architecture overview.
 
 use serde::{Deserialize, Serialize};
 

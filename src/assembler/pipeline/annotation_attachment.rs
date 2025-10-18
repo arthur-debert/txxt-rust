@@ -4,19 +4,7 @@
 //! This is the second step of Phase 3 assembly, where we take the document
 //! structure and attach annotations according to the TXXT specification.
 //!
-//! # Annotation Attachment Rules
-//!
-//! According to the TXXT specification:
-//! 1. **Document-level annotations**: The first annotation nodes (even before a blank line)
-//!    are attached to the `Document` itself
-//! 2. **Element-level annotations**: All other annotations are attached to the next
-//!    element node at the same level
-//! 3. **Fallback attachment**: If there is no such node, they are attached to the parent node
-//!
-//! # Input/Output
-//!
-//! - **Input**: `Document` with unprocessed annotations (from Phase 3a)
-//! - **Output**: `Document` with annotations properly attached to their targets
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::base::Document;
 

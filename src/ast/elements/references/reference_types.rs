@@ -3,15 +3,7 @@
 //! This module defines types for references and citation systems that link
 //! to other parts of documents or external resources.
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 2.b: Parsing** (Reference Recognition and Classification)
-//!
-//! References are parsed during the main parsing phase when inline content
-//! is processed. The comprehensive ReferenceTarget system captures all
-//! reference types even if full resolution isn't implemented yet.
-//!
-//! Pipeline: `Tokens` → `Block Grouping` → **`Reference Parsing`** → `Assembly`
+//! src/parser/mod.rs has the full architecture overview.
 //!
 //! ## Reference Processing (2.b)
 //!

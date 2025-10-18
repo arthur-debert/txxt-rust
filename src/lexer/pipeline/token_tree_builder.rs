@@ -3,9 +3,7 @@
 //! This module implements the scanner token tree building phase that creates hierarchical
 //! token structures from flat scanner token streams using indentation analysis.
 //!
-//! The scanner token tree builder transforms a flat sequence of scanner tokens (with Indent/Dedent markers)
-//! into a hierarchical scanner token tree that represents the document's nesting. This is a
-//! purely structural transformation - no parsing or element identification happens here.
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::scanner_tokens::ScannerToken;
 

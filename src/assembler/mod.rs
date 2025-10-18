@@ -3,40 +3,7 @@
 //! This module implements the assembly phase that handles document
 //! assembly, annotation attachment, and cross-reference resolution.
 //!
-//! # Three-Phase Pipeline Position
-//!
-//! **Phase 3: Assembly (Final Output)**
-//!
-//! The assembly phase takes the hierarchical token structure from Phase 1c (ScannerTokenTree)
-//! and produces the final document structure:
-//! - Phase 3a: Document Assembly - Wrap AST tree in Session container and Document node
-//! - Phase 3b: Annotation Attachment - Apply proximity rules to attach annotations
-//!
-//! Pipeline: `Tokens` → `Token Tree` → **`Document Assembly`** → **`Final Document`**
-//!
-//! ## Assembly Process
-//!
-//! 1. **Document Wrapping**: Wrap token tree in SessionContainer and Document
-//! 2. **Annotation Attachment**: Apply proximity rules to attach annotations
-//! 3. **Metadata Extraction**: Convert annotations to structured metadata  
-//! 4. **Document Finalization**: Add assembly info (parser version, timestamps)
-//!
-//! # Usage
-//!
-//! ```rust,ignore
-//! use txxt::assembler::Assembler;
-//! use txxt::lexer::pipeline::ScannerTokenTreeBuilder;
-//! use txxt::lexer::tokenize;
-//!
-//! // Phase 1: Lexer
-//! let tokens = tokenize(input_text);
-//! let token_tree_builder = ScannerTokenTreeBuilder::new();
-//! let token_tree = token_tree_builder.build_tree(tokens)?;
-//!
-//! // Phase 3: Assembly
-//! let assembler = Assembler::new();
-//! let document = assembler.assemble_document(token_tree, Some("source.txxt".to_string()))?;
-//! ```
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::elements::components::parameters::Parameters;
 use crate::ast::{
@@ -71,13 +38,6 @@ impl Assembler {
     }
 
     /// Phase 3a: Wrap token tree in Session container and Document node
-    ///
-    /// Takes the hierarchical token structure from Phase 1c (ScannerTokenTree) and
-    /// wraps it in the proper document structure:
-    /// - ScannerTokenTree → SessionContainer (content root)
-    /// - SessionContainer → Document (with metadata)
-    ///
-    /// This creates the basic document structure: `document.content.session[0][content].blocks`
     pub fn assemble_document(
         &self,
         token_tree: ScannerTokenTree,
@@ -125,9 +85,6 @@ impl Assembler {
     }
 
     /// Process parsed AST into final document (for future Phase 2 integration)
-    ///
-    /// This method will be used when Phase 2 parsing is implemented to process
-    /// fully parsed AST nodes instead of raw token trees.
     pub fn process_ast(&self, _ast: Document) -> Result<Document, AssemblyError> {
         // TODO: Implement full assembly logic for when Phase 2 is complete
         // - Document metadata assembly from AST annotations
@@ -140,10 +97,6 @@ impl Assembler {
     }
 
     /// Phase 3b: Extract annotations from block group and apply proximity rules
-    ///
-    /// Returns (document_annotations, content_annotations) where:
-    /// - document_annotations: Annotations at document start (attach to document)
-    /// - content_annotations: Other annotations (attach to elements or parents)
     fn extract_annotations(
         &self,
         token_tree: &ScannerTokenTree,

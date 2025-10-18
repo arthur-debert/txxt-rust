@@ -1,20 +1,10 @@
-//! Phase 2b: Inline Parsing
+//! Phase 2c: Inline Parsing
 //!
 //! Handles inline elements within block content. This is the second step
 //! of Phase 2 parsing, where we take the AST block elements and process
 //! any inline formatting, references, and other inline elements.
 //!
-//! # Inline Types
-//!
-//! - Text formatting (bold, italic, code, math)
-//! - References (citations, footnotes, page refs, session refs)
-//! - Links and URLs
-//! - Inline annotations
-//!
-//! # Input/Output
-//!
-//! - **Input**: AST tree with block elements (from Phase 2a)
-//! - **Output**: Same AST tree but with inline elements processed
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::ElementNode;
 

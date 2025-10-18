@@ -4,32 +4,7 @@
 //! capabilities for document elements, supporting automated tooling including
 //! reviews, comments, and documentation workflows.
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 2.b: Parsing** (Raw Annotation Blocks)
-//! **Phase 3.a: Assembly** (Annotation Attachment)
-//!
-//! Annotations have a two-phase lifecycle:
-//! 1. **Parsing**: Annotations are parsed as regular blocks in source order
-//! 2. **Assembly**: Annotations are attached to their target nodes via proximity rules
-//!
-//! Pipeline: `Tokens` → `Grouping` → **`Raw Annotations`** → **`Attachment`** → `Final Document`
-//!
-//! ## Annotation Parsing (2.b)
-//!
-//! During parsing, annotations exist as regular `Block` elements in the raw AST,
-//! maintaining their source order and position. No attachment logic is applied yet.
-//!
-//! ## Annotation Attachment (3.a)
-//!
-//! During assembly, annotations are moved from the block stream to their target
-//! nodes based on proximity rules:
-//! 1. Document start → attach to document
-//! 2. Before element → attach to following element  
-//! 3. Last in level/group → attach to parent
-//!
-//! This separation allows the parser to remain stateless while enabling
-//! sophisticated metadata attachment semantics.
+//! src/parser/mod.rs has the full architecture overview.
 
 use serde::{Deserialize, Serialize};
 

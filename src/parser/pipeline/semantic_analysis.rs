@@ -4,33 +4,7 @@
 //! of Phase 2 parsing, where we elevate the low-level scanner token stream
 //! into a higher-level stream of semantic nodes.
 //!
-//! # Overview
-//!
-//! Semantic analysis transforms individual scanner tokens into meaningful
-//! semantic constructs while preserving structural information like
-//! indentation. This phase bridges the gap between low-level tokenization
-//! and high-level AST construction.
-//!
-//! # Key Transformations
-//!
-//! - **TxxtMarker**: Fundamental :: markers for structural elements
-//! - **Label**: Structured identifiers for annotations and verbatim blocks
-//! - **Parameters**: Key-value metadata components
-//! - **SequenceMarker**: List and session numbering components
-//! - **TextSpan**: Basic text content without formatting
-//! - **SequenceTextLine**: Lines with sequence markers + text
-//! - **PlainTextLine**: Simple text content without markers
-//! - **IgnoreLine**: Raw content preserved exactly as written
-//!
-//! # Structural Preservation
-//!
-//! Structural tokens like `Indent`, `Dedent`, and `BlankLine` are passed
-//! through unchanged to maintain tree structure for subsequent phases.
-//!
-//! # Input/Output
-//!
-//! - **Input**: `ScannerTokenList` from lexer (Phase 1b)
-//! - **Output**: `SemanticTokenList` for AST construction (Phase 2b)
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use crate::ast::semantic_tokens::{

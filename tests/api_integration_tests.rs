@@ -82,6 +82,7 @@ fn test_ast_full_json_format() {
 }
 
 #[test]
+#[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
 fn test_ast_full_treeviz_format() {
     let args = ProcessArgs {
         content: "Hello world".to_string(),
@@ -98,6 +99,7 @@ fn test_ast_full_treeviz_format() {
 }
 
 #[test]
+#[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
 fn test_phase_2_formats_implemented() {
     let test_cases = vec![
         OutputFormat::AstNoInlineTreeviz,

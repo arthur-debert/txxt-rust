@@ -32,8 +32,11 @@
 //! - **Input**: `ScannerTokenList` from lexer (Phase 1b)
 //! - **Output**: `SemanticTokenList` for AST construction (Phase 2b)
 
-use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
-use crate::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenList};
+use crate::ast::scanner_tokens::{ScannerToken, SequenceMarkerType, SourceSpan};
+use crate::ast::semantic_tokens::{
+    SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
+    SemanticTokenList,
+};
 
 /// Semantic analysis parser for converting scanner tokens to semantic tokens
 ///
@@ -99,6 +102,12 @@ impl SemanticAnalyzer {
                 // Text Span transformation - Issue #85
                 ScannerToken::Text { content, span } => {
                     semantic_tokens.push(self.transform_text_span(content.clone(), span.clone())?);
+                }
+
+                // Sequence Marker transformation - Issue #84
+                ScannerToken::SequenceMarker { marker_type, span } => {
+                    semantic_tokens
+                        .push(self.transform_sequence_marker(marker_type.clone(), span.clone())?);
                 }
 
                 // Handle other tokens as text spans for now
@@ -236,9 +245,71 @@ impl SemanticAnalyzer {
         Ok(SemanticTokenBuilder::text_span(content, span))
     }
 
-    /// Transform a sequence of text tokens into a PlainTextLine semantic token
+    /// Transform SequenceMarker scanner token to SequenceMarker semantic token
     ///
-    /// This implements the Plain Text Line transformation as specified in Issue #87.
+    /// This implements the Sequence Marker transformation as specified in Issue #84.
+    /// SequenceMarker tokens represent list and session numbering components,
+    /// handling numeric (1.), alphabetic (a.), roman (i.), and plain (-) markers,
+    /// in both regular (2.) and extended (1.3.b) forms.
+    ///
+    /// # Arguments
+    /// * `marker_type` - The sequence marker type from the scanner token
+    /// * `span` - The source span of the marker
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_sequence_marker(
+        &self,
+        marker_type: SequenceMarkerType,
+        span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        let (style, form) = self.classify_sequence_marker(&marker_type);
+        let marker_text = marker_type.content().to_string();
+
+        // Transform SequenceMarker scanner token to SequenceMarker semantic token
+        Ok(SemanticTokenBuilder::sequence_marker(
+            style,
+            form,
+            marker_text,
+            span,
+        ))
+    }
+
+    /// Classify a sequence marker type into semantic numbering style and form
+    ///
+    /// This helper method determines the semantic numbering style and form
+    /// based on the scanner token's sequence marker type.
+    ///
+    /// # Arguments
+    /// * `marker_type` - The sequence marker type to classify
+    ///
+    /// # Returns
+    /// * `(SemanticNumberingStyle, SemanticNumberingForm)` - The classified style and form
+    pub fn classify_sequence_marker(
+        &self,
+        marker_type: &SequenceMarkerType,
+    ) -> (SemanticNumberingStyle, SemanticNumberingForm) {
+        match marker_type {
+            SequenceMarkerType::Plain(_) => (
+                SemanticNumberingStyle::Plain,
+                SemanticNumberingForm::Regular,
+            ),
+            SequenceMarkerType::Numerical(_, _) => (
+                SemanticNumberingStyle::Numeric,
+                SemanticNumberingForm::Regular,
+            ),
+            SequenceMarkerType::Alphabetical(_, _) => (
+                SemanticNumberingStyle::Alphabetic,
+                SemanticNumberingForm::Regular,
+            ),
+            SequenceMarkerType::Roman(_, _) => (
+                SemanticNumberingStyle::Roman,
+                SemanticNumberingForm::Regular,
+            ),
+        }
+    }
+
+    /// Transform a sequence of text tokens into a PlainTextLine semantic token
     /// PlainTextLine tokens represent simple text content without special markers
     /// or structure, containing a single TextSpan component.
     ///
@@ -288,6 +359,74 @@ impl SemanticAnalyzer {
 
         // Transform to PlainTextLine semantic token
         Ok(SemanticTokenBuilder::plain_text_line(text_span, line_span))
+    }
+
+    /// Transform a sequence marker followed by text content into a SequenceTextLine semantic token
+    ///
+    /// This implements the Sequence Text Line transformation as specified in Issue #86.
+    /// SequenceTextLine tokens represent lines beginning with sequence markers followed
+    /// by text content, combining Sequence Marker and Text Span components.
+    ///
+    /// # Arguments
+    /// * `marker_token` - The sequence marker semantic token
+    /// * `text_tokens` - Vector of Text scanner tokens that form the content
+    /// * `line_span` - The source span covering the entire line
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_sequence_text_line(
+        &self,
+        marker_token: SemanticToken,
+        text_tokens: Vec<ScannerToken>,
+        line_span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate that we have at least one text token
+        if text_tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Sequence text line must contain at least one text token".to_string(),
+            ));
+        }
+
+        // Validate that all tokens are Text tokens
+        for token in &text_tokens {
+            if !matches!(token, ScannerToken::Text { .. }) {
+                return Err(SemanticAnalysisError::AnalysisError(format!(
+                    "Sequence text line can only contain Text tokens, got {:?}",
+                    token
+                )));
+            }
+        }
+
+        // Validate that the marker token is a SequenceMarker
+        if !matches!(marker_token, SemanticToken::SequenceMarker { .. }) {
+            return Err(SemanticAnalysisError::AnalysisError(format!(
+                "Sequence text line marker must be a SequenceMarker token, got {:?}",
+                marker_token
+            )));
+        }
+
+        // Combine all text content into a single string
+        let combined_content = text_tokens
+            .iter()
+            .map(|token| {
+                if let ScannerToken::Text { content, .. } = token {
+                    content.as_str()
+                } else {
+                    "" // This should never happen due to validation above
+                }
+            })
+            .collect::<Vec<&str>>()
+            .join("");
+
+        // Create a single TextSpan for the combined content
+        let text_span = SemanticTokenBuilder::text_span(combined_content, line_span.clone());
+
+        // Transform to SequenceTextLine semantic token
+        Ok(SemanticTokenBuilder::sequence_text_line(
+            marker_token,
+            text_span,
+            line_span,
+        ))
     }
 
     /// This is a utility method to convert any scanner token to text content

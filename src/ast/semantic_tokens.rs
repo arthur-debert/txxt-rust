@@ -355,6 +355,19 @@ impl SemanticTokenBuilder {
         }
     }
 
+    /// Create a sequence text line semantic token
+    pub fn sequence_text_line(
+        marker: SemanticToken,
+        content: SemanticToken,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::SequenceTextLine {
+            marker: Box::new(marker),
+            content: Box::new(content),
+            span,
+        }
+    }
+
     /// Create an ignore line semantic token
     pub fn ignore_line(content: String, span: SourceSpan) -> SemanticToken {
         SemanticToken::IgnoreLine { content, span }

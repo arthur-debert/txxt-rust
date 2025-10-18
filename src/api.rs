@@ -11,8 +11,7 @@ use std::fmt;
 use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
-use crate::parser::pipeline::semantic_analysis::SemanticAnalyzer;
-use crate::parser::pipeline::{BlockParser, InlineParser};
+use crate::parser::pipeline::{InlineParser, SemanticAnalyzer};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputFormat {
@@ -158,7 +157,7 @@ fn process_token_tree(content: &str, source_path: &str) -> Result<String, Proces
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
-        .build_tree(tokens)
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
     // Convert block tree to serializable format
@@ -209,17 +208,21 @@ fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, Pro
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
+    let _token_tree = token_tree_builder
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 2: Parse blocks (our session parsing implementation)
-    let block_parser = BlockParser::new();
-    let ast_elements = block_parser
-        .parse_blocks(token_tree)
+    // Phase 2a: Semantic analysis
+    let semantic_analyzer = SemanticAnalyzer::new();
+    let _semantic_tokens = semantic_analyzer
+        .analyze(tokens)
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
 
-    // Phase 2b: Parse inlines (stubbed - returns unchanged)
+    // Phase 2b: AST Construction (pending implementation)
+    // TODO: Implement AST construction phase
+    let ast_elements: Vec<crate::ast::ElementNode> = vec![]; // Placeholder
+
+    // Phase 2c: Parse inlines (stubbed - returns unchanged)
     let inline_parser = InlineParser::new();
     let ast_elements_with_inlines = inline_parser
         .parse_inlines(ast_elements)
@@ -248,17 +251,21 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
+    let _token_tree = token_tree_builder
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 2: Parse blocks (our session parsing implementation)
-    let block_parser = BlockParser::new();
-    let ast_elements = block_parser
-        .parse_blocks(token_tree)
+    // Phase 2a: Semantic analysis
+    let semantic_analyzer = SemanticAnalyzer::new();
+    let _semantic_tokens = semantic_analyzer
+        .analyze(tokens)
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
 
-    // Phase 2b: Parse inlines (stubbed - returns unchanged)
+    // Phase 2b: AST Construction (pending implementation)
+    // TODO: Implement AST construction phase
+    let ast_elements: Vec<crate::ast::ElementNode> = vec![]; // Placeholder
+
+    // Phase 2c: Parse inlines (stubbed - returns unchanged)
     let inline_parser = InlineParser::new();
     let ast_elements_with_inlines = inline_parser
         .parse_inlines(ast_elements)
@@ -315,15 +322,19 @@ fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
+    let _token_tree = token_tree_builder
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 2a: Parse blocks (no inline processing)
-    let block_parser = BlockParser::new();
-    let ast_elements = block_parser
-        .parse_blocks(token_tree)
+    // Phase 2a: Semantic analysis
+    let semantic_analyzer = SemanticAnalyzer::new();
+    let _semantic_tokens = semantic_analyzer
+        .analyze(tokens.clone())
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 2b: AST Construction (pending implementation)
+    // TODO: Implement AST construction phase
+    let ast_elements: Vec<crate::ast::ElementNode> = vec![]; // Placeholder
 
     // Serialize AST elements to JSON
     let result = serde_json::json!({
@@ -339,15 +350,19 @@ fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<Str
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
+    let _token_tree = token_tree_builder
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 2a: Parse blocks (no inline processing)
-    let block_parser = BlockParser::new();
-    let ast_elements = block_parser
-        .parse_blocks(token_tree)
+    // Phase 2a: Semantic analysis
+    let semantic_analyzer = SemanticAnalyzer::new();
+    let _semantic_tokens = semantic_analyzer
+        .analyze(tokens.clone())
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 2b: AST Construction (pending implementation)
+    // TODO: Implement AST construction phase
+    let ast_elements: Vec<crate::ast::ElementNode> = vec![]; // Placeholder
 
     // Create treeviz representation
     let mut result = format!("📄 AST (No Inlines): {}\n", source_path);
@@ -368,15 +383,19 @@ fn process_ast_json(content: &str, source_path: &str) -> Result<String, ProcessE
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
+    let _token_tree = token_tree_builder
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 2a: Parse blocks
-    let block_parser = BlockParser::new();
-    let ast_elements = block_parser
-        .parse_blocks(token_tree)
+    // Phase 2a: Semantic analysis
+    let semantic_analyzer = SemanticAnalyzer::new();
+    let _semantic_tokens = semantic_analyzer
+        .analyze(tokens.clone())
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 2b: AST Construction (pending implementation)
+    // TODO: Implement AST construction phase
+    let ast_elements: Vec<crate::ast::ElementNode> = vec![]; // Placeholder
 
     // Phase 2b: Parse inlines (stubbed - returns unchanged)
     let inline_parser = InlineParser::new();
@@ -399,15 +418,19 @@ fn process_ast_treeviz(content: &str, source_path: &str) -> Result<String, Proce
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
     let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
+    let _token_tree = token_tree_builder
+        .build_tree(tokens.clone())
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
-    // Phase 2a: Parse blocks
-    let block_parser = BlockParser::new();
-    let ast_elements = block_parser
-        .parse_blocks(token_tree)
+    // Phase 2a: Semantic analysis
+    let semantic_analyzer = SemanticAnalyzer::new();
+    let _semantic_tokens = semantic_analyzer
+        .analyze(tokens.clone())
         .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Phase 2b: AST Construction (pending implementation)
+    // TODO: Implement AST construction phase
+    let ast_elements: Vec<crate::ast::ElementNode> = vec![]; // Placeholder
 
     // Phase 2b: Parse inlines (stubbed - returns unchanged)
     let inline_parser = InlineParser::new();

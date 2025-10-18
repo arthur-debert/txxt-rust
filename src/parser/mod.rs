@@ -8,52 +8,50 @@
 //! ## Three-Phase Pipeline
 //!
 //! ### Phase 1: Lexer (COMPLETED ✅)
-//! - **Verbatim Line Marking**: Stateful isolation of verbatim content
-//! - **Tokenization**: Character-precise token generation
-//! - **Token Tree**: Hierarchical block grouping from indentation
+//! - **Verbatim Scanner**: marks verbatim lines that are off-limits for processing as txxt
+//! - **Token List**: creates the token stream at low level tokens -> scanner token list
 //! - **Location**: Implemented in `src/lexer/`
-//! - **Output**: Stream of tokens with exact source positioning + hierarchical block structure
+//! - **Output**: Stream of tokens with exact source positioning
 //!
-//! ### Phase 2: Parser (STRUCTURED 🔄)
-//! - **Block Parsing**: Convert token trees into typed AST nodes
-//! - **Inline Parsing**: Handle inlines within blocks
-//! - **Location**: `src/parser/pipeline/` (structured, implementation pending)
+//! ### Phase 2: Parser (ScannerTokenList -> AST tree node)
+//! - **2.a Semantic Token Analysis**: ScannerTokenList → SemanticTokenList
+//! - **2.b AST Construction**: With the ast nodes + dedent construct the final ast tree
+//! - **2.c Inline Parsing**: Handle inlines within blocks (ScannerToken -> AST node)
+//! - **Location**: `src/parser/pipeline/` (2.a and 2.c implemented, 2.b pending)
 //! - **Output**: Rich type-safe AST structure
 //!
-//! ### Phase 3: Assembly (IMPLEMENTED ✅)
-//! - **Document Assembly**: Document metadata and annotation attachment
-//! - **Validation**: Cross-reference resolution and validation
+//! ### Phase 3: Assembly (AST tree node -> AST document node)
+//! - **Document Wrapping**: wraps the parsed AST in a Document node
+//! - **Annotations Attachments**: from the content tree to node's annotation's field
 //! - **Location**: `src/assembler/`
 //! - **Output**: Complete document with all relationships resolved
 //!
 //! # Current Implementation Status
 //!
-//! - ✅ **Phase 1**: Complete (lexer + token tree building)
-//! - 🔄 **Phase 2**: Structured (parser pipeline ready, implementation pending)
-//! - ✅ **Phase 3**: Complete (assembler implemented)
+//! - ✅ **Phase 1**: Complete (lexer)
+//! - 🔄 **Phase 2**: Partial (2.a semantic analysis ✅, 2.b AST construction ⏳, 2.c inline parsing ✅)
+//! - ✅ **Phase 3**: Complete (assembler)
 //!
 //! # Usage
 //!
 //! ```rust,ignore
 //! use txxt::assembler::Assembler;
-//! use txxt::lexer::pipeline::TokenTreeBuilder;
 //! use txxt::lexer::tokenize;
-//! use txxt::parser::pipeline::{BlockParser, InlineParser};
+//! use txxt::parser::pipeline::{SemanticAnalyzer, InlineParser};
 //!
 //! // Phase 1: Lexer (working)
-//! let tokens = tokenize(input_text);
-//! let token_tree_builder = TokenTreeBuilder::new();
-//! let token_tree = token_tree_builder.build_tree(tokens)?;
+//! let scanner_tokens = tokenize(input_text);
 //!
-//! // Phase 2: Parser (structured, implementation pending)
-//! let block_parser = BlockParser::new();
-//! let blocks = block_parser.parse_blocks(token_tree)?;
+//! // Phase 2: Parser (2.a semantic analysis working, 2.b pending, 2.c working)
+//! let semantic_analyzer = SemanticAnalyzer::new();
+//! let semantic_tokens = semantic_analyzer.analyze(scanner_tokens)?;
+//! // TODO: Phase 2.b AST Construction (pending implementation)
 //! let inline_parser = InlineParser::new();
-//! let ast = inline_parser.parse_inlines(blocks)?;
+//! let ast = inline_parser.parse_inlines(semantic_tokens)?;
 //!
 //! // Phase 3: Assembly (working)
 //! let assembler = Assembler::new();
-//! let document = assembler.assemble_document(token_tree, Some("source.txxt".to_string()))?;
+//! let document = assembler.assemble_document(ast, Some("source.txxt".to_string()))?;
 //! ```
 
 // Pipeline modules
@@ -63,7 +61,4 @@ pub mod pipeline;
 pub mod elements;
 
 // Re-export main interfaces
-pub use pipeline::{
-    BlockParseError, BlockParser, InlineParseError, InlineParser, SemanticAnalysisError,
-    SemanticAnalyzer,
-};
+pub use pipeline::{InlineParseError, InlineParser, SemanticAnalysisError, SemanticAnalyzer};

@@ -1,277 +1,108 @@
 :: title :: txxt Scanner Tokens Reference
 :: author :: Arthur Debert
-:: pub-date :: 2025-01-12
+:: pub-date :: 2025-10-18
 
-This document defines the low-level scanner tokens used in the txxt format. These are the atomic tokens that form the foundation of the txxt parsing pipeline, produced by the lexer and consumed by the semantic token parsing stage.
-
+This document defines the low-level scanner tokens used in the txxt format. These are the atomic tokens that form the foundation of the txxt parsing pipeline, produced by the lexer and consumed by the parser.
 
 - Scanner Tokens [./scanner-tokens.txxt] defines the low-level scanner tokens (this document)
 - Semantic Tokens: [./semantic-tokens.txxt] defines semantic node types
-- Grammer [./grammar.txxt] defines how blocks are constructed from semantic tokens
+- Grammar [./grammar.txxt] defines how blocks are constructed from scanner tokens
 
-1. Token Hierarchy
+This document defines the low-level scanner tokens used in the txxt format. These tokens focus on format-only recognition without semantic interpretation, providing the building blocks for compositional parsing.
 
-    txxt syntax is built from small, composable tokens that combine into increasingly complex structures. The hierarchy follows this pattern:
+1. Token Categories
 
-    Characters → Scanner Tokens → Semantic Tokens → Blocks → Documents
+    Scanner tokens are organized into categories based on their role in format recognition and composition:
 
-    1.1. Character Level
+    1.1. Content Tokens
 
-        Basic character classes and escaping rules form the foundation:
+        Tokens that carry textual content without special formatting:
+        - `Text`: Plain text content
+        - `Whitespace`: Space and tab characters
+        - `Identifier`: Structured identifiers (letters, numbers, dots, underscores, hyphens)
 
-        Character classes:
-            <whitespace> = [ \t\s]
-            <letter> = [a-zA-Z]
-            <digit> = [0-9]
-            <alphanumeric> = <letter> | <digit>
-            <line-break> = \n
-            <any-char> = .
-        :: grammar
+    1.2. Structural Tokens
 
-        Escaping:
-            <escaped-char> = \ <any-char>
-            <literal-char> = <any-char> - [*_`#\[\]@:]
-        :: grammar
+        Tokens that define document structure and indentation:
+        - `Indent`: Indentation level markers (4-space increments)
+        - `Dedent`: Indentation reduction markers
+        - `BlankLine`: Empty or whitespace-only lines
+        - `Newline`: Line break characters
+        - `Eof`: End of file marker
 
-        The backslash removes special meaning from any following character.
+    1.3. Formatting Tokens
 
-    1.2. Basic Scanner Tokens
+        Tokens that apply text formatting:
+        - `BoldDelimiter`: Bold text markers (*)
+        - `ItalicDelimiter`: Italic text markers (_)
+        - `CodeDelimiter`: Code text markers (`)
+        - `MathDelimiter`: Math text markers (#)
 
-        Atomic tokens that cannot be decomposed further:
+    1.4. Punctuation Tokens
 
-        Text tokens:
-            <text-char> = <literal-char> | <escaped-char>
-            <text-span> = <text-char>+
-            <identifier> = <letter> (<alphanumeric> | [._-])*
-        :: grammar
+        Tokens that provide structural punctuation:
+        - `Colon`: Single colon (:)
+        - `Equals`: Equals sign (=)
+        - `Comma`: Comma separator (,)
+        - `Period`: Period (.)
+        - `Dash`: Dash (-)
+        - `LeftBracket`: Left bracket ([)
+        - `RightBracket`: Right bracket (])
+        - `LeftParen`: Left parenthesis (()
+        - `RightParen`: Right parenthesis ())
 
-        Structural tokens:
-            <blank-line> = <whitespace>* <line-break>
-            <indent> = <whitespace>{4}
-            <line-break> = \n
-        :: grammar
+    1.5. Marker Tokens
 
-        Marker tokens:
-            <dash> = -
-            <period> = .
-            <colon> = :
-            <double-colon> = ::
-            <asterisk> = *
-            <underscore> = _
-            <backtick> = `
-            <hash> = #
-            <left-bracket> = [
-            <right-bracket> = ]
-            <left-paren> = (
-            <right-paren> = )
-            <at-sign> = @
-            <caret> = ^
-        :: grammar
+        Tokens that identify special structures:
+        - `TxxtMarker`: Double colon (::)
+        - `SequenceMarker`: List and session markers
+        - `AtSign`: Citation marker (@)
+        - `Hash`: Session reference marker (#)
+        - `Caret`: Footnote marker (^)
 
-    1.3. txxt Marker
+    1.6. Reference Tokens
 
-        The double colon is the fundamental txxt marker used across multiple elements:
+        Tokens for links and citations:
+        - `CitationRef`: Citation references [@key]
+        - `PageRef`: Page references [p. 123]
+        - `SessionRef`: Session references [#1.2]
+        - `FootnoteRef`: Footnote references [^label]
 
-        <txxt-marker> = <double-colon>
-        :: grammar
+    1.7. Ignore Tokens
 
-        Usage contexts:
-        - Annotations: `:: label :: content`
-        - Definitions: `Term ::`
-        - Verbatim labels: `:: label`
-        - Parameters: `label:key=value:` (single colon + txxt marker)
+        Tokens for verbatim content preservation:
+        - `IndentationWall`: Wall position and type information
+        - `IgnoreTextSpan`: Raw content without processing
 
-2. Span Elements
+    1.8. Verbatim Tokens
 
-    Inline elements that format or reference text within lines:
+        Tokens specific to verbatim blocks:
+        - `VerbatimTitle`: Title line ending with colon
+        - `VerbatimLabel`: Label line with txxt marker
 
-    2.1. Text Spans
+2. Token Recognition Rules
 
-        Plain text content without special formatting:
+    Rules for recognizing tokens from character sequences:
 
-        <text-content> = <text-span> (<whitespace> <text-span>)*
-        :: grammar
+    2.1. Character Classes
 
-    2.2. Formatting Spans
+        Basic character classes used in token recognition:
+        - `whitespace`: Space and tab characters
+        - `letter`: ASCII letters (a-z, A-Z)
+        - `digit`: ASCII digits (0-9)
+        - `alphanumeric`: Letters and digits
+        - `line-break`: Newline character (\n)
+        - `any-char`: Any character except newline
 
-        Paired markers that apply formatting to enclosed text:
+    2.2. Escaping Rules
 
-        Bold text:
-            <bold-span> = <asterisk> <text-content> <asterisk>
-        :: grammar
+        Backslash removes special meaning from following character:
+        - `escaped-char`: Backslash followed by any character
+        - `literal-char`: Any character except special markers
 
-        Italic text:
-            <italic-span> = <underscore> <text-content> <underscore>
-        :: grammar
-
-        Code text:
-            <code-span> = <backtick> <text-content> <backtick>
-        :: grammar
-
-        Math text:
-            <math-span> = <hash> <text-content> <hash>
-        :: grammar
-
-        Constraints:
-        - No whitespace between markers and content
-        - Cannot span multiple lines
-        - Can be nested but not overlapped
-
-    2.3. Reference Spans
-
-        Links and citations using bracket notation:
-
-        Basic reference:
-            <reference-content> = (<text-char> - [[\]])+
-            <reference-span> = <left-bracket> <reference-content> <right-bracket>
-        :: grammar
-
-        Citation reference:
-            <citation-key> = <identifier>
-            <citation-keys> = <citation-key> (, <citation-key>)*
-            <page-number> = <digit>+
-            <page-range> = <page-number> (- <page-number>)?
-            <page-list> = <page-range> (, <page-range>)*
-            <page-locator> = p <period>? <page-list> | pp <period>? <page-list>
-            <citation-locator> = , <whitespace>* <page-locator>
-            <citation-span> = <left-bracket> <at-sign> <citation-keys> <citation-locator>? <right-bracket>
-        :: grammar
-
-        Page reference:
-            <page-ref> = <left-bracket> <page-locator> <right-bracket>
-        :: grammar
-
-        Session reference:
-            <session-number> = <digit>+ (<period> <digit>+)*
-            <session-ref> = <left-bracket> <hash> <session-number> <right-bracket>
-        :: grammar
-
-        Footnote reference:
-            <footnote-number> = <digit>+
-            <footnote-label> = <identifier>
-            <footnote-naked> = <left-bracket> <footnote-number> <right-bracket>
-            <footnote-labeled> = <left-bracket> ^ <footnote-label> <right-bracket>
-            <footnote-ref> = <footnote-naked> | <footnote-labeled>
-        :: grammar
-
-3. Line Elements
-
-    Complete lines that form the building blocks of document structure:
-
-    3.1. Text Lines
-
-        Lines containing span elements:
-
-        <span-element> = <text-span> | <bold-span> | <italic-span> | <code-span> | <math-span> | <reference-span> | <citation-span> | <page-ref> | <session-ref> | <footnote-ref>
-        <text-line> = <span-element> (<whitespace> <span-element>)* <line-break>
-        :: grammar
-
-    3.2. Structural Lines
-
-        Lines that define document structure:
-
-        Blank line:
-            <blank-line> = <whitespace>* <line-break>
-        :: grammar
-
-4. Block Markers
-
-    Tokens that identify specific block types:
-
-    4.1. List Markers
-
-        Sequence markers that start list items, grouped by list style:
-
-        Plain style marker:
-            <plain-marker> = <dash> <whitespace>
-        :: grammar
-
-        Numerical style markers:
-            <number> = <digit>+
-            <hierarchical-number> = <digit>+ (<period> <digit>+)*
-            <numerical-marker> = <number> <period> <whitespace>
-            <hierarchical-numerical-marker> = <hierarchical-number> <period> <whitespace>
-            <numerical-paren-marker> = <number> <right-paren> <whitespace>
-        :: grammar
-
-        Alphabetical style markers:
-            <letter-lower> = [a-z]
-            <letter-upper> = [A-Z]
-            <alphabetical-marker> = (<letter-lower> | <letter-upper>) <period> <whitespace>
-            <alphabetical-paren-marker> = (<letter-lower> | <letter-upper>) <right-paren> <whitespace>
-        :: grammar
-
-        Roman style markers:
-            <roman-lower> = i | ii | iii | iv | v | vi | vii | viii | ix | x
-            <roman-upper> = I | II | III | IV | V | VI | VII | VIII | IX | X
-            <roman-marker> = (<roman-lower> | <roman-upper>) <period> <whitespace>
-            <roman-paren-marker> = (<roman-lower> | <roman-upper>) <right-paren> <whitespace>
-        :: grammar
-
-        Complete sequence marker:
-            <sequence-marker> = <plain-marker> | <numerical-marker> | <hierarchical-numerical-marker> | <numerical-paren-marker> | <alphabetical-marker> | <alphabetical-paren-marker> | <roman-marker> | <roman-paren-marker>
-        :: grammar
-
-    4.2. Annotation Markers
-
-        txxt markers for metadata:
-
-        <annotation-marker> = <txxt-marker>
-        :: grammar
-
-    4.3. Verbatim Markers
-
-        Markers for preserved content blocks:
-
-        <label> = <identifier> (<period> <identifier>)*
-        <verbatim-start> = <colon> <whitespace>* <line-break>
-        <verbatim-label-line> = <txxt-marker> <label> <line-break>
-        <verbatim-param-label-line> = <txxt-marker> <label> <colon> <parameter-list> <line-break>
-        <verbatim-end> = <verbatim-label-line> | <verbatim-param-label-line>
-        :: grammar
-
-    4.4. Definition Markers
-
-        txxt markers at end of line:
-
-        <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
-        :: grammar
-
-5. Parameters
-
-    Key-value metadata syntax used in annotations and verbatim blocks:
-
-    5.1. Parameter Syntax
-
-        Basic parameter structure:
-
-        <parameter-key> = <identifier> (<period> <identifier>)*
-        <parameter-value> = <text-content> | <quoted-string>
-        <quoted-string> = " (<text-char> | <escaped-char>)* "
-        <parameter-pair> = <parameter-key> = <parameter-value>
-        <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
-        :: grammar
-
-    5.2. Parameter Integration
-
-        How parameters integrate with annotations and verbatim blocks:
-
-        Parameterized annotation:
-            <param-annotation> = <txxt-marker> <annotation-label> <colon> <parameter-list> <txxt-marker> <annotation-content>?
-        :: grammar
-
-        Parameterized verbatim:
-            <param-verbatim-end> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
-        :: grammar
-
-6. Precedence and Disambiguation
-
-    Rules for resolving conflicts when multiple interpretations are possible:
-
-    6.1. Token Precedence
+    2.3. Token Precedence
 
         Order of token recognition (first match wins):
-
         1. Escaped characters (highest precedence)
         2. Verbatim block boundaries
         3. Annotation markers
@@ -280,26 +111,94 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
         6. Formatting spans
         7. Text spans (lowest precedence)
 
-7. Error Handling
+3. Wall Architecture for Verbatim Content
 
-    How the parser handles malformed or ambiguous input:
+    Verbatim blocks use a wall architecture to separate formatting concerns from content preservation:
 
-    7.1. Graceful Degradation
+    3.1. IndentationWall Token
+
+        Defines the indentation structure for verbatim content:
+        - `level`: Indentation level in spaces
+        - `wall_type`: Type of wall (InFlow or Stretched)
+        - `span`: Source position information
+
+        Wall Types:
+        - `InFlow(base_indent)`: Content indented relative to title
+        - `Stretched`: Content starts at absolute column 1
+
+    3.2. IgnoreTextSpan Token
+
+        Contains raw content without formatting processing:
+        - `content`: Raw text content
+        - `span`: Source position information
+
+    3.3. Verbatim Block Structure
+
+        Complete verbatim block token sequence:
+        1. `VerbatimTitle`: Title line ending with colon
+        2. `IndentationWall`: Wall position and type
+        3. `IgnoreTextSpan`: Raw content lines
+        4. `VerbatimLabel`: Label line with txxt marker
+
+4. File Organization Structure
+
+    Tokens are organized in the codebase following a clear structure:
+
+    4.1. Core Token Definitions
+
+        - `src/ast/elements/scanner_tokens.rs`: Main token enum and types
+        - `src/ast/tokens/`: Individual token type definitions
+        - `src/lexer/elements/`: Token-specific lexer implementations
+
+    4.2. Token Processing
+
+        - `src/lexer/core/`: Core lexer infrastructure
+        - `src/lexer/pipeline/`: Token processing pipeline
+        - `src/tools/detokenizer/`: Token-to-text reconstruction
+
+5. Examples
+
+    Examples demonstrating token recognition:
+
+    5.1. Annotation Tokens
+
+        Input: `:: note :: This is an annotation`
+        Tokens: `TxxtMarker` `Whitespace` `Text` `Whitespace` `TxxtMarker` `Whitespace` `Text`
+
+    5.2. Verbatim Block Tokens
+
+        Input:
+        ```
+        Python example:
+            def hello():
+                print("Hello!")
+        :: python
+        ```
+        Tokens: `VerbatimTitle` `IndentationWall` `IgnoreTextSpan` `VerbatimLabel`
+
+    5.3. Reference Tokens
+
+        Input: `See [@smith2023] for details`
+        Tokens: `Text` `Whitespace` `LeftBracket` `AtSign` `Text` `RightBracket` `Whitespace` `Text`
+
+6. Error Handling
+
+    How the scanner handles malformed input:
+
+    6.1. Graceful Degradation
 
         When syntax is malformed, fall back to simpler interpretation:
+        - Invalid annotation → Text tokens
+        - Incomplete formatting → Literal text tokens
+        - Malformed list → Text tokens
+        - Unclosed verbatim → Text tokens
 
-        - Invalid annotation → Paragraph
-        - Incomplete formatting → Literal text
-        - Malformed list → Paragraph
-        - Unclosed verbatim → Paragraph
+    6.2. Recovery Strategies
 
-    7.2. Recovery Strategies
-
-        Methods for continuing parsing after errors:
-
-        - Skip malformed tokens and continue
-        - Close incomplete structures at block boundaries
+        Methods for continuing tokenization after errors:
+        - Skip malformed characters and continue
+        - Close incomplete structures at line boundaries
         - Preserve all content as text when structure unclear
-        - Never fail completely - always produce output
+        - Never fail completely - always produce tokens
 
-:: note :: This scanner tokens reference defines the low-level tokens for txxt. For semantic constructs and block grammar, see the semantic-tokens.txxt and grammar.txxt documents.
+:: note :: This scanner tokens reference defines format-only tokens for txxt. For compositional patterns and block grammar, see @grammar.txxt.

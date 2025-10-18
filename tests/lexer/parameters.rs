@@ -1,4 +1,5 @@
 //! Tests for parameter tokenization functionality
+use txxt::lexer::ScannerToken;
 //!
 //! Tests the key=value,key2=value2 parameter syntax parsing with support for:
 //! - Basic key=value pairs
@@ -8,7 +9,7 @@
 
 use proptest::prelude::*;
 use std::collections::HashMap;
-use txxt::ast::tokens::{Position, Token};
+use txxt::ast::scanner_tokens::{Position, Token};
 use txxt::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 
 /// Mock lexer for testing parameter parsing
@@ -54,7 +55,7 @@ impl ParameterLexer for MockParameterLexer {
 fn extract_parameters(tokens: &[Token]) -> HashMap<String, String> {
     let mut params = HashMap::new();
     for token in tokens {
-        if let Token::Parameter { key, value, .. } = token {
+        if let ScannerToken::Parameter { key, value, .. } = token {
             params.insert(key.clone(), value.clone());
         }
     }
@@ -485,7 +486,7 @@ mod token_span_tests {
         assert_eq!(tokens.len(), 2);
 
         for token in &tokens {
-            if let Token::Parameter { span, .. } = token {
+            if let ScannerToken::Parameter { span, .. } = token {
                 // All spans should have valid positions
                 assert!(span.end.column >= span.start.column);
                 assert_eq!(span.start.row, span.end.row); // Single line parameters
@@ -503,7 +504,7 @@ mod token_span_tests {
 
         assert_eq!(tokens.len(), 1);
 
-        if let Token::Parameter { key, value, .. } = &tokens[0] {
+        if let ScannerToken::Parameter { key, value, .. } = &tokens[0] {
             assert_eq!(key, "debug");
             assert_eq!(value, "true");
         } else {

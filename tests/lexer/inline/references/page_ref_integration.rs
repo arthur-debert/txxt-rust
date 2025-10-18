@@ -1,6 +1,6 @@
 //! Integration tests for page reference tokenization with main lexer
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_page_ref_integration_simple() {
     assert_eq!(tokens.len(), 2);
 
     match &tokens[0] {
-        Token::PageRef { content, span } => {
+        ScannerToken::PageRef { content, span } => {
             assert_eq!(content, "123");
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -22,7 +22,7 @@ fn test_page_ref_integration_simple() {
     }
 
     match &tokens[1] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[1]),
     }
 }
@@ -35,7 +35,7 @@ fn test_page_ref_integration_range() {
     assert_eq!(tokens.len(), 2);
 
     match &tokens[0] {
-        Token::PageRef { content, span } => {
+        ScannerToken::PageRef { content, span } => {
             assert_eq!(content, "123-125");
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -56,11 +56,11 @@ fn test_page_ref_integration_with_text() {
     // Find the page reference
     let page_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::PageRef { .. }))
+        .find(|token| matches!(token, ScannerToken::PageRef { .. }))
         .expect("Should find PageRef token");
 
     match page_ref {
-        Token::PageRef { content, .. } => {
+        ScannerToken::PageRef { content, .. } => {
             assert_eq!(content, "42");
         }
         _ => unreachable!(),
@@ -74,12 +74,12 @@ fn test_page_ref_vs_ref_marker() {
     // Should produce PageRef, not general RefMarker
     let page_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::PageRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::PageRef { .. }))
         .collect();
 
     let ref_markers: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::RefMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
         .collect();
 
     assert_eq!(page_refs.len(), 1, "Should have exactly one PageRef token");
@@ -92,11 +92,11 @@ fn test_page_ref_single_digit() {
 
     let page_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::PageRef { .. }))
+        .find(|token| matches!(token, ScannerToken::PageRef { .. }))
         .expect("Should find PageRef token");
 
     match page_ref {
-        Token::PageRef { content, .. } => {
+        ScannerToken::PageRef { content, .. } => {
             assert_eq!(content, "5");
         }
         _ => unreachable!(),
@@ -109,11 +109,11 @@ fn test_page_ref_large_numbers() {
 
     let page_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::PageRef { .. }))
+        .find(|token| matches!(token, ScannerToken::PageRef { .. }))
         .expect("Should find PageRef token");
 
     match page_ref {
-        Token::PageRef { content, .. } => {
+        ScannerToken::PageRef { content, .. } => {
             assert_eq!(content, "999");
         }
         _ => unreachable!(),
@@ -128,7 +128,7 @@ fn test_page_ref_adjacent() {
     let page_refs: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::PageRef { content, .. } => Some(content.as_str()),
+            ScannerToken::PageRef { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -149,11 +149,11 @@ fn test_page_ref_range_variations() {
 
         let page_ref = tokens
             .iter()
-            .find(|token| matches!(token, Token::PageRef { .. }))
+            .find(|token| matches!(token, ScannerToken::PageRef { .. }))
             .unwrap_or_else(|| panic!("Should find PageRef token in {}", input));
 
         match page_ref {
-            Token::PageRef { content, .. } => {
+            ScannerToken::PageRef { content, .. } => {
                 assert_eq!(content, expected_content, "Failed for input: {}", input);
             }
             _ => unreachable!(),
@@ -168,7 +168,7 @@ fn test_incomplete_page_ref_fallback() {
     // Should not produce PageRef due to missing closing bracket
     let has_page_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::PageRef { .. }));
+        .any(|token| matches!(token, ScannerToken::PageRef { .. }));
 
     assert!(
         !has_page_ref,
@@ -178,7 +178,7 @@ fn test_incomplete_page_ref_fallback() {
     // Since [p.incomplete is not a valid reference marker (missing ]), it should be treated as text
     let has_text = tokens
         .iter()
-        .any(|token| matches!(token, Token::Text { .. } | Token::Identifier { .. }));
+        .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
 
     assert!(
         has_text,
@@ -193,7 +193,7 @@ fn test_page_ref_with_invalid_chars() {
     // Should not produce PageRef due to invalid characters
     let has_page_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::PageRef { .. }));
+        .any(|token| matches!(token, ScannerToken::PageRef { .. }));
 
     assert!(
         !has_page_ref,
@@ -209,7 +209,7 @@ fn test_page_ref_mixed_content() {
     let page_refs: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::PageRef { content, .. } => Some(content.as_str()),
+            ScannerToken::PageRef { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -224,7 +224,7 @@ fn test_page_ref_missing_dot() {
     // Should not produce PageRef without dot
     let has_page_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::PageRef { .. }));
+        .any(|token| matches!(token, ScannerToken::PageRef { .. }));
 
     assert!(
         !has_page_ref,
@@ -234,7 +234,7 @@ fn test_page_ref_missing_dot() {
     // Should produce RefMarker instead
     let has_ref_marker = tokens
         .iter()
-        .any(|token| matches!(token, Token::RefMarker { .. }));
+        .any(|token| matches!(token, ScannerToken::RefMarker { .. }));
 
     assert!(has_ref_marker, "Should produce RefMarker for [p123]");
 }

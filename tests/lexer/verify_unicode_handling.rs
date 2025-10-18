@@ -1,4 +1,5 @@
 //! Verify that the tokenizer actually handles Unicode correctly
+use txxt::lexer::ScannerToken;
 
 use txxt::lexer::Lexer;
 
@@ -11,10 +12,10 @@ fn verify_lexer_counts_characters_not_bytes() {
 
     let text = tokens
         .iter()
-        .find(|t| matches!(t, txxt::ast::tokens::Token::Text { .. }))
+        .find(|t| matches!(t, txxt::ast::scanner_tokens::ScannerToken::Text { .. }))
         .unwrap();
     match text {
-        txxt::ast::tokens::Token::Text { span, content } => {
+        txxt::ast::scanner_tokens::ScannerToken::Text { span, content } => {
             assert_eq!(content, "café");
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 4, "Should be 4 characters, not 5 bytes");
@@ -34,7 +35,7 @@ fn verify_sequence_marker_after_unicode() {
     let text = tokens
         .iter()
         .find(|t| {
-            if let txxt::ast::tokens::Token::Text { content, .. } = t {
+            if let txxt::ast::scanner_tokens::ScannerToken::Text { content, .. } = t {
                 content == "café"
             } else {
                 false
@@ -43,7 +44,7 @@ fn verify_sequence_marker_after_unicode() {
         .unwrap();
 
     match text {
-        txxt::ast::tokens::Token::Text { span, .. } => {
+        txxt::ast::scanner_tokens::ScannerToken::Text { span, .. } => {
             assert_eq!(
                 span.start.column, 2,
                 "café should start after '- ' at column 2"
@@ -72,9 +73,9 @@ fn verify_the_real_bug_is_in_parameters() {
     // Parameters should be there but with wrong position
     let param = tokens
         .iter()
-        .find(|t| matches!(t, txxt::ast::tokens::Token::Parameter { .. }));
+        .find(|t| matches!(t, txxt::ast::scanner_tokens::ScannerToken::Parameter { .. }));
 
-    if let Some(txxt::ast::tokens::Token::Parameter { span, key, value }) = param {
+    if let Some(txxt::ast::scanner_tokens::ScannerToken::Parameter { span, key, value }) = param {
         println!(
             "Parameter '{}={}' span: start=({},{}), end=({},{})",
             key, value, span.start.row, span.start.column, span.end.row, span.end.column
@@ -98,11 +99,11 @@ fn verify_sequence_marker_roman_numeral_calculation() {
 
     let marker = tokens
         .iter()
-        .find(|t| matches!(t, txxt::ast::tokens::Token::SequenceMarker { .. }))
+        .find(|t| matches!(t, txxt::ast::scanner_tokens::ScannerToken::SequenceMarker { .. }))
         .expect("Should find sequence marker");
 
     match marker {
-        txxt::ast::tokens::Token::SequenceMarker { span, marker_type } => {
+        txxt::ast::scanner_tokens::ScannerToken::SequenceMarker { span, marker_type } => {
             println!("Roman marker type: {:?}", marker_type);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 5, "xiii. is 5 characters");

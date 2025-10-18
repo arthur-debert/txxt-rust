@@ -4,7 +4,7 @@
 //! sequence markers like "1.1.", "1.2.3.", etc. as defined in the extended form
 //! specification.
 
-use txxt::ast::tokens::{SequenceMarkerType, Token};
+use txxt::ast::scanner_tokens::{SequenceMarkerType, Token};
 use txxt::lexer::Lexer;
 
 #[test]
@@ -25,11 +25,11 @@ fn test_hierarchical_numerical_sequence_markers() {
         // Find the sequence marker token
         let sequence_marker = tokens
             .iter()
-            .find(|t| matches!(t, Token::SequenceMarker { .. }))
+            .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
             .unwrap_or_else(|| panic!("Should find sequence marker for input: {}", input));
 
         match sequence_marker {
-            Token::SequenceMarker { marker_type, .. } => match marker_type {
+            ScannerToken::SequenceMarker { marker_type, .. } => match marker_type {
                 SequenceMarkerType::Numerical(number, marker) => {
                     assert_eq!(
                         *number, expected_number,
@@ -58,11 +58,11 @@ fn test_hierarchical_vs_regular_numerical_markers() {
 
     let sequence_marker = tokens
         .iter()
-        .find(|t| matches!(t, Token::SequenceMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .expect("Should find sequence marker for regular input");
 
     match sequence_marker {
-        Token::SequenceMarker { marker_type, .. } => match marker_type {
+        ScannerToken::SequenceMarker { marker_type, .. } => match marker_type {
             SequenceMarkerType::Numerical(number, marker) => {
                 assert_eq!(*number, 1, "Expected number 1 for regular marker");
                 assert_eq!(marker, "1.", "Expected marker '1.' for regular marker");
@@ -83,7 +83,7 @@ fn test_hierarchical_marker_without_space_is_not_sequence_marker() {
     // Should NOT find sequence marker
     let has_marker = tokens
         .iter()
-        .any(|t| matches!(t, Token::SequenceMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));
 
     assert!(
         !has_marker,
@@ -93,7 +93,7 @@ fn test_hierarchical_marker_without_space_is_not_sequence_marker() {
     // Should find text tokens instead
     let text_tokens: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::Text { .. }))
+        .filter(|t| matches!(t, ScannerToken::Text { .. }))
         .collect();
 
     assert!(!text_tokens.is_empty(), "Should find text tokens");
@@ -109,11 +109,11 @@ fn test_hierarchical_marker_with_parenthesis_format() {
     // Should find sequence marker (parenthesis format IS supported for hierarchical)
     let sequence_marker = tokens
         .iter()
-        .find(|t| matches!(t, Token::SequenceMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .expect("Should find sequence marker for hierarchical parenthesis format");
 
     match sequence_marker {
-        Token::SequenceMarker { marker_type, .. } => match marker_type {
+        ScannerToken::SequenceMarker { marker_type, .. } => match marker_type {
             SequenceMarkerType::Numerical(number, marker) => {
                 assert_eq!(
                     *number, 1,
@@ -136,11 +136,11 @@ fn test_complex_hierarchical_numbering() {
 
     let sequence_marker = tokens
         .iter()
-        .find(|t| matches!(t, Token::SequenceMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .expect("Should find sequence marker for complex hierarchical input");
 
     match sequence_marker {
-        Token::SequenceMarker { marker_type, .. } => match marker_type {
+        ScannerToken::SequenceMarker { marker_type, .. } => match marker_type {
             SequenceMarkerType::Numerical(number, marker) => {
                 assert_eq!(
                     *number, 1,

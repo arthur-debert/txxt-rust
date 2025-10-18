@@ -3,7 +3,7 @@
 //! This test verifies that VerbatimTitle tokens contain only the title content
 //! without the trailing colon structural marker.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]
@@ -23,19 +23,19 @@ mod tests {
         println!("\nTokens:");
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                Token::VerbatimTitle { content, span } => {
+                ScannerToken::VerbatimTitle { content, span } => {
                     println!(
                         "  {}: VerbatimTitle {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }
-                Token::VerbatimContent { content, span } => {
+                ScannerToken::VerbatimContent { content, span } => {
                     println!(
                         "  {}: VerbatimContent {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }
-                Token::VerbatimLabel { content, span } => {
+                ScannerToken::VerbatimLabel { content, span } => {
                     println!(
                         "  {}: VerbatimLabel {{ content: {:?}, span: {:?} }}",
                         i, content, span
@@ -50,10 +50,10 @@ mod tests {
         // Find VerbatimTitle token
         let verbatim_start = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimTitle { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
             .expect("Should find VerbatimTitle token");
 
-        if let Token::VerbatimTitle { content, .. } = verbatim_start {
+        if let ScannerToken::VerbatimTitle { content, .. } = verbatim_start {
             assert_eq!(
                 content, "My Code Title",
                 "VerbatimTitle should contain title without colon"
@@ -86,10 +86,10 @@ mod tests {
 
             let verbatim_start = tokens
                 .iter()
-                .find(|token| matches!(token, Token::VerbatimTitle { .. }))
+                .find(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
                 .expect("Should find VerbatimTitle token");
 
-            if let Token::VerbatimTitle { content, .. } = verbatim_start {
+            if let ScannerToken::VerbatimTitle { content, .. } = verbatim_start {
                 assert_eq!(
                     content, expected_title,
                     "Title '{}' should become '{}'",

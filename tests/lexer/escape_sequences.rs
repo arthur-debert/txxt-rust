@@ -1,4 +1,5 @@
 //! Tests for escape sequence handling in text tokens
+use txxt::lexer::ScannerToken;
 //!
 //! These tests verify that the tokenizer correctly handles backslash escape
 //! sequences for special characters that would otherwise be tokenized as
@@ -15,7 +16,7 @@ fn test_escaped_asterisk() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -27,7 +28,7 @@ fn test_escaped_asterisk() {
     // Should not have any BoldDelimiter tokens
     let bold_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::BoldDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::BoldDelimiter { .. }))
         .count();
     assert_eq!(bold_count, 0);
 }
@@ -40,7 +41,7 @@ fn test_escaped_underscore() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -52,7 +53,7 @@ fn test_escaped_underscore() {
     // Should not have any ItalicDelimiter tokens
     let italic_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::ItalicDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::ItalicDelimiter { .. }))
         .count();
     assert_eq!(italic_count, 0);
 }
@@ -65,7 +66,7 @@ fn test_escaped_backtick() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -77,7 +78,7 @@ fn test_escaped_backtick() {
     // Should not have any CodeDelimiter tokens
     let code_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::CodeDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::CodeDelimiter { .. }))
         .count();
     assert_eq!(code_count, 0);
 }
@@ -90,7 +91,7 @@ fn test_escaped_hash() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -102,7 +103,7 @@ fn test_escaped_hash() {
     // Should not have any MathDelimiter tokens
     let math_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::MathDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::MathDelimiter { .. }))
         .count();
     assert_eq!(math_count, 0);
 }
@@ -115,7 +116,7 @@ fn test_escaped_dash() {
     // Should not create a SequenceMarker token
     let has_sequence_marker = tokens
         .iter()
-        .any(|t| matches!(t, Token::SequenceMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));
     assert!(
         !has_sequence_marker,
         "Should not have sequence marker for escaped dash"
@@ -124,7 +125,7 @@ fn test_escaped_dash() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -140,7 +141,7 @@ fn test_escaped_backslash() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -157,7 +158,7 @@ fn test_escaped_brackets() {
     // Should not create bracket tokens
     let has_brackets = tokens
         .iter()
-        .any(|t| matches!(t, Token::LeftBracket { .. } | Token::RightBracket { .. }));
+        .any(|t| matches!(t, ScannerToken::LeftBracket { .. } | ScannerToken::RightBracket { .. }));
     assert!(
         !has_brackets,
         "Should not have bracket tokens for escaped brackets"
@@ -166,7 +167,7 @@ fn test_escaped_brackets() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -184,7 +185,7 @@ fn test_multiple_escapes_in_text() {
     let full_text: String = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -204,7 +205,7 @@ fn test_escape_at_start_of_line() {
     let first_text = tokens
         .iter()
         .find_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .unwrap();
@@ -220,7 +221,7 @@ fn test_unescaped_special_chars_still_work() {
     // Should have BoldDelimiter tokens
     let bold_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::BoldDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::BoldDelimiter { .. }))
         .count();
 
     assert_eq!(
@@ -236,13 +237,13 @@ fn test_partial_escape_sequences() {
 
     // Should have one text token with escaped asterisk and one BoldDelimiter
     let has_escaped_text = tokens.iter().any(|t| match t {
-        Token::Text { content, .. } => content.contains(r"\*"),
+        ScannerToken::Text { content, .. } => content.contains(r"\*"),
         _ => false,
     });
 
     let bold_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::BoldDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::BoldDelimiter { .. }))
         .count();
 
     assert!(has_escaped_text, "Should have text with escaped asterisk");
@@ -260,7 +261,7 @@ fn test_backslash_followed_by_non_special() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -278,7 +279,7 @@ fn test_escape_sequences_in_inline_code() {
     // Should have CodeDelimiter tokens
     let code_delim_count = tokens
         .iter()
-        .filter(|t| matches!(t, Token::CodeDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::CodeDelimiter { .. }))
         .count();
 
     assert_eq!(code_delim_count, 2, "Should have code delimiters");
@@ -288,7 +289,7 @@ fn test_escape_sequences_in_inline_code() {
     let mut code_content = String::new();
     for token in &tokens {
         match token {
-            Token::CodeDelimiter { .. } => {
+            ScannerToken::CodeDelimiter { .. } => {
                 in_code = !in_code;
                 if !in_code && !code_content.is_empty() {
                     // Check the accumulated code content
@@ -299,7 +300,7 @@ fn test_escape_sequences_in_inline_code() {
                     );
                 }
             }
-            Token::Text { content, .. } if in_code => {
+            ScannerToken::Text { content, .. } if in_code => {
                 code_content.push_str(content);
             }
             _ => {}

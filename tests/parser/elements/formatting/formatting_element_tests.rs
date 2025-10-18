@@ -4,7 +4,7 @@
 //! (strong, emphasis, code, math) using the TxxtCorpora framework.
 
 use txxt::ast::elements::formatting::inlines::TextTransform;
-use txxt::ast::elements::tokens::{Position, SourceSpan, Token};
+use txxt::ast::elements::scanner_tokens::{Position, SourceSpan, ScannerToken};
 use txxt::parser::elements::formatting::*;
 
 /// Helper function to create a test source span
@@ -20,15 +20,15 @@ fn test_span() -> SourceSpan {
 fn test_parse_strong_simple() {
     // Create simple test tokens for strong element
     let tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "*".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "bold".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "*".to_string(),
             span: test_span(),
         },
@@ -55,15 +55,15 @@ fn test_parse_strong_simple() {
 fn test_parse_emphasis_simple() {
     // Create simple test tokens for emphasis element
     let tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "_".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "italic".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "_".to_string(),
             span: test_span(),
         },
@@ -90,15 +90,15 @@ fn test_parse_emphasis_simple() {
 fn test_parse_code_simple() {
     // Create simple test tokens for code element
     let tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "`".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "function_name".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "`".to_string(),
             span: test_span(),
         },
@@ -119,15 +119,15 @@ fn test_parse_code_simple() {
 fn test_parse_math_simple() {
     // Create simple test tokens for math element
     let tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "#".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "x = y + 2".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "#".to_string(),
             span: test_span(),
         },
@@ -147,15 +147,15 @@ fn test_parse_math_simple() {
 #[test]
 fn test_is_strong_pattern() {
     let strong_tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "*".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "content".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "*".to_string(),
             span: test_span(),
         },
@@ -164,15 +164,15 @@ fn test_is_strong_pattern() {
     assert!(is_strong_pattern(&strong_tokens));
 
     let not_strong_tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "_".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "content".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "_".to_string(),
             span: test_span(),
         },
@@ -185,15 +185,15 @@ fn test_is_strong_pattern() {
 #[test]
 fn test_is_emphasis_pattern() {
     let emphasis_tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "_".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "content".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "_".to_string(),
             span: test_span(),
         },
@@ -202,15 +202,15 @@ fn test_is_emphasis_pattern() {
     assert!(is_emphasis_pattern(&emphasis_tokens));
 
     let not_emphasis_tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "*".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "content".to_string(),
             span: test_span(),
         },
-        Token::Text {
+        ScannerToken::Text {
             content: "*".to_string(),
             span: test_span(),
         },
@@ -222,7 +222,7 @@ fn test_is_emphasis_pattern() {
 /// Test error handling for empty content
 #[test]
 fn test_formatting_empty_content_error() {
-    let empty_tokens: Vec<Token> = vec![];
+    let empty_tokens: Vec<ScannerToken> = vec![];
 
     assert!(parse_strong(&empty_tokens).is_err());
     assert!(parse_emphasis(&empty_tokens).is_err());
@@ -233,7 +233,7 @@ fn test_formatting_empty_content_error() {
 /// Test nesting validation for strong elements
 #[test]
 fn test_strong_nesting_validation() {
-    let nested_asterisk_content = vec![Token::Text {
+    let nested_asterisk_content = vec![ScannerToken::Text {
         content: "*".to_string(),
         span: test_span(),
     }];
@@ -241,7 +241,7 @@ fn test_strong_nesting_validation() {
     // Should fail validation due to nested asterisk in content
     assert!(validate_strong_nesting(&nested_asterisk_content).is_err());
 
-    let valid_content_tokens = vec![Token::Text {
+    let valid_content_tokens = vec![ScannerToken::Text {
         content: "content".to_string(),
         span: test_span(),
     }];
@@ -254,7 +254,7 @@ fn test_strong_nesting_validation() {
 #[test]
 fn test_parse_formatting_elements_integration() {
     // Test with simple text tokens
-    let tokens = vec![Token::Text {
+    let tokens = vec![ScannerToken::Text {
         content: "simple text".to_string(),
         span: test_span(),
     }];
@@ -276,7 +276,7 @@ fn test_parse_formatting_elements_integration() {
 /// Test formatting inlines wrapper function
 #[test]
 fn test_parse_formatting_inlines() {
-    let tokens = vec![Token::Text {
+    let tokens = vec![ScannerToken::Text {
         content: "test content".to_string(),
         span: test_span(),
     }];

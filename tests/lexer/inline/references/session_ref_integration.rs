@@ -1,6 +1,6 @@
 //! Integration tests for session reference tokenization with main lexer
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_session_ref_integration_simple() {
     assert_eq!(tokens.len(), 2);
 
     match &tokens[0] {
-        Token::SessionRef { content, span } => {
+        ScannerToken::SessionRef { content, span } => {
             assert_eq!(content, "1");
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -22,7 +22,7 @@ fn test_session_ref_integration_simple() {
     }
 
     match &tokens[1] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[1]),
     }
 }
@@ -35,7 +35,7 @@ fn test_session_ref_integration_hierarchical() {
     assert_eq!(tokens.len(), 2);
 
     match &tokens[0] {
-        Token::SessionRef { content, span } => {
+        ScannerToken::SessionRef { content, span } => {
             assert_eq!(content, "1.2");
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -54,7 +54,7 @@ fn test_session_ref_integration_deep_hierarchical() {
     assert_eq!(tokens.len(), 2);
 
     match &tokens[0] {
-        Token::SessionRef { content, span } => {
+        ScannerToken::SessionRef { content, span } => {
             assert_eq!(content, "1.2.3");
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -75,11 +75,11 @@ fn test_session_ref_integration_with_text() {
     // Find the session reference
     let session_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::SessionRef { .. }))
+        .find(|token| matches!(token, ScannerToken::SessionRef { .. }))
         .expect("Should find SessionRef token");
 
     match session_ref {
-        Token::SessionRef { content, .. } => {
+        ScannerToken::SessionRef { content, .. } => {
             assert_eq!(content, "1.2");
         }
         _ => unreachable!(),
@@ -93,12 +93,12 @@ fn test_session_ref_vs_ref_marker() {
     // Should produce SessionRef, not general RefMarker
     let session_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::SessionRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::SessionRef { .. }))
         .collect();
 
     let ref_markers: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::RefMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -115,11 +115,11 @@ fn test_session_ref_multi_digit() {
 
     let session_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::SessionRef { .. }))
+        .find(|token| matches!(token, ScannerToken::SessionRef { .. }))
         .expect("Should find SessionRef token");
 
     match session_ref {
-        Token::SessionRef { content, .. } => {
+        ScannerToken::SessionRef { content, .. } => {
             assert_eq!(content, "10.20.30");
         }
         _ => unreachable!(),
@@ -134,7 +134,7 @@ fn test_session_ref_adjacent() {
     let session_refs: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::SessionRef { content, .. } => Some(content.as_str()),
+            ScannerToken::SessionRef { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -157,11 +157,11 @@ fn test_session_ref_variations() {
 
         let session_ref = tokens
             .iter()
-            .find(|token| matches!(token, Token::SessionRef { .. }))
+            .find(|token| matches!(token, ScannerToken::SessionRef { .. }))
             .unwrap_or_else(|| panic!("Should find SessionRef token in {}", input));
 
         match session_ref {
-            Token::SessionRef { content, .. } => {
+            ScannerToken::SessionRef { content, .. } => {
                 assert_eq!(content, expected_content, "Failed for input: {}", input);
             }
             _ => unreachable!(),
@@ -176,7 +176,7 @@ fn test_incomplete_session_ref_fallback() {
     // Should not produce SessionRef due to missing closing bracket
     let has_session_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::SessionRef { .. }));
+        .any(|token| matches!(token, ScannerToken::SessionRef { .. }));
 
     assert!(
         !has_session_ref,
@@ -186,7 +186,7 @@ fn test_incomplete_session_ref_fallback() {
     // Since [#1.incomplete is not a valid reference marker (missing ]), it should be treated as text
     let has_text = tokens
         .iter()
-        .any(|token| matches!(token, Token::Text { .. } | Token::Identifier { .. }));
+        .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
 
     assert!(
         has_text,
@@ -201,7 +201,7 @@ fn test_session_ref_with_invalid_chars() {
     // Should not produce SessionRef due to invalid characters
     let has_session_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::SessionRef { .. }));
+        .any(|token| matches!(token, ScannerToken::SessionRef { .. }));
 
     assert!(
         !has_session_ref,
@@ -217,7 +217,7 @@ fn test_session_ref_mixed_content() {
     let session_refs: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::SessionRef { content, .. } => Some(content.as_str()),
+            ScannerToken::SessionRef { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -232,7 +232,7 @@ fn test_session_ref_empty() {
     // Should not produce SessionRef without content
     let has_session_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::SessionRef { .. }));
+        .any(|token| matches!(token, ScannerToken::SessionRef { .. }));
 
     assert!(
         !has_session_ref,
@@ -242,18 +242,18 @@ fn test_session_ref_empty() {
     // Should produce RefMarker instead (empty session ref falls back to RefMarker)
     let has_ref_marker = tokens
         .iter()
-        .any(|token| matches!(token, Token::RefMarker { .. }));
+        .any(|token| matches!(token, ScannerToken::RefMarker { .. }));
 
     if !has_ref_marker {
         // Check if it falls back to text/identifier tokens instead
         let has_text = tokens
             .iter()
-            .any(|token| matches!(token, Token::Text { .. } | Token::Identifier { .. }));
+            .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
 
         // Also check if it produces a MathDelimiter (the # character)
         let has_math_delimiter = tokens
             .iter()
-            .any(|token| matches!(token, Token::MathDelimiter { .. }));
+            .any(|token| matches!(token, ScannerToken::MathDelimiter { .. }));
 
         assert!(
             has_text || has_math_delimiter,
@@ -277,7 +277,7 @@ fn test_session_ref_invalid_patterns() {
 
         let has_session_ref = tokens
             .iter()
-            .any(|token| matches!(token, Token::SessionRef { .. }));
+            .any(|token| matches!(token, ScannerToken::SessionRef { .. }));
 
         assert!(
             !has_session_ref,

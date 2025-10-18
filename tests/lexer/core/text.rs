@@ -5,7 +5,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::{core::patterns::TEXT_PATTERN, tokenize};
 
 // =============================================================================
@@ -24,7 +24,7 @@ fn test_text_token_isolated_passing(#[case] input: &str, #[case] expected_conten
     assert_eq!(tokens.len(), 2); // TEXT + EOF
 
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -36,7 +36,7 @@ fn test_text_token_isolated_passing(#[case] input: &str, #[case] expected_conten
 
     // Should end with EOF
     match &tokens[1] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[1]),
     }
 }
@@ -57,7 +57,7 @@ fn test_text_token_with_more_content_passing(
 
     // First text token
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, first_word);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -69,11 +69,11 @@ fn test_text_token_with_more_content_passing(
     // Find second text token (skipping whitespace)
     let second_text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == second_word))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == second_word))
         .expect("Should find second text token");
 
     match second_text_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, second_word);
             assert_eq!(span.start.row, 0);
             assert!(span.start.column > first_word.len()); // After first word + space
@@ -97,7 +97,7 @@ fn test_text_token_isolated_failing(#[case] input: &str) {
     // Should not contain any TEXT tokens
     let text_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Text { .. }))
+        .filter(|token| matches!(token, ScannerToken::Text { .. }))
         .collect();
 
     assert_eq!(
@@ -123,7 +123,7 @@ fn test_text_token_with_whitespace_failing_edge_cases(
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -147,7 +147,7 @@ proptest! {
 
         // Should have at least one TEXT token
         let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { .. }))
+            .filter(|token| matches!(token, ScannerToken::Text { .. }))
             .collect();
 
         prop_assert!(!text_tokens.is_empty(), "Should produce at least one TEXT token");
@@ -156,7 +156,7 @@ proptest! {
         // Note: Standalone _ is an italic delimiter, not text
         if text.chars().next().unwrap().is_alphanumeric() {
             match &tokens[0] {
-                Token::Text { content, span } => {
+                ScannerToken::Text { content, span } => {
                     prop_assert_eq!(span.start.row, 0);
                     prop_assert_eq!(span.start.column, 0);
                     prop_assert!(span.end.column > 0);
@@ -174,7 +174,7 @@ proptest! {
         let tokens = tokenize(&text);
 
         for token in &tokens {
-            if let Token::Text { content, span } = token {
+            if let ScannerToken::Text { content, span } = token {
                 // Span should be consistent with content length
                 prop_assert_eq!(
                     span.end.column - span.start.column,
@@ -208,7 +208,7 @@ mod helper_tests {
         assert_eq!(tokens.len(), 2); // ItalicDelimiter + EOF
 
         match &tokens[0] {
-            Token::ItalicDelimiter { span } => {
+            ScannerToken::ItalicDelimiter { span } => {
                 assert_eq!(span.start.row, 0);
                 assert_eq!(span.start.column, 0);
                 assert_eq!(span.end.row, 0);

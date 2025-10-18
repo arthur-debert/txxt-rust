@@ -196,7 +196,7 @@ fn test_ensemble_multiple_paragraphs() {
     // Parse the first paragraph (up to first blank line)
     let first_paragraph_tokens: Vec<_> = tokens
         .iter()
-        .take_while(|token| !matches!(token, txxt::ast::tokens::Token::BlankLine { .. }))
+        .take_while(|token| !matches!(token, txxt::ast::scanner_tokens::ScannerToken::BlankLine { .. }))
         .cloned()
         .collect();
 

@@ -1,9 +1,9 @@
-//! Tests for Phase 1c: Token Tree Building
+//! Tests for Phase 1c: ScannerToken Tree Building
 //!
 //! These tests verify the token tree builder's ability to transform flat token
 //! streams into hierarchical structures based on indentation.
 
-use txxt::ast::tokens::{Position, SourceSpan, Token};
+use txxt::ast::scanner_tokens::{Position, SourceSpan, Token};
 use txxt::lexer::pipeline::{TokenTree, TokenTreeBuilder};
 use txxt::lexer::tokenize;
 
@@ -133,7 +133,7 @@ fn test_token_tree_builder_walkthrough_complex_nesting() {
 /// Helper function to debug print block group structure
 #[cfg(test)]
 #[allow(dead_code)]
-fn debug_block_structure(tree: &TokenTree, indent: usize) {
+fn debug_block_structure(tree: &ScannerTokenTree, indent: usize) {
     let prefix = " ".repeat(indent * 2);
     println!("{}TokenTree {{", prefix);
     println!("{}  tokens: {} items", prefix, tree.tokens.len());
@@ -151,14 +151,14 @@ fn debug_block_structure(tree: &TokenTree, indent: usize) {
 /// Create a summary of a token for debugging
 #[cfg(test)]
 #[allow(dead_code)]
-fn token_summary(token: &Token) -> String {
+fn token_summary(token: &ScannerToken) -> String {
     match token {
-        Token::Text { .. } => "Text".to_string(),
-        Token::Newline { .. } => "Newline".to_string(),
-        Token::BlankLine { .. } => "BlankLine".to_string(),
-        Token::Indent { .. } => "Indent".to_string(),
-        Token::Dedent { .. } => "Dedent".to_string(),
-        Token::SequenceMarker { marker_type, .. } => format!("SeqMarker({:?})", marker_type),
+        ScannerToken::Text { .. } => "Text".to_string(),
+        ScannerToken::Newline { .. } => "Newline".to_string(),
+        ScannerToken::BlankLine { .. } => "BlankLine".to_string(),
+        ScannerToken::Indent { .. } => "Indent".to_string(),
+        ScannerToken::Dedent { .. } => "Dedent".to_string(),
+        ScannerToken::SequenceMarker { marker_type, .. } => format!("SeqMarker({:?})", marker_type),
         _ => format!("{:?}", std::mem::discriminant(token)),
     }
 }
@@ -168,11 +168,11 @@ fn token_summary(token: &Token) -> String {
 fn test_token_tree_builder_error_unmatched_dedent() {
     // Create tokens with unmatched dedent
     let tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "test".to_string(),
             span: create_test_span(),
         },
-        Token::Dedent {
+        ScannerToken::Dedent {
             span: create_test_span(),
         }, // Dedent without indent
     ];

@@ -7,7 +7,7 @@
 //! 1. content: Vec<TextTransform>
 //! 2. annotations: Vec<Annotation>
 //! 3. parameters: Parameters
-//! 4. tokens: TokenSequence
+//! 4. tokens: ScannerTokenSequence
 
 use txxt::ast::{
     elements::annotation::annotation_content::{Annotation, AnnotationContent},
@@ -17,7 +17,7 @@ use txxt::ast::{
         paragraph::ParagraphBlock,
         session::session_container::SessionContainerElement,
     },
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use crate::assertions::{assert_paragraph, ParagraphExpected};
@@ -31,11 +31,11 @@ fn make_paragraph(
     params: Vec<(&str, &str)>,
     annotations: Vec<&str>,
 ) -> ParagraphBlock {
-    use txxt::ast::tokens::{Position, SourceSpan, Token};
+    use txxt::ast::scanner_tokens::{Position, SourceSpan, Token};
 
     // Field 1: content (Vec<TextTransform>)
     // Create a Text token with the actual text
-    let text_token = Token::Text {
+    let text_token = ScannerToken::Text {
         content: _text.to_string(),
         span: SourceSpan {
             start: Position { row: 0, column: 0 },
@@ -47,7 +47,7 @@ fn make_paragraph(
     };
 
     let text_transform = TextTransform::Identity(TextSpan {
-        tokens: TokenSequence {
+        tokens: ScannerTokenSequence {
             tokens: vec![text_token.clone()],
         },
         annotations: vec![],
@@ -62,7 +62,7 @@ fn make_paragraph(
             namespace: None,
             parameters: Parameters::new(),
             content: AnnotationContent::Empty,
-            tokens: TokenSequence { tokens: vec![] },
+            tokens: ScannerTokenSequence { tokens: vec![] },
         })
         .collect();
 
@@ -72,8 +72,8 @@ fn make_paragraph(
         parameters.set(key.to_string(), value.to_string());
     }
 
-    // Field 4: tokens (TokenSequence)
-    let tokens = TokenSequence { tokens: vec![] };
+    // Field 4: tokens (ScannerTokenSequence)
+    let tokens = ScannerTokenSequence { tokens: vec![] };
 
     // Create paragraph with ALL fields populated
     ParagraphBlock::new(vec![text_transform], annotation_vec, parameters, tokens)
@@ -228,7 +228,7 @@ fn test_paragraph_field_parameters_missing() {
 }
 
 // ============================================================================
-// Field 4: Tokens (TokenSequence) Tests
+// Field 4: ScannerTokens (ScannerTokenSequence) Tests
 // ============================================================================
 
 #[test]

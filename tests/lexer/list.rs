@@ -5,7 +5,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -53,7 +53,7 @@ fn test_sequence_marker_isolated_passing(#[case] input: &str, #[case] expected_m
     assert!(!tokens.is_empty(), "Should have at least one token");
 
     match &tokens[0] {
-        Token::SequenceMarker { marker_type, span } => {
+        ScannerToken::SequenceMarker { marker_type, span } => {
             assert_eq!(marker_type.content(), expected_marker);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -83,7 +83,7 @@ fn test_sequence_marker_with_content_passing(
 
     // First token should be sequence marker
     match &tokens[0] {
-        Token::SequenceMarker { marker_type, span } => {
+        ScannerToken::SequenceMarker { marker_type, span } => {
             assert_eq!(marker_type.content(), expected_marker);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -94,11 +94,11 @@ fn test_sequence_marker_with_content_passing(
     // Find the text token
     let text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == expected_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == expected_text))
         .expect("Should find text token");
 
     match text_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_text);
             assert_eq!(span.start.row, 0);
             assert!(span.start.column > expected_marker.len()); // After marker + space
@@ -133,7 +133,7 @@ fn test_sequence_marker_isolated_failing(#[case] input: &str) {
     // Should not contain any SEQUENCE_MARKER tokens
     let sequence_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::SequenceMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::SequenceMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -156,7 +156,7 @@ fn test_sequence_marker_position_failing(#[case] input: &str) {
     // Should not contain any SEQUENCE_MARKER tokens (they're not at line start)
     let sequence_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::SequenceMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::SequenceMarker { .. }))
         .collect();
 
     assert_eq!(sequence_tokens.len(), 0,
@@ -176,13 +176,13 @@ proptest! {
 
         // Should have at least one SEQUENCE_MARKER token
         let sequence_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::SequenceMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::SequenceMarker { .. }))
             .collect();
 
         prop_assert_eq!(sequence_tokens.len(), 1, "Should produce exactly one SEQUENCE_MARKER token");
 
         match &tokens[0] {
-            Token::SequenceMarker { marker_type, span } => {
+            ScannerToken::SequenceMarker { marker_type, span } => {
                 let expected = format!("{}.", num);
                 prop_assert_eq!(marker_type.content(), &expected);
                 prop_assert_eq!(span.start.row, 0);
@@ -201,13 +201,13 @@ proptest! {
 
         // Should have exactly one SEQUENCE_MARKER token
         let sequence_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::SequenceMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::SequenceMarker { .. }))
             .collect();
 
         prop_assert_eq!(sequence_tokens.len(), 1);
 
         match &tokens[0] {
-            Token::SequenceMarker { marker_type, span } => {
+            ScannerToken::SequenceMarker { marker_type, span } => {
                 let expected = format!("{}.", letter);
                 prop_assert_eq!(marker_type.content(), &expected);
                 prop_assert_eq!(span.start.row, 0);
@@ -226,7 +226,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::SequenceMarker { marker_type, span } = token {
+            if let ScannerToken::SequenceMarker { marker_type, span } = token {
                 // Span should be consistent with content length
                 prop_assert_eq!(
                     span.end.column - span.start.column,

@@ -6,7 +6,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -24,7 +24,7 @@ fn test_ref_marker_citation_passing(#[case] input: &str, #[case] expected_conten
     assert_eq!(tokens.len(), 2); // CITATION_REF + EOF
 
     match &tokens[0] {
-        Token::CitationRef { content, span } => {
+        ScannerToken::CitationRef { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -51,7 +51,7 @@ fn test_ref_marker_section_passing(#[case] input: &str, #[case] expected_content
     assert_eq!(tokens.len(), 2); // SESSION_REF + EOF
 
     match &tokens[0] {
-        Token::SessionRef { content, span } => {
+        ScannerToken::SessionRef { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -77,7 +77,7 @@ fn test_ref_marker_footnote_passing(#[case] input: &str, #[case] expected_number
     assert_eq!(tokens.len(), 2); // FOOTNOTE_REF + EOF
 
     match &tokens[0] {
-        Token::FootnoteRef {
+        ScannerToken::FootnoteRef {
             footnote_type,
             span,
         } => {
@@ -107,7 +107,7 @@ fn test_ref_marker_url_passing(#[case] input: &str, #[case] expected_content: &s
     assert_eq!(tokens.len(), 2); // REF_MARKER + EOF
 
     match &tokens[0] {
-        Token::RefMarker { content, span } => {
+        ScannerToken::RefMarker { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -134,7 +134,7 @@ fn test_ref_marker_file_path_passing(#[case] input: &str, #[case] expected_conte
     assert_eq!(tokens.len(), 2); // REF_MARKER + EOF
 
     match &tokens[0] {
-        Token::RefMarker { content, span } => {
+        ScannerToken::RefMarker { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -160,7 +160,7 @@ fn test_ref_marker_anchor_passing(#[case] input: &str, #[case] expected_content:
     assert_eq!(tokens.len(), 2); // REF_MARKER + EOF
 
     match &tokens[0] {
-        Token::RefMarker { content, span } => {
+        ScannerToken::RefMarker { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -193,11 +193,11 @@ fn test_ref_marker_in_context_passing(
     // Find prefix text
     let prefix_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == prefix_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == prefix_text))
         .expect("Should find prefix text");
 
     match prefix_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, prefix_text);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -211,11 +211,11 @@ fn test_ref_marker_in_context_passing(
         // Remove @ prefix
         let ref_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::CitationRef { content, .. } if content == citation_content))
+            .find(|token| matches!(token, ScannerToken::CitationRef { content, .. } if content == citation_content))
             .expect("Should find citation reference");
 
         match ref_token {
-            Token::CitationRef { content, .. } => {
+            ScannerToken::CitationRef { content, .. } => {
                 assert_eq!(content, citation_content);
             }
             _ => unreachable!(),
@@ -224,11 +224,11 @@ fn test_ref_marker_in_context_passing(
         // Other reference types - should be RefMarker token
         let ref_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::RefMarker { content, .. } if content == expected_ref))
+            .find(|token| matches!(token, ScannerToken::RefMarker { content, .. } if content == expected_ref))
             .expect("Should find reference marker");
 
         match ref_token {
-            Token::RefMarker { content, .. } => {
+            ScannerToken::RefMarker { content, .. } => {
                 assert_eq!(content, expected_ref);
             }
             _ => unreachable!(),
@@ -238,11 +238,11 @@ fn test_ref_marker_in_context_passing(
     // Find suffix text
     let suffix_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == suffix_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == suffix_text))
         .expect("Should find suffix text");
 
     match suffix_token {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, suffix_text);
         }
         _ => unreachable!(),
@@ -269,7 +269,7 @@ fn test_ref_marker_isolated_failing(#[case] input: &str) {
     // Should not contain any REF_MARKER tokens
     let ref_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::RefMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -290,7 +290,7 @@ fn test_ref_marker_multiline_failing(#[case] input: &str) {
     // Should not contain any REF_MARKER tokens (cannot span lines)
     let ref_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::RefMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -316,7 +316,7 @@ proptest! {
         prop_assert_eq!(tokens.len(), 2);
 
         match &tokens[0] {
-            Token::CitationRef { content, span } => {
+            ScannerToken::CitationRef { content, span } => {
                 prop_assert_eq!(content, &identifier); // Just the identifier, no @ prefix
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
@@ -335,7 +335,7 @@ proptest! {
         prop_assert_eq!(tokens.len(), 2);
 
         match &tokens[0] {
-            Token::FootnoteRef { footnote_type, span } => {
+            ScannerToken::FootnoteRef { footnote_type, span } => {
                 use txxt::lexer::elements::references::footnote_ref::FootnoteType;
                 prop_assert_eq!(footnote_type, &FootnoteType::Naked(number));
                 prop_assert_eq!(span.start.row, 0);
@@ -358,7 +358,7 @@ proptest! {
         prop_assert_eq!(tokens.len(), 2);
 
         match &tokens[0] {
-            Token::SessionRef { content, span } => {
+            ScannerToken::SessionRef { content, span } => {
                 let expected_content = format!("{}.{}", major, minor);
                 prop_assert_eq!(content, &expected_content);
                 prop_assert_eq!(span.start.row, 0);
@@ -377,7 +377,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::RefMarker { content, span } = token {
+            if let ScannerToken::RefMarker { content, span } = token {
                 // Span should be consistent with input length
                 prop_assert_eq!(
                     span.end.column - span.start.column,

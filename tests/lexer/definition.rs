@@ -6,7 +6,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -26,11 +26,11 @@ fn test_definition_marker_isolated_passing(#[case] input: &str) {
     // Find the definition marker
     let definition_marker = tokens
         .iter()
-        .find(|token| matches!(token, Token::DefinitionMarker { .. }))
+        .find(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .expect("Should find DefinitionMarker token");
 
     match definition_marker {
-        Token::DefinitionMarker { content, span } => {
+        ScannerToken::DefinitionMarker { content, span } => {
             assert_eq!(content, "::");
             assert!(span.start.column > 0); // Should not be at start of line
         }
@@ -40,10 +40,10 @@ fn test_definition_marker_isolated_passing(#[case] input: &str) {
     // Should also have text before the definition marker
     let text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { .. }))
+        .find(|token| matches!(token, ScannerToken::Text { .. }))
         .expect("Should find Text token");
 
-    assert!(matches!(text_token, Token::Text { .. }));
+    assert!(matches!(text_token, ScannerToken::Text { .. }));
 }
 
 #[rstest]
@@ -56,11 +56,11 @@ fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_tex
     // Find the text token
     let text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == expected_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == expected_text))
         .expect("Should find expected text token");
 
     match text_token {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, expected_text);
         }
         _ => unreachable!(),
@@ -69,11 +69,11 @@ fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_tex
     // Find the definition marker
     let definition_marker = tokens
         .iter()
-        .find(|token| matches!(token, Token::DefinitionMarker { .. }))
+        .find(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .expect("Should find DefinitionMarker token");
 
     match definition_marker {
-        Token::DefinitionMarker { content, .. } => {
+        ScannerToken::DefinitionMarker { content, .. } => {
             assert_eq!(content, "::");
         }
         _ => unreachable!(),
@@ -82,10 +82,10 @@ fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_tex
     // Should also have a newline token
     let newline_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Newline { .. }))
+        .find(|token| matches!(token, ScannerToken::Newline { .. }))
         .expect("Should find Newline token");
 
-    assert!(matches!(newline_token, Token::Newline { .. }));
+    assert!(matches!(newline_token, ScannerToken::Newline { .. }));
 }
 
 #[rstest]
@@ -101,26 +101,26 @@ fn test_definition_marker_with_content_after(
     // Find first text token
     let first_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == first_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == first_text))
         .expect("Should find first text token");
 
-    assert!(matches!(first_token, Token::Text { .. }));
+    assert!(matches!(first_token, ScannerToken::Text { .. }));
 
     // Find definition marker
     let definition_marker = tokens
         .iter()
-        .find(|token| matches!(token, Token::DefinitionMarker { .. }))
+        .find(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .expect("Should find DefinitionMarker token");
 
-    assert!(matches!(definition_marker, Token::DefinitionMarker { .. }));
+    assert!(matches!(definition_marker, ScannerToken::DefinitionMarker { .. }));
 
     // Find second text token
     let second_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == second_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == second_text))
         .expect("Should find second text token");
 
-    assert!(matches!(second_token, Token::Text { .. }));
+    assert!(matches!(second_token, ScannerToken::Text { .. }));
 }
 
 // =============================================================================
@@ -137,7 +137,7 @@ fn test_definition_marker_failing_annotation_patterns(#[case] input: &str) {
     // Should NOT contain any DEFINITION_MARKER tokens
     let definition_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::DefinitionMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -151,7 +151,7 @@ fn test_definition_marker_failing_annotation_patterns(#[case] input: &str) {
     // Should contain annotation markers instead
     let annotation_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::AnnotationMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::AnnotationMarker { .. }))
         .collect();
 
     assert!(
@@ -171,7 +171,7 @@ fn test_definition_marker_failing_invalid_patterns(#[case] input: &str) {
     // Should NOT contain any DEFINITION_MARKER tokens
     let definition_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::DefinitionMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -193,7 +193,7 @@ fn test_definition_marker_failing_no_marker(#[case] input: &str) {
     // Should NOT contain any DEFINITION_MARKER tokens
     let definition_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::DefinitionMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -216,14 +216,14 @@ proptest! {
 
         // Should have at least one DEFINITION_MARKER token
         let definition_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::DefinitionMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
             .collect();
 
         prop_assert_eq!(definition_tokens.len(), 1, "Should produce exactly 1 DEFINITION_MARKER token");
 
         // Should have at least one TEXT token for the term
         let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { .. }))
+            .filter(|token| matches!(token, ScannerToken::Text { .. }))
             .collect();
 
         prop_assert!(!text_tokens.is_empty(), "Should produce at least 1 TEXT token");
@@ -235,7 +235,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::DefinitionMarker { content, span } = token {
+            if let ScannerToken::DefinitionMarker { content, span } = token {
                 // Span should be consistent with content length
                 prop_assert_eq!(
                     span.end.column - span.start.column,
@@ -260,7 +260,7 @@ proptest! {
         let def_tokens = tokenize(&def_input);
 
         let def_markers: Vec<_> = def_tokens.iter()
-            .filter(|token| matches!(token, Token::DefinitionMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
             .collect();
 
         prop_assert_eq!(def_markers.len(), 1, "Definition pattern should produce DEFINITION_MARKER");
@@ -270,13 +270,13 @@ proptest! {
         let ann_tokens = tokenize(&ann_input);
 
         let ann_markers: Vec<_> = ann_tokens.iter()
-            .filter(|token| matches!(token, Token::AnnotationMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::AnnotationMarker { .. }))
             .collect();
 
         prop_assert!(ann_markers.len() >= 2, "Annotation pattern should produce ANNOTATION_MARKERs");
 
         let ann_def_markers: Vec<_> = ann_tokens.iter()
-            .filter(|token| matches!(token, Token::DefinitionMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
             .collect();
 
         prop_assert_eq!(ann_def_markers.len(), 0, "Annotation pattern should not produce DEFINITION_MARKERs");

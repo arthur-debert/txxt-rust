@@ -3,7 +3,7 @@
 //! These tests ensure that Unicode characters (including emoji) are properly
 //! tokenized and that column positions are calculated correctly.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::Lexer;
 
 #[test]
@@ -15,7 +15,7 @@ fn test_emoji_text_tokenization() {
 
     assert_eq!(tokens.len(), 2); // Text + Eof
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, "🎉text");
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 5); // emoji(1) + text(4)
@@ -34,7 +34,7 @@ fn test_emoji_with_space_tokenization() {
     assert_eq!(tokens.len(), 4); // Text + Whitespace + Text + Eof
 
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, "🎉");
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 1);
@@ -43,7 +43,7 @@ fn test_emoji_with_space_tokenization() {
     }
 
     match &tokens[2] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, "text");
             assert_eq!(span.start.column, 2);
             assert_eq!(span.end.column, 6);
@@ -60,10 +60,10 @@ fn test_emoji_dash_tokenization_fix() {
     let tokens = lexer.tokenize();
 
     // After fix: dash should be present
-    let has_dash = tokens.iter().any(|t| matches!(t, Token::Dash { .. }));
+    let has_dash = tokens.iter().any(|t| matches!(t, ScannerToken::Dash { .. }));
     let has_sequence_marker = tokens
         .iter()
-        .any(|t| matches!(t, Token::SequenceMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));
 
     // Either dash or sequence marker should be present
     assert!(
@@ -74,12 +74,12 @@ fn test_emoji_dash_tokenization_fix() {
     // Verify the dash is at the correct position
     let dash_tokens: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::Dash { .. }))
+        .filter(|t| matches!(t, ScannerToken::Dash { .. }))
         .collect();
 
     if !dash_tokens.is_empty() {
         match &dash_tokens[0] {
-            Token::Dash { span } => {
+            ScannerToken::Dash { span } => {
                 assert_eq!(
                     span.start.column, 1,
                     "Dash should start at column 1 after emoji"
@@ -103,13 +103,13 @@ fn test_sequence_marker_at_line_start() {
 
     let sequence_markers: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::SequenceMarker { .. }))
+        .filter(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .collect();
 
     assert_eq!(sequence_markers.len(), 1);
 
     match &tokens[0] {
-        Token::SequenceMarker { span, .. } => {
+        ScannerToken::SequenceMarker { span, .. } => {
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 1);
         }
@@ -125,7 +125,7 @@ fn test_accented_character_span_calculation() {
     let tokens = lexer.tokenize();
 
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, "café");
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 4); // 4 characters, not 5 bytes
@@ -143,7 +143,7 @@ fn test_emoji_sequence_marker_column_positions() {
 
     // Currently: "🎉1" is tokenized as text, period separate, no sequence marker
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, "🎉1");
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 2); // emoji(1) + digit(1)
@@ -153,7 +153,7 @@ fn test_emoji_sequence_marker_column_positions() {
 
     // The period is tokenized separately
     match &tokens[1] {
-        Token::Period { span } => {
+        ScannerToken::Period { span } => {
             assert_eq!(span.start.column, 2);
             assert_eq!(span.end.column, 3);
         }
@@ -170,7 +170,7 @@ fn test_mixed_unicode_tokenization() {
 
     // All characters should form a single text token (no spaces)
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, "🎉café→résumé");
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 12); // Count characters, not bytes
@@ -190,7 +190,7 @@ fn test_unicode_with_inline_formatting() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -200,7 +200,7 @@ fn test_unicode_with_inline_formatting() {
     // Check bold delimiters
     let bold_delimiters: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::BoldDelimiter { .. }))
+        .filter(|t| matches!(t, ScannerToken::BoldDelimiter { .. }))
         .collect();
 
     assert_eq!(bold_delimiters.len(), 2);

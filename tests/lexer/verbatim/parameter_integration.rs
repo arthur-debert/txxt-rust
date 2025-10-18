@@ -4,7 +4,7 @@
 //! - Clean VerbatimLabel tokens (without parameters)
 //! - Individual Parameter tokens for each key=value pair
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]
@@ -22,17 +22,17 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(content, "python", "VerbatimLabel should be just the label");
         }
 
         // Should not have any Parameter tokens
         let param_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, Token::Parameter { .. }))
+            .filter(|token| matches!(token, ScannerToken::Parameter { .. }))
             .collect();
 
         assert_eq!(
@@ -53,10 +53,10 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(
                 content, "python",
                 "VerbatimLabel should be just the label without parameters"
@@ -67,7 +67,7 @@ mod verbatim_parameter_integration_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -94,10 +94,10 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(content, "python", "VerbatimLabel should be just the label");
         }
 
@@ -105,7 +105,7 @@ mod verbatim_parameter_integration_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -146,10 +146,10 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(content, "mylabel", "VerbatimLabel should be just the label");
         }
 
@@ -157,7 +157,7 @@ mod verbatim_parameter_integration_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -196,10 +196,10 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(content, "mylabel", "VerbatimLabel should be just the label");
         }
 
@@ -207,7 +207,7 @@ mod verbatim_parameter_integration_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -247,10 +247,10 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(content, "mylabel", "VerbatimLabel should be just the label");
         }
 
@@ -258,7 +258,7 @@ mod verbatim_parameter_integration_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -297,10 +297,10 @@ mod verbatim_parameter_integration_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             assert_eq!(content, "mylabel", "VerbatimLabel should be just the label");
         }
 
@@ -308,7 +308,7 @@ mod verbatim_parameter_integration_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None

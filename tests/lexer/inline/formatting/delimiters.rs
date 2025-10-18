@@ -5,7 +5,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -31,25 +31,25 @@ fn test_inline_delimiter_isolated_passing(#[case] input: &str) {
     };
 
     match &tokens[0] {
-        Token::BoldDelimiter { span } if input == "*" => {
+        ScannerToken::BoldDelimiter { span } if input == "*" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
             assert_eq!(span.end.column, 1);
         }
-        Token::ItalicDelimiter { span } if input == "_" => {
+        ScannerToken::ItalicDelimiter { span } if input == "_" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
             assert_eq!(span.end.column, 1);
         }
-        Token::CodeDelimiter { span } if input == "`" => {
+        ScannerToken::CodeDelimiter { span } if input == "`" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
             assert_eq!(span.end.column, 1);
         }
-        Token::MathDelimiter { span } if input == "#" => {
+        ScannerToken::MathDelimiter { span } if input == "#" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
@@ -63,7 +63,7 @@ fn test_inline_delimiter_isolated_passing(#[case] input: &str) {
 
     // Should end with EOF
     match &tokens[1] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[1]),
     }
 }
@@ -92,17 +92,17 @@ fn test_inline_delimiter_with_content_passing(
     };
 
     match &tokens[0] {
-        Token::BoldDelimiter { span } if start_delim == "*" => {
+        ScannerToken::BoldDelimiter { span } if start_delim == "*" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 1);
         }
-        Token::ItalicDelimiter { span } if start_delim == "_" => {
+        ScannerToken::ItalicDelimiter { span } if start_delim == "_" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 1);
         }
-        Token::CodeDelimiter { span } if start_delim == "`" => {
+        ScannerToken::CodeDelimiter { span } if start_delim == "`" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 1);
@@ -115,7 +115,7 @@ fn test_inline_delimiter_with_content_passing(
 
     // Second token should be text
     match &tokens[1] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_text);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 1); // After start delimiter
@@ -133,19 +133,19 @@ fn test_inline_delimiter_with_content_passing(
     };
 
     match &tokens[2] {
-        Token::BoldDelimiter { span } if end_delim == "*" => {
+        ScannerToken::BoldDelimiter { span } if end_delim == "*" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 1 + expected_text.len());
         }
-        Token::ItalicDelimiter { span } if end_delim == "_" => {
+        ScannerToken::ItalicDelimiter { span } if end_delim == "_" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 1 + expected_text.len());
         }
-        Token::CodeDelimiter { span } if end_delim == "`" => {
+        ScannerToken::CodeDelimiter { span } if end_delim == "`" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 1 + expected_text.len());
         }
-        Token::MathDelimiter { span } if end_delim == "#" => {
+        ScannerToken::MathDelimiter { span } if end_delim == "#" => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 1 + expected_text.len());
         }
@@ -173,11 +173,11 @@ fn test_inline_delimiter_mixed_content(
     // Find prefix text
     let prefix_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == prefix_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == prefix_text))
         .expect("Should find prefix text");
 
     match prefix_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, prefix_text);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -188,11 +188,11 @@ fn test_inline_delimiter_mixed_content(
     // Find inner text
     let inner_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == inner_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == inner_text))
         .expect("Should find inner text");
 
     match inner_token {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, inner_text);
         }
         _ => unreachable!(),
@@ -201,11 +201,11 @@ fn test_inline_delimiter_mixed_content(
     // Find suffix text
     let suffix_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == suffix_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == suffix_text))
         .expect("Should find suffix text");
 
     match suffix_token {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, suffix_text);
         }
         _ => unreachable!(),
@@ -217,10 +217,10 @@ fn test_inline_delimiter_mixed_content(
         .filter(|token| {
             matches!(
                 token,
-                Token::BoldDelimiter { .. }
-                    | Token::ItalicDelimiter { .. }
-                    | Token::CodeDelimiter { .. }
-                    | Token::MathDelimiter { .. }
+                ScannerToken::BoldDelimiter { .. }
+                    | ScannerToken::ItalicDelimiter { .. }
+                    | ScannerToken::CodeDelimiter { .. }
+                    | ScannerToken::MathDelimiter { .. }
             )
         })
         .collect();
@@ -236,19 +236,19 @@ fn test_math_delimiter_integration() {
     assert_eq!(tokens.len(), 4);
 
     match &tokens[0] {
-        Token::MathDelimiter { .. } => {}
+        ScannerToken::MathDelimiter { .. } => {}
         _ => panic!("Expected MathDelimiter token, got {:?}", tokens[0]),
     }
 
     match &tokens[1] {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, "math");
         }
         _ => panic!("Expected Text token, got {:?}", tokens[1]),
     }
 
     match &tokens[2] {
-        Token::MathDelimiter { .. } => {}
+        ScannerToken::MathDelimiter { .. } => {}
         _ => panic!("Expected MathDelimiter token, got {:?}", tokens[2]),
     }
 }
@@ -262,14 +262,14 @@ fn test_math_delimiter_mixed_content() {
 
     let math_delimiters: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .filter(|token| matches!(token, ScannerToken::MathDelimiter { .. }))
         .collect();
     assert_eq!(math_delimiters.len(), 2);
 
     let math_content = tokens
         .iter()
         .find(|token| {
-            if let Token::Text { content, .. } = token {
+            if let ScannerToken::Text { content, .. } = token {
                 content == "math"
             } else {
                 false
@@ -278,7 +278,7 @@ fn test_math_delimiter_mixed_content() {
         .expect("Should find math content token");
 
     match math_content {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, "math");
         }
         _ => unreachable!(),
@@ -304,9 +304,9 @@ fn test_inline_delimiter_double_delimiters(#[case] input: &str) {
         .filter(|token| {
             matches!(
                 token,
-                Token::BoldDelimiter { .. }
-                    | Token::ItalicDelimiter { .. }
-                    | Token::CodeDelimiter { .. }
+                ScannerToken::BoldDelimiter { .. }
+                    | ScannerToken::ItalicDelimiter { .. }
+                    | ScannerToken::CodeDelimiter { .. }
             )
         })
         .collect();
@@ -334,7 +334,7 @@ fn test_double_math_delimiters() {
 
     let math_delimiters: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .filter(|token| matches!(token, ScannerToken::MathDelimiter { .. }))
         .collect();
 
     assert_eq!(
@@ -356,10 +356,10 @@ fn test_inline_delimiter_mixed_sequence(#[case] input: &str) {
 
     match (&tokens[0], &tokens[1], &tokens[2], &tokens[3]) {
         (
-            Token::BoldDelimiter { .. },
-            Token::ItalicDelimiter { .. },
-            Token::CodeDelimiter { .. },
-            Token::MathDelimiter { .. },
+            ScannerToken::BoldDelimiter { .. },
+            ScannerToken::ItalicDelimiter { .. },
+            ScannerToken::CodeDelimiter { .. },
+            ScannerToken::MathDelimiter { .. },
         ) => {
             // Check positions are sequential
             assert_eq!(tokens[0].span().start.column, 0);
@@ -390,22 +390,22 @@ proptest! {
 
         // First token should be appropriate delimiter type
         match &tokens[0] {
-            Token::BoldDelimiter { span } if delimiter == "*" => {
+            ScannerToken::BoldDelimiter { span } if delimiter == "*" => {
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, 1);
             }
-            Token::ItalicDelimiter { span } if delimiter == "_" => {
+            ScannerToken::ItalicDelimiter { span } if delimiter == "_" => {
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, 1);
             }
-            Token::CodeDelimiter { span } if delimiter == "`" => {
+            ScannerToken::CodeDelimiter { span } if delimiter == "`" => {
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, 1);
             }
-            Token::MathDelimiter { span } if delimiter == "#" => {
+            ScannerToken::MathDelimiter { span } if delimiter == "#" => {
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);
                 prop_assert_eq!(span.end.column, 1);
@@ -414,7 +414,7 @@ proptest! {
         }
 
         // Second token should be EOF
-        prop_assert!(matches!(tokens[1], Token::Eof { .. }), "Second token should be EOF");
+        prop_assert!(matches!(tokens[1], ScannerToken::Eof { .. }), "Second token should be EOF");
     }
 
     #[test]
@@ -427,10 +427,10 @@ proptest! {
 
         for token in &tokens {
             match token {
-                Token::BoldDelimiter { span } |
-                Token::ItalicDelimiter { span } |
-                Token::CodeDelimiter { span } |
-                Token::MathDelimiter { span } => {
+                ScannerToken::BoldDelimiter { span } |
+                ScannerToken::ItalicDelimiter { span } |
+                ScannerToken::CodeDelimiter { span } |
+                ScannerToken::MathDelimiter { span } => {
                     // Delimiter span should be exactly 1 character
                     prop_assert_eq!(
                         span.end.column - span.start.column,
@@ -461,9 +461,9 @@ proptest! {
         // Should find exactly 2 delimiter tokens
         let delimiter_count = tokens.iter()
             .filter(|token| matches!(token,
-                Token::BoldDelimiter { .. } |
-                Token::ItalicDelimiter { .. } |
-                Token::CodeDelimiter { .. }
+                ScannerToken::BoldDelimiter { .. } |
+                ScannerToken::ItalicDelimiter { .. } |
+                ScannerToken::CodeDelimiter { .. }
             ))
             .count();
 
@@ -472,7 +472,7 @@ proptest! {
         // Should find exactly 1 text token with the expected content
         let text_tokens: Vec<_> = tokens.iter()
             .filter_map(|token| match token {
-                Token::Text { content, .. } if content == &text => Some(content),
+                ScannerToken::Text { content, .. } if content == &text => Some(content),
                 _ => None,
             })
             .collect();
@@ -492,7 +492,7 @@ proptest! {
 
         // Should find exactly 2 math delimiter tokens
         let delimiter_count = tokens.iter()
-            .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+            .filter(|token| matches!(token, ScannerToken::MathDelimiter { .. }))
             .count();
 
         prop_assert_eq!(delimiter_count, 2, "Should find exactly 2 MathDelimiter tokens");
@@ -500,7 +500,7 @@ proptest! {
         // Should find exactly 1 text token with expected content
         let text_tokens: Vec<_> = tokens.iter()
             .filter_map(|token| match token {
-                Token::Text { content: text_content, .. } if text_content == &content => Some(text_content),
+                ScannerToken::Text { content: text_content, .. } if text_content == &content => Some(text_content),
                 _ => None,
             })
             .collect();

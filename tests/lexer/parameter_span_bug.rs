@@ -4,7 +4,7 @@
 //! the resulting Parameter tokens have zero-width spans at incorrect positions,
 //! making it impossible to track where they came from in the source.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::Lexer;
 
 #[test]
@@ -20,15 +20,15 @@ fn test_parameter_spans_in_annotation() {
     }
 
     // Find parameter tokens
-    let param_tokens: Vec<&Token> = tokens
+    let param_tokens: Vec<&ScannerToken> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::Parameter { .. }))
+        .filter(|t| matches!(t, ScannerToken::Parameter { .. }))
         .collect();
 
     assert_eq!(param_tokens.len(), 2, "Should have 2 parameter tokens");
 
     // Check first parameter (key=value)
-    if let Token::Parameter { key, value, span } = param_tokens[0] {
+    if let ScannerToken::Parameter { key, value, span } = param_tokens[0] {
         assert_eq!(key, "key");
         assert_eq!(value, "value");
 
@@ -48,7 +48,7 @@ fn test_parameter_spans_in_annotation() {
     }
 
     // Check second parameter (flag)
-    if let Token::Parameter { key, value, span } = param_tokens[1] {
+    if let ScannerToken::Parameter { key, value, span } = param_tokens[1] {
         assert_eq!(key, "flag");
         assert_eq!(value, "true");
 
@@ -75,15 +75,15 @@ fn test_parameter_spans_in_definition() {
     let tokens = lexer.tokenize();
 
     // Find parameter tokens
-    let param_tokens: Vec<&Token> = tokens
+    let param_tokens: Vec<&ScannerToken> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::Parameter { .. }))
+        .filter(|t| matches!(t, ScannerToken::Parameter { .. }))
         .collect();
 
     assert_eq!(param_tokens.len(), 2, "Should have 2 parameter tokens");
 
     // Check first parameter (width=100)
-    if let Token::Parameter { key, value, span } = param_tokens[0] {
+    if let ScannerToken::Parameter { key, value, span } = param_tokens[0] {
         assert_eq!(key, "width");
         assert_eq!(value, "100");
 
@@ -103,7 +103,7 @@ fn test_parameter_spans_in_definition() {
     }
 
     // Check second parameter (height=50)
-    if let Token::Parameter { key, value, span } = param_tokens[1] {
+    if let ScannerToken::Parameter { key, value, span } = param_tokens[1] {
         assert_eq!(key, "height");
         assert_eq!(value, "50");
 
@@ -130,9 +130,9 @@ fn test_colon_span_after_label() {
     let tokens = lexer.tokenize();
 
     // Find the colon token (if any)
-    let colon_token = tokens.iter().find(|t| matches!(t, Token::Colon { .. }));
+    let colon_token = tokens.iter().find(|t| matches!(t, ScannerToken::Colon { .. }));
 
-    if let Some(Token::Colon { span }) = colon_token {
+    if let Some(ScannerToken::Colon { span }) = colon_token {
         // The colon should be at position 7
         assert_eq!(span.start.column, 7, "Colon should start at column 7");
         assert_eq!(span.end.column, 8, "Colon should end at column 8");

@@ -5,7 +5,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -21,7 +21,7 @@ fn test_newline_isolated_passing(#[case] input: &str) {
     assert!(!tokens.is_empty(), "Should have at least one token");
 
     match &tokens[0] {
-        Token::Newline { span } => {
+        ScannerToken::Newline { span } => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             // Both \n and \r\n should advance to next row
@@ -48,7 +48,7 @@ fn test_newline_with_content_passing(
 
     // First token should be text
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_first_text);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -59,11 +59,11 @@ fn test_newline_with_content_passing(
     // Find the newline token
     let newline_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Newline { .. }))
+        .find(|token| matches!(token, ScannerToken::Newline { .. }))
         .expect("Should find newline token");
 
     match newline_token {
-        Token::Newline { span } => {
+        ScannerToken::Newline { span } => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, expected_first_text.len());
             assert_eq!(span.end.row, 1);
@@ -75,15 +75,15 @@ fn test_newline_with_content_passing(
     // Find the second text token
     let second_text_token = tokens
         .iter()
-        .skip_while(|token| !matches!(token, Token::Newline { .. }))
+        .skip_while(|token| !matches!(token, ScannerToken::Newline { .. }))
         .skip(1) // Skip the newline
         .find(
-            |token| matches!(token, Token::Text { content, .. } if content == expected_second_text),
+            |token| matches!(token, ScannerToken::Text { content, .. } if content == expected_second_text),
         )
         .expect("Should find second text token");
 
     match second_text_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_second_text);
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
@@ -102,7 +102,7 @@ fn test_newline_with_structured_content(#[case] input: &str) {
     // Should contain at least one newline
     let newline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Newline { .. }))
+        .filter(|token| matches!(token, ScannerToken::Newline { .. }))
         .collect();
 
     assert_eq!(
@@ -113,7 +113,7 @@ fn test_newline_with_structured_content(#[case] input: &str) {
 
     // Newline should separate the two structural elements
     match newline_tokens[0] {
-        Token::Newline { span } => {
+        ScannerToken::Newline { span } => {
             assert_eq!(span.start.row, 0);
             assert!(span.start.column > 0); // After first line content
             assert_eq!(span.end.row, 1);
@@ -137,7 +137,7 @@ fn test_newline_isolated_failing(#[case] input: &str) {
     // Should not contain any NEWLINE tokens
     let newline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Newline { .. }))
+        .filter(|token| matches!(token, ScannerToken::Newline { .. }))
         .collect();
 
     assert_eq!(
@@ -158,7 +158,7 @@ fn test_newline_edge_cases(#[case] input: &str, #[case] expected_newlines: usize
     // Should handle edge cases gracefully
     let newline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Newline { .. }))
+        .filter(|token| matches!(token, ScannerToken::Newline { .. }))
         .collect();
 
     assert_eq!(
@@ -177,12 +177,12 @@ fn test_double_newline_produces_newline_and_blankline() {
 
     let newline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Newline { .. }))
+        .filter(|token| matches!(token, ScannerToken::Newline { .. }))
         .collect();
 
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(newline_tokens.len(), 1, "Should produce 1 Newline token");
@@ -206,14 +206,14 @@ proptest! {
 
         // Should have exactly 1 NEWLINE token
         let newline_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Newline { .. }))
+            .filter(|token| matches!(token, ScannerToken::Newline { .. }))
             .collect();
 
         prop_assert_eq!(newline_tokens.len(), 1, "Should produce exactly 1 NEWLINE token");
 
         // Should have exactly 1 TEXT token
         let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { content, .. } if content == &text))
+            .filter(|token| matches!(token, ScannerToken::Text { content, .. } if content == &text))
             .collect();
 
         prop_assert_eq!(text_tokens.len(), 1, "Should produce exactly 1 TEXT token");
@@ -226,7 +226,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::Newline { span } = token {
+            if let ScannerToken::Newline { span } = token {
                 // Newlines should advance to next row
                 prop_assert_eq!(span.end.row, span.start.row + 1,
                     "Newline should advance row by 1");
@@ -251,7 +251,7 @@ proptest! {
 
         // Should have exactly lines.len() - 1 NEWLINE tokens
         let newline_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Newline { .. }))
+            .filter(|token| matches!(token, ScannerToken::Newline { .. }))
             .collect();
 
         prop_assert_eq!(newline_tokens.len(), lines.len() - 1,
@@ -259,7 +259,7 @@ proptest! {
 
         // Should have exactly lines.len() TEXT tokens
         let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { .. }))
+            .filter(|token| matches!(token, ScannerToken::Text { .. }))
             .collect();
 
         prop_assert_eq!(text_tokens.len(), lines.len(),
@@ -281,10 +281,10 @@ proptest! {
 
         // Both should have exactly 1 newline
         let crlf_newlines: Vec<_> = crlf_tokens.iter()
-            .filter(|token| matches!(token, Token::Newline { .. }))
+            .filter(|token| matches!(token, ScannerToken::Newline { .. }))
             .collect();
         let lf_newlines: Vec<_> = lf_tokens.iter()
-            .filter(|token| matches!(token, Token::Newline { .. }))
+            .filter(|token| matches!(token, ScannerToken::Newline { .. }))
             .collect();
 
         prop_assert_eq!(crlf_newlines.len(), 1, "CRLF should produce 1 newline");

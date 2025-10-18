@@ -356,7 +356,7 @@ fn test_load_all_documents() {
 /// ## Processing Stages
 ///
 /// - **Raw**: Original text (default)
-/// - **Tokens**: Tokenized stream
+/// - **Tokens**: ScannerTokenized stream
 /// - **BlockedTokens**: Block-grouped tokens
 /// - **ParsedAst**: Complete AST structure
 /// - **FullDocument**: Final processed document

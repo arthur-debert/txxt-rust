@@ -5,7 +5,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -23,7 +23,7 @@ fn test_blankline_isolated_passing(#[case] input: &str) {
     // Should contain at least one BlankLine token
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(
@@ -33,7 +33,7 @@ fn test_blankline_isolated_passing(#[case] input: &str) {
     );
 
     match blankline_tokens[0] {
-        Token::BlankLine { span, .. } => {
+        ScannerToken::BlankLine { span, .. } => {
             assert_eq!(span.start.row, 1); // After first newline
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2); // Before second newline
@@ -60,7 +60,7 @@ fn test_blankline_with_content_passing(
 
     // First token should be text
     match &tokens[0] {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_first_text);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -71,7 +71,7 @@ fn test_blankline_with_content_passing(
     // Should have exactly one BlankLine token
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(
@@ -83,15 +83,15 @@ fn test_blankline_with_content_passing(
     // Find the second text token (after blank line)
     let second_text_token = tokens
         .iter()
-        .skip_while(|token| !matches!(token, Token::BlankLine { .. }))
+        .skip_while(|token| !matches!(token, ScannerToken::BlankLine { .. }))
         .skip(1) // Skip the blank line
         .find(
-            |token| matches!(token, Token::Text { content, .. } if content == expected_second_text),
+            |token| matches!(token, ScannerToken::Text { content, .. } if content == expected_second_text),
         )
         .expect("Should find second text token");
 
     match second_text_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_second_text);
             assert!(span.start.row >= 2); // After blank line
             assert_eq!(span.start.column, 0);
@@ -110,7 +110,7 @@ fn test_blankline_with_structured_content(#[case] input: &str) {
     // Should contain exactly one BlankLine token separating structure
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(
@@ -121,7 +121,7 @@ fn test_blankline_with_structured_content(#[case] input: &str) {
 
     // BlankLine should be between structured elements
     match blankline_tokens[0] {
-        Token::BlankLine { span, .. } => {
+        ScannerToken::BlankLine { span, .. } => {
             assert_eq!(span.start.row, 1); // After first line
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2); // Before second line
@@ -145,7 +145,7 @@ fn test_blankline_multiple_consecutive(#[case] input: &str, #[case] expected_cou
     // Each blank line should produce its own BlankLine token
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(
@@ -166,7 +166,7 @@ fn test_blankline_multiple_separated(#[case] input: &str, #[case] expected_count
     // Separated blank lines should each produce a BlankLine token
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(
@@ -195,7 +195,7 @@ fn test_blankline_isolated_failing(#[case] input: &str) {
     // Should not contain any BLANKLINE tokens
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert_eq!(
@@ -223,7 +223,7 @@ fn test_blankline_edge_cases(#[case] input: &str) {
     // Should produce at least one BlankLine token for valid blank line patterns
     let blankline_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::BlankLine { .. }))
+        .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
         .collect();
 
     assert!(
@@ -246,14 +246,14 @@ proptest! {
 
         // Should have exactly 1 BLANKLINE token
         let blankline_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::BlankLine { .. }))
+            .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
             .collect();
 
         prop_assert_eq!(blankline_tokens.len(), 1, "Should produce exactly 1 BLANKLINE token");
 
         // Should have exactly 2 TEXT tokens
         let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { content, .. } if content == &text))
+            .filter(|token| matches!(token, ScannerToken::Text { content, .. } if content == &text))
             .collect();
 
         prop_assert_eq!(text_tokens.len(), 2, "Should produce exactly 2 TEXT tokens");
@@ -268,7 +268,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::BlankLine { span, .. } = token {
+            if let ScannerToken::BlankLine { span, .. } = token {
                 // Blank lines should span from after first newline to before next content
                 prop_assert_eq!(span.start.row, 1,
                     "BlankLine should start on row 1 (after first newline)");
@@ -298,7 +298,7 @@ proptest! {
 
         // Should always produce exactly 1 BlankLine token regardless of whitespace
         let blankline_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::BlankLine { .. }))
+            .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
             .collect();
 
         prop_assert_eq!(blankline_tokens.len(), 1,
@@ -315,7 +315,7 @@ proptest! {
 
         // Should have exactly text_segments.len() - 1 BLANKLINE tokens
         let blankline_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::BlankLine { .. }))
+            .filter(|token| matches!(token, ScannerToken::BlankLine { .. }))
             .collect();
 
         prop_assert_eq!(blankline_tokens.len(), text_segments.len() - 1,
@@ -324,7 +324,7 @@ proptest! {
 
         // Should have exactly text_segments.len() TEXT tokens
         let text_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::Text { .. }))
+            .filter(|token| matches!(token, ScannerToken::Text { .. }))
             .collect();
 
         prop_assert_eq!(text_tokens.len(), text_segments.len(),

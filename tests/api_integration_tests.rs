@@ -48,7 +48,7 @@ fn test_token_tree_format() {
     let args = ProcessArgs {
         content: "Hello world".to_string(),
         source_path: "test.txxt".to_string(),
-        format: OutputFormat::TokenTree,
+        format: OutputFormat::ScannerTokenTree,
     };
 
     let result = process(args).unwrap();
@@ -131,7 +131,7 @@ fn test_format_parsing() {
     );
     assert_eq!(
         "token-tree".parse::<OutputFormat>().unwrap(),
-        OutputFormat::TokenTree
+        OutputFormat::ScannerTokenTree
     );
     assert_eq!(
         "ast-full-json".parse::<OutputFormat>().unwrap(),

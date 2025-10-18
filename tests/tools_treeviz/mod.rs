@@ -7,7 +7,7 @@
 use txxt::ast::elements::components::parameters::Parameters;
 use txxt::ast::elements::core::ElementNode;
 use txxt::ast::elements::session::session_container::SessionContainer;
-use txxt::ast::tokens::TokenSequence;
+use txxt::ast::scanner_tokens::ScannerTokenSequence;
 use txxt::tools::treeviz::*;
 
 #[cfg(test)]
@@ -132,7 +132,7 @@ mod tests {
             vec![],
             vec![],
             Parameters::default(),
-            TokenSequence::new(),
+            ScannerTokenSequence::new(),
         ));
 
         assert_eq!(get_node_type_name(&session_container), "SessionContainer");
@@ -145,7 +145,7 @@ mod tests {
             vec![],
             vec![],
             Parameters::default(),
-            TokenSequence::new(),
+            ScannerTokenSequence::new(),
         ));
 
         let content = extract_content_from_node(&session_container, config);
@@ -256,7 +256,7 @@ mod tests {
             vec![],
             vec![],
             Parameters::default(),
-            TokenSequence::new(),
+            ScannerTokenSequence::new(),
         ));
 
         let result = ast_to_tree_notation(&session_container);
@@ -277,7 +277,7 @@ mod tests {
                     vec![],
                     vec![],
                     Parameters::default(),
-                    TokenSequence::new(),
+                    ScannerTokenSequence::new(),
                 )),
                 "SessionContainer",
                 "Ψ",
@@ -285,7 +285,7 @@ mod tests {
             // Simple elements
             (
                 ElementNode::BlankLine(txxt::ast::elements::core::BlankLine {
-                    tokens: TokenSequence::new(),
+                    tokens: ScannerTokenSequence::new(),
                 }),
                 "BlankLine",
                 "◦",
@@ -331,7 +331,7 @@ mod tests {
             ),
             (
                 ElementNode::BlankLine(txxt::ast::elements::core::BlankLine {
-                    tokens: TokenSequence::new(),
+                    tokens: ScannerTokenSequence::new(),
                 }),
                 "BlankLine",
                 "◦",
@@ -362,12 +362,12 @@ mod tests {
             vec![],
             vec![],
             Parameters::default(),
-            TokenSequence::new(),
+            ScannerTokenSequence::new(),
         ));
         assert_eq!(get_node_type_name(&session_container), "SessionContainer");
 
         let blank_line = ElementNode::BlankLine(txxt::ast::elements::core::BlankLine {
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         });
         assert_eq!(get_node_type_name(&blank_line), "BlankLine");
 
@@ -553,7 +553,7 @@ mod tests {
 
         // Test single node tree
         let single_node = ElementNode::BlankLine(txxt::ast::elements::core::BlankLine {
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         });
 
         let result = ast_to_tree_notation(&single_node);
@@ -613,7 +613,7 @@ mod tests {
 
         // Test formatting in actual extraction (this tests the fallback behavior)
         let node = ElementNode::BlankLine(txxt::ast::elements::core::BlankLine {
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         });
 
         let content = extract_content_from_node(&node, &config);

@@ -167,6 +167,24 @@ pub enum SemanticToken {
         /// Source span of the entire definition
         span: SourceSpan,
     },
+
+    /// Verbatim block semantic token using wall architecture
+    /// Composition: VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+    /// Used for content that preserves exact formatting and spacing
+    VerbatimBlock {
+        /// The verbatim title
+        title: Box<SemanticToken>,
+        /// The indentation wall marker
+        wall: Box<SemanticToken>,
+        /// The verbatim content (preserved exactly)
+        content: Box<SemanticToken>,
+        /// The verbatim label
+        label: Box<SemanticToken>,
+        /// Optional parameters in key=value format
+        parameters: Option<Box<SemanticToken>>,
+        /// Source span of the entire verbatim block
+        span: SourceSpan,
+    },
 }
 
 /// Numbering style for sequence markers
@@ -288,7 +306,8 @@ impl SemanticTokenSpan for SemanticToken {
             | SemanticToken::Indent { span }
             | SemanticToken::Dedent { span }
             | SemanticToken::Annotation { span, .. }
-            | SemanticToken::Definition { span, .. } => span,
+            | SemanticToken::Definition { span, .. }
+            | SemanticToken::VerbatimBlock { span, .. } => span,
         }
     }
 }
@@ -439,6 +458,25 @@ impl SemanticTokenBuilder {
     ) -> SemanticToken {
         SemanticToken::Definition {
             term: Box::new(term),
+            parameters: parameters.map(Box::new),
+            span,
+        }
+    }
+
+    /// Create a verbatim block semantic token
+    pub fn verbatim_block(
+        title: SemanticToken,
+        wall: SemanticToken,
+        content: SemanticToken,
+        label: SemanticToken,
+        parameters: Option<SemanticToken>,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::VerbatimBlock {
+            title: Box::new(title),
+            wall: Box::new(wall),
+            content: Box::new(content),
+            label: Box::new(label),
             parameters: parameters.map(Box::new),
             span,
         }

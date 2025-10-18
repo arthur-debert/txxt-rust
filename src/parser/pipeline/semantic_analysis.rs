@@ -533,6 +533,155 @@ impl SemanticAnalyzer {
         ))
     }
 
+    /// Transform scanner tokens into a VerbatimBlock semantic token
+    ///
+    /// This implements the VerbatimBlock transformation as specified in Issue #89.
+    /// VerbatimBlock tokens represent content that preserves exact formatting and spacing
+    /// using the wall architecture pattern:
+    /// VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+    ///
+    /// # Arguments
+    /// * `tokens` - Vector of scanner tokens that form a verbatim block
+    /// * `span` - The source span covering the entire verbatim block
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_verbatim_block(
+        &self,
+        tokens: Vec<ScannerToken>,
+        span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate minimum verbatim block structure: VerbatimTitle + IndentationWall + VerbatimLabel (empty blocks allowed)
+        if tokens.len() < 3 {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must have at least 3 tokens: VerbatimTitle + IndentationWall + VerbatimLabel".to_string(),
+            ));
+        }
+
+        // Extract components in order
+        let mut i = 0;
+
+        // 1. VerbatimTitle
+        let title_token = if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+            SemanticTokenBuilder::text_span(
+                tokens[i].content().to_string(),
+                tokens[i].span().clone(),
+            )
+        } else {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must start with VerbatimTitle".to_string(),
+            ));
+        };
+        i += 1;
+
+        // 2. IndentationWall
+        let wall_token = if let ScannerToken::IndentationWall { .. } = &tokens[i] {
+            // Create a simple semantic token for the wall (structural token)
+            SemanticTokenBuilder::text_span(
+                "".to_string(), // Wall is structural, no content
+                tokens[i].span().clone(),
+            )
+        } else {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
+            ));
+        };
+        i += 1;
+
+        // 3. IgnoreTextSpan (may be multiple tokens, or empty for empty verbatim blocks)
+        let mut content_tokens = Vec::new();
+        while i < tokens.len() && matches!(tokens[i], ScannerToken::IgnoreTextSpan { .. }) {
+            content_tokens.push(tokens[i].clone());
+            i += 1;
+        }
+
+        // Create content token (empty verbatim blocks are allowed per specification)
+        let content_token = if content_tokens.is_empty() {
+            // Create empty content token for empty verbatim blocks
+            SemanticTokenBuilder::text_span(
+                "".to_string(),
+                SourceSpan {
+                    start: tokens[i - 1].span().end, // Start after the wall
+                    end: tokens[i - 1].span().end,   // Same position (empty)
+                },
+            )
+        } else {
+            // Combine all content tokens into a single TextSpan (preserve exact whitespace for verbatim)
+            self.tokens_to_text_span_exact(&content_tokens)?
+        };
+
+        // 4. VerbatimLabel (should be the last token)
+        let (label_token, parameters) = if i < tokens.len() {
+            if let ScannerToken::VerbatimLabel { .. } = &tokens[i] {
+                // For verbatim labels, check if they contain parameters (colon separator)
+                let label_content = tokens[i].content();
+                if label_content.contains(':') {
+                    // Split by colon to separate label from parameters
+                    let parts: Vec<&str> = label_content.splitn(2, ':').collect();
+                    if parts.len() == 2 {
+                        let label_text = parts[0];
+                        let param_text = parts[1];
+
+                        let label_semantic_token = SemanticTokenBuilder::text_span(
+                            label_text.to_string(),
+                            tokens[i].span().clone(),
+                        );
+
+                        let parameters = if param_text.is_empty() {
+                            None
+                        } else {
+                            // Create parameters from the parameter text
+                            let mut params = std::collections::HashMap::new();
+                            params.insert("raw".to_string(), param_text.to_string());
+                            Some(SemanticTokenBuilder::parameters(
+                                params,
+                                tokens[i].span().clone(),
+                            ))
+                        };
+
+                        (label_semantic_token, parameters)
+                    } else {
+                        // No colon found, treat as simple label
+                        (
+                            SemanticTokenBuilder::text_span(
+                                label_content.to_string(),
+                                tokens[i].span().clone(),
+                            ),
+                            None,
+                        )
+                    }
+                } else {
+                    // No colon found, treat as simple label
+                    (
+                        SemanticTokenBuilder::text_span(
+                            label_content.to_string(),
+                            tokens[i].span().clone(),
+                        ),
+                        None,
+                    )
+                }
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must end with VerbatimLabel".to_string(),
+                ));
+            }
+        } else {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must have VerbatimLabel".to_string(),
+            ));
+        };
+
+        // Transform to VerbatimBlock semantic token
+        Ok(SemanticTokenBuilder::verbatim_block(
+            title_token,
+            wall_token,
+            content_token,
+            label_token,
+            parameters,
+            span,
+        ))
+    }
+
     /// Find the position of the closing TxxtMarker in an annotation
     ///
     /// This helper method searches for the second TxxtMarker in an annotation,
@@ -785,6 +934,33 @@ impl SemanticAnalyzer {
         let content = tokens
             .iter()
             .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
+            .map(|token| token.content())
+            .collect::<Vec<&str>>()
+            .join("");
+
+        let span = SourceSpan {
+            start: tokens[0].span().start,
+            end: tokens[tokens.len() - 1].span().end,
+        };
+
+        Ok(SemanticTokenBuilder::text_span(content, span))
+    }
+
+    /// Convert a sequence of tokens to a TextSpan semantic token preserving exact whitespace
+    /// It preserves all whitespace exactly as written (no trimming).
+    fn tokens_to_text_span_exact(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Cannot create text span from empty tokens".to_string(),
+            ));
+        }
+
+        // Preserve exact whitespace for verbatim content
+        let content = tokens
+            .iter()
             .map(|token| token.content())
             .collect::<Vec<&str>>()
             .join("");

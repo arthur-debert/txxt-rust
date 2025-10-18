@@ -37,7 +37,7 @@ pub fn integrate_definition_parameters_v2(tokens: Vec<ScannerToken>) -> Vec<Scan
     while i < tokens.len() {
         if matches!(&tokens[i], ScannerToken::TxxtMarker { .. }) {
             // Found definition marker, look backwards for term:params pattern
-            let (processed, start_idx) = process_definition_term(&result);
+            let (processed, start_idx) = process_definition_term(&tokens[..i]);
 
             // Replace the tokens from start_idx onwards
             result.truncate(start_idx);
@@ -279,7 +279,9 @@ fn process_definition_term(tokens: &[ScannerToken]) -> (Vec<ScannerToken>, usize
             }
             ScannerToken::Text { .. }
             | ScannerToken::Identifier { .. }
-            | ScannerToken::Whitespace { .. } => {
+            | ScannerToken::Whitespace { .. }
+            | ScannerToken::Equals { .. }
+            | ScannerToken::Comma { .. } => {
                 if i < term_start {
                     term_start = i;
                 }

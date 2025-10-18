@@ -54,7 +54,7 @@ impl Detokenizer {
                             result.push(':'); // First param after verbatim label
                         }
                         ScannerToken::Parameter { .. } => {
-                            result.push(','); // Subsequent params
+                            result.push(','); // Subsequent params - no space after comma
                         }
                         _ => {}
                     }
@@ -81,8 +81,11 @@ impl Detokenizer {
                         ScannerToken::Comma { .. } => {
                             // Next token is comma, don't add space (comma comes immediately after value)
                         }
+                        ScannerToken::Parameter { .. } => {
+                            // Next token is another parameter, don't add space (comma will be added)
+                        }
                         _ => {
-                            // Next token is not whitespace or comma, add a space
+                            // Next token is not whitespace, comma, or parameter, add a space
                             result.push(' ');
                         }
                     }
@@ -135,7 +138,7 @@ impl Detokenizer {
                             // After a colon in annotation context, no separator needed
                         }
                         ScannerToken::Parameter { .. } => {
-                            result.push(','); // Subsequent params
+                            result.push(','); // Subsequent params - no space after comma
                         }
                         _ => {}
                     }

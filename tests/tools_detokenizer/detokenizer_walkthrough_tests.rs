@@ -33,6 +33,8 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
         (LeftParen { .. }, LeftParen { .. }) => true,
         (RightParen { .. }, RightParen { .. }) => true,
         (Colon { .. }, Colon { .. }) => true,
+        (Equals { .. }, Equals { .. }) => true,
+        (Comma { .. }, Comma { .. }) => true,
         (Identifier { content: c1, .. }, Identifier { content: c2, .. }) => c1 == c2,
         (RefMarker { content: c1, .. }, RefMarker { content: c2, .. }) => c1 == c2,
         (

@@ -175,7 +175,7 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                         });
                     }
                 } else if is_valid_param_key(content) {
-                    // Boolean parameter (key without value)
+                    // Boolean parameter (key without value) - only in parameter context
                     result.push(ScannerToken::Parameter {
                         key: content.clone(),
                         value: "true".to_string(),
@@ -240,7 +240,7 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                         });
                     }
                 } else {
-                    // Boolean parameter
+                    // Boolean parameter (key without value) - only in parameter context
                     result.push(ScannerToken::Parameter {
                         key: content.clone(),
                         value: "true".to_string(),
@@ -250,7 +250,7 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
             }
             ScannerToken::Comma { .. } => {
                 // Skip comma tokens - they're just separators
-                i += 1;
+                // Don't push, just move to next token
             }
             _ => {
                 // Keep other tokens as-is (whitespace, etc.)

@@ -3,15 +3,7 @@
 //! This module defines the top-level document structure and metadata handling
 //! that forms the foundation of the TXXT AST.
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 3.a: Assembly (Final Output)**
-//!
-//! The `Document` structure represents the final assembled result after all parsing
-//! phases are complete. During assembly, annotations are attached to their proper
-//! nodes based on proximity rules, and metadata is extracted and organized.
-//!
-//! Pipeline: `Tokens` → `Block Grouping` → `Raw AST` → **`Final Document`**
+//! src/parser/mod.rs has the full architecture overview.
 //!
 //! ## Assembly Process
 //!

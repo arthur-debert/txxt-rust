@@ -4,15 +4,7 @@
 //! capabilities across multiple AST node types (verbatim blocks, annotations,
 //! definitions, etc.).
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 2.b: Parsing** (Parameter Extraction)
-//!
-//! Parameters are extracted during the main parsing phase when elements with
-//! parameter support are processed. The parameter syntax is shared across
-//! multiple element types for consistency.
-//!
-//! Pipeline: `Tokens` → `Block Grouping` → **`Parameter Parsing`** → `Assembly`
+//! src/parser/mod.rs has the full architecture overview.
 //!
 //! ## Parameter Syntax Examples
 //!

@@ -4,15 +4,7 @@
 //! every piece of text goes through a transform layer for consistent
 //! processing across the AST.
 //!
-//! # Parsing Pipeline Position
-//!
-//! **Phase 2.b: Parsing** (Inline Processing)
-//!
-//! Inline elements are parsed during the main parsing phase when token sequences
-//! within blocks are processed into semantic inline structures. The text transform
-//! layer provides uniform handling for all text content across different contexts.
-//!
-//! Pipeline: `Tokens` → `Block Grouping` → **`Inline Parsing`** → `Assembly`
+//! src/parser/mod.rs has the full architecture overview.
 //!
 //! ## Text Transform Processing (2.b)
 //!

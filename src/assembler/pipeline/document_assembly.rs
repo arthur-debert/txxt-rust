@@ -4,23 +4,7 @@
 //! This is the first step of Phase 3 assembly, where we take the AST
 //! structure and create the final document hierarchy.
 //!
-//! # Document Structure
-//!
-//! The final document structure follows this hierarchy:
-//!
-//! ```text
-//! Document
-//! |-- meta (from document-level annotations)
-//! |-- content (SessionContainer)
-//! |   |-- sessions (Vec<Session>)
-//! |   |   |-- content (Vec<ElementNode>)
-//! |-- assembly_info (metadata about processing)
-//! ```
-//!
-//! # Input/Output
-//!
-//! - **Input**: AST tree of `ElementNode` variants (from Phase 2b)
-//! - **Output**: `Document` with proper hierarchy and metadata
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::base::Document;
 use crate::ast::elements::{

@@ -2,6 +2,8 @@
 //!
 //! This module contains tests for the semantic analysis phase that transforms
 //! scanner tokens into semantic tokens. Each transformation has its own test file.
+//!
+//! src/parser/mod.rs has the full architecture overview.
 
 pub mod annotation_transformation;
 pub mod definition_transformation;

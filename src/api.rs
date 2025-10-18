@@ -3,6 +3,8 @@
 //! Pure functions for processing TXXT content through the three-phase pipeline.
 //! This module contains no I/O operations, CLI handling, or process exits.
 //! All functions take structured input and return structured output for easy testing.
+//!
+//! src/parser/mod.rs has the full architecture overview.
 
 use serde_json;
 use std::error::Error;
@@ -15,21 +17,21 @@ use crate::parser::pipeline::{InlineParser, SemanticAnalyzer};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum OutputFormat {
-    // Phase 1: Lexer outputs
+    // Phase 1 outputs
     VerbatimMarks,
     TokenStream,
     ScannerTokenTree,
 
-    // Phase 2a: Semantic Analysis outputs
+    // Phase 2a outputs
     SemanticTokens,
 
-    // Phase 2: Parser outputs (WIP)
+    // Phase 2 outputs (WIP)
     AstNoInlineTreeviz,
     AstNoInlineJson,
     AstTreeviz,
     AstJson,
 
-    // Phase 3: Assembly outputs
+    // Phase 3 outputs
     AstFullJson,
     AstFullTreeviz,
 }
@@ -87,15 +89,15 @@ impl Error for ProcessError {}
 /// Main processing function - pure, no I/O or side effects
 pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
     match args.format {
-        // Phase 1: Lexer outputs
+        // Phase 1 outputs
         OutputFormat::VerbatimMarks => process_verbatim_marks(&args.content, &args.source_path),
         OutputFormat::TokenStream => process_token_stream(&args.content, &args.source_path),
         OutputFormat::ScannerTokenTree => process_token_tree(&args.content, &args.source_path),
 
-        // Phase 2a: Semantic Analysis outputs
+        // Phase 2a outputs
         OutputFormat::SemanticTokens => process_semantic_tokens(&args.content, &args.source_path),
 
-        // Phase 2: Parser outputs
+        // Phase 2 outputs
         OutputFormat::AstNoInlineTreeviz => {
             process_ast_no_inline_treeviz(&args.content, &args.source_path)
         }
@@ -105,13 +107,13 @@ pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
         OutputFormat::AstTreeviz => process_ast_treeviz(&args.content, &args.source_path),
         OutputFormat::AstJson => process_ast_json(&args.content, &args.source_path),
 
-        // Phase 3: Assembly outputs
+        // Phase 3 outputs
         OutputFormat::AstFullJson => process_ast_full_json(&args.content, &args.source_path),
         OutputFormat::AstFullTreeviz => process_ast_full_treeviz(&args.content, &args.source_path),
     }
 }
 
-// Phase 1: Lexer processing functions
+// Phase 1 processing functions
 
 fn process_verbatim_marks(content: &str, source_path: &str) -> Result<String, ProcessError> {
     let scanner = VerbatimScanner::new();
@@ -180,7 +182,7 @@ fn serialize_token_tree(tree: &crate::lexer::pipeline::ScannerTokenTree) -> serd
     })
 }
 
-// Phase 2a: Semantic Analysis processing functions
+// Phase 2a processing functions
 
 fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Step 1: Apply lexer to get scanner tokens
@@ -202,7 +204,7 @@ fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, P
         .map_err(|e| ProcessError::SerializationError(e.to_string()))
 }
 
-// Phase 3: Assembly processing functions
+// Phase 3 processing functions
 
 fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
@@ -316,7 +318,7 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
     Ok(result)
 }
 
-// Phase 2: Parser processing functions
+// Phase 2 processing functions
 
 fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks

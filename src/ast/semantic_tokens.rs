@@ -141,6 +141,32 @@ pub enum SemanticToken {
         /// Source span of the dedent token
         span: SourceSpan,
     },
+
+    /// Annotation semantic token combining txxt markers with labels and optional content
+    /// Composition: TxxtMarker + Whitespace + Text + Whitespace + TxxtMarker + Text?
+    /// Used for metadata elements that attach structured information to other elements
+    Annotation {
+        /// The annotation label/type
+        label: Box<SemanticToken>,
+        /// Optional parameters in key=value format
+        parameters: Option<Box<SemanticToken>>,
+        /// Optional annotation content
+        content: Option<Box<SemanticToken>>,
+        /// Source span of the entire annotation
+        span: SourceSpan,
+    },
+
+    /// Definition semantic token combining text with txxt markers
+    /// Composition: Text + Whitespace + TxxtMarker
+    /// Used for structured elements that define terms, concepts, and entities
+    Definition {
+        /// The definition term/label
+        term: Box<SemanticToken>,
+        /// Optional parameters in key=value format
+        parameters: Option<Box<SemanticToken>>,
+        /// Source span of the entire definition
+        span: SourceSpan,
+    },
 }
 
 /// Numbering style for sequence markers
@@ -260,7 +286,9 @@ impl SemanticTokenSpan for SemanticToken {
             | SemanticToken::IgnoreLine { span, .. }
             | SemanticToken::BlankLine { span }
             | SemanticToken::Indent { span }
-            | SemanticToken::Dedent { span } => span,
+            | SemanticToken::Dedent { span }
+            | SemanticToken::Annotation { span, .. }
+            | SemanticToken::Definition { span, .. } => span,
         }
     }
 }
@@ -386,5 +414,33 @@ impl SemanticTokenBuilder {
     /// Create a dedent semantic token
     pub fn dedent(span: SourceSpan) -> SemanticToken {
         SemanticToken::Dedent { span }
+    }
+
+    /// Create an annotation semantic token
+    pub fn annotation(
+        label: SemanticToken,
+        parameters: Option<SemanticToken>,
+        content: Option<SemanticToken>,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::Annotation {
+            label: Box::new(label),
+            parameters: parameters.map(Box::new),
+            content: content.map(Box::new),
+            span,
+        }
+    }
+
+    /// Create a definition semantic token
+    pub fn definition(
+        term: SemanticToken,
+        parameters: Option<SemanticToken>,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::Definition {
+            term: Box::new(term),
+            parameters: parameters.map(Box::new),
+            span,
+        }
     }
 }

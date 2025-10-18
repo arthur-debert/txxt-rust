@@ -32,7 +32,7 @@
 //! - **Input**: `ScannerTokenList` from lexer (Phase 1b)
 //! - **Output**: `SemanticTokenList` for AST construction (Phase 2b)
 
-use crate::ast::scanner_tokens::{ScannerToken, SequenceMarkerType, SourceSpan};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use crate::ast::semantic_tokens::{
     SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
     SemanticTokenList,
@@ -427,6 +427,374 @@ impl SemanticAnalyzer {
             text_span,
             line_span,
         ))
+    }
+
+    /// Transform scanner tokens into an Annotation semantic token
+    ///
+    /// This implements the Annotation transformation as specified in Issue #88.
+    /// Annotation tokens represent metadata elements that attach structured information
+    /// to other elements. They follow the pattern:
+    /// TxxtMarker + Whitespace + Text (label) + Whitespace + TxxtMarker + Text? (content)
+    ///
+    /// # Arguments
+    /// * `tokens` - Vector of scanner tokens that form an annotation
+    /// * `span` - The source span covering the entire annotation
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_annotation(
+        &self,
+        tokens: Vec<ScannerToken>,
+        span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate minimum annotation structure: :: label ::
+        if tokens.len() < 5 {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Annotation must have at least 5 tokens: :: label ::".to_string(),
+            ));
+        }
+
+        // Check for opening TxxtMarker
+        if !matches!(tokens[0], ScannerToken::TxxtMarker { .. }) {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Annotation must start with TxxtMarker".to_string(),
+            ));
+        }
+
+        // Check for closing TxxtMarker (should be at position 4 for basic annotation)
+        let closing_marker_pos = self.find_closing_txxt_marker(&tokens)?;
+        if closing_marker_pos < 4 {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Annotation must have proper structure: :: label ::".to_string(),
+            ));
+        }
+
+        // Extract label (between first TxxtMarker and closing TxxtMarker)
+        let label_tokens = &tokens[2..closing_marker_pos];
+        let (label_token, parameters) = self.parse_label_with_parameters(label_tokens)?;
+
+        // Extract content (after closing TxxtMarker, if any)
+        let content = if closing_marker_pos + 1 < tokens.len() {
+            let content_tokens = &tokens[closing_marker_pos + 1..];
+            Some(self.parse_annotation_content(content_tokens)?)
+        } else {
+            None
+        };
+
+        // Transform to Annotation semantic token
+        Ok(SemanticTokenBuilder::annotation(
+            label_token,
+            parameters,
+            content,
+            span,
+        ))
+    }
+
+    /// Transform scanner tokens into a Definition semantic token
+    ///
+    /// This implements the Definition transformation as specified in Issue #88.
+    /// Definition tokens represent structured elements that define terms, concepts,
+    /// and entities. They follow the pattern:
+    /// Text + Whitespace + TxxtMarker
+    ///
+    /// # Arguments
+    /// * `tokens` - Vector of scanner tokens that form a definition
+    /// * `span` - The source span covering the entire definition
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_definition(
+        &self,
+        tokens: Vec<ScannerToken>,
+        span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate minimum definition structure: term ::
+        if tokens.len() < 3 {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Definition must have at least 3 tokens: term ::".to_string(),
+            ));
+        }
+
+        // Check for closing TxxtMarker (should be at the end)
+        let txxt_marker_pos = tokens.len() - 1;
+        if !matches!(tokens[txxt_marker_pos], ScannerToken::TxxtMarker { .. }) {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Definition must end with TxxtMarker".to_string(),
+            ));
+        }
+
+        // Extract term (everything before the final TxxtMarker)
+        let term_tokens = &tokens[..txxt_marker_pos];
+        let (term_token, parameters) = self.parse_definition_term_with_parameters(term_tokens)?;
+
+        // Transform to Definition semantic token
+        Ok(SemanticTokenBuilder::definition(
+            term_token, parameters, span,
+        ))
+    }
+
+    /// Find the position of the closing TxxtMarker in an annotation
+    ///
+    /// This helper method searches for the second TxxtMarker in an annotation,
+    /// which marks the end of the label section.
+    ///
+    /// # Arguments
+    /// * `tokens` - The scanner tokens to search
+    ///
+    /// # Returns
+    /// * `Result<usize, SemanticAnalysisError>` - The position of the closing marker
+    fn find_closing_txxt_marker(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<usize, SemanticAnalysisError> {
+        let mut marker_count = 0;
+        for (i, token) in tokens.iter().enumerate() {
+            if matches!(token, ScannerToken::TxxtMarker { .. }) {
+                marker_count += 1;
+                if marker_count == 2 {
+                    return Ok(i);
+                }
+            }
+        }
+        Err(SemanticAnalysisError::AnalysisError(
+            "Annotation must have closing TxxtMarker".to_string(),
+        ))
+    }
+
+    /// Parse label tokens and extract parameters if present
+    ///
+    /// This helper method processes label tokens and separates the main label
+    /// from any parameters (key=value pairs).
+    ///
+    /// # Arguments
+    /// * `tokens` - The tokens representing the label (may include parameters)
+    ///
+    /// # Returns
+    /// * `Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError>` - (label, parameters)
+    fn parse_label_with_parameters(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError> {
+        // Look for colon separator to identify parameters
+        let colon_pos = tokens
+            .iter()
+            .position(|token| matches!(token, ScannerToken::Colon { .. }));
+
+        if let Some(pos) = colon_pos {
+            // Split into label and parameters
+            let label_tokens = &tokens[..pos];
+            let param_tokens = &tokens[pos + 1..];
+
+            // Create label semantic token
+            let label_token = self.tokens_to_text_span(label_tokens)?;
+
+            // Create parameters semantic token if there are parameter tokens
+            let parameters = if param_tokens.is_empty()
+                || param_tokens
+                    .iter()
+                    .all(|token| matches!(token, ScannerToken::Whitespace { .. }))
+            {
+                None
+            } else {
+                Some(self.parse_parameters(param_tokens)?)
+            };
+
+            Ok((label_token, parameters))
+        } else {
+            // No parameters, just create label
+            let label_token = self.tokens_to_text_span(tokens)?;
+            Ok((label_token, None))
+        }
+    }
+
+    /// Parse definition term tokens and extract parameters if present
+    ///
+    /// This helper method processes definition term tokens and separates the main term
+    /// from any parameters (key=value pairs). Unlike labels, definition terms preserve
+    /// whitespace to maintain formatting like verbatim titles.
+    ///
+    /// # Arguments
+    /// * `tokens` - The tokens representing the definition term (may include parameters)
+    ///
+    /// # Returns
+    /// * `Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError>` - (term, parameters)
+    fn parse_definition_term_with_parameters(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError> {
+        // Look for colon separator to identify parameters
+        let colon_pos = tokens
+            .iter()
+            .position(|token| matches!(token, ScannerToken::Colon { .. }));
+
+        if let Some(pos) = colon_pos {
+            // Split into term and parameters
+            let term_tokens = &tokens[..pos];
+            let param_tokens = &tokens[pos + 1..];
+
+            // Create term semantic token (preserve whitespace)
+            let term_token = self.tokens_to_text_span_preserve_whitespace(term_tokens)?;
+
+            // Create parameters semantic token if there are parameter tokens
+            let parameters = if param_tokens.is_empty()
+                || param_tokens
+                    .iter()
+                    .all(|token| matches!(token, ScannerToken::Whitespace { .. }))
+            {
+                None
+            } else {
+                Some(self.parse_parameters(param_tokens)?)
+            };
+
+            Ok((term_token, parameters))
+        } else {
+            // No parameters, just create term (preserve whitespace)
+            let term_token = self.tokens_to_text_span_preserve_whitespace(tokens)?;
+            Ok((term_token, None))
+        }
+    }
+
+    /// Parse parameter tokens into a Parameters semantic token
+    ///
+    /// This helper method processes parameter tokens and creates a structured
+    /// Parameters semantic token with key-value pairs.
+    ///
+    /// # Arguments
+    /// * `tokens` - The tokens representing parameters
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The parameters semantic token
+    fn parse_parameters(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // For now, create a simple parameters token with the raw content
+        // This will be enhanced in future iterations to properly parse key=value pairs
+        // Filter out whitespace for parameters to create clean key=value pairs
+        let content = tokens
+            .iter()
+            .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
+            .map(|token| token.content())
+            .collect::<Vec<&str>>()
+            .join("");
+
+        // Create a simple parameters map (placeholder implementation)
+        let mut params = std::collections::HashMap::new();
+        params.insert("raw".to_string(), content);
+
+        // Calculate span for the parameters
+        let span = if tokens.is_empty() {
+            SourceSpan {
+                start: Position { row: 0, column: 0 },
+                end: Position { row: 0, column: 0 },
+            }
+        } else {
+            SourceSpan {
+                start: tokens[0].span().start,
+                end: tokens[tokens.len() - 1].span().end,
+            }
+        };
+
+        Ok(SemanticTokenBuilder::parameters(params, span))
+    }
+
+    /// Parse annotation content tokens into a semantic token
+    ///
+    /// This helper method processes content tokens after the closing TxxtMarker
+    /// and creates an appropriate semantic token for the content.
+    ///
+    /// # Arguments
+    /// * `tokens` - The tokens representing the annotation content
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The content semantic token
+    fn parse_annotation_content(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Annotation content cannot be empty".to_string(),
+            ));
+        }
+
+        // For content, preserve whitespace to maintain formatting
+        // This will be enhanced in future iterations to handle complex content
+        self.tokens_to_text_span_preserve_whitespace(tokens)
+    }
+
+    /// Convert a sequence of tokens to a TextSpan semantic token preserving whitespace
+    ///
+    /// This helper method combines multiple tokens into a single TextSpan,
+    /// preserving whitespace for content that needs formatting.
+    ///
+    /// # Arguments
+    /// * `tokens` - The tokens to combine
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The text span semantic token
+    fn tokens_to_text_span_preserve_whitespace(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Cannot create text span from empty tokens".to_string(),
+            ));
+        }
+
+        // Preserve whitespace for content but trim leading/trailing whitespace
+        let content = tokens
+            .iter()
+            .map(|token| token.content())
+            .collect::<Vec<&str>>()
+            .join("")
+            .trim()
+            .to_string();
+
+        let span = SourceSpan {
+            start: tokens[0].span().start,
+            end: tokens[tokens.len() - 1].span().end,
+        };
+
+        Ok(SemanticTokenBuilder::text_span(content, span))
+    }
+
+    /// Convert a sequence of tokens to a TextSpan semantic token
+    ///
+    /// This helper method combines multiple tokens into a single TextSpan,
+    /// preserving the source span information. It filters out whitespace tokens
+    /// to create clean text content.
+    ///
+    /// # Arguments
+    /// * `tokens` - The tokens to combine
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The text span semantic token
+    fn tokens_to_text_span(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Cannot create text span from empty tokens".to_string(),
+            ));
+        }
+
+        // Filter out whitespace tokens and combine content
+        let content = tokens
+            .iter()
+            .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
+            .map(|token| token.content())
+            .collect::<Vec<&str>>()
+            .join("");
+
+        let span = SourceSpan {
+            start: tokens[0].span().start,
+            end: tokens[tokens.len() - 1].span().end,
+        };
+
+        Ok(SemanticTokenBuilder::text_span(content, span))
     }
 
     /// This is a utility method to convert any scanner token to text content

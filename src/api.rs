@@ -11,6 +11,7 @@ use std::fmt;
 use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
+use crate::parser::pipeline::semantic_analysis::SemanticAnalyzer;
 use crate::parser::pipeline::{BlockParser, InlineParser};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,6 +20,9 @@ pub enum OutputFormat {
     VerbatimMarks,
     TokenStream,
     ScannerTokenTree,
+
+    // Phase 2a: Semantic Analysis outputs
+    SemanticTokens,
 
     // Phase 2: Parser outputs (WIP)
     AstNoInlineTreeviz,
@@ -39,6 +43,7 @@ impl std::str::FromStr for OutputFormat {
             "verbatim-marks" => Ok(OutputFormat::VerbatimMarks),
             "token-stream" => Ok(OutputFormat::TokenStream),
             "token-tree" => Ok(OutputFormat::ScannerTokenTree),
+            "semantic-tokens" => Ok(OutputFormat::SemanticTokens),
             "ast-no-inline-treeviz" => Ok(OutputFormat::AstNoInlineTreeviz),
             "ast-no-inline-json" => Ok(OutputFormat::AstNoInlineJson),
             "ast-treeviz" => Ok(OutputFormat::AstTreeviz),
@@ -87,6 +92,9 @@ pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
         OutputFormat::VerbatimMarks => process_verbatim_marks(&args.content, &args.source_path),
         OutputFormat::TokenStream => process_token_stream(&args.content, &args.source_path),
         OutputFormat::ScannerTokenTree => process_token_tree(&args.content, &args.source_path),
+
+        // Phase 2a: Semantic Analysis outputs
+        OutputFormat::SemanticTokens => process_semantic_tokens(&args.content, &args.source_path),
 
         // Phase 2: Parser outputs
         OutputFormat::AstNoInlineTreeviz => {
@@ -171,6 +179,28 @@ fn serialize_token_tree(tree: &crate::lexer::pipeline::ScannerTokenTree) -> serd
         "tokens": tree.tokens,
         "children": tree.children.iter().map(serialize_token_tree).collect::<Vec<_>>()
     })
+}
+
+// Phase 2a: Semantic Analysis processing functions
+
+fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Step 1: Apply lexer to get scanner tokens
+    let scanner_tokens = tokenize(content);
+
+    // Step 2: Apply semantic analysis to get semantic tokens
+    let analyzer = SemanticAnalyzer::new();
+    let semantic_tokens = analyzer
+        .analyze(scanner_tokens)
+        .map_err(|e| ProcessError::ParseError(format!("Semantic analysis error: {}", e)))?;
+
+    // Step 3: Create output with source information
+    let result = serde_json::json!({
+        "source": source_path,
+        "semantic_tokens": semantic_tokens
+    });
+
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| ProcessError::SerializationError(e.to_string()))
 }
 
 // Phase 3: Assembly processing functions
@@ -473,7 +503,24 @@ mod tests {
             "token-stream".parse::<OutputFormat>().unwrap(),
             OutputFormat::TokenStream
         );
+        assert_eq!(
+            "semantic-tokens".parse::<OutputFormat>().unwrap(),
+            OutputFormat::SemanticTokens
+        );
         assert!("invalid-format".parse::<OutputFormat>().is_err());
+    }
+
+    #[test]
+    fn test_process_semantic_tokens() {
+        let args = ProcessArgs {
+            content: ":: note :: This is a test annotation".to_string(),
+            source_path: "test.txxt".to_string(),
+            format: OutputFormat::SemanticTokens,
+        };
+
+        let result = process(args).unwrap();
+        assert!(result.contains("semantic_tokens"));
+        assert!(result.contains("test.txxt"));
     }
 
     #[test]

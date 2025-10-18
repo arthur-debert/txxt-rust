@@ -86,42 +86,34 @@ These are to be tackle before issue #65 , but this means that implementing seman
             - PageRef: [p.123] patterns
             - SessionRef: [#1.2] patterns
 
-        2.1.7. Verbatim Tokens (Structure-Preserving)
+        2.1.7. Ignore Tokens (Structure-Preserving)
             - IndentationWall: Wall position marker with level
             - IgnoreTextSpan: Raw content after wall
 
-    2.2. Semantic Tokens (Context-Aware Compositions)
+		These should be reflected in the file layout: 
+		src/ast/tokens/content.rs
+		src/ast/tokens/structural.rs
+		src/ast/tokens/formatting.rs
+		src/ast/tokens/punctuation.rs
+		src/ast/tokens/markers.rs
+		src/ast/tokens/references.rs
+		src/ast/tokens/ignore.rs
 
-        2.2.1. Structural Patterns
-            - AnnotationPattern: TxxtMarker + Label + TxxtMarker
-            - DefinitionPattern: TextSpan + TxxtMarker  
-            - VerbatimTitlePattern: TextSpan + Colon
-            - VerbatimLabelPattern: TxxtMarker + Identifier
-
-        2.2.2. Parameter Composition
-            - ParameterPattern: Identifier + Equals + Value + Comma?
-            - ParametersGroup: Multiple ParameterPattern instances
-
-        2.2.3. Content Patterns
-            - VerbatimContentLine: IndentationWall + IgnoreTextSpan
-            - SequenceTextLine: SequenceMarker + TextSpan
-            - PlainTextLine: TextSpan only
 
 3. Implementation Plan
 
 	CRITICAL: No backwareds compatibility or flags, this is a hard switch over. This means at every phase there will be breaking changes.  It is at the core of the task to fix these, as in update test and callers , including the previous parser pipeline (which we will keep active until the semantic one is ready.)
 
-    1. Phase 1: Scanner Token Cleanup
-        a. Add Missing Punctuation Tokens
+    1. Phase 1: Scanner Token Cleanup: Add Missing Punctuation Tokens
             - Add: Equals, Comma (for parameter parsing)
             - Move: TxxtMarker from semantic to scanner level
-        b. Remove Semantic Scanner Tokens
+    2. Phase 2:  Remove Semantic Scanner Tokens
             - Delete: AnnotationMarker, DefinitionMarker, VerbatimTitle, VerbatimLabel
             - Delete: Parameter (replace with Identifier + Equals + Value)
-        c. Fix VerbatimContent Structure
+    3. Phase 3:  Fix VerbatimContent Structure
             - Replace: VerbatimContent with IndentationWall + IgnoreTextSpan
             - Preserve: Wall position information for reconstruction
-    2. Phase 2: Specification Updates
+    4. Phase 4: Specification Updates
         a. Update Grammar Specification
             - File: docs/specs/core/grammar.txxt
             - Add: Compositional rules for all patterns
@@ -130,13 +122,10 @@ These are to be tackle before issue #65 , but this means that implementing seman
             - File: docs/specs/core/scanner-tokens.txxt
             - Focus: Format-only token definitions
             - Remove: Semantic interpretation responsibilities
-        c. Update Semantic Token Specification
-            - File: docs/specs/core/semantic-tokens.txxt  
-            - Add: Composition rules and patterns
-            - Define: Context-aware transformations
 
 4. Verbatim Wall Architecture
 
+	See docs/specs/elements/verbatim/verbatim.txxt for the full spec.
     4.1. Wall Position Rules
 
         In-flow mode:

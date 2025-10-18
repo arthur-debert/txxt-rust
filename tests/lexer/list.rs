@@ -94,7 +94,9 @@ fn test_sequence_marker_with_content_passing(
     // Find the text token
     let text_token = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == expected_text))
+        .find(
+            |token| matches!(token, ScannerToken::Text { content, .. } if content == expected_text),
+        )
         .expect("Should find text token");
 
     match text_token {

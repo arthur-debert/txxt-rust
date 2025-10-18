@@ -239,7 +239,10 @@ mod tests {
 
         // Content container with disallowed session marker
         let session_marker = ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(1, "1.".to_string()),
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+                1,
+                "1.".to_string(),
+            ),
             span: span.clone(),
         };
         let invalid_content = vec![session_marker];
@@ -248,7 +251,10 @@ mod tests {
 
         // Session container allows everything
         let session_marker = ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(1, "1.".to_string()),
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+                1,
+                "1.".to_string(),
+            ),
             span: span.clone(),
         };
         let session_content = vec![session_marker];

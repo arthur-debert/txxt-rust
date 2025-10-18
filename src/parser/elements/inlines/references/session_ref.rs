@@ -144,7 +144,9 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("[local-section]");
 /// let session_ref = parse_session_ref(&tokens)?;
 /// ```
-pub fn parse_session_ref(tokens: &[crate::ast::scanner_tokens::ScannerToken]) -> Result<Inline, InlineParseError> {
+pub fn parse_session_ref(
+    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+) -> Result<Inline, InlineParseError> {
     // TODO: Implement session reference parsing logic
     // For now, return a placeholder
 

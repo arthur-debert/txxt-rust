@@ -184,9 +184,12 @@ fn test_incomplete_session_ref_fallback() {
     );
 
     // Since [#1.incomplete is not a valid reference marker (missing ]), it should be treated as text
-    let has_text = tokens
-        .iter()
-        .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
+    let has_text = tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. }
+        )
+    });
 
     assert!(
         has_text,
@@ -246,9 +249,12 @@ fn test_session_ref_empty() {
 
     if !has_ref_marker {
         // Check if it falls back to text/identifier tokens instead
-        let has_text = tokens
-            .iter()
-            .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
+        let has_text = tokens.iter().any(|token| {
+            matches!(
+                token,
+                ScannerToken::Text { .. } | ScannerToken::Identifier { .. }
+            )
+        });
 
         // Also check if it produces a MathDelimiter (the # character)
         let has_math_delimiter = tokens

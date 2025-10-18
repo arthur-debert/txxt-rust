@@ -25,7 +25,10 @@ impl ScannerTokenTreeBuilder {
     ///
     /// Takes a flat stream of scanner tokens with Indent/Dedent markers and
     /// produces a nested scanner token tree reflecting document hierarchy.
-    pub fn build_tree(&self, tokens: Vec<ScannerToken>) -> Result<ScannerTokenTree, ScannerTokenTreeError> {
+    pub fn build_tree(
+        &self,
+        tokens: Vec<ScannerToken>,
+    ) -> Result<ScannerTokenTree, ScannerTokenTreeError> {
         let mut builder = ScannerTokenTreeBuilderInternal::new();
 
         for token in tokens {
@@ -186,8 +189,12 @@ pub enum ScannerTokenTreeError {
 impl std::fmt::Display for ScannerTokenTreeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ScannerTokenTreeError::InvalidIndentation(msg) => write!(f, "Invalid indentation: {}", msg),
-            ScannerTokenTreeError::MalformedContainer(msg) => write!(f, "Malformed container: {}", msg),
+            ScannerTokenTreeError::InvalidIndentation(msg) => {
+                write!(f, "Invalid indentation: {}", msg)
+            }
+            ScannerTokenTreeError::MalformedContainer(msg) => {
+                write!(f, "Malformed container: {}", msg)
+            }
             ScannerTokenTreeError::UnexpectedToken(msg) => write!(f, "Unexpected token: {}", msg),
         }
     }

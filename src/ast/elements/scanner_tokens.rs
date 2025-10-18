@@ -2,8 +2,8 @@
 //!
 //! This module defines the lowest-level scanner tokens that maintain exact source
 //! positions for every character. These are distinct from semantic tokens which
-//! represent higher-level syntactic structures. Scanner tokens enable precise 
-//! language server features like hover, autocomplete, go-to-definition, and 
+//! represent higher-level syntactic structures. Scanner tokens enable precise
+//! language server features like hover, autocomplete, go-to-definition, and
 //! syntax highlighting.
 //!
 //! # Parsing Pipeline Position

@@ -176,9 +176,12 @@ fn test_incomplete_page_ref_fallback() {
     );
 
     // Since [p.incomplete is not a valid reference marker (missing ]), it should be treated as text
-    let has_text = tokens
-        .iter()
-        .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
+    let has_text = tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. }
+        )
+    });
 
     assert!(
         has_text,

@@ -7,7 +7,7 @@
 //! - Code delimiters: `
 //! - Math delimiters: #
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::lexer::Lexer;
 
 /// Trait for lexer state that can parse inline delimiters

@@ -56,7 +56,9 @@ fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_tex
     // Find the text token
     let text_token = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == expected_text))
+        .find(
+            |token| matches!(token, ScannerToken::Text { content, .. } if content == expected_text),
+        )
         .expect("Should find expected text token");
 
     match text_token {
@@ -112,7 +114,10 @@ fn test_definition_marker_with_content_after(
         .find(|token| matches!(token, ScannerToken::DefinitionMarker { .. }))
         .expect("Should find DefinitionMarker token");
 
-    assert!(matches!(definition_marker, ScannerToken::DefinitionMarker { .. }));
+    assert!(matches!(
+        definition_marker,
+        ScannerToken::DefinitionMarker { .. }
+    ));
 
     // Find second text token
     let second_token = tokens

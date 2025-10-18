@@ -144,7 +144,9 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("[chapter:5]");
 /// let page_ref = parse_page_ref(&tokens)?;
 /// ```
-pub fn parse_page_ref(tokens: &[crate::ast::scanner_tokens::ScannerToken]) -> Result<Inline, InlineParseError> {
+pub fn parse_page_ref(
+    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+) -> Result<Inline, InlineParseError> {
     // TODO: Implement page reference parsing logic
     // For now, return a placeholder
 

@@ -98,7 +98,12 @@ fn verify_sequence_marker_roman_numeral_calculation() {
 
     let marker = tokens
         .iter()
-        .find(|t| matches!(t, txxt::ast::scanner_tokens::ScannerToken::SequenceMarker { .. }))
+        .find(|t| {
+            matches!(
+                t,
+                txxt::ast::scanner_tokens::ScannerToken::SequenceMarker { .. }
+            )
+        })
         .expect("Should find sequence marker");
 
     match marker {

@@ -140,7 +140,9 @@ pub fn is_code_pattern(tokens: &[ScannerToken]) -> bool {
 ///
 /// # Returns
 /// * `Result<Vec<ScannerToken>, InlineParseError>`
-pub fn extract_code_content(tokens: &[ScannerToken]) -> Result<Vec<ScannerToken>, InlineParseError> {
+pub fn extract_code_content(
+    tokens: &[ScannerToken],
+) -> Result<Vec<ScannerToken>, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
             "Code pattern requires at least 3 tokens".to_string(),

@@ -157,12 +157,12 @@ use crate::ast::{
     elements::{
         inlines::{TextSpan, TextTransform},
         list::{NumberingForm, NumberingStyle},
+        scanner_tokens::{ScannerToken, ScannerTokenSequence, SequenceMarkerType},
         session::{
             block::{SessionBlock, SessionTitle},
             session_container::{SessionContainer, SessionContainerElement},
             SessionNumbering,
         },
-        scanner_tokens::{SequenceMarkerType, ScannerToken, ScannerTokenSequence},
     },
     ElementNode,
 };
@@ -316,7 +316,9 @@ fn parse_session_title(tokens: &[ScannerToken]) -> Result<SessionTitle, BlockPar
 }
 
 /// Parse inline content for a session title from tokens
-fn parse_inline_title_content(tokens: &[ScannerToken]) -> Result<Vec<TextTransform>, BlockParseError> {
+fn parse_inline_title_content(
+    tokens: &[ScannerToken],
+) -> Result<Vec<TextTransform>, BlockParseError> {
     if tokens.is_empty() {
         return Ok(vec![]);
     }

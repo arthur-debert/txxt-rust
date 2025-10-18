@@ -3,7 +3,7 @@
 //! These tests show that sequence markers calculate spans incorrectly
 //! by adding string length to column position, which fails for multi-byte characters.
 
-use txxt::ast::scanner_tokens::{SequenceMarkerType, ScannerToken};
+use txxt::ast::scanner_tokens::{ScannerToken, SequenceMarkerType};
 use txxt::lexer::Lexer;
 
 #[test]
@@ -121,7 +121,8 @@ fn test_sequence_marker_correct_type_detection() {
             .unwrap_or_else(|| panic!("Should find sequence marker in '{}'", input));
 
         match marker {
-            ScannerToken::SequenceMarker { marker_type, .. } => match (marker_type, &expected_type) {
+            ScannerToken::SequenceMarker { marker_type, .. } => match (marker_type, &expected_type)
+            {
                 (SequenceMarkerType::Plain(a), SequenceMarkerType::Plain(b)) => {
                     assert_eq!(a, b, "Plain marker mismatch");
                 }

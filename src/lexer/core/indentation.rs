@@ -11,7 +11,7 @@
 //! - **Verbatim awareness**: Skips indentation processing for verbatim content
 //! - **Multiple dedent support**: Generates multiple Dedent tokens for multi-level decreases
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use std::collections::VecDeque;
 
 /// Standard indentation size (4 spaces) - matches verbatim_scanner.rs
@@ -217,7 +217,7 @@ pub fn is_valid_indentation_level(level: usize) -> bool {
             "INDENT_SIZE must be greater than zero to avoid division by zero"
         );
     }
-    level % INDENT_SIZE == 0
+    level.is_multiple_of(INDENT_SIZE)
 }
 
 #[cfg(test)]

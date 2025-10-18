@@ -140,7 +140,9 @@ pub fn is_math_pattern(tokens: &[ScannerToken]) -> bool {
 ///
 /// # Returns
 /// * `Result<Vec<ScannerToken>, InlineParseError>`
-pub fn extract_math_content(tokens: &[ScannerToken]) -> Result<Vec<ScannerToken>, InlineParseError> {
+pub fn extract_math_content(
+    tokens: &[ScannerToken],
+) -> Result<Vec<ScannerToken>, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
             "Math pattern requires at least 3 tokens".to_string(),

@@ -98,7 +98,9 @@ fn test_whitespace_in_annotation() {
     );
 
     // Should have whitespace tokens around "note"
-    let has_whitespace = tokens.iter().any(|t| matches!(t, ScannerToken::Whitespace { .. }));
+    let has_whitespace = tokens
+        .iter()
+        .any(|t| matches!(t, ScannerToken::Whitespace { .. }));
     assert!(has_whitespace, "Should have whitespace tokens");
 }
 

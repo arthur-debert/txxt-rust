@@ -10,7 +10,7 @@ pub mod paragraph_tokenizer;
 
 // Re-export main interfaces
 
-use crate::ast::scanner_tokens::{SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 
 /// Represents a paragraph with its constituent text lines
 #[derive(Debug, Clone, PartialEq)]
@@ -229,10 +229,12 @@ pub fn should_terminate_paragraph(tokens: &[ScannerToken]) -> bool {
     }
 
     // Check for indentation change
-    if tokens
-        .iter()
-        .any(|token| matches!(token, ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }))
-    {
+    if tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }
+        )
+    }) {
         return true;
     }
 

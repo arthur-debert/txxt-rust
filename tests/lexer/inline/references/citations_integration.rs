@@ -121,9 +121,12 @@ fn test_incomplete_citation_ref_fallback() {
 
     // Since [@incomplete is not a valid reference marker (missing ]), it should be treated as text
     // The tokenizer should parse this as individual text tokens or identifiers
-    let has_text = tokens
-        .iter()
-        .any(|token| matches!(token, ScannerToken::Text { .. } | ScannerToken::Identifier { .. }));
+    let has_text = tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. }
+        )
+    });
 
     assert!(
         has_text,

@@ -330,7 +330,9 @@ fn test_sequence_markers_unicode() {
 
         // These should produce dash tokens instead
         if input.contains('-') {
-            let has_dash = tokens.iter().any(|t| matches!(t, ScannerToken::Dash { .. }));
+            let has_dash = tokens
+                .iter()
+                .any(|t| matches!(t, ScannerToken::Dash { .. }));
             assert!(has_dash, "{}: Should have a dash token", description);
         }
     }

@@ -20,7 +20,7 @@ mod framework_tests {
             paragraph::ParagraphBlock,
             session::{session_container::SessionContainerElement, SessionContainer},
         },
-        scanner_tokens::{Position, SourceSpan, ScannerToken, ScannerTokenSequence},
+        scanner_tokens::{Position, ScannerToken, ScannerTokenSequence, SourceSpan},
     };
 
     /// Helper to create a simple paragraph for testing

@@ -74,7 +74,9 @@ use crate::parser::elements::inlines::InlineParseError;
 /// 3. **Strong elements** (asterisk tokens)
 /// 4. **Emphasis elements** (underscore tokens)
 /// 5. **Plain text** (default)
-pub fn parse_formatting_elements(tokens: &[ScannerToken]) -> Result<Vec<TextTransform>, InlineParseError> {
+pub fn parse_formatting_elements(
+    tokens: &[ScannerToken],
+) -> Result<Vec<TextTransform>, InlineParseError> {
     if tokens.is_empty() {
         return Ok(Vec::new());
     }

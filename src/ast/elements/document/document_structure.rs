@@ -24,8 +24,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::ast::elements::{
-    blocks::Block, components::parameters::Parameters, session::SessionContainer,
-    scanner_tokens::ScannerTokenSequence,
+    blocks::Block, components::parameters::Parameters, scanner_tokens::ScannerTokenSequence,
+    session::SessionContainer,
 };
 
 /// Top-level document structure

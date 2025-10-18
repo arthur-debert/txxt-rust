@@ -102,7 +102,7 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::ast::scanner_tokens::{SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 use crate::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 use regex::Regex;
 
@@ -555,7 +555,10 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
     fn get_absolute_position(&self) -> usize;
 
     /// Read verbatim block if current position matches a verbatim block start
-    fn read_verbatim_block(&mut self, verbatim_blocks: &[VerbatimBlock]) -> Option<Vec<ScannerToken>> {
+    fn read_verbatim_block(
+        &mut self,
+        verbatim_blocks: &[VerbatimBlock],
+    ) -> Option<Vec<ScannerToken>> {
         let current_line = self.row();
         let current_char_pos = self.get_absolute_position();
 

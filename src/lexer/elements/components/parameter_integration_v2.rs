@@ -3,7 +3,7 @@
 //! This module handles parameter detection and parsing while preserving
 //! all tokens (including whitespace) and maintaining correct source positions.
 
-use crate::ast::scanner_tokens::{SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 
 /// Integrate parameters in annotation contexts while preserving all tokens
 pub fn integrate_annotation_parameters_v2(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
@@ -129,7 +129,8 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                     i += 1;
 
                     // Skip whitespace
-                    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
+                    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. })
+                    {
                         result.push(tokens[i].clone());
                         i += 1;
                     }
@@ -140,7 +141,8 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                     }
 
                     // Skip whitespace after equals
-                    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
+                    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. })
+                    {
                         result.push(tokens[i].clone());
                         i += 1;
                     }
@@ -232,7 +234,9 @@ fn process_definition_term(tokens: &[ScannerToken]) -> (Vec<ScannerToken>, usize
                 found_colon = true;
                 colon_idx = i;
             }
-            ScannerToken::Text { .. } | ScannerToken::Identifier { .. } | ScannerToken::Whitespace { .. } => {
+            ScannerToken::Text { .. }
+            | ScannerToken::Identifier { .. }
+            | ScannerToken::Whitespace { .. } => {
                 if i < term_start {
                     term_start = i;
                 }
@@ -293,7 +297,9 @@ fn is_valid_param_key(s: &str) -> bool {
 
 fn get_token_text(token: &ScannerToken) -> Option<String> {
     match token {
-        ScannerToken::Text { content, .. } | ScannerToken::Identifier { content, .. } => Some(content.clone()),
+        ScannerToken::Text { content, .. } | ScannerToken::Identifier { content, .. } => {
+            Some(content.clone())
+        }
         _ => None,
     }
 }

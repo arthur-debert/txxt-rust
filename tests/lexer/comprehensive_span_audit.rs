@@ -3,7 +3,7 @@
 //! This systematically tests every tokenizer that creates spans to ensure
 //! they handle Unicode correctly.
 
-use txxt::ast::scanner_tokens::{SourceSpan, ScannerToken};
+use txxt::ast::scanner_tokens::{ScannerToken, SourceSpan};
 use txxt::lexer::Lexer;
 
 /// List all places where we found column arithmetic

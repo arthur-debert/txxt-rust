@@ -3,7 +3,7 @@
 //! Converts TXXT source text into Token enum variants with precise SourceSpan
 //! positioning for language server support.
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::indentation::IndentationTracker;
 use crate::lexer::elements::components::{
     parameter_integration_v2::{

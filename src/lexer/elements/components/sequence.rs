@@ -7,7 +7,7 @@
 //! - Alphabetical markers: "a. ", "Z) "
 //! - Roman numeral markers: "i. ", "III) "
 
-use crate::ast::scanner_tokens::{Position, SequenceMarkerType, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use crate::lexer::core::lexer::{Lexer, LexerState};
 
 /// Convert Roman numeral string to number

@@ -130,7 +130,9 @@ fn test_colon_span_after_label() {
     let tokens = lexer.tokenize();
 
     // Find the colon token (if any)
-    let colon_token = tokens.iter().find(|t| matches!(t, ScannerToken::Colon { .. }));
+    let colon_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Colon { .. }));
 
     if let Some(ScannerToken::Colon { span }) = colon_token {
         // The colon should be at position 7

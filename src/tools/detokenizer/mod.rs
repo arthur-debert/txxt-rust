@@ -30,13 +30,19 @@ impl Detokenizer {
     ///
     /// This is a simplified version that reconstructs text from tokens without
     /// complex indentation tracking, suitable for round-trip verification tests.
-    pub fn detokenize_for_verification(&self, tokens: &[ScannerToken]) -> Result<String, DetokenizeError> {
+    pub fn detokenize_for_verification(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&ScannerToken> = None;
 
         for token in tokens {
             // Skip Indent/Dedent tokens as they're structural markers, not content
-            if matches!(token, ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }) {
+            if matches!(
+                token,
+                ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }
+            ) {
                 continue;
             }
 
@@ -148,7 +154,12 @@ impl Detokenizer {
             }
 
             // Add indentation at the start of each line
-            if at_line_start && !matches!(token, ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }) {
+            if at_line_start
+                && !matches!(
+                    token,
+                    ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }
+                )
+            {
                 // For child blocks, skip leading whitespace tokens as they represent
                 // the original indentation that we're replacing
                 if indent_level > 0 && matches!(token, ScannerToken::Whitespace { .. }) {

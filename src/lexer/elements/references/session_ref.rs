@@ -10,7 +10,7 @@
 //! within documents and better language server support compared to generic
 //! reference markers.
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
 /// Lexer trait for session reference parsing
 pub trait SessionRefLexer {

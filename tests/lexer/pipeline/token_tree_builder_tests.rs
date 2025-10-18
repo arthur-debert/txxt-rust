@@ -3,7 +3,7 @@
 //! These tests verify the token tree builder's ability to transform flat token
 //! streams into hierarchical structures based on indentation.
 
-use txxt::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use txxt::lexer::pipeline::{ScannerTokenTree, ScannerTokenTreeBuilder};
 use txxt::lexer::tokenize;
 

@@ -12,7 +12,7 @@ pub mod session_tokenizer;
 
 // Re-export main interfaces
 
-use crate::ast::scanner_tokens::{SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 
 /// Represents a session title with optional numbering
 #[derive(Debug, Clone, PartialEq)]
@@ -123,7 +123,10 @@ fn extract_title_text(tokens: &[ScannerToken]) -> String {
 /// This is used during parsing to distinguish sessions from paragraphs.
 /// A line with session-like structure is only confirmed as a session
 /// if it's followed by indented content.
-pub fn confirm_session_with_content(_session_tokens: &[ScannerToken], following_tokens: &[ScannerToken]) -> bool {
+pub fn confirm_session_with_content(
+    _session_tokens: &[ScannerToken],
+    following_tokens: &[ScannerToken],
+) -> bool {
     // Check if following tokens contain indentation
     following_tokens
         .iter()
@@ -167,7 +170,10 @@ mod tests {
 
     fn create_sequence_token(content: &str) -> ScannerToken {
         ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(1, content.to_string()),
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+                1,
+                content.to_string(),
+            ),
             span: create_test_span(),
         }
     }

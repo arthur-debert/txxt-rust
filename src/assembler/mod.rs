@@ -44,8 +44,8 @@ use crate::ast::{
     elements::{
         annotation::annotation_content::Annotation,
         document::document_structure::{AssemblyInfo, Meta, MetaValue, ProcessingStats},
-        session::SessionContainer,
         scanner_tokens::{ScannerToken, ScannerTokenSequence},
+        session::SessionContainer,
     },
 };
 use crate::lexer::pipeline::ScannerTokenTree;
@@ -246,7 +246,7 @@ impl Assembler {
             parameters,
             content: crate::ast::elements::annotation::annotation_content::AnnotationContent::Empty, // TODO: Parse content
             tokens: ScannerTokenSequence::new(), // TODO: Create proper ScannerTokenSequence from content_tokens
-            namespace: None,              // TODO: Parse namespace
+            namespace: None,                     // TODO: Parse namespace
         };
 
         Ok(Some((annotation, end_idx + 1)))

@@ -154,9 +154,12 @@ fn test_escaped_brackets() {
     let tokens = tokenize(input);
 
     // Should not create bracket tokens
-    let has_brackets = tokens
-        .iter()
-        .any(|t| matches!(t, ScannerToken::LeftBracket { .. } | ScannerToken::RightBracket { .. }));
+    let has_brackets = tokens.iter().any(|t| {
+        matches!(
+            t,
+            ScannerToken::LeftBracket { .. } | ScannerToken::RightBracket { .. }
+        )
+    });
     assert!(
         !has_brackets,
         "Should not have bracket tokens for escaped brackets"

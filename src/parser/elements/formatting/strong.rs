@@ -146,7 +146,9 @@ pub fn is_strong_pattern(tokens: &[ScannerToken]) -> bool {
 ///
 /// # Returns
 /// * `Result<Vec<ScannerToken>, InlineParseError>`
-pub fn extract_strong_content(tokens: &[ScannerToken]) -> Result<Vec<ScannerToken>, InlineParseError> {
+pub fn extract_strong_content(
+    tokens: &[ScannerToken],
+) -> Result<Vec<ScannerToken>, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
             "Strong pattern requires at least 3 tokens".to_string(),

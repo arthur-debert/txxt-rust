@@ -60,7 +60,9 @@ fn test_emoji_dash_tokenization_fix() {
     let tokens = lexer.tokenize();
 
     // After fix: dash should be present
-    let has_dash = tokens.iter().any(|t| matches!(t, ScannerToken::Dash { .. }));
+    let has_dash = tokens
+        .iter()
+        .any(|t| matches!(t, ScannerToken::Dash { .. }));
     let has_sequence_marker = tokens
         .iter()
         .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));

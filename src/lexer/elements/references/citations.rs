@@ -4,7 +4,7 @@
 //! according to the TXXT specification. Citation references are used to reference
 //! external sources and bibliographic entries.
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
 /// Trait for lexer state that can parse citation references
 pub trait CitationRefLexer {

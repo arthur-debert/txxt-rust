@@ -6,7 +6,7 @@
 //!
 //! Footnote references provide links to footnote content and supplementary information.
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
 /// Trait for footnote reference lexing
 pub trait FootnoteRefLexer {

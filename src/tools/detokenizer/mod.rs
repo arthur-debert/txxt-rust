@@ -37,7 +37,7 @@ impl Detokenizer {
         let mut result = String::new();
         let mut prev_token: Option<&ScannerToken> = None;
 
-        for token in tokens {
+        for (i, token) in tokens.iter().enumerate() {
             // Skip Indent/Dedent tokens as they're structural markers, not content
             if matches!(
                 token,
@@ -70,6 +70,19 @@ impl Detokenizer {
                     result.push('"');
                 } else {
                     result.push_str(value);
+                }
+
+                // Add whitespace after parameter if next token is not whitespace
+                if let Some(next_token) = tokens.get(i + 1) {
+                    match next_token {
+                        ScannerToken::Whitespace { .. } => {
+                            // Next token is whitespace, don't add extra space
+                        }
+                        _ => {
+                            // Next token is not whitespace, add a space
+                            result.push(' ');
+                        }
+                    }
                 }
 
                 prev_token = Some(token);

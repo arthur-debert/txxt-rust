@@ -78,13 +78,7 @@ fn test_math_delimiter_integration_with_text() {
     // Also find the equals sign token
     let equals_token = tokens
         .iter()
-        .find(|token| {
-            if let ScannerToken::Text { content, .. } = token {
-                content == "="
-            } else {
-                false
-            }
-        })
+        .find(|token| matches!(token, ScannerToken::Equals { .. }))
         .expect("Should find '=' token");
 
     // Verify the tokens have correct content
@@ -93,7 +87,9 @@ fn test_math_delimiter_integration_with_text() {
         _ => unreachable!(),
     }
     match equals_token {
-        ScannerToken::Text { content, .. } => assert_eq!(content, "="),
+        ScannerToken::Equals { .. } => {
+            // Equals token doesn't have content, it's just the = character
+        }
         _ => unreachable!(),
     }
     match mc_squared_token {

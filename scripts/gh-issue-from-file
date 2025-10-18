@@ -2,8 +2,33 @@
 
 set -euo pipefail
 
-process_txxt() {
+show_help() {
+    cat << EOF
+Usage: $0 [OPTIONS] <file>
+
+Creates a GitHub issue from a file. The first line becomes the title and the rest becomes the body.
+If the first line starts with #, it will be stripped as a markdown header.
+
+Arguments:
+  <file>                 File to create issue from
+
+Options:
+  --prefix <prefix>      Add prefix to issue title (format: "prefix: title")
+  -h, --help             Show this help
+
+Examples:
+  $0 issue.txt                    # Create issue from file
+  $0 --prefix "bug" issue.txt     # Create issue with "bug: <title>" format
+  $0 issue.md                     # Works with any file extension
+
+The script automatically strips markdown headers (#) from the title and works
+with any file format, not just txxt.
+EOF
+}
+
+process_file() {
     local file="$1"
+    local prefix="$2"
     
     # Check if file exists
     if [[ ! -f "${file}" ]]; then
@@ -11,28 +36,28 @@ process_txxt() {
         exit 1
     fi
     
-    # Read first three lines
-    local line1 line2 line3
-    {
-        IFS= read -r line1 || { echo "Cannot read title line" >&2; exit 1; }
-        IFS= read -r line2 || { echo "Cannot read blank line" >&2; exit 1; }
-        IFS= read -r line3 || { echo "Cannot read first body line" >&2; exit 1; }
-    } < "${file}"
+    # Read first line for title
+    local line1
+    IFS= read -r line1 < "${file}" || { echo "Cannot read title line" >&2; exit 1; }
     
-    # Check: first line has content, second line is blank, third line has content
-    if [[ -n "${line1}" && -z "${line2}" && -n "${line3}" ]]; then
-        # Extract title and body
-        local title="${line1}"
-        local body
-        body=$(tail -n +3 "${file}")
-        
-        echo "TITLE:${title}"
-        echo "BODY:${body}"
-        return 0
+    # Strip markdown header if present
+    local title="${line1}"
+    if [[ "${title}" =~ ^#[[:space:]]* ]]; then
+        title="${title#\#}"
+        title="${title#"${title%%[![:space:]]*}"}" # trim leading whitespace
     fi
     
-    echo "Invalid txxt format: title, blank line, body required" >&2
-    exit 1
+    # Add prefix if provided
+    if [[ -n "${prefix}" ]]; then
+        title="${prefix}: ${title}"
+    fi
+    
+    # Get body (everything after first line)
+    local body
+    body=$(tail -n +2 "${file}")
+    
+    echo "TITLE:${title}"
+    echo "BODY:${body}"
 }
 
 check_issue_exists() {
@@ -58,11 +83,48 @@ create_gh_issue() {
 }
 
 main() {
-    local file="$1"
+    local prefix=""
+    local file=""
     
-    # Get title and body from txxt file
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --prefix)
+                prefix="$2"
+                shift 2
+                ;;
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -*)
+                echo "Unknown option: $1" >&2
+                show_help >&2
+                exit 1
+                ;;
+            *)
+                if [[ -z "$file" ]]; then
+                    file="$1"
+                else
+                    echo "Error: Multiple files specified" >&2
+                    show_help >&2
+                    exit 1
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    # Validate arguments
+    if [[ -z "$file" ]]; then
+        echo "Error: File argument is required" >&2
+        show_help >&2
+        exit 1
+    fi
+    
+    # Get title and body from file
     local output
-    output=$(process_txxt "${file}")
+    output=$(process_file "${file}" "${prefix}")
     
     local title body
     title=$(echo "${output}" | grep "^TITLE:" | cut -d: -f2-)
@@ -77,9 +139,4 @@ main() {
     create_gh_issue "${title}" "${body}"
 }
 
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <file>" >&2
-    exit 1
-fi
-
-main "$1"
+main "$@"

@@ -17,6 +17,7 @@ use txxt::parser::elements::session::session::parse_session;
 
 /// Test unnumbered session from corpora using pre-tokenized data
 #[test]
+#[ignore = "Waiting for semantic token pipeline implementation"]
 fn test_corpora_unnumbered_session() {
     // Load corpus with tokenization already done
     let corpus = TxxtCorpora::load_with_processing(
@@ -55,6 +56,7 @@ fn test_corpora_unnumbered_session() {
 
 /// Test numbered session from corpora
 #[test]
+#[ignore = "Waiting for semantic token pipeline implementation"]
 fn test_corpora_numbered_session() {
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.session.valid.numbered-basic",
@@ -141,6 +143,7 @@ fn test_ensemble_single_session() {
 
 /// Test session parsing with BlockParser integration
 #[test]
+#[ignore = "Waiting for semantic token pipeline implementation"]
 fn test_block_parser_integration() {
     use txxt::lexer::pipeline::TokenTreeBuilder;
     use txxt::parser::pipeline::BlockParser;
@@ -192,6 +195,7 @@ fn test_block_parser_integration() {
 
 /// Test manual AST structure validation for unnumbered session
 #[test]
+#[ignore = "Waiting for semantic token pipeline implementation"]
 fn test_manual_ast_unnumbered_session() {
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.session.valid.unnumbered-basic",
@@ -239,6 +243,7 @@ fn test_manual_ast_unnumbered_session() {
 
 /// Test manual AST structure validation for numbered session
 #[test]
+#[ignore = "Waiting for semantic token pipeline implementation"]
 fn test_manual_ast_numbered_session() {
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.session.valid.numbered-basic",

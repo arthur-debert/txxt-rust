@@ -1,0 +1,60 @@
+:: title :: txxt Semantic Node Reference
+:: author :: Gemini
+:: pub-date :: 2025-10-17
+
+This document defines the semantic nodes used in the txxt parsing pipeline. Semantic nodes are higher-level tokens that represent the syntactic structure of a line, bridging the gap between low-level scanner tokens and the final Abstract Syntax Tree (AST).
+
+1. Introduction
+
+    The Semantic Token Parsing phase transforms the `TokenTree` from the lexer into a `SemanticTokenTree`. This new tree uses semantic nodes to provide a more meaningful, line-based representation of the document, making the subsequent block parsing stage simpler and more direct.
+
+    Semantic nodes describe the *syntactic shape* of a line, not its final semantic role (e.g., a paragraph vs. a definition term).
+
+2. Semantic Node Definitions
+
+    TxxtMarker::
+        The fundamental :: marker used across annotations, definitions, and verbatim blocks.
+        Identifies txxt structural elements and provides disambiguation anchor points.
+        Essential for recognizing txxt syntax vs plain text.
+
+    Label::
+        Structured identifier component for annotations and verbatim blocks.
+        Supports namespaced identifiers like "python", "org.example.custom".
+        Reusable across annotation labels and verbatim labels.
+
+    Parameters::
+        Key-value metadata component used in annotations and verbatim elements.
+        Structured parameter list with proper key-value pair parsing.
+        Example: "version=3.11,style=functional,author=\"Jane Doe\""
+
+    Sequence Marker::
+        List and session numbering component.
+        Handles numeric (1.), alphabetic (a.), roman (i.), and plain (-) markers,
+        in both regular (2.) and extended (1.3.b) forms.
+        Critical for session vs list disambiguation logic., and between lists and paragraphs.
+
+    Text Span::
+        Basic text content component without special formatting.
+        Building block for larger line constructs.
+        Preserves source span information for error reporting.
+
+    Sequence Text Line::
+        Line beginning with sequence marker followed by text content.
+        Combines Sequence Marker and Text Span components.
+        Used for list items, session titles, and numbered paragraphs.
+
+    Plain Text Line::
+        Simple text content without special markers or structure.
+        Contains single Text Span component.
+        Default fallback for unstructured content.
+
+    Ignore Line::
+        Preserved exactly as written without txxt processing.
+        Stored as raw string with source span tracking.
+        Consumed by a verbatim block.
+
+
+    Blank Line::
+        Line containing only whitespace or completely empty.
+        Critical for whitespace enclosure detection in sessions vs lists.
+        Sessions require blank line separation; lists cannot have blank lines between items.

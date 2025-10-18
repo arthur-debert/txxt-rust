@@ -111,17 +111,18 @@ Complete specification for containers - the foundational structural elements tha
     5.1. Container Structure
 
         Content Container (cannot contain sessions):
-            <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
+            <ContentContainer> = Indent (<Paragraph> | <List> | <Definition> | <VerbatimBlock> | <AnnotationBlock> | BlankLine)+
         :: grammar
 
         Session Container (can contain sessions):
-            <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
+            <SessionContainer> = Indent (<Paragraph> | <List> | <Definition> | <VerbatimBlock> | <AnnotationBlock> | <Session> | BlankLine)+
         :: grammar
 
         Ignore Container (verbatim content only):
-            <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
-            <ignore-line> = <any-line>
+            <IgnoreContainer> = Indent (IgnoreLine | BlankLine)*
         :: grammar
+
+        For complete container grammar, see @grammar.txxt section 1.
 
     5.2. Indentation Detection
 

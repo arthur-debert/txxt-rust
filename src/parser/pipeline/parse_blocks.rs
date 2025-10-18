@@ -75,12 +75,12 @@ impl BlockParser {
     /// - Lists CANNOT have blank lines between items
     ///
     /// Example of session vs list disambiguation:
-    /// ```
+    /// ```text
     /// 1. Foo
     ///
-    ///     1. Bar    ← This is a SESSION (blank line before)
+    ///     1. Bar    // This is a SESSION (blank line before)
     ///
-    /// 2. Baz       ← This is a LIST (no blank line before)
+    /// 2. Baz       // This is a LIST (no blank line before)
     /// ```
     pub fn parse_blocks(&self, token_tree: TokenTree) -> Result<Vec<ElementNode>, BlockParseError> {
         let mut elements = Vec::new();

@@ -42,19 +42,13 @@ Complete specification for the txxt parameter system used across annotations, ve
 
     3.1. Parameter Syntax
 
-        The syntax for a parameter list is a comma-separated list of key-value pairs.
+        Parameters are represented by the Parameters semantic token, which contains structured key-value metadata.
 
-            <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
-            <parameter-pair> = <parameter-key> = <parameter-value>
+            <parameter-list> = Parameters
 
-        Keys can be simple or namespaced identifiers:
-            <parameter-key> = <identifier> (<period> <identifier>)*
+        The Parameters semantic token contains a structured parameter list with proper key-value pair parsing, supporting examples like "version=3.11,style=functional,author=\"Jane Doe\"".
 
-        Values can be unquoted text content or a quoted string:
-            <parameter-value> = <text-content> | <quoted-string>
-            <quoted-string> = " (<text-char> | <escaped-char>)* "
-        
-        For the full definition of base tokens like `<identifier>` and `<text-content>`, see [syntax.txxt].
+        For complete Parameters semantic token definition, see @semantic-tokens.txxt.
         :: grammar
 
 4. Value Types and Quoting

@@ -1,0 +1,50 @@
+:: title :: txxt Block Grammar
+:: author :: Gemini
+:: pub-date :: 2025-10-17
+
+This document is part of the txxt syntax tree documentation. Together with @semantic-tokens.txxt, it defines the complete syntax and structure of the txxt format.
+
+- Scanner Tokens [./scanner-tokens.txxt] defines the low-level scanner tokens
+- Semantic Tokens: [./semantic-tokens.txxt] defines semantic node types
+- Grammer [./grammar.txxt] (this document) defines how blocks are constructed from semantic tokens
+
+This document specifies how block elements in a txxt document are constructed from semantic nodes. It introduces container types to simplify the grammar.
+
+The grammar is represented using a `SemanticTokenTree`, where indentation indicates a parent-child relationship.
+
+1. Container Types
+
+    Containers are indented blocks of semantic nodes that form the content of other elements.
+
+    Content Container::
+        A container that can hold any block element except a Session.
+        <ContentContainer> = <indent> (<Paragraph> | <List> | <Definition> | <VerbatimBlock> | <AnnotationBlock> | <BlankLine>)+
+
+    Session Container::
+        A container that can hold any block element, including other Sessions.
+        <SessionContainer> = <indent> (<Paragraph> | <List> | <Definition> | <VerbatimBlock> | <AnnotationBlock> | <Session> | <BlankLine>)+
+
+    Ignore Container::
+        A container for verbatim content, holding only `IgnoreLine` and `BlankLine` nodes.
+        <IgnoreContainer> = <indent> (<IgnoreLine> | <BlankLine>)*
+
+2. Block Element Grammar
+
+    Paragraph::
+        A sequence of one or more `TextLine` or `SequenceLine` nodes. A single `SequenceLine` is parsed as a paragraph.
+        <Paragraph> = (<TextLine> | <SequenceLine>)+
+    List::
+        A sequence of two or more `SequenceLine` nodes. A list can contain nested lists.
+        <List> = <SequenceLine>{2,}
+    Definition::
+        A `TextLine` whose content ends with a `::` marker, followed by a `ContentContainer`.
+        <Definition> = <TextLine> (ending in ::) <ContentContainer>
+    Verbatim Block::
+        A `TextLine` whose content ends with a `:` marker, followed by an `IgnoreContainer`, and concluded by a `FencedLine`.
+        <VerbatimBlock> = <TextLine> (ending in :) <IgnoreContainer> <FencedLine>
+    Session::
+        A `TextLine` or `SequenceLine` (the title), followed by at least one `BlankLine`, and then a `SessionContainer`.
+        <Session> = (<TextLine> | <SequenceLine>) <BlankLine>+ <SessionContainer>
+    Annotation Block::
+        An `AnnotationLine` followed by a `ContentContainer` or `SessionContainer`.
+        <AnnotationBlock> = <AnnotationLine> (<ContentContainer> | <SessionContainer>)

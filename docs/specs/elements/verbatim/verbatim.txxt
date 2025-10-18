@@ -81,9 +81,9 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
     3.1. Verbatim Structure
 
-        Verbatim blocks follow the grammar defined in [syntax.txxt] section 5.4. The structure includes three parts: title, content, and mandatory label.
+        Verbatim blocks follow the grammar defined in @grammar.txxt section 2.4. The structure includes three parts: title (Plain Text Line), content (IgnoreContainer), and mandatory label (TxxtMarker + Label).
 
-        For complete verbatim block grammar including `<verbatim-block>`, `<verbatim-title>`, `<verbatim-start>`, `<verbatim-end>`, `<inflow-verbatim>`, and `<stretched-verbatim>` definitions, see [syntax.txxt] section 5.4.
+        For complete verbatim block grammar including `<VerbatimBlock>` definitions, see @grammar.txxt section 2.4.
 
         The two positioning modes (in-flow and stretched) are determined automatically based on the first non-blank content line position relative to the title indentation level.
 

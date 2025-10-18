@@ -59,14 +59,11 @@ Complete specification for definitions - structured term-definition pairs that p
 
     3.1. Definition Structure
 
-        A definition consists of a term line followed by an indented content container.
+        A definition consists of a Plain Text Line semantic token ending with a TxxtMarker, followed by a ContentContainer.
 
-            <definition> = <definition-term> <definition-content>
-            <definition-term> = <text-line> <definition-marker>
-            <definition-content> = <content-container>
+            <definition> = PlainTextLine TxxtMarker ContentContainer
 
-        The term marker allows for optional whitespace around the double colon:
-            <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
+        For complete definition grammar, see @grammar.txxt section 2.3.
         :: grammar
 
     3.2. Term Rules

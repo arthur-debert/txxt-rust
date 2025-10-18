@@ -61,7 +61,7 @@ This document outlines the comprehensive implementation plan for the core parser
 
         Simple Cases::
             Basic, straightforward examples of each element type
-            Examples: key=value parameters, single-line paragraphs, flat lists, verbatim in-flow and streched mode, annotation single and multi-line
+            Examples: key=value parameters, single-line paragraphs, flat lists, verbatim in-flow and stretched mode, annotation single and multi-line
 
         Complex Cases::
             Edge cases and intricate variations of each element type  

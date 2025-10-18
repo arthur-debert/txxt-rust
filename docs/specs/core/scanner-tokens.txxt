@@ -1,14 +1,19 @@
-:: title :: txxt Syntax and Grammar Reference
+:: title :: txxt Scanner Tokens Reference
 :: author :: Arthur Debert
 :: pub-date :: 2025-01-12
 
-This document defines the complete syntax and grammar of the txxt format, building from atomic tokens to complex document structures.
+This document defines the low-level scanner tokens used in the txxt format. These are the atomic tokens that form the foundation of the txxt parsing pipeline, produced by the lexer and consumed by the semantic token parsing stage.
+
+
+- Scanner Tokens [./scanner-tokens.txxt] defines the low-level scanner tokens (this document)
+- Semantic Tokens: [./semantic-tokens.txxt] defines semantic node types
+- Grammer [./grammar.txxt] defines how blocks are constructed from semantic tokens
 
 1. Token Hierarchy
 
     txxt syntax is built from small, composable tokens that combine into increasingly complex structures. The hierarchy follows this pattern:
 
-    Characters → Tokens → Lines → Blocks → Documents
+    Characters → Scanner Tokens → Semantic Tokens → Blocks → Documents
 
     1.1. Character Level
 
@@ -30,7 +35,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
 
         The backslash removes special meaning from any following character.
 
-    1.2. Basic Tokens
+    1.2. Basic Scanner Tokens
 
         Atomic tokens that cannot be decomposed further:
 
@@ -232,159 +237,11 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <definition-marker> = <whitespace>* <txxt-marker> <whitespace>* <line-break>
         :: grammar
 
-5. Block Elements
-
-    Structural units that contain lines and other blocks:
-
-    5.1. Paragraph Blocks
-
-        One or more text lines terminated by blank line:
-
-        <paragraph> = <text-line>+ <blank-line>?
-        :: grammar
-
-    5.2. List Blocks
-
-        Collection of list items with consistent style:
-
-        <list-item-content> = <text-line>
-        <list-item> = <sequence-marker> <list-item-content>
-        <list> = <list-item>{2,}
-        :: grammar
-
-        **Critical disambiguation rule**: Lists require multiple items at the top level. Single items with markers are parsed as paragraphs to avoid ambiguity with dialog. However, single items are permitted within nested containers.
-        
-        Note: First item determines list style (plain, numerical, alphabetical, roman) and form (short, extended) for entire list.
-
-    5.3. Session Blocks
-
-        Hierarchical sections with titles and content:
-
-        <session-numbering> = <sequence-marker>
-        <session-title> = <session-numbering>? <text-line>
-        <session> = <blank-line> <session-title> <blank-line> <session-container>
-        :: grammar
-
-    5.4. Verbatim Blocks
-
-        Preserved content that bypasses txxt parsing. Two modes based on content positioning:
-
-        <verbatim-title> = <text-line> <verbatim-start>
-        <verbatim-content-line> = <any-char>* <line-break>
-        
-        In-flow verbatim (content indented +1 from title):
-        <inflow-content-wall> = <indentation-level> <indent>
-        <inflow-content> = <inflow-content-wall> <verbatim-content-line>*
-        <inflow-verbatim> = <verbatim-title> <inflow-content> <verbatim-end>
-        
-        Stretched verbatim (content at absolute column 2):
-        <stretched-content> = <verbatim-content-line>*
-        <stretched-verbatim> = <verbatim-title> <stretched-content> <verbatim-end>
-        
-        Complete verbatim block:
-        <verbatim-block> = <inflow-verbatim> | <stretched-verbatim>
-        :: grammar
-
-        Mode determination:
-        - First non-blank content line at title-level + 4 spaces → In-flow
-        - First non-blank content line at absolute column 2 → Stretched
-        - Empty content blocks default to in-flow
-
-        Label recognition:
-        - Verbatim label must be at same indentation as verbatim title
-        - Uses txxt marker syntax: `:: label` or `:: label:params`
-        - Leverages existing annotation parsing infrastructure
-        - Mandatory label improves documentation quality
-
-    5.5. Definition Blocks
-
-        Term-definition pairs:
-
-        <definition-term> = <text-line> <definition-marker>
-        <definition-content> = <container>
-        <definition> = <definition-term> <definition-content>
-        :: grammar
-
-    5.6. Annotation Blocks
-
-        Metadata elements:
-
-        Inline annotation:
-            <annotation-content> = <text-content>
-            <annotation-label> = <label>
-            <annotation-inline> = <txxt-marker> <annotation-label> <txxt-marker> <annotation-content>?
-        :: grammar
-
-        Block annotation:
-            <annotation-block> = <txxt-marker> <annotation-label> <txxt-marker> <line-break> <container>?
-        :: grammar
-
-6. Container Architecture
-
-    The indentation-based hierarchy that structures txxt documents:
-
-    6.1. Indentation Rules
-
-        Indentation levels and transitions:
-
-        <indentation-level> = <indent>*
-        <indent-increase> = <indentation-level>{n+1}
-        <indent-decrease> = <indentation-level>{n-k} (where k >= 1)
-        <indent-same> = <indentation-level>{n}
-        :: grammar
-
-    6.2. Container Types
-
-        Different container types with specific content rules:
-
-        Content container (cannot contain sessions):
-            <content-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <blank-line>)+
-        :: grammar
-
-        Session container (can contain sessions):
-            <session-container> = <indent-increase> (<paragraph> | <list> | <definition> | <verbatim-block> | <annotation-block> | <session> | <blank-line>)+
-        :: grammar
-
-        Note: Within containers, single list items are allowed because they are nested, not at the top level.
-
-        Ignore container (verbatim content only):
-            <ignore-line> = <any-line>
-            <ignore-container> = <indent-increase> (<ignore-line> | <blank-line>)*
-        :: grammar
-
-7. Document Structure
-
-    Complete document grammar combining all elements:
-
-    7.1. Document Root
-
-        A document is a session container at the root level:
-
-        <document> = <annotation-block>* <session-container>
-        :: grammar
-
-    7.2. Element Resolution
-
-        Rules for resolving ambiguous structures:
-
-        Session vs Paragraph:
-        - Line followed by indented content = Session as long as child is not a session without content too
-        - Line followed by blank line or same-level content = Paragraph
-
-        List vs Dialog (Critical Rule):
-        - **Multiple items with markers = List** (at top level)
-        - **Single item with marker = Paragraph** (at top level, prevents dialog ambiguity)
-        - **Single items allowed in nested contexts** (within existing list containers)
-
-        Annotation vs Text:
-        - Valid annotation syntax = Annotation
-        - Invalid or incomplete syntax = Paragraph
-
-8. Parameters
+5. Parameters
 
     Key-value metadata syntax used in annotations and verbatim blocks:
 
-    8.1. Parameter Syntax
+    5.1. Parameter Syntax
 
         Basic parameter structure:
 
@@ -395,7 +252,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         <parameter-list> = <parameter-pair> (, <whitespace>* <parameter-pair>)*
         :: grammar
 
-    8.2. Parameter Integration
+    5.2. Parameter Integration
 
         How parameters integrate with annotations and verbatim blocks:
 
@@ -407,11 +264,11 @@ This document defines the complete syntax and grammar of the txxt format, buildi
             <param-verbatim-end> = <txxt-marker> <identifier> <colon> <parameter-list> <line-break>
         :: grammar
 
-9. Precedence and Disambiguation
+6. Precedence and Disambiguation
 
     Rules for resolving conflicts when multiple interpretations are possible:
 
-    9.1. Token Precedence
+    6.1. Token Precedence
 
         Order of token recognition (first match wins):
 
@@ -423,32 +280,11 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         6. Formatting spans
         7. Text spans (lowest precedence)
 
-    9.2. Block Precedence
-
-        Order of block type resolution (least to most ambiguous):
-
-        1. Verbatim blocks (pre-marked during lexing, most explicit)
-        2. Annotations (double colon markers, explicit syntax)
-        3. Definitions (term + double colon at end of line, unambiguous)
-        4. Lists (sequence markers + content, clear markers)
-        5. Sessions (title + indented content, context dependent)
-        6. Paragraphs (default for text content, most ambiguous)
-
-    9.3. Context Rules
-
-        How context affects interpretation:
-
-        - **List item count rule**: Top-level single items with markers become paragraphs; nested single items are allowed
-        - Indentation level determines container type  
-        - First list item determines style and form for entire list
-        - Blank lines affect session vs paragraph resolution vs list
-        - Verbatim mode suspends all other parsing
-
-10. Error Handling
+7. Error Handling
 
     How the parser handles malformed or ambiguous input:
 
-    10.1. Graceful Degradation
+    7.1. Graceful Degradation
 
         When syntax is malformed, fall back to simpler interpretation:
 
@@ -457,7 +293,7 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         - Malformed list → Paragraph
         - Unclosed verbatim → Paragraph
 
-    10.2. Recovery Strategies
+    7.2. Recovery Strategies
 
         Methods for continuing parsing after errors:
 
@@ -466,4 +302,4 @@ This document defines the complete syntax and grammar of the txxt format, buildi
         - Preserve all content as text when structure unclear
         - Never fail completely - always produce output
 
-:: note :: This syntax reference defines the complete grammar for txxt. Implementations should follow these rules while maintaining the graceful degradation principles for robust parsing.
+:: note :: This scanner tokens reference defines the low-level tokens for txxt. For semantic constructs and block grammar, see the semantic-tokens.txxt and grammar.txxt documents.

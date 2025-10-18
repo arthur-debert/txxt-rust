@@ -6,6 +6,19 @@
 
     The "Stream-First" parser architecture, as defined in [docs/dev/semantic-tokens.txxt], has successfully broken down the parsing process into clear, sequential phases. The final phase, AST Construction, is tasked with converting the flat stream of `SemanticNode`s and structural markers (`Indent`, `Dedent`) into a complete Abstract Syntax Tree.
 
+    Current Pipeline: 
+
+    1. Lexer (txxt str -> ScannerTokenList)
+  	a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
+  <tab>b. Token List: creates the token stream at low level tokens -> scanner token list
+2. Parser (ScannerTokenList -> AST tree node)
+        a. Semantic Analysis (ScannerTokenList → SemanticTokenList)
+        b. AST Contuction Instruction: Matched the grammar against the sem.tok.linst creating Elements and building the AST
+        c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node)
+    3. Assembly (AST tree node -> AST document node)
+        a. Document Wrapping: wraps the parsed AST in a Document node
+        b. Annotations Attachments: from the content tree to node's annotation's field
+
     However, as currently envisioned, this phase is monolithic. It is responsible for two distinct and highly complex tasks simultaneously:
 
     - 1. Element Recognition: Applying grammar rules to a sequence of semantic nodes to identify a complete block element (e.g., a `VerbatimBlock`).

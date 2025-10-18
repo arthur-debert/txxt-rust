@@ -33,11 +33,11 @@
 //!     │   ├── title: SessionTitle
 //!     │   │   ├── content: Vec<Inline>
 //!     │   │   ├── numbering: Option<SessionNumbering>
-//!     │   │   └── tokens: TokenSequence
+//!     │   │   └── tokens: ScannerTokenSequence
 //!     │   ├── content: SessionContainer
 //!     │   │   └── content: Vec<Block>
 //!     │   ├── annotations: Vec<Annotation>
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! Key structural properties:
@@ -58,7 +58,7 @@
 //!         Annotations attached to this element, post parsing at assembly (during time aanotations are regular items in container)
 //!     pub annotations: Vec<Annotation>,
 //!     /// Raw tokens for precise source reconstruction
-//!     pub tokens: TokenSequence,
+//!     pub tokens: ScannerTokenSequence,
 //! }
 //! ```
 //!
@@ -157,12 +157,12 @@ use crate::ast::{
     elements::{
         inlines::{TextSpan, TextTransform},
         list::{NumberingForm, NumberingStyle},
+        scanner_tokens::{ScannerToken, ScannerTokenSequence, SequenceMarkerType},
         session::{
             block::{SessionBlock, SessionTitle},
             session_container::{SessionContainer, SessionContainerElement},
             SessionNumbering,
         },
-        tokens::{SequenceMarkerType, Token, TokenSequence},
     },
     ElementNode,
 };
@@ -176,7 +176,7 @@ use crate::parser::pipeline::parse_blocks::BlockParseError;
 /// 3. Indented content (at least one level deeper)
 ///
 /// Returns an error if the structure is not a valid session.
-pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> {
+pub fn parse_session(tokens: &[ScannerToken]) -> Result<SessionBlock, BlockParseError> {
     if tokens.is_empty() {
         return Err(BlockParseError::InvalidStructure(
             "Empty token sequence".to_string(),
@@ -186,7 +186,7 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
     // Find the title line (first non-blank token)
     let title_start = tokens
         .iter()
-        .position(|t| !matches!(t, Token::BlankLine { .. }));
+        .position(|t| !matches!(t, ScannerToken::BlankLine { .. }));
     let title_start = match title_start {
         Some(pos) => pos,
         None => {
@@ -199,7 +199,7 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
     // Find the end of the title line (next blank line or end of tokens)
     let title_end = tokens[title_start..]
         .iter()
-        .position(|t| matches!(t, Token::BlankLine { .. }))
+        .position(|t| matches!(t, ScannerToken::BlankLine { .. }))
         .map(|pos| title_start + pos)
         .unwrap_or(tokens.len());
 
@@ -221,11 +221,11 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
             content: Vec::new(),
             annotations: Vec::new(),
             parameters: crate::ast::elements::components::parameters::Parameters::new(),
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         };
 
         // Create token sequence for the session
-        let mut session_tokens = TokenSequence::new();
+        let mut session_tokens = ScannerTokenSequence::new();
         session_tokens.tokens = tokens.to_vec();
 
         // Create the session block
@@ -247,7 +247,7 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
     let content = parse_session_content(content_tokens)?;
 
     // Create token sequence for the session
-    let mut session_tokens = TokenSequence::new();
+    let mut session_tokens = ScannerTokenSequence::new();
     session_tokens.tokens = tokens.to_vec();
 
     // Create the session block
@@ -263,7 +263,7 @@ pub fn parse_session(tokens: &[Token]) -> Result<SessionBlock, BlockParseError> 
 }
 
 /// Parse a session title from tokens
-fn parse_session_title(tokens: &[Token]) -> Result<SessionTitle, BlockParseError> {
+fn parse_session_title(tokens: &[ScannerToken]) -> Result<SessionTitle, BlockParseError> {
     if tokens.is_empty() {
         return Err(BlockParseError::InvalidStructure(
             "Empty title tokens".to_string(),
@@ -274,7 +274,7 @@ fn parse_session_title(tokens: &[Token]) -> Result<SessionTitle, BlockParseError
     let content_tokens;
 
     // Check for sequence marker at the beginning
-    if let Some(Token::SequenceMarker {
+    if let Some(ScannerToken::SequenceMarker {
         marker_type,
         span: _,
         ..
@@ -305,7 +305,7 @@ fn parse_session_title(tokens: &[Token]) -> Result<SessionTitle, BlockParseError
     let content = parse_inline_title_content(content_tokens)?;
 
     // Create token sequence preserving all tokens
-    let mut token_sequence = TokenSequence::new();
+    let mut token_sequence = ScannerTokenSequence::new();
     token_sequence.tokens = tokens.to_vec();
 
     Ok(SessionTitle {
@@ -316,7 +316,9 @@ fn parse_session_title(tokens: &[Token]) -> Result<SessionTitle, BlockParseError
 }
 
 /// Parse inline content for a session title from tokens
-fn parse_inline_title_content(tokens: &[Token]) -> Result<Vec<TextTransform>, BlockParseError> {
+fn parse_inline_title_content(
+    tokens: &[ScannerToken],
+) -> Result<Vec<TextTransform>, BlockParseError> {
     if tokens.is_empty() {
         return Ok(vec![]);
     }
@@ -326,10 +328,10 @@ fn parse_inline_title_content(tokens: &[Token]) -> Result<Vec<TextTransform>, Bl
     let text_content = tokens
         .iter()
         .filter_map(|t| match t {
-            Token::Text { content, .. } => Some(content.as_str()),
-            Token::Whitespace { content, .. } => Some(content.as_str()),
-            Token::Period { .. } => Some("."),
-            Token::Newline { .. } => Some("\n"),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Whitespace { content, .. } => Some(content.as_str()),
+            ScannerToken::Period { .. } => Some("."),
+            ScannerToken::Newline { .. } => Some("\n"),
             _ => None, // Skip other tokens for now
         })
         .collect::<Vec<_>>()
@@ -340,17 +342,17 @@ fn parse_inline_title_content(tokens: &[Token]) -> Result<Vec<TextTransform>, Bl
     }
 
     let mut text_span = TextSpan {
-        tokens: TokenSequence::new(),
+        tokens: ScannerTokenSequence::new(),
         annotations: Vec::new(),
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
     };
 
     // Create a single text token from the content
-    text_span.tokens.tokens = vec![Token::Text {
+    text_span.tokens.tokens = vec![ScannerToken::Text {
         content: text_content.clone(),
-        span: crate::ast::tokens::SourceSpan {
-            start: crate::ast::tokens::Position { row: 0, column: 0 },
-            end: crate::ast::tokens::Position {
+        span: crate::ast::scanner_tokens::SourceSpan {
+            start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
+            end: crate::ast::scanner_tokens::Position {
                 row: 0,
                 column: text_content.len(),
             },
@@ -361,7 +363,7 @@ fn parse_inline_title_content(tokens: &[Token]) -> Result<Vec<TextTransform>, Bl
 }
 
 /// Parse session content as a SessionContainer
-fn parse_session_content(tokens: &[Token]) -> Result<SessionContainer, BlockParseError> {
+fn parse_session_content(tokens: &[ScannerToken]) -> Result<SessionContainer, BlockParseError> {
     if tokens.is_empty() {
         return Err(BlockParseError::InvalidStructure(
             "Session content cannot be empty".to_string(),
@@ -369,7 +371,7 @@ fn parse_session_content(tokens: &[Token]) -> Result<SessionContainer, BlockPars
     }
 
     // Use the TokenTreeBuilder to correctly handle indentation
-    let builder = crate::lexer::pipeline::TokenTreeBuilder::new();
+    let builder = crate::lexer::pipeline::ScannerTokenTreeBuilder::new();
     let token_tree = builder
         .build_tree(tokens.to_vec())
         .map_err(|e| BlockParseError::InvalidStructure(e.to_string()))?;
@@ -409,7 +411,7 @@ fn parse_session_content(tokens: &[Token]) -> Result<SessionContainer, BlockPars
         .collect::<Result<Vec<_>, _>>()?;
 
     // Create token sequence for the container
-    let mut container_tokens = TokenSequence::new();
+    let mut container_tokens = ScannerTokenSequence::new();
     container_tokens.tokens = tokens.to_vec();
 
     // Create the session container

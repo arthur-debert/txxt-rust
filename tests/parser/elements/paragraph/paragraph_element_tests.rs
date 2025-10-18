@@ -196,7 +196,12 @@ fn test_ensemble_multiple_paragraphs() {
     // Parse the first paragraph (up to first blank line)
     let first_paragraph_tokens: Vec<_> = tokens
         .iter()
-        .take_while(|token| !matches!(token, txxt::ast::tokens::Token::BlankLine { .. }))
+        .take_while(|token| {
+            !matches!(
+                token,
+                txxt::ast::scanner_tokens::ScannerToken::BlankLine { .. }
+            )
+        })
         .cloned()
         .collect();
 
@@ -228,7 +233,7 @@ fn test_ensemble_multiple_paragraphs() {
 /// Test paragraph parsing with BlockParser integration
 #[test]
 fn test_block_parser_integration() {
-    use txxt::lexer::pipeline::TokenTreeBuilder;
+    use txxt::lexer::pipeline::ScannerTokenTreeBuilder;
     use txxt::parser::pipeline::BlockParser;
 
     let corpus = TxxtCorpora::load_with_processing(
@@ -241,7 +246,7 @@ fn test_block_parser_integration() {
     assert!(!tokens.is_empty(), "Should have tokens");
 
     // Build token tree
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .expect("Should build token tree successfully");

@@ -4,7 +4,7 @@
 //! Dash tokens are single '-' characters that are not part of sequence markers.
 
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================
@@ -19,7 +19,7 @@ fn test_dash_token_isolated_passing(#[case] input: &str) {
     assert_eq!(tokens.len(), 2); // DASH + EOF
 
     match &tokens[0] {
-        Token::Dash { span } => {
+        ScannerToken::Dash { span } => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
@@ -30,7 +30,7 @@ fn test_dash_token_isolated_passing(#[case] input: &str) {
 
     // Should end with EOF
     match &tokens[1] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[1]),
     }
 }
@@ -47,13 +47,13 @@ fn test_dash_token_with_content_passing(#[case] input: &str) {
 
     for token in &tokens {
         match token {
-            Token::Dash { .. } => {
+            ScannerToken::Dash { .. } => {
                 dash_count += 1;
             }
-            Token::Text { .. } => {
+            ScannerToken::Text { .. } => {
                 text_count += 1;
             }
-            Token::Eof { .. } => {
+            ScannerToken::Eof { .. } => {
                 // Expected at the end
             }
             _ => {
@@ -80,11 +80,11 @@ fn test_dash_token_mixed_content(
     // Find first text token
     let first_text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == first_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == first_text))
         .expect("Should find first text token");
 
     match first_text_token {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, first_text);
         }
         _ => unreachable!(),
@@ -93,11 +93,11 @@ fn test_dash_token_mixed_content(
     // Find dash token
     let dash_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Dash { .. }))
+        .find(|token| matches!(token, ScannerToken::Dash { .. }))
         .expect("Should find dash token");
 
     match dash_token {
-        Token::Dash { span } => {
+        ScannerToken::Dash { span } => {
             assert!(span.start.column > 0); // Should not be at start of line
         }
         _ => unreachable!(),
@@ -106,11 +106,11 @@ fn test_dash_token_mixed_content(
     // Find second text token
     let second_text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Text { content, .. } if content == second_text))
+        .find(|token| matches!(token, ScannerToken::Text { content, .. } if content == second_text))
         .expect("Should find second text token");
 
     match second_text_token {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, second_text);
         }
         _ => unreachable!(),
@@ -130,7 +130,7 @@ fn test_dash_token_failing_sequence_markers(#[case] input: &str) {
     // Should not contain any DASH tokens (these should be SEQUENCE_MARKER)
     let dash_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Dash { .. }))
+        .filter(|token| matches!(token, ScannerToken::Dash { .. }))
         .collect();
 
     assert_eq!(
@@ -144,7 +144,7 @@ fn test_dash_token_failing_sequence_markers(#[case] input: &str) {
     // Should contain sequence marker instead
     let sequence_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::SequenceMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::SequenceMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -166,7 +166,7 @@ fn test_dash_token_failing_no_dash(#[case] input: &str) {
     // Should not contain any DASH tokens
     let dash_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Dash { .. }))
+        .filter(|token| matches!(token, ScannerToken::Dash { .. }))
         .collect();
 
     assert_eq!(

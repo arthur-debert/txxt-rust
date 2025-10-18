@@ -9,7 +9,7 @@ pub mod container;
 
 // Re-export main interfaces
 
-use crate::ast::tokens::Token;
+use crate::ast::scanner_tokens::ScannerToken;
 
 /// Determines container type based on parsing context
 #[derive(Debug, Clone, PartialEq)]
@@ -43,16 +43,16 @@ pub enum ContainerContext {
 ///
 /// Containers are created implicitly when indentation increases.
 /// The lexer produces Indent tokens that signal container boundaries.
-pub fn detect_container_start(token: &Token) -> bool {
-    matches!(token, Token::Indent { .. })
+pub fn detect_container_start(token: &ScannerToken) -> bool {
+    matches!(token, ScannerToken::Indent { .. })
 }
 
 /// Detects container end based on indentation decrease
 ///
 /// Containers end when indentation returns to previous level.
 /// The lexer produces Dedent tokens that signal container boundaries.
-pub fn detect_container_end(token: &Token) -> bool {
-    matches!(token, Token::Dedent { .. })
+pub fn detect_container_end(token: &ScannerToken) -> bool {
+    matches!(token, ScannerToken::Dedent { .. })
 }
 
 /// Determines container type from parsing context
@@ -80,13 +80,13 @@ pub fn determine_container_type(context: ContainerContext) -> ContainerType {
 /// - Ignore containers only contain verbatim content
 pub fn validate_container_content(
     container_type: &ContainerType,
-    content_tokens: &[Token],
+    content_tokens: &[ScannerToken],
 ) -> Result<(), String> {
     match container_type {
         ContainerType::Content => {
             // Check for session markers which are not allowed in content containers
             for token in content_tokens {
-                if let Token::SequenceMarker { marker_type, .. } = token {
+                if let ScannerToken::SequenceMarker { marker_type, .. } = token {
                     // Session markers are numeric sequences like "1.", "2.1.", etc.
                     if is_session_marker(marker_type.content()) {
                         return Err(format!(
@@ -104,9 +104,9 @@ pub fn validate_container_content(
             // Ignore containers should only contain verbatim content and blank lines
             for token in content_tokens {
                 match token {
-                    Token::VerbatimContent { .. }
-                    | Token::BlankLine { .. }
-                    | Token::Newline { .. } => {
+                    ScannerToken::VerbatimContent { .. }
+                    | ScannerToken::BlankLine { .. }
+                    | ScannerToken::Newline { .. } => {
                         // These are allowed in ignore containers
                     }
                     _ => {
@@ -145,7 +145,7 @@ fn is_session_marker(marker: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::tokens::{Position, SourceSpan};
+    use crate::ast::scanner_tokens::{Position, SourceSpan};
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -156,12 +156,12 @@ mod tests {
 
     #[test]
     fn test_detect_container_start() {
-        let indent_token = Token::Indent {
+        let indent_token = ScannerToken::Indent {
             span: create_test_span(),
         };
         assert!(detect_container_start(&indent_token));
 
-        let text_token = Token::Text {
+        let text_token = ScannerToken::Text {
             content: "hello".to_string(),
             span: create_test_span(),
         };
@@ -170,12 +170,12 @@ mod tests {
 
     #[test]
     fn test_detect_container_end() {
-        let dedent_token = Token::Dedent {
+        let dedent_token = ScannerToken::Dedent {
             span: create_test_span(),
         };
         assert!(detect_container_end(&dedent_token));
 
-        let text_token = Token::Text {
+        let text_token = ScannerToken::Text {
             content: "hello".to_string(),
             span: create_test_span(),
         };
@@ -227,12 +227,12 @@ mod tests {
         let span = create_test_span();
 
         // Content container with allowed content
-        let text_token = Token::Text {
+        let text_token = ScannerToken::Text {
             content: "hello".to_string(),
             span: span.clone(),
         };
-        let list_marker = Token::SequenceMarker {
-            marker_type: crate::ast::tokens::SequenceMarkerType::Plain("-".to_string()),
+        let list_marker = ScannerToken::SequenceMarker {
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Plain("-".to_string()),
             span: span.clone(),
         };
         let content_tokens = vec![text_token, list_marker];
@@ -240,8 +240,11 @@ mod tests {
         assert!(validate_container_content(&ContainerType::Content, &content_tokens).is_ok());
 
         // Content container with disallowed session marker
-        let session_marker = Token::SequenceMarker {
-            marker_type: crate::ast::tokens::SequenceMarkerType::Numerical(1, "1.".to_string()),
+        let session_marker = ScannerToken::SequenceMarker {
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+                1,
+                "1.".to_string(),
+            ),
             span: span.clone(),
         };
         let invalid_content = vec![session_marker];
@@ -249,8 +252,11 @@ mod tests {
         assert!(validate_container_content(&ContainerType::Content, &invalid_content).is_err());
 
         // Session container allows everything
-        let session_marker = Token::SequenceMarker {
-            marker_type: crate::ast::tokens::SequenceMarkerType::Numerical(1, "1.".to_string()),
+        let session_marker = ScannerToken::SequenceMarker {
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+                1,
+                "1.".to_string(),
+            ),
             span: span.clone(),
         };
         let session_content = vec![session_marker];

@@ -7,7 +7,7 @@
 //! - Alphabetical markers: "a. ", "Z) "
 //! - Roman numeral markers: "i. ", "III) "
 
-use crate::ast::tokens::{Position, SequenceMarkerType, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use crate::lexer::core::lexer::{Lexer, LexerState};
 
 /// Convert Roman numeral string to number
@@ -35,7 +35,7 @@ fn roman_to_number(roman: &str) -> u64 {
 /// This function takes a lexer-like interface and attempts to parse a sequence marker
 /// at the current position. It handles all four types of sequence markers defined
 /// in the TXXT specification.
-pub fn read_sequence_marker<L>(lexer: &mut L) -> Option<Token>
+pub fn read_sequence_marker<L>(lexer: &mut L) -> Option<ScannerToken>
 where
     L: SequenceMarkerLexer,
 {
@@ -49,7 +49,7 @@ where
         lexer.advance();
         if lexer.peek() == Some(' ') {
             lexer.advance();
-            return Some(Token::SequenceMarker {
+            return Some(ScannerToken::SequenceMarker {
                 marker_type: SequenceMarkerType::Plain("-".to_string()),
                 span: SourceSpan {
                     start: start_pos,
@@ -96,7 +96,7 @@ where
                 .unwrap_or("0")
                 .parse::<u64>()
                 .unwrap_or(0);
-            return Some(Token::SequenceMarker {
+            return Some(ScannerToken::SequenceMarker {
                 marker_type: SequenceMarkerType::Numerical(number, marker.clone()),
                 span: SourceSpan {
                     start: start_pos,
@@ -124,7 +124,7 @@ where
                     .unwrap_or("0")
                     .parse::<u64>()
                     .unwrap_or(0);
-                return Some(Token::SequenceMarker {
+                return Some(ScannerToken::SequenceMarker {
                     marker_type: SequenceMarkerType::Numerical(number, marker.clone()),
                     span: SourceSpan {
                         start: start_pos,
@@ -164,7 +164,7 @@ where
                         lexer.advance();
                         let marker = format!("{}{}", pattern, punct);
                         let roman_value = roman_to_number(pattern);
-                        return Some(Token::SequenceMarker {
+                        return Some(ScannerToken::SequenceMarker {
                             marker_type: SequenceMarkerType::Roman(roman_value, marker.clone()),
                             span: SourceSpan {
                                 start: start_pos,
@@ -197,7 +197,7 @@ where
                     if lexer.peek() == Some(' ') {
                         lexer.advance();
                         let marker = format!("{}{}", letter, punct);
-                        return Some(Token::SequenceMarker {
+                        return Some(ScannerToken::SequenceMarker {
                             marker_type: SequenceMarkerType::Alphabetical(letter, marker.clone()),
                             span: SourceSpan {
                                 start: start_pos,

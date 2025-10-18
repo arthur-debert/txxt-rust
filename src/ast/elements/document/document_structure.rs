@@ -24,8 +24,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::ast::elements::{
-    blocks::Block, components::parameters::Parameters, session::SessionContainer,
-    tokens::TokenSequence,
+    blocks::Block, components::parameters::Parameters, scanner_tokens::ScannerTokenSequence,
+    session::SessionContainer,
 };
 
 /// Top-level document structure
@@ -129,7 +129,7 @@ impl Document {
                 Vec::new(),
                 Vec::new(),
                 Parameters::default(),
-                TokenSequence::new(),
+                ScannerTokenSequence::new(),
             ),
             assembly_info: AssemblyInfo {
                 source_path: Some(source),

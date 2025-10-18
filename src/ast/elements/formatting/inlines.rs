@@ -41,7 +41,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::tokens::{Token, TokenSequence};
+use super::super::scanner_tokens::{ScannerToken, ScannerTokenSequence};
 
 /// Inline elements with text-transform layer
 ///
@@ -73,7 +73,7 @@ pub enum Inline {
         attributes: HashMap<String, String>,
 
         /// Raw tokens for precise positioning
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// Reference to document elements (citations, cross-refs, etc.)
@@ -92,7 +92,7 @@ pub enum Inline {
         content: Vec<Inline>,
 
         /// Raw tokens for positioning
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 }
 
@@ -166,7 +166,7 @@ pub enum TextTransform {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Text {
     /// Token sequence with character-level precision
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl Text {
@@ -179,12 +179,12 @@ impl Text {
     pub fn simple(content: &str) -> Self {
         // This would normally be created by the tokenizer with proper positions
         Self {
-            tokens: TokenSequence {
-                tokens: vec![Token::Text {
+            tokens: ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
                     content: content.to_string(),
-                    span: super::super::tokens::SourceSpan {
-                        start: super::super::tokens::Position { row: 0, column: 0 },
-                        end: super::super::tokens::Position {
+                    span: super::super::scanner_tokens::SourceSpan {
+                        start: super::super::scanner_tokens::Position { row: 0, column: 0 },
+                        end: super::super::scanner_tokens::Position {
                             row: 0,
                             column: content.len(),
                         },

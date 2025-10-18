@@ -34,7 +34,7 @@
 //!     │   ├── content: Vec<Inline>
 //!         Annotations attached to this element, post parsing at assembly (during time aanotations are regular items in container)
 //!     │   ├── annotations: Vec<Annotation>
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! Key structural properties:
@@ -55,7 +55,7 @@
 //!         Annotations attached to this definition
 //!     pub annotations: Vec<Annotation>,
 //!     /// Raw tokens for precise source reconstruction
-//!     pub tokens: TokenSequence,
+//!     pub tokens: ScannerTokenSequence,
 //! }
 //! ```
 //!

@@ -34,7 +34,7 @@
 //!     │   ├── label: String
 //!     │   ├── content: Vec<Inline>
 //!     │   ├── annotations: Vec<Annotation>
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! Key structural properties:
@@ -55,7 +55,7 @@
 //!         Annotations attached to this annotation
 //!     pub annotations: Vec<Annotation>,
 //!     /// Raw tokens for precise source reconstruction
-//!     pub tokens: TokenSequence,
+//!     pub tokens: ScannerTokenSequence,
 //! }
 //! ```
 //!

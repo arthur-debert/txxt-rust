@@ -8,7 +8,7 @@
 //! The session vs paragraph distinction is made later during parsing
 //! based on whether the line is followed by indented content.
 
-use crate::ast::tokens::{SourceSpan, Token};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 
 /// Represents a session title with optional numbering
 #[derive(Debug, Clone, PartialEq)]
@@ -39,7 +39,7 @@ pub enum SessionParseResult {
 /// - May start with numeric sequence (1., 2.3., etc.)
 /// - Must be followed by indented content to be confirmed as session
 /// - Without indented content, treated as paragraph
-pub fn detect_session_title(tokens: &[Token]) -> SessionParseResult {
+pub fn detect_session_title(tokens: &[ScannerToken]) -> SessionParseResult {
     if tokens.is_empty() {
         return SessionParseResult::Paragraph;
     }
@@ -48,7 +48,7 @@ pub fn detect_session_title(tokens: &[Token]) -> SessionParseResult {
     let mut title_start_idx = 0;
 
     // Check for optional numeric sequence at start
-    if let Some(Token::SequenceMarker { marker_type, .. }) = tokens.first() {
+    if let Some(ScannerToken::SequenceMarker { marker_type, .. }) = tokens.first() {
         if let Some(parsed_numbering) = parse_session_numbering(marker_type.content()) {
             numbering = Some(parsed_numbering);
             title_start_idx = 1; // Skip the sequence marker when extracting title
@@ -56,7 +56,7 @@ pub fn detect_session_title(tokens: &[Token]) -> SessionParseResult {
     }
 
     // Extract title text from tokens after the sequence marker (if any)
-    let title_tokens: Vec<Token> = tokens[title_start_idx..].to_vec();
+    let title_tokens: Vec<ScannerToken> = tokens[title_start_idx..].to_vec();
     let title_text = extract_title_text(&title_tokens);
 
     if title_text.trim().is_empty() {
@@ -101,12 +101,12 @@ fn parse_session_numbering(marker: &str) -> Option<Vec<u32>> {
 }
 
 /// Extracts title text from a sequence of tokens
-fn extract_title_text(tokens: &[Token]) -> String {
+fn extract_title_text(tokens: &[ScannerToken]) -> String {
     tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.as_str()),
-            Token::Identifier { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Identifier { content, .. } => Some(content.as_str()),
             // Skip structural tokens but preserve content tokens
             _ => None,
         })
@@ -119,11 +119,14 @@ fn extract_title_text(tokens: &[Token]) -> String {
 /// This is used during parsing to distinguish sessions from paragraphs.
 /// A line with session-like structure is only confirmed as a session
 /// if it's followed by indented content.
-pub fn confirm_session_with_content(_session_tokens: &[Token], following_tokens: &[Token]) -> bool {
+pub fn confirm_session_with_content(
+    _session_tokens: &[ScannerToken],
+    following_tokens: &[ScannerToken],
+) -> bool {
     // Check if following tokens contain indentation
     following_tokens
         .iter()
-        .any(|token| matches!(token, Token::Indent { .. }))
+        .any(|token| matches!(token, ScannerToken::Indent { .. }))
 }
 
 /// Formats session numbering back to string representation
@@ -145,7 +148,7 @@ pub fn format_session_numbering(numbering: &[u32]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::tokens::Position;
+    use crate::ast::scanner_tokens::Position;
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -154,16 +157,19 @@ mod tests {
         }
     }
 
-    fn create_text_token(content: &str) -> Token {
-        Token::Text {
+    fn create_text_token(content: &str) -> ScannerToken {
+        ScannerToken::Text {
             content: content.to_string(),
             span: create_test_span(),
         }
     }
 
-    fn create_sequence_token(content: &str) -> Token {
-        Token::SequenceMarker {
-            marker_type: crate::ast::tokens::SequenceMarkerType::Numerical(1, content.to_string()),
+    fn create_sequence_token(content: &str) -> ScannerToken {
+        ScannerToken::SequenceMarker {
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+                1,
+                content.to_string(),
+            ),
             span: create_test_span(),
         }
     }
@@ -241,7 +247,7 @@ mod tests {
     fn test_confirm_session_with_content() {
         let session_tokens = vec![create_text_token("Title")];
         let following_with_indent = vec![
-            Token::Indent {
+            ScannerToken::Indent {
                 span: create_test_span(),
             },
             create_text_token("Content"),

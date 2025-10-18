@@ -5,7 +5,7 @@
 //! 2. Properly separate labels from parameters
 //! 3. Handle various parameter formats
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]
@@ -23,10 +23,10 @@ mod verbatim_label_tests {
         // Find VerbatimLabel token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             // This test SHOULD FAIL initially - content currently includes "::"
             assert_eq!(
                 content, "python",
@@ -45,10 +45,10 @@ mod verbatim_label_tests {
 
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             // UPDATED: VerbatimLabel now contains ONLY the label, not parameters
             assert_eq!(
                 content, "python",
@@ -60,7 +60,7 @@ mod verbatim_label_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -87,10 +87,10 @@ mod verbatim_label_tests {
 
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             // UPDATED: VerbatimLabel now contains ONLY the label
             assert_eq!(
                 content, "mylabel",
@@ -107,7 +107,7 @@ mod verbatim_label_tests {
         let param_tokens: Vec<_> = tokens
             .iter()
             .filter_map(|token| {
-                if let Token::Parameter { key, value, .. } = token {
+                if let ScannerToken::Parameter { key, value, .. } = token {
                     Some((key.clone(), value.clone()))
                 } else {
                     None
@@ -139,12 +139,12 @@ mod verbatim_label_tests {
 
             let label_token = tokens
                 .iter()
-                .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+                .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
                 .unwrap_or_else(|| {
                     panic!("Should find VerbatimLabel token for: {}", terminator_line)
                 });
 
-            if let Token::VerbatimLabel { content, .. } = label_token {
+            if let ScannerToken::VerbatimLabel { content, .. } = label_token {
                 assert_eq!(
                     content, expected_label,
                     "VerbatimLabel for '{}' should be '{}'",
@@ -165,10 +165,10 @@ mod verbatim_label_tests {
 
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, Token::VerbatimLabel { .. }))
+            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
             .expect("Should find VerbatimLabel token");
 
-        if let Token::VerbatimLabel { content, .. } = label_token {
+        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
             // This verifies the FIXED behavior - content excludes "::"
             assert_eq!(
                 content, "mylabel",

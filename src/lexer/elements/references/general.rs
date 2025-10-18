@@ -4,7 +4,7 @@
 //! Reference markers are inline elements that link to other content.
 
 use crate::ast::elements::references::reference_types::ReferenceClassifier;
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
 /// Trait for reference marker lexing
 pub trait ReferenceLexer {
@@ -33,7 +33,7 @@ pub trait ReferenceLexer {
     fn ref_classifier(&self) -> &ReferenceClassifier;
 
     /// Read reference markers ([target], [@citation], [#section], [1])
-    fn read_ref_marker(&mut self) -> Option<Token> {
+    fn read_ref_marker(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         // Must start with [
@@ -73,7 +73,7 @@ pub trait ReferenceLexer {
 
         // Validate content patterns
         if self.is_valid_ref_content(&content) {
-            Some(Token::RefMarker {
+            Some(ScannerToken::RefMarker {
                 content,
                 span: SourceSpan {
                     start: start_pos,

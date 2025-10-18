@@ -35,7 +35,7 @@ use serde::{Deserialize, Serialize};
 
 use super::super::{
     blocks::Block, components::parameters::Parameters, formatting::inlines::Inline,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 /// Annotation - metadata that attaches to document elements
@@ -75,7 +75,7 @@ pub struct Annotation {
     pub content: AnnotationContent,
 
     /// Raw tokens for source reconstruction and positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 
     /// Namespace information (if label contains dots)
     /// Example: "org.example.meta" → namespace="org.example", local_label="meta"
@@ -116,7 +116,7 @@ pub struct AnnotationAttachment {
     pub attachment_rule: AttachmentRule,
 
     /// Source position where annotation appeared
-    pub source_position: TokenSequence,
+    pub source_position: ScannerTokenSequence,
 
     /// Target element information (for debugging)
     pub target_info: Option<String>,
@@ -207,7 +207,7 @@ impl Annotation {
             label,
             parameters: Parameters::new(),
             content,
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
             namespace: None,
         }
     }

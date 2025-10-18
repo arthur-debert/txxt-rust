@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::{
@@ -40,7 +40,7 @@ pub struct AnnotationBlock {
     pub annotations: Vec<Annotation>,
 
     /// Raw tokens for precise source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 
     /// Namespace information (if label contains dots)
     /// Example: "org.example.meta" → namespace="org.example", local_label="meta"
@@ -72,7 +72,7 @@ impl TxxtElement for AnnotationBlock {
         ElementType::Block
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -98,7 +98,7 @@ impl AnnotationBlock {
         content: AnnotationContent,
         parameters: Parameters,
         annotations: Vec<Annotation>,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         let namespace = if label.contains('.') {
             let parts: Vec<&str> = label.rsplitn(2, '.').collect();

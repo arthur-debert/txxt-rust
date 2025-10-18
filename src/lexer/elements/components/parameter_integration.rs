@@ -3,19 +3,19 @@
 //! This module provides corrected versions of annotation and definition parameter
 //! integration that maintain whitespace tokens and accurate source positions.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use crate::lexer::elements::components::parameters::ParameterLexer;
 
 /// Process annotation tokens to integrate parameters while preserving whitespace
 pub fn integrate_annotation_parameters_fixed<L: ParameterLexer>(
-    tokens: Vec<Token>,
+    tokens: Vec<ScannerToken>,
     _lexer: &mut L,
-) -> Vec<Token> {
+) -> Vec<ScannerToken> {
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
-        if let Token::AnnotationMarker { .. } = &tokens[i] {
+        if let ScannerToken::AnnotationMarker { .. } = &tokens[i] {
             // Found opening annotation marker
             result.push(tokens[i].clone());
             i += 1;
@@ -26,7 +26,7 @@ pub fn integrate_annotation_parameters_fixed<L: ParameterLexer>(
             let mut closing_idx = i;
 
             while i < tokens.len() {
-                if matches!(&tokens[i], Token::AnnotationMarker { .. }) {
+                if matches!(&tokens[i], ScannerToken::AnnotationMarker { .. }) {
                     found_closing = true;
                     closing_idx = i;
                     break;
@@ -58,14 +58,14 @@ pub fn integrate_annotation_parameters_fixed<L: ParameterLexer>(
 
 /// Process definition tokens to integrate parameters while preserving whitespace
 pub fn integrate_definition_parameters_fixed<L: ParameterLexer>(
-    tokens: Vec<Token>,
+    tokens: Vec<ScannerToken>,
     _lexer: &mut L,
-) -> Vec<Token> {
+) -> Vec<ScannerToken> {
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
-        if let Token::DefinitionMarker { .. } = &tokens[i] {
+        if let ScannerToken::DefinitionMarker { .. } = &tokens[i] {
             // Found definition marker - look backwards for content
 
             let mut j = result.len();
@@ -74,10 +74,10 @@ pub fn integrate_definition_parameters_fixed<L: ParameterLexer>(
             while j > 0 {
                 j -= 1;
                 match &result[j] {
-                    Token::Text { .. }
-                    | Token::Identifier { .. }
-                    | Token::Whitespace { .. }
-                    | Token::Colon { .. } => {
+                    ScannerToken::Text { .. }
+                    | ScannerToken::Identifier { .. }
+                    | ScannerToken::Whitespace { .. }
+                    | ScannerToken::Colon { .. } => {
                         // Continue collecting
                     }
                     _ => {
@@ -108,7 +108,7 @@ pub fn integrate_definition_parameters_fixed<L: ParameterLexer>(
 }
 
 /// Process annotation content tokens to detect and parse parameters
-fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
+fn process_annotation_content(tokens: Vec<ScannerToken>) -> (Vec<ScannerToken>, bool) {
     // Look for the pattern: Text (label) + optional Whitespace + Colon + parameters
     let mut result = Vec::new();
     let mut i = 0;
@@ -116,7 +116,7 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
 
     while i < tokens.len() {
         match &tokens[i] {
-            Token::Text { content, span } => {
+            ScannerToken::Text { content, span } => {
                 // Check if this might be a label with parameters
                 if content.contains(':') {
                     // Split at first colon
@@ -128,7 +128,7 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                         let colon_char_pos = content[..colon_byte_pos].chars().count();
 
                         // Create label token with correct span
-                        result.push(Token::Text {
+                        result.push(ScannerToken::Text {
                             content: label.to_string(),
                             span: SourceSpan {
                                 start: span.start,
@@ -140,7 +140,7 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                         });
 
                         // Create colon token
-                        result.push(Token::Colon {
+                        result.push(ScannerToken::Colon {
                             span: SourceSpan {
                                 start: Position {
                                     row: span.start.row,
@@ -174,20 +174,20 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                 }
                 i += 1;
             }
-            Token::Colon { span: _ } => {
+            ScannerToken::Colon { span: _ } => {
                 // Standalone colon - check if parameters follow
                 result.push(tokens[i].clone());
                 i += 1;
 
                 // Skip whitespace
-                while i < tokens.len() && matches!(&tokens[i], Token::Whitespace { .. }) {
+                while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
                     result.push(tokens[i].clone());
                     i += 1;
                 }
 
                 // Check for parameter-like content
                 if i < tokens.len() {
-                    if let Token::Text {
+                    if let ScannerToken::Text {
                         content,
                         span: text_span,
                     } = &tokens[i]
@@ -215,7 +215,7 @@ fn process_annotation_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
 }
 
 /// Process definition content tokens to detect and parse parameters  
-fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
+fn process_definition_content(tokens: Vec<ScannerToken>) -> (Vec<ScannerToken>, bool) {
     // For definitions, we need to handle: term:params
     // The tokens might be split as: Text("term") + Colon + Text("params")
     // Or combined as: Text("term:params")
@@ -226,7 +226,7 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
 
     while i < tokens.len() {
         match &tokens[i] {
-            Token::Text { content, span } => {
+            ScannerToken::Text { content, span } => {
                 // Check if this contains the whole pattern
                 if content.contains(':') {
                     // Split at first colon
@@ -238,7 +238,7 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                         let colon_char_pos = content[..colon_byte_pos].chars().count();
 
                         // Create term token with correct span
-                        result.push(Token::Text {
+                        result.push(ScannerToken::Text {
                             content: term.to_string(),
                             span: SourceSpan {
                                 start: span.start,
@@ -250,7 +250,7 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                         });
 
                         // Create colon token
-                        result.push(Token::Colon {
+                        result.push(ScannerToken::Colon {
                             span: SourceSpan {
                                 start: Position {
                                     row: span.start.row,
@@ -284,20 +284,20 @@ fn process_definition_content(tokens: Vec<Token>) -> (Vec<Token>, bool) {
                 }
                 i += 1;
             }
-            Token::Colon { .. } => {
+            ScannerToken::Colon { .. } => {
                 // Colon token - check if parameters follow
                 result.push(tokens[i].clone());
                 i += 1;
 
                 // Skip whitespace (but preserve it)
-                while i < tokens.len() && matches!(&tokens[i], Token::Whitespace { .. }) {
+                while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
                     result.push(tokens[i].clone());
                     i += 1;
                 }
 
                 // Check for parameter content
                 if i < tokens.len() {
-                    if let Token::Text { content, span } = &tokens[i] {
+                    if let ScannerToken::Text { content, span } = &tokens[i] {
                         if looks_like_parameters(content) {
                             let param_tokens = parse_parameters_with_position(content, span.start);
                             result.extend(param_tokens);
@@ -344,7 +344,7 @@ fn is_valid_parameter_key(s: &str) -> bool {
 }
 
 /// Parse parameters with correct source position tracking
-fn parse_parameters_with_position(input: &str, start_position: Position) -> Vec<Token> {
+fn parse_parameters_with_position(input: &str, start_position: Position) -> Vec<ScannerToken> {
     let mut tokens = Vec::new();
     let chars: Vec<char> = input.chars().collect();
     let mut pos = 0;
@@ -371,7 +371,7 @@ fn parse_parameters_with_position(input: &str, start_position: Position) -> Vec<
                 column: param_start.column + consumed,
             };
 
-            tokens.push(Token::Parameter {
+            tokens.push(ScannerToken::Parameter {
                 key,
                 value,
                 span: SourceSpan {

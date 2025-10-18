@@ -10,7 +10,7 @@ pub mod paragraph_tokenizer;
 
 // Re-export main interfaces
 
-use crate::ast::tokens::{SourceSpan, Token};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 
 /// Represents a paragraph with its constituent text lines
 #[derive(Debug, Clone, PartialEq)]
@@ -40,7 +40,7 @@ pub enum ParagraphParseResult {
 /// - Line contains text content (not whitespace-only)
 /// - Line does not match any other block element pattern
 /// - Continues until blank line or indentation change
-pub fn detect_paragraph(tokens: &[Token]) -> ParagraphParseResult {
+pub fn detect_paragraph(tokens: &[ScannerToken]) -> ParagraphParseResult {
     if tokens.is_empty() {
         return ParagraphParseResult::NotParagraph;
     }
@@ -77,7 +77,7 @@ pub fn detect_paragraph(tokens: &[Token]) -> ParagraphParseResult {
 /// Checks if tokens match patterns for other block elements
 ///
 /// This helps ensure paragraphs serve as the fallback element type
-fn looks_like_other_element(tokens: &[Token]) -> bool {
+fn looks_like_other_element(tokens: &[ScannerToken]) -> bool {
     if tokens.is_empty() {
         return false;
     }
@@ -85,21 +85,21 @@ fn looks_like_other_element(tokens: &[Token]) -> bool {
     // Check for sequence markers that might indicate lists or sessions
     if let Some(first_token) = tokens.first() {
         match first_token {
-            Token::SequenceMarker { .. } => {
+            ScannerToken::SequenceMarker { .. } => {
                 // Sequence markers can be paragraphs too! The key is indentation + blank lines
                 // Only reject if this is clearly a structured element (has indented content)
                 // For now, be lenient and let paragraph parser handle it
                 false
             }
-            Token::AnnotationMarker { .. } => {
+            ScannerToken::AnnotationMarker { .. } => {
                 // Annotation block
                 true
             }
-            Token::DefinitionMarker { .. } => {
+            ScannerToken::DefinitionMarker { .. } => {
                 // Definition block
                 true
             }
-            Token::VerbatimTitle { .. } => {
+            ScannerToken::VerbatimTitle { .. } => {
                 // Verbatim block
                 true
             }
@@ -111,26 +111,26 @@ fn looks_like_other_element(tokens: &[Token]) -> bool {
 }
 
 /// Extracts text content from paragraph tokens
-fn extract_paragraph_content(tokens: &[Token]) -> String {
+fn extract_paragraph_content(tokens: &[ScannerToken]) -> String {
     tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.as_str()),
-            Token::Identifier { content, .. } => Some(content.as_str()),
-            Token::SequenceMarker { marker_type, .. } => Some(marker_type.content()),
-            Token::Whitespace { content, .. } => Some(content.as_str()),
-            Token::Period { .. } => Some("."),
-            Token::Dash { .. } => Some("-"),
-            Token::Colon { .. } => Some(":"),
-            Token::LeftBracket { .. } => Some("["),
-            Token::RightBracket { .. } => Some("]"),
-            Token::AtSign { .. } => Some("@"),
-            Token::LeftParen { .. } => Some("("),
-            Token::RightParen { .. } => Some(")"),
-            Token::BoldDelimiter { .. } => Some("*"),
-            Token::ItalicDelimiter { .. } => Some("_"),
-            Token::CodeDelimiter { .. } => Some("`"),
-            Token::MathDelimiter { .. } => Some("#"),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Identifier { content, .. } => Some(content.as_str()),
+            ScannerToken::SequenceMarker { marker_type, .. } => Some(marker_type.content()),
+            ScannerToken::Whitespace { content, .. } => Some(content.as_str()),
+            ScannerToken::Period { .. } => Some("."),
+            ScannerToken::Dash { .. } => Some("-"),
+            ScannerToken::Colon { .. } => Some(":"),
+            ScannerToken::LeftBracket { .. } => Some("["),
+            ScannerToken::RightBracket { .. } => Some("]"),
+            ScannerToken::AtSign { .. } => Some("@"),
+            ScannerToken::LeftParen { .. } => Some("("),
+            ScannerToken::RightParen { .. } => Some(")"),
+            ScannerToken::BoldDelimiter { .. } => Some("*"),
+            ScannerToken::ItalicDelimiter { .. } => Some("_"),
+            ScannerToken::CodeDelimiter { .. } => Some("`"),
+            ScannerToken::MathDelimiter { .. } => Some("#"),
             // Skip structural tokens like Newline, BlankLine, Indent, Dedent, Eof
             _ => None,
         })
@@ -144,7 +144,7 @@ fn extract_paragraph_content(tokens: &[Token]) -> String {
 /// - Lines at same indentation continue the paragraph
 /// - Blank line terminates the paragraph
 /// - Indentation change ends the paragraph
-pub fn collect_paragraph_lines(line_tokens: &[Vec<Token>]) -> Option<Paragraph> {
+pub fn collect_paragraph_lines(line_tokens: &[Vec<ScannerToken>]) -> Option<Paragraph> {
     if line_tokens.is_empty() {
         return None;
     }
@@ -207,7 +207,7 @@ fn normalize_paragraph_whitespace(text: &str) -> String {
 /// - Blank line (whitespace-only)
 /// - Line matching another block element pattern
 /// - Indentation change
-pub fn should_terminate_paragraph(tokens: &[Token]) -> bool {
+pub fn should_terminate_paragraph(tokens: &[ScannerToken]) -> bool {
     if tokens.is_empty() {
         return true; // Empty line terminates
     }
@@ -216,11 +216,11 @@ pub fn should_terminate_paragraph(tokens: &[Token]) -> bool {
     let has_content = tokens.iter().any(|token| {
         matches!(
             token,
-            Token::Text { .. }
-                | Token::Identifier { .. }
-                | Token::SequenceMarker { .. }
-                | Token::AnnotationMarker { .. }
-                | Token::DefinitionMarker { .. }
+            ScannerToken::Text { .. }
+                | ScannerToken::Identifier { .. }
+                | ScannerToken::SequenceMarker { .. }
+                | ScannerToken::AnnotationMarker { .. }
+                | ScannerToken::DefinitionMarker { .. }
         )
     });
 
@@ -229,10 +229,12 @@ pub fn should_terminate_paragraph(tokens: &[Token]) -> bool {
     }
 
     // Check for indentation change
-    if tokens
-        .iter()
-        .any(|token| matches!(token, Token::Indent { .. } | Token::Dedent { .. }))
-    {
+    if tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Indent { .. } | ScannerToken::Dedent { .. }
+        )
+    }) {
         return true;
     }
 
@@ -243,7 +245,7 @@ pub fn should_terminate_paragraph(tokens: &[Token]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::tokens::Position;
+    use crate::ast::scanner_tokens::Position;
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -252,16 +254,16 @@ mod tests {
         }
     }
 
-    fn create_text_token(content: &str) -> Token {
-        Token::Text {
+    fn create_text_token(content: &str) -> ScannerToken {
+        ScannerToken::Text {
             content: content.to_string(),
             span: create_test_span(),
         }
     }
 
-    fn create_sequence_token(content: &str) -> Token {
-        Token::SequenceMarker {
-            marker_type: crate::ast::tokens::SequenceMarkerType::Plain(content.to_string()),
+    fn create_sequence_token(content: &str) -> ScannerToken {
+        ScannerToken::SequenceMarker {
+            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Plain(content.to_string()),
             span: create_test_span(),
         }
     }
@@ -331,7 +333,7 @@ mod tests {
         assert!(!should_terminate_paragraph(&sequence_tokens));
 
         // Indentation should terminate
-        let indent_tokens = vec![Token::Indent {
+        let indent_tokens = vec![ScannerToken::Indent {
             span: create_test_span(),
         }];
         assert!(should_terminate_paragraph(&indent_tokens));

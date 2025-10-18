@@ -56,7 +56,7 @@ pub mod infrastructure;
 // Re-export main interfaces
 pub use core::Lexer;
 pub use elements::verbatim::{VerbatimBlock, VerbatimScanner, VerbatimType};
-pub use pipeline::{TokenTree, TokenTreeBuilder};
+pub use pipeline::{ScannerTokenTree, ScannerTokenTreeBuilder};
 
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};
@@ -67,13 +67,13 @@ pub use elements::references::{
     ReferenceLexer, SessionRefLexer,
 };
 
-// Re-export new AST token types
-pub use crate::ast::tokens::{Position, SourceSpan, Token, TokenSequence};
+// Re-export new AST scanner token types
+pub use crate::ast::scanner_tokens::{Position, ScannerToken, ScannerTokenSequence, SourceSpan};
 
 /// Main tokenization entry point
 ///
-/// Processes TXXT text and returns Token enum variants with precise source positions
-pub fn tokenize(text: &str) -> Vec<Token> {
+/// Processes TXXT text and returns ScannerToken enum variants with precise source positions
+pub fn tokenize(text: &str) -> Vec<ScannerToken> {
     let mut lexer = Lexer::new(text);
     lexer.tokenize()
 }

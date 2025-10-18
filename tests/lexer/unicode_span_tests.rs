@@ -4,7 +4,7 @@
 //! characters when calculating spans. This is critical for language server
 //! functionality and any position-based features.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
@@ -144,7 +144,7 @@ fn test_all_tokenizers_with_emoji() {
             let token = &tokens[token_idx];
 
             match (expected, token) {
-                (ExpectedToken::Text(expected_content), Token::Text { content, span }) => {
+                (ExpectedToken::Text(expected_content), ScannerToken::Text { content, span }) => {
                     assert_eq!(
                         content, expected_content,
                         "{}: Expected text '{}', got '{}'",
@@ -157,7 +157,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::Dash, Token::Dash { span }) => {
+                (ExpectedToken::Dash, ScannerToken::Dash { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: Dash should start at column {}",
@@ -165,7 +165,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::AnnotationMarker, Token::AnnotationMarker { span, .. }) => {
+                (ExpectedToken::AnnotationMarker, ScannerToken::AnnotationMarker { span, .. }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: AnnotationMarker should start at column {}",
@@ -173,7 +173,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::BoldDelimiter, Token::BoldDelimiter { span }) => {
+                (ExpectedToken::BoldDelimiter, ScannerToken::BoldDelimiter { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: BoldDelimiter should start at column {}",
@@ -181,7 +181,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::ItalicDelimiter, Token::ItalicDelimiter { span }) => {
+                (ExpectedToken::ItalicDelimiter, ScannerToken::ItalicDelimiter { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: ItalicDelimiter should start at column {}",
@@ -189,7 +189,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::CodeDelimiter, Token::CodeDelimiter { span }) => {
+                (ExpectedToken::CodeDelimiter, ScannerToken::CodeDelimiter { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: CodeDelimiter should start at column {}",
@@ -197,7 +197,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::MathDelimiter, Token::MathDelimiter { span }) => {
+                (ExpectedToken::MathDelimiter, ScannerToken::MathDelimiter { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: MathDelimiter should start at column {}",
@@ -205,7 +205,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::LeftBracket, Token::LeftBracket { span }) => {
+                (ExpectedToken::LeftBracket, ScannerToken::LeftBracket { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: LeftBracket should start at column {}",
@@ -213,7 +213,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::RightBracket, Token::RightBracket { span }) => {
+                (ExpectedToken::RightBracket, ScannerToken::RightBracket { span }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: RightBracket should start at column {}",
@@ -221,7 +221,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::RefMarker, Token::RefMarker { span, .. }) => {
+                (ExpectedToken::RefMarker, ScannerToken::RefMarker { span, .. }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: RefMarker should start at column {}",
@@ -229,7 +229,7 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::Whitespace, Token::Whitespace { span, .. }) => {
+                (ExpectedToken::Whitespace, ScannerToken::Whitespace { span, .. }) => {
                     assert_eq!(
                         span.start.column, expected_col,
                         "{}: Whitespace should start at column {}",
@@ -283,11 +283,11 @@ fn test_sequence_markers_unicode() {
 
         let marker = tokens
             .iter()
-            .find(|t| matches!(t, Token::SequenceMarker { .. }))
+            .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
             .unwrap_or_else(|| panic!("Should find sequence marker in: {}", description));
 
         match marker {
-            Token::SequenceMarker { span, .. } => {
+            ScannerToken::SequenceMarker { span, .. } => {
                 assert_eq!(
                     span.start.column, expected_start,
                     "{}: marker start should be {} but was {}",
@@ -320,7 +320,7 @@ fn test_sequence_markers_unicode() {
 
         let has_sequence_marker = tokens
             .iter()
-            .any(|t| matches!(t, Token::SequenceMarker { .. }));
+            .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));
 
         assert!(
             !has_sequence_marker,
@@ -330,7 +330,9 @@ fn test_sequence_markers_unicode() {
 
         // These should produce dash tokens instead
         if input.contains('-') {
-            let has_dash = tokens.iter().any(|t| matches!(t, Token::Dash { .. }));
+            let has_dash = tokens
+                .iter()
+                .any(|t| matches!(t, ScannerToken::Dash { .. }));
             assert!(has_dash, "{}: Should have a dash token", description);
         }
     }
@@ -346,11 +348,11 @@ fn test_annotation_definition_unicode() {
 
     let first_annotation = tokens
         .iter()
-        .find(|t| matches!(t, Token::AnnotationMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::AnnotationMarker { .. }))
         .expect("Should find annotation marker");
 
     match first_annotation {
-        Token::AnnotationMarker { span, .. } => {
+        ScannerToken::AnnotationMarker { span, .. } => {
             assert_eq!(
                 span.start.column, 5,
                 "Annotation after 'café ' should start at column 5"
@@ -366,11 +368,11 @@ fn test_annotation_definition_unicode() {
 
     let definition = tokens
         .iter()
-        .find(|t| matches!(t, Token::DefinitionMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::DefinitionMarker { .. }))
         .expect("Should find definition marker");
 
     match definition {
-        Token::DefinitionMarker { span, .. } => {
+        ScannerToken::DefinitionMarker { span, .. } => {
             assert_eq!(
                 span.start.column, 5,
                 "Definition after 'café ' should start at column 5"
@@ -427,7 +429,7 @@ fn test_reference_markers_unicode() {
         input: &'static str,
         description: &'static str,
         #[allow(clippy::type_complexity)]
-        check: Box<dyn Fn(&[Token])>,
+        check: Box<dyn Fn(&[ScannerToken])>,
     }
 
     let test_cases = vec![
@@ -437,10 +439,10 @@ fn test_reference_markers_unicode() {
             check: Box::new(|tokens| {
                 let ref_marker = tokens
                     .iter()
-                    .find(|t| matches!(t, Token::RefMarker { .. }))
+                    .find(|t| matches!(t, ScannerToken::RefMarker { .. }))
                     .expect("Should find RefMarker token");
                 match ref_marker {
-                    Token::RefMarker { span, .. } => {
+                    ScannerToken::RefMarker { span, .. } => {
                         assert_eq!(
                             span.start.column, 5,
                             "RefMarker should start at column 5 after 'café '"
@@ -457,10 +459,10 @@ fn test_reference_markers_unicode() {
                 // @ is no longer special, so "@cite" should be part of a text token
                 let text_with_at = tokens
                     .iter()
-                    .find(|t| matches!(t, Token::Text { content, .. } if content.contains("@cite")))
+                    .find(|t| matches!(t, ScannerToken::Text { content, .. } if content.contains("@cite")))
                     .expect("Should find text token containing @cite");
                 match text_with_at {
-                    Token::Text { content, span } => {
+                    ScannerToken::Text { content, span } => {
                         assert!(content.contains("@cite"), "Text should contain @cite");
                         assert_eq!(span.start.column, 5, "Text with @ should start at column 5");
                     }
@@ -474,10 +476,10 @@ fn test_reference_markers_unicode() {
             check: Box::new(|tokens| {
                 let ref_marker = tokens
                     .iter()
-                    .find(|t| matches!(t, Token::RefMarker { .. }))
+                    .find(|t| matches!(t, ScannerToken::RefMarker { .. }))
                     .expect("Should find RefMarker token");
                 match ref_marker {
-                    Token::RefMarker { span, .. } => {
+                    ScannerToken::RefMarker { span, .. } => {
                         assert_eq!(
                             span.start.column, 2,
                             "RefMarker should start at column 2 after emoji and space"
@@ -493,10 +495,10 @@ fn test_reference_markers_unicode() {
             check: Box::new(|tokens| {
                 let text_with_at = tokens
                     .iter()
-                    .find(|t| matches!(t, Token::Text { content, .. } if content.contains("@cite")))
+                    .find(|t| matches!(t, ScannerToken::Text { content, .. } if content.contains("@cite")))
                     .expect("Should find text token containing @cite");
                 match text_with_at {
-                    Token::Text { span, .. } => {
+                    ScannerToken::Text { span, .. } => {
                         assert_eq!(span.start.column, 2, "Text with @ should start at column 2");
                     }
                     _ => unreachable!(),
@@ -556,7 +558,7 @@ fn test_parameter_spans_unicode() {
         let token = if is_text {
             tokens
                 .iter()
-                .find(|t| matches!(t, Token::Text { content, .. } if content == unicode_content))
+                .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == unicode_content))
                 .unwrap_or_else(|| {
                     panic!(
                         "Should find Text token with '{}' in: {}",
@@ -567,7 +569,7 @@ fn test_parameter_spans_unicode() {
             tokens
                 .iter()
                 .find(|t| match t {
-                    Token::Parameter { key, value, .. } => {
+                    ScannerToken::Parameter { key, value, .. } => {
                         key == unicode_content || value == unicode_content
                     }
                     _ => false,
@@ -600,11 +602,11 @@ fn test_parameter_spans_unicode() {
 
     let emoji_token = tokens
         .iter()
-        .find(|t| matches!(t, Token::Text { content, .. } if content == "🎉"))
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "🎉"))
         .expect("Should find emoji text token");
 
     match emoji_token {
-        Token::Text { span, .. } => {
+        ScannerToken::Text { span, .. } => {
             assert_eq!(span.start.column, 3, "Emoji should start at column 3");
             assert_eq!(span.end.column, 4, "Emoji should end at column 4");
         }
@@ -622,7 +624,7 @@ fn test_mixed_unicode_content() {
     // Verify each text token has correct position
     let text_tokens: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::Text { .. }))
+        .filter(|t| matches!(t, ScannerToken::Text { .. }))
         .collect();
 
     assert!(text_tokens.len() >= 3, "Should have at least 3 text tokens");
@@ -651,58 +653,58 @@ fn test_mixed_unicode_content() {
 
 // Helper functions
 
-fn get_token_span(token: &Token) -> &txxt::ast::tokens::SourceSpan {
+fn get_token_span(token: &ScannerToken) -> &txxt::ast::scanner_tokens::SourceSpan {
     match token {
-        Token::Text { span, .. }
-        | Token::Identifier { span, .. }
-        | Token::AnnotationMarker { span, .. }
-        | Token::DefinitionMarker { span, .. }
-        | Token::SequenceMarker { span, .. }
-        | Token::BoldDelimiter { span }
-        | Token::ItalicDelimiter { span }
-        | Token::CodeDelimiter { span }
-        | Token::MathDelimiter { span }
-        | Token::LeftBracket { span }
-        | Token::RightBracket { span }
-        | Token::AtSign { span }
-        | Token::LeftParen { span }
-        | Token::RightParen { span }
-        | Token::Colon { span }
-        | Token::Dash { span }
-        | Token::Period { span }
-        | Token::Newline { span }
-        | Token::BlankLine { span, .. }
-        | Token::Whitespace { span, .. }
-        | Token::Parameter { span, .. }
-        | Token::RefMarker { span, .. }
-        | Token::CitationRef { span, .. }
-        | Token::PageRef { span, .. }
-        | Token::SessionRef { span, .. }
-        | Token::FootnoteRef { span, .. }
-        | Token::Indent { span, .. }
-        | Token::Dedent { span, .. }
-        | Token::VerbatimTitle { span, .. }
-        | Token::VerbatimLabel { span, .. }
-        | Token::VerbatimContent { span, .. }
-        | Token::Eof { span } => span,
+        ScannerToken::Text { span, .. }
+        | ScannerToken::Identifier { span, .. }
+        | ScannerToken::AnnotationMarker { span, .. }
+        | ScannerToken::DefinitionMarker { span, .. }
+        | ScannerToken::SequenceMarker { span, .. }
+        | ScannerToken::BoldDelimiter { span }
+        | ScannerToken::ItalicDelimiter { span }
+        | ScannerToken::CodeDelimiter { span }
+        | ScannerToken::MathDelimiter { span }
+        | ScannerToken::LeftBracket { span }
+        | ScannerToken::RightBracket { span }
+        | ScannerToken::AtSign { span }
+        | ScannerToken::LeftParen { span }
+        | ScannerToken::RightParen { span }
+        | ScannerToken::Colon { span }
+        | ScannerToken::Dash { span }
+        | ScannerToken::Period { span }
+        | ScannerToken::Newline { span }
+        | ScannerToken::BlankLine { span, .. }
+        | ScannerToken::Whitespace { span, .. }
+        | ScannerToken::Parameter { span, .. }
+        | ScannerToken::RefMarker { span, .. }
+        | ScannerToken::CitationRef { span, .. }
+        | ScannerToken::PageRef { span, .. }
+        | ScannerToken::SessionRef { span, .. }
+        | ScannerToken::FootnoteRef { span, .. }
+        | ScannerToken::Indent { span, .. }
+        | ScannerToken::Dedent { span, .. }
+        | ScannerToken::VerbatimTitle { span, .. }
+        | ScannerToken::VerbatimLabel { span, .. }
+        | ScannerToken::VerbatimContent { span, .. }
+        | ScannerToken::Eof { span } => span,
     }
 }
 
-fn is_delimiter_token(token: &Token, delimiter: char) -> bool {
+fn is_delimiter_token(token: &ScannerToken, delimiter: char) -> bool {
     matches!(
         (token, delimiter),
-        (Token::BoldDelimiter { .. }, '*')
-            | (Token::ItalicDelimiter { .. }, '_')
-            | (Token::CodeDelimiter { .. }, '`')
-            | (Token::MathDelimiter { .. }, '#')
+        (ScannerToken::BoldDelimiter { .. }, '*')
+            | (ScannerToken::ItalicDelimiter { .. }, '_')
+            | (ScannerToken::CodeDelimiter { .. }, '`')
+            | (ScannerToken::MathDelimiter { .. }, '#')
     )
 }
 
-fn token_contains_text(token: &Token, text: &str) -> bool {
+fn token_contains_text(token: &ScannerToken, text: &str) -> bool {
     match token {
-        Token::Text { content, .. } => content.contains(text),
-        Token::Identifier { content, .. } => content.contains(text),
-        Token::Parameter { key, value, .. } => key.contains(text) || value.contains(text),
+        ScannerToken::Text { content, .. } => content.contains(text),
+        ScannerToken::Identifier { content, .. } => content.contains(text),
+        ScannerToken::Parameter { key, value, .. } => key.contains(text) || value.contains(text),
         _ => false,
     }
 }

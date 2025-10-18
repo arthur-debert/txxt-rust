@@ -3,7 +3,7 @@
 //! This systematically tests every tokenizer that creates spans to ensure
 //! they handle Unicode correctly.
 
-use txxt::ast::tokens::{SourceSpan, Token};
+use txxt::ast::scanner_tokens::{ScannerToken, SourceSpan};
 use txxt::lexer::Lexer;
 
 /// List all places where we found column arithmetic
@@ -97,7 +97,7 @@ fn audit_whitespace_preservation() {
 
     let whitespace = tokens
         .iter()
-        .find(|t| matches!(t, Token::Whitespace { .. }))
+        .find(|t| matches!(t, ScannerToken::Whitespace { .. }))
         .unwrap();
     assert_span_equals(get_span(whitespace), 0, 4, 0, 8, "Four spaces");
 }
@@ -111,7 +111,7 @@ fn audit_text_token_with_unicode() {
 
     let text = tokens
         .iter()
-        .find(|t| matches!(t, Token::Text { .. }))
+        .find(|t| matches!(t, ScannerToken::Text { .. }))
         .unwrap();
     assert_span_equals(get_span(text), 0, 0, 0, 4, "Text 'café'");
 }
@@ -124,7 +124,7 @@ fn audit_annotation_markers() {
 
     let markers: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, Token::AnnotationMarker { .. }))
+        .filter(|t| matches!(t, ScannerToken::AnnotationMarker { .. }))
         .collect();
 
     assert_eq!(markers.len(), 2);
@@ -140,25 +140,25 @@ fn audit_inline_delimiters() {
 
     let bold1 = tokens
         .iter()
-        .find(|t| matches!(t, Token::BoldDelimiter { .. }))
+        .find(|t| matches!(t, ScannerToken::BoldDelimiter { .. }))
         .unwrap();
     assert_span_equals(get_span(bold1), 0, 0, 0, 1, "First *");
 
     let italic1 = tokens
         .iter()
-        .find(|t| matches!(t, Token::ItalicDelimiter { .. }))
+        .find(|t| matches!(t, ScannerToken::ItalicDelimiter { .. }))
         .unwrap();
     assert_span_equals(get_span(italic1), 0, 7, 0, 8, "First _");
 
     let code1 = tokens
         .iter()
-        .find(|t| matches!(t, Token::CodeDelimiter { .. }))
+        .find(|t| matches!(t, ScannerToken::CodeDelimiter { .. }))
         .unwrap();
     assert_span_equals(get_span(code1), 0, 16, 0, 17, "First `");
 
     let math1 = tokens
         .iter()
-        .find(|t| matches!(t, Token::MathDelimiter { .. }))
+        .find(|t| matches!(t, ScannerToken::MathDelimiter { .. }))
         .unwrap();
     assert_span_equals(get_span(math1), 0, 23, 0, 24, "First #");
 }
@@ -171,7 +171,7 @@ fn audit_parameter_spans() {
 
     let param = tokens
         .iter()
-        .find(|t| matches!(t, Token::Parameter { .. }))
+        .find(|t| matches!(t, ScannerToken::Parameter { .. }))
         .unwrap();
     // This will fail because parameters are created at (0,0)
     assert_span_equals(get_span(param), 0, 9, 0, 18, "Parameter key=value");
@@ -189,7 +189,7 @@ fn audit_sequence_marker_with_unicode_context() {
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
 
-    println!("\nDEBUG: Tokens for '{}':", input);
+    println!("\nDEBUG: ScannerTokens for '{}':", input);
     for (i, token) in tokens.iter().enumerate() {
         println!("  Token {}: {:?}", i, token);
     }
@@ -201,10 +201,10 @@ fn audit_sequence_marker_with_unicode_context() {
 
 // Helper functions
 
-fn find_sequence_marker(tokens: &[Token]) -> &Token {
+fn find_sequence_marker(tokens: &[ScannerToken]) -> &ScannerToken {
     tokens
         .iter()
-        .find(|t| matches!(t, Token::SequenceMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .expect("Should find sequence marker")
 }
 
@@ -237,24 +237,24 @@ fn assert_span_equals(
     );
 }
 
-fn get_span(token: &Token) -> &SourceSpan {
+fn get_span(token: &ScannerToken) -> &SourceSpan {
     match token {
-        Token::Text { span, .. }
-        | Token::Whitespace { span, .. }
-        | Token::SequenceMarker { span, .. }
-        | Token::AnnotationMarker { span, .. }
-        | Token::DefinitionMarker { span, .. }
-        | Token::Parameter { span, .. }
-        | Token::BoldDelimiter { span }
-        | Token::ItalicDelimiter { span }
-        | Token::CodeDelimiter { span }
-        | Token::MathDelimiter { span }
-        | Token::Newline { span }
-        | Token::BlankLine { span, .. }
-        | Token::LeftBracket { span }
-        | Token::RightBracket { span }
-        | Token::Colon { span }
-        | Token::Eof { span } => span,
+        ScannerToken::Text { span, .. }
+        | ScannerToken::Whitespace { span, .. }
+        | ScannerToken::SequenceMarker { span, .. }
+        | ScannerToken::AnnotationMarker { span, .. }
+        | ScannerToken::DefinitionMarker { span, .. }
+        | ScannerToken::Parameter { span, .. }
+        | ScannerToken::BoldDelimiter { span }
+        | ScannerToken::ItalicDelimiter { span }
+        | ScannerToken::CodeDelimiter { span }
+        | ScannerToken::MathDelimiter { span }
+        | ScannerToken::Newline { span }
+        | ScannerToken::BlankLine { span, .. }
+        | ScannerToken::LeftBracket { span }
+        | ScannerToken::RightBracket { span }
+        | ScannerToken::Colon { span }
+        | ScannerToken::Eof { span } => span,
         _ => panic!("Token variant not handled in get_span()"),
     }
 }

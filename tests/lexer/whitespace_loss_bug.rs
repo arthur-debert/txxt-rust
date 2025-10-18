@@ -1,9 +1,9 @@
-//! Test for issue #24: Tokenizer drops all whitespace between tokens
+//! Test for issue #24: ScannerTokenizer drops all whitespace between tokens
 //!
 //! The bug: The tokenizer skips spaces and tabs without creating tokens,
 //! making it impossible to reconstruct the original text with proper spacing.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::Lexer;
 
 #[test]
@@ -23,8 +23,8 @@ fn test_whitespace_preservation_in_text() {
     let reconstructed: String = tokens
         .iter()
         .map(|t| match t {
-            Token::Text { content, .. } => content.as_str(),
-            Token::Whitespace { content, .. } => content.as_str(),
+            ScannerToken::Text { content, .. } => content.as_str(),
+            ScannerToken::Whitespace { content, .. } => content.as_str(),
             _ => "",
         })
         .collect();
@@ -45,10 +45,10 @@ fn test_whitespace_in_parenthesized_list() {
     let token_strings: Vec<String> = tokens
         .iter()
         .map(|t| match t {
-            Token::LeftParen { .. } => "(".to_string(),
-            Token::RightParen { .. } => ")".to_string(),
-            Token::Text { content, .. } => content.clone(),
-            Token::Whitespace { content, .. } => content.clone(),
+            ScannerToken::LeftParen { .. } => "(".to_string(),
+            ScannerToken::RightParen { .. } => ")".to_string(),
+            ScannerToken::Text { content, .. } => content.clone(),
+            ScannerToken::Whitespace { content, .. } => content.clone(),
             _ => "".to_string(),
         })
         .collect();
@@ -62,13 +62,13 @@ fn test_whitespace_in_parenthesized_list() {
     // Verify space after right paren
     let right_paren_idx = tokens
         .iter()
-        .position(|t| matches!(t, Token::RightParen { .. }))
+        .position(|t| matches!(t, ScannerToken::RightParen { .. }))
         .expect("Should have RightParen token");
 
     // Next token should be whitespace
     if let Some(next_token) = tokens.get(right_paren_idx + 1) {
         assert!(
-            matches!(next_token, Token::Whitespace { .. }),
+            matches!(next_token, ScannerToken::Whitespace { .. }),
             "Token after RightParen should be Whitespace, got {:?}",
             next_token
         );
@@ -85,9 +85,9 @@ fn test_whitespace_in_annotation() {
     let reconstructed: String = tokens
         .iter()
         .map(|t| match t {
-            Token::AnnotationMarker { content, .. } => content.as_str(),
-            Token::Text { content, .. } => content.as_str(),
-            Token::Whitespace { content, .. } => content.as_str(),
+            ScannerToken::AnnotationMarker { content, .. } => content.as_str(),
+            ScannerToken::Text { content, .. } => content.as_str(),
+            ScannerToken::Whitespace { content, .. } => content.as_str(),
             _ => "",
         })
         .collect();
@@ -98,7 +98,9 @@ fn test_whitespace_in_annotation() {
     );
 
     // Should have whitespace tokens around "note"
-    let has_whitespace = tokens.iter().any(|t| matches!(t, Token::Whitespace { .. }));
+    let has_whitespace = tokens
+        .iter()
+        .any(|t| matches!(t, ScannerToken::Whitespace { .. }));
     assert!(has_whitespace, "Should have whitespace tokens");
 }
 
@@ -114,9 +116,9 @@ fn test_multiple_spaces() {
     // Find whitespace token
     let whitespace_token = tokens
         .iter()
-        .find(|t| matches!(t, Token::Whitespace { .. }));
+        .find(|t| matches!(t, ScannerToken::Whitespace { .. }));
 
-    if let Some(Token::Whitespace { content, .. }) = whitespace_token {
+    if let Some(ScannerToken::Whitespace { content, .. }) = whitespace_token {
         assert_eq!(content.len(), 4, "Should preserve all 4 spaces");
         assert_eq!(content, "    ", "Whitespace content should be 4 spaces");
     } else {
@@ -136,9 +138,9 @@ fn test_tab_preservation() {
     // Should have whitespace token with tab
     let whitespace_token = tokens
         .iter()
-        .find(|t| matches!(t, Token::Whitespace { .. }));
+        .find(|t| matches!(t, ScannerToken::Whitespace { .. }));
 
-    if let Some(Token::Whitespace { content, .. }) = whitespace_token {
+    if let Some(ScannerToken::Whitespace { content, .. }) = whitespace_token {
         assert_eq!(content, "\t", "Should preserve tab character");
     } else {
         panic!("No whitespace token found for tab");
@@ -168,7 +170,7 @@ fn test_whitespace_distinction() {
     let ws1 = tokens1
         .iter()
         .find_map(|t| match t {
-            Token::Whitespace { content, .. } => Some(content.as_str()),
+            ScannerToken::Whitespace { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .unwrap();
@@ -176,7 +178,7 @@ fn test_whitespace_distinction() {
     let ws2 = tokens2
         .iter()
         .find_map(|t| match t {
-            Token::Whitespace { content, .. } => Some(content.as_str()),
+            ScannerToken::Whitespace { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .unwrap();
@@ -184,7 +186,7 @@ fn test_whitespace_distinction() {
     let ws3 = tokens3
         .iter()
         .find_map(|t| match t {
-            Token::Whitespace { content, .. } => Some(content.as_str()),
+            ScannerToken::Whitespace { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .unwrap();

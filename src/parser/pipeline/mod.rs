@@ -8,7 +8,7 @@
 //! ## 2.a Block Parsing
 //! - Converts token trees into typed AST nodes for block elements
 //! - Handles paragraphs, lists, definitions, annotations, verbatim blocks, sessions
-//! - **Input**: `TokenTree` from lexer (Phase 1c)
+//! - **Input**: `ScannerTokenTree` from lexer (Phase 1c)
 //! - **Output**: AST tree of `ElementNode` variants
 //!
 //! ## 2.b Inline Parsing  

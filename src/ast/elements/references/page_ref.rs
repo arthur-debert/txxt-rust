@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
@@ -32,7 +32,7 @@ pub struct PageReferenceSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for language server support
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for PageReferenceSpan {
@@ -40,7 +40,7 @@ impl TxxtElement for PageReferenceSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -67,7 +67,7 @@ impl PageReferenceSpan {
         raw_text: String,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             page_spec,

@@ -1,4 +1,5 @@
 //! Tests for the assertion framework itself.
+use txxt::lexer::ScannerToken;
 //!
 //! These tests validate that:
 //! - Assertions pass when properties match
@@ -18,15 +19,15 @@ mod assertion_tests {
             paragraph::ParagraphBlock,
         },
         parameters::Parameters,
-        tokens::{Position, SourceSpan, Token, TokenSequence},
+        tokens::{Position, SourceSpan, ScannerToken, ScannerTokenSequence},
     };
 
     /// Helper to create a simple paragraph for testing
     fn make_test_paragraph(text: &str) -> SessionContainerElement {
         let text_transform = TextTransform::Identity(
             txxt::ast::elements::inlines::TextSpan {
-                tokens: TokenSequence {
-                    tokens: vec![Token::Text {
+                tokens: ScannerTokenSequence {
+                    tokens: vec![ScannerToken::Text {
                         content: text.to_string(),
                         span: SourceSpan {
                             start: Position { row: 0, column: 0 },
@@ -46,7 +47,7 @@ mod assertion_tests {
             content: vec![text_transform],
             annotations: vec![],
             parameters: Parameters::new(),
-            tokens: TokenSequence::new(),
+            tokens: ScannerTokenSequence::new(),
         })
     }
 
@@ -67,7 +68,7 @@ mod assertion_tests {
         // Create a non-paragraph element
         let element = SessionContainerElement::BlankLine(
             txxt::ast::elements::core::BlankLine {
-                tokens: TokenSequence::new(),
+                tokens: ScannerTokenSequence::new(),
             }
         );
 

@@ -1,7 +1,7 @@
 //! Tests for verbatim scanner false positive issue #31
+use txxt::lexer::ScannerToken;
 
 use txxt::lexer::tokenize;
-use txxt::lexer::Token;
 
 #[test]
 fn test_colon_followed_by_annotation_not_verbatim() {
@@ -14,9 +14,9 @@ fn test_colon_followed_by_annotation_not_verbatim() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            Token::VerbatimTitle { .. }
-                | Token::VerbatimContent { .. }
-                | Token::VerbatimLabel { .. }
+            ScannerToken::VerbatimTitle { .. }
+                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::VerbatimLabel { .. }
         )
     });
 
@@ -25,7 +25,7 @@ fn test_colon_followed_by_annotation_not_verbatim() {
     // Should have annotation marker tokens
     let has_annotation = tokens
         .iter()
-        .any(|t| matches!(t, Token::AnnotationMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::AnnotationMarker { .. }));
 
     assert!(has_annotation, "Should have annotation marker");
 }
@@ -41,9 +41,9 @@ fn test_multiple_colons_followed_by_annotation() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            Token::VerbatimTitle { .. }
-                | Token::VerbatimContent { .. }
-                | Token::VerbatimLabel { .. }
+            ScannerToken::VerbatimTitle { .. }
+                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::VerbatimLabel { .. }
         )
     });
 
@@ -60,7 +60,7 @@ fn test_definition_followed_by_annotation() {
     // Should have definition marker
     let has_definition = tokens
         .iter()
-        .any(|t| matches!(t, Token::DefinitionMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::DefinitionMarker { .. }));
 
     assert!(has_definition, "Should have definition marker");
 
@@ -68,9 +68,9 @@ fn test_definition_followed_by_annotation() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            Token::VerbatimTitle { .. }
-                | Token::VerbatimContent { .. }
-                | Token::VerbatimLabel { .. }
+            ScannerToken::VerbatimTitle { .. }
+                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::VerbatimLabel { .. }
         )
     });
 
@@ -90,9 +90,9 @@ fn test_real_verbatim_still_works() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            Token::VerbatimTitle { .. }
-                | Token::VerbatimContent { .. }
-                | Token::VerbatimLabel { .. }
+            ScannerToken::VerbatimTitle { .. }
+                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::VerbatimLabel { .. }
         )
     });
 
@@ -110,9 +110,9 @@ fn test_colon_with_indented_annotation() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            Token::VerbatimTitle { .. }
-                | Token::VerbatimContent { .. }
-                | Token::VerbatimLabel { .. }
+            ScannerToken::VerbatimTitle { .. }
+                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::VerbatimLabel { .. }
         )
     });
 

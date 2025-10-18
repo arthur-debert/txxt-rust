@@ -4,7 +4,7 @@
 //! recognized as a SequenceMarker token. Instead, it becomes part of the Text token.
 //! This breaks nested list parsing and round-trip detokenization.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]
@@ -22,7 +22,7 @@ fn test_indented_dash_not_recognized_as_sequence_marker() {
     // The dash should be tokenized as a SequenceMarker
     let has_seq_marker = tokens
         .iter()
-        .any(|t| matches!(t, Token::SequenceMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));
 
     assert!(
         has_seq_marker,
@@ -39,7 +39,7 @@ fn test_nested_list_structure() {
     // Count sequence markers
     let seq_markers = tokens
         .iter()
-        .filter(|t| matches!(t, Token::SequenceMarker { .. }))
+        .filter(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .count();
 
     assert_eq!(
@@ -55,7 +55,7 @@ fn test_deeply_nested_lists() {
 
     let seq_markers = tokens
         .iter()
-        .filter(|t| matches!(t, Token::SequenceMarker { .. }))
+        .filter(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .count();
 
     assert_eq!(

@@ -49,7 +49,7 @@
 //!     │   │   ├── number: Option<u32>
 //!     │   │   └── auto_generate: bool
 //!     │   ├── content: Option<Vec<Inline>>
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! ## Processing Rules
@@ -134,7 +134,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let footnote = parse_footnote_ref(&tokens)?;
 /// ```
 pub fn parse_footnote_ref(
-    tokens: &[crate::ast::tokens::Token],
+    tokens: &[crate::ast::scanner_tokens::ScannerToken],
 ) -> Result<Inline, InlineParseError> {
     // TODO: Implement footnote reference parsing logic
     // For now, return a placeholder
@@ -149,7 +149,7 @@ pub fn parse_footnote_ref(
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
-            crate::ast::tokens::Token::Text { content, .. } => Some(content.clone()),
+            crate::ast::scanner_tokens::ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()

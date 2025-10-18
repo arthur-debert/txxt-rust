@@ -8,7 +8,7 @@ use crate::ast::{
     annotations::Annotation,
     parameters::Parameters,
     reference_types::{CitationEntry, ReferenceTarget},
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::super::core::{ElementType, SpanElement, TxxtElement};
@@ -31,7 +31,7 @@ pub struct CitationSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for language server support
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for CitationSpan {
@@ -39,7 +39,7 @@ impl TxxtElement for CitationSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -69,7 +69,7 @@ impl CitationSpan {
         raw_text: String,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             citations,

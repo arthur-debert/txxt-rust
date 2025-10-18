@@ -8,7 +8,7 @@ use crate::ast::{
     annotations::Annotation,
     parameters::Parameters,
     reference_types::{ReferenceTarget, SectionIdentifier},
-    tokens::TokenSequence,
+    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::super::core::{ElementType, SpanElement, TxxtElement};
@@ -31,7 +31,7 @@ pub struct SessionReferenceSpan {
     pub parameters: Parameters,
 
     /// Raw tokens for language server support
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 impl TxxtElement for SessionReferenceSpan {
@@ -39,7 +39,7 @@ impl TxxtElement for SessionReferenceSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -65,7 +65,7 @@ impl SessionReferenceSpan {
         raw_text: String,
         annotations: Vec<Annotation>,
         parameters: Parameters,
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     ) -> Self {
         Self {
             session_identifier,

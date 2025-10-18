@@ -1,6 +1,6 @@
 //! Integration tests for citation reference tokenization with main lexer
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_citation_ref_integration_simple() {
     assert_eq!(tokens.len(), 2);
 
     match &tokens[0] {
-        Token::CitationRef { content, span } => {
+        ScannerToken::CitationRef { content, span } => {
             assert_eq!(content, "smith2020");
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -22,7 +22,7 @@ fn test_citation_ref_integration_simple() {
     }
 
     match &tokens[1] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[1]),
     }
 }
@@ -37,11 +37,11 @@ fn test_citation_ref_integration_with_text() {
     // Find the citation reference
     let citation_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::CitationRef { .. }))
+        .find(|token| matches!(token, ScannerToken::CitationRef { .. }))
         .expect("Should find CitationRef token");
 
     match citation_ref {
-        Token::CitationRef { content, .. } => {
+        ScannerToken::CitationRef { content, .. } => {
             assert_eq!(content, "smith2020");
         }
         _ => unreachable!(),
@@ -55,12 +55,12 @@ fn test_citation_ref_vs_ref_marker() {
     // Should produce CitationRef, not general RefMarker
     let citation_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::CitationRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::CitationRef { .. }))
         .collect();
 
     let ref_markers: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::RefMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -78,11 +78,11 @@ fn test_citation_ref_complex_keys() {
     // Should parse complex citation key with namespace, hyphens, and dots
     let citation_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::CitationRef { .. }))
+        .find(|token| matches!(token, ScannerToken::CitationRef { .. }))
         .expect("Should find CitationRef token");
 
     match citation_ref {
-        Token::CitationRef { content, .. } => {
+        ScannerToken::CitationRef { content, .. } => {
             assert_eq!(content, "author:smith-jones.2020");
         }
         _ => unreachable!(),
@@ -97,7 +97,7 @@ fn test_citation_ref_adjacent() {
     let citation_refs: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::CitationRef { content, .. } => Some(content.as_str()),
+            ScannerToken::CitationRef { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -112,7 +112,7 @@ fn test_incomplete_citation_ref_fallback() {
     // Should not produce CitationRef due to missing closing bracket
     let has_citation_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::CitationRef { .. }));
+        .any(|token| matches!(token, ScannerToken::CitationRef { .. }));
 
     assert!(
         !has_citation_ref,
@@ -121,9 +121,12 @@ fn test_incomplete_citation_ref_fallback() {
 
     // Since [@incomplete is not a valid reference marker (missing ]), it should be treated as text
     // The tokenizer should parse this as individual text tokens or identifiers
-    let has_text = tokens
-        .iter()
-        .any(|token| matches!(token, Token::Text { .. } | Token::Identifier { .. }));
+    let has_text = tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. }
+        )
+    });
 
     assert!(
         has_text,
@@ -138,7 +141,7 @@ fn test_citation_ref_with_invalid_chars() {
     // Should not produce CitationRef due to spaces
     let has_citation_ref = tokens
         .iter()
-        .any(|token| matches!(token, Token::CitationRef { .. }));
+        .any(|token| matches!(token, ScannerToken::CitationRef { .. }));
 
     assert!(
         !has_citation_ref,
@@ -154,7 +157,7 @@ fn test_citation_ref_mixed_content() {
     let citation_refs: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::CitationRef { content, .. } => Some(content.as_str()),
+            ScannerToken::CitationRef { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();

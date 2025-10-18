@@ -7,7 +7,7 @@ use txxt::tools::detokenizer::Detokenizer;
 fn debug_simple_text() {
     let original = "Hello, world!";
 
-    // Step 1: Tokenize
+    // Step 1: ScannerTokenize
     let tokens1 = tokenize(original);
     println!("Original: {:?}", original);
     println!("Tokens1 ({}):", tokens1.len());

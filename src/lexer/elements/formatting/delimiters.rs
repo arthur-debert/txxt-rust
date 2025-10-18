@@ -7,7 +7,7 @@
 //! - Code delimiters: `
 //! - Math delimiters: #
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::lexer::Lexer;
 
 /// Trait for lexer state that can parse inline delimiters
@@ -84,13 +84,13 @@ fn is_likely_identifier_underscore<L: InlineDelimiterLexer>(lexer: &L) -> bool {
 }
 
 /// Read inline formatting delimiters (*, _, `, #)
-pub fn read_inline_delimiter<L: InlineDelimiterLexer>(lexer: &mut L) -> Option<Token> {
+pub fn read_inline_delimiter<L: InlineDelimiterLexer>(lexer: &mut L) -> Option<ScannerToken> {
     let start_pos = lexer.current_position();
 
     match lexer.peek()? {
         '*' => {
             lexer.advance();
-            Some(Token::BoldDelimiter {
+            Some(ScannerToken::BoldDelimiter {
                 span: SourceSpan {
                     start: start_pos,
                     end: lexer.current_position(),
@@ -103,7 +103,7 @@ pub fn read_inline_delimiter<L: InlineDelimiterLexer>(lexer: &mut L) -> Option<T
                 None // Let text/identifier handler take it
             } else {
                 lexer.advance();
-                Some(Token::ItalicDelimiter {
+                Some(ScannerToken::ItalicDelimiter {
                     span: SourceSpan {
                         start: start_pos,
                         end: lexer.current_position(),
@@ -113,7 +113,7 @@ pub fn read_inline_delimiter<L: InlineDelimiterLexer>(lexer: &mut L) -> Option<T
         }
         '`' => {
             lexer.advance();
-            Some(Token::CodeDelimiter {
+            Some(ScannerToken::CodeDelimiter {
                 span: SourceSpan {
                     start: start_pos,
                     end: lexer.current_position(),
@@ -122,7 +122,7 @@ pub fn read_inline_delimiter<L: InlineDelimiterLexer>(lexer: &mut L) -> Option<T
         }
         '#' => {
             lexer.advance();
-            Some(Token::MathDelimiter {
+            Some(ScannerToken::MathDelimiter {
                 span: SourceSpan {
                     start: start_pos,
                     end: lexer.current_position(),

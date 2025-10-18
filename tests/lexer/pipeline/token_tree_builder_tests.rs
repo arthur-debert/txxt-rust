@@ -1,10 +1,10 @@
-//! Tests for Phase 1c: Token Tree Building
+//! Tests for Phase 1c: ScannerToken Tree Building
 //!
 //! These tests verify the token tree builder's ability to transform flat token
 //! streams into hierarchical structures based on indentation.
 
-use txxt::ast::tokens::{Position, SourceSpan, Token};
-use txxt::lexer::pipeline::{TokenTree, TokenTreeBuilder};
+use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use txxt::lexer::pipeline::{ScannerTokenTree, ScannerTokenTreeBuilder};
 use txxt::lexer::tokenize;
 
 /// Test simple flat content (no indentation)
@@ -13,7 +13,7 @@ fn test_token_tree_builder_flat_content() {
     let source = "This is a simple paragraph.\nNo indentation here.";
     let tokens = tokenize(source);
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should have tokens at root level, no children
@@ -27,7 +27,7 @@ fn test_token_tree_builder_single_indent() {
     let source = "Parent content\n    Indented content\n    More indented";
     let tokens = tokenize(source);
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should have parent tokens and one child group
@@ -42,7 +42,7 @@ fn test_token_tree_builder_multiple_indent_cycles() {
     let source = "First block\n    Indented\nSecond block\n    Another indent";
     let tokens = tokenize(source);
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should have two child groups
@@ -55,7 +55,7 @@ fn test_token_tree_builder_nested_indentation() {
     let source = "Level 0\n    Level 1\n        Level 2\n    Back to 1";
     let tokens = tokenize(source);
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should have nested structure
@@ -70,7 +70,7 @@ fn test_token_tree_builder_walkthrough_simple() {
     let first_paragraph = "TXXT :: A Radical Take on Minimal Structured Text";
     let tokens = tokenize(first_paragraph);
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should be flat - no indentation
@@ -91,7 +91,7 @@ fn test_token_tree_builder_walkthrough_with_session() {
     - Machine parsability"#;
 
     let tokens = tokenize(session_example);
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should have session title at root, indented content as child
@@ -119,7 +119,7 @@ fn test_token_tree_builder_walkthrough_complex_nesting() {
             Nested content in list"#;
 
     let tokens = tokenize(complex_example);
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Verify the hierarchical structure
@@ -133,7 +133,7 @@ fn test_token_tree_builder_walkthrough_complex_nesting() {
 /// Helper function to debug print block group structure
 #[cfg(test)]
 #[allow(dead_code)]
-fn debug_block_structure(tree: &TokenTree, indent: usize) {
+fn debug_block_structure(tree: &ScannerTokenTree, indent: usize) {
     let prefix = " ".repeat(indent * 2);
     println!("{}TokenTree {{", prefix);
     println!("{}  tokens: {} items", prefix, tree.tokens.len());
@@ -151,14 +151,14 @@ fn debug_block_structure(tree: &TokenTree, indent: usize) {
 /// Create a summary of a token for debugging
 #[cfg(test)]
 #[allow(dead_code)]
-fn token_summary(token: &Token) -> String {
+fn token_summary(token: &ScannerToken) -> String {
     match token {
-        Token::Text { .. } => "Text".to_string(),
-        Token::Newline { .. } => "Newline".to_string(),
-        Token::BlankLine { .. } => "BlankLine".to_string(),
-        Token::Indent { .. } => "Indent".to_string(),
-        Token::Dedent { .. } => "Dedent".to_string(),
-        Token::SequenceMarker { marker_type, .. } => format!("SeqMarker({:?})", marker_type),
+        ScannerToken::Text { .. } => "Text".to_string(),
+        ScannerToken::Newline { .. } => "Newline".to_string(),
+        ScannerToken::BlankLine { .. } => "BlankLine".to_string(),
+        ScannerToken::Indent { .. } => "Indent".to_string(),
+        ScannerToken::Dedent { .. } => "Dedent".to_string(),
+        ScannerToken::SequenceMarker { marker_type, .. } => format!("SeqMarker({:?})", marker_type),
         _ => format!("{:?}", std::mem::discriminant(token)),
     }
 }
@@ -168,16 +168,16 @@ fn token_summary(token: &Token) -> String {
 fn test_token_tree_builder_error_unmatched_dedent() {
     // Create tokens with unmatched dedent
     let tokens = vec![
-        Token::Text {
+        ScannerToken::Text {
             content: "test".to_string(),
             span: create_test_span(),
         },
-        Token::Dedent {
+        ScannerToken::Dedent {
             span: create_test_span(),
         }, // Dedent without indent
     ];
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens);
 
     assert!(result.is_err());
@@ -188,7 +188,7 @@ fn test_token_tree_builder_error_unmatched_dedent() {
 fn test_token_tree_builder_walkthrough_progressive() {
     // Test 1: Just title
     let tokens = tokenize("TXXT :: A Radical Take on Minimal Structured Text");
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
     assert!(result.children.is_empty());
 
@@ -236,7 +236,7 @@ code::
 ::"#;
 
     let tokens = tokenize(verbatim_example);
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Verbatim content should be grouped
@@ -248,7 +248,7 @@ code::
 #[test]
 fn test_token_tree_builder_empty_input() {
     let tokens = tokenize("");
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should have only EOF token or be empty
@@ -262,7 +262,7 @@ fn test_token_tree_builder_multi_level_dedent() {
     let source = "Level 0\n    Level 1\n        Level 2\nBack to 0";
     let tokens = tokenize(source);
 
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Should handle multi-level dedent correctly
@@ -280,7 +280,7 @@ fn test_token_tree_builder_debug_structure() {
 Another root"#;
 
     let tokens = tokenize(source);
-    let builder = TokenTreeBuilder::new();
+    let builder = ScannerTokenTreeBuilder::new();
     let result = builder.build_tree(tokens).unwrap();
 
     // Uncomment to debug:

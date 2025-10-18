@@ -3,7 +3,7 @@
 //! This test verifies that the lexer correctly uses centralized regex patterns
 //! from patterns.rs instead of manual string manipulation.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]
@@ -55,7 +55,7 @@ mod tests {
                 // Citation patterns should produce CitationRef tokens
                 let citation_refs: Vec<_> = tokens
                     .iter()
-                    .filter(|token| matches!(token, Token::CitationRef { .. }))
+                    .filter(|token| matches!(token, ScannerToken::CitationRef { .. }))
                     .collect();
 
                 if should_be_valid {
@@ -68,7 +68,7 @@ mod tests {
                         citation_refs
                     );
 
-                    if let Token::CitationRef { content, .. } = &citation_refs[0] {
+                    if let ScannerToken::CitationRef { content, .. } = &citation_refs[0] {
                         // Remove brackets and @ for content comparison
                         let expected_content = &input[2..input.len() - 1]; // Skip [@ and ]
                         assert_eq!(
@@ -96,7 +96,7 @@ mod tests {
                     // Footnote reference - should produce FootnoteRef token
                     let footnote_refs: Vec<_> = tokens
                         .iter()
-                        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+                        .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
                         .collect();
 
                     if should_be_valid {
@@ -109,7 +109,7 @@ mod tests {
                             footnote_refs
                         );
 
-                        if let Token::FootnoteRef { footnote_type, .. } = &footnote_refs[0] {
+                        if let ScannerToken::FootnoteRef { footnote_type, .. } = &footnote_refs[0] {
                             println!("  ✅ Valid FootnoteRef: {:?}", footnote_type);
                         }
                     } else {
@@ -132,7 +132,7 @@ mod tests {
                     // Session reference - should produce SessionRef token
                     let session_refs: Vec<_> = tokens
                         .iter()
-                        .filter(|token| matches!(token, Token::SessionRef { .. }))
+                        .filter(|token| matches!(token, ScannerToken::SessionRef { .. }))
                         .collect();
 
                     if should_be_valid {
@@ -145,7 +145,7 @@ mod tests {
                             session_refs
                         );
 
-                        if let Token::SessionRef { content, .. } = &session_refs[0] {
+                        if let ScannerToken::SessionRef { content, .. } = &session_refs[0] {
                             // Remove brackets and # for content comparison
                             let expected_content = &input[2..input.len() - 1];
                             assert_eq!(
@@ -170,7 +170,7 @@ mod tests {
                     // Other patterns should produce RefMarker tokens
                     let ref_markers: Vec<_> = tokens
                         .iter()
-                        .filter(|token| matches!(token, Token::RefMarker { .. }))
+                        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
                         .collect();
 
                     if should_be_valid {
@@ -183,7 +183,7 @@ mod tests {
                             ref_markers
                         );
 
-                        if let Token::RefMarker { content, .. } = &ref_markers[0] {
+                        if let ScannerToken::RefMarker { content, .. } = &ref_markers[0] {
                             // Remove brackets for content comparison
                             let expected_content = &input[1..input.len() - 1];
                             assert_eq!(
@@ -231,7 +231,7 @@ mod tests {
                 // Citation should produce CitationRef token
                 let citation_tokens: Vec<_> = tokens
                     .iter()
-                    .filter(|token| matches!(token, Token::CitationRef { .. }))
+                    .filter(|token| matches!(token, ScannerToken::CitationRef { .. }))
                     .collect();
 
                 assert_eq!(
@@ -247,7 +247,7 @@ mod tests {
                     // Footnote reference - should produce FootnoteRef token
                     let footnote_tokens: Vec<_> = tokens
                         .iter()
-                        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+                        .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
                         .collect();
 
                     assert_eq!(
@@ -265,7 +265,7 @@ mod tests {
                     // Session reference - should produce SessionRef token
                     let session_tokens: Vec<_> = tokens
                         .iter()
-                        .filter(|token| matches!(token, Token::SessionRef { .. }))
+                        .filter(|token| matches!(token, ScannerToken::SessionRef { .. }))
                         .collect();
 
                     assert_eq!(
@@ -278,7 +278,7 @@ mod tests {
                     // Other references should produce RefMarker tokens
                     let ref_tokens: Vec<_> = tokens
                         .iter()
-                        .filter(|token| matches!(token, Token::RefMarker { .. }))
+                        .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
                         .collect();
 
                     assert_eq!(

@@ -6,7 +6,7 @@
 //! Labels provide identification and metadata for elements.
 //! They follow consistent identifier rules and support namespacing.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
 /// Represents a parsed label with namespace support
 #[derive(Debug, Clone, PartialEq)]
@@ -214,8 +214,8 @@ pub fn is_reserved_label(label: &str) -> bool {
 /// Extracts label from an identifier token if it represents a valid label
 ///
 /// This function is used to identify labels within the token stream
-pub fn extract_label_from_token(token: &Token) -> Option<Label> {
-    if let Token::Identifier { content, span } = token {
+pub fn extract_label_from_token(token: &ScannerToken) -> Option<Label> {
+    if let ScannerToken::Identifier { content, span } = token {
         let start_pos = span.start;
         match parse_label(content, start_pos) {
             LabelParseResult::Valid(label) => Some(label),
@@ -354,7 +354,7 @@ mod tests {
             end: Position { row: 0, column: 6 },
         };
 
-        let token = Token::Identifier {
+        let token = ScannerToken::Identifier {
             content: "python".to_string(),
             span: span.clone(),
         };
@@ -367,7 +367,7 @@ mod tests {
         assert_eq!(label.namespaces, vec!["python"]);
 
         // Test non-identifier token
-        let text_token = Token::Text {
+        let text_token = ScannerToken::Text {
             content: "python".to_string(),
             span,
         };

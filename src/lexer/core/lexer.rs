@@ -3,7 +3,7 @@
 //! Converts TXXT source text into Token enum variants with precise SourceSpan
 //! positioning for language server support.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::indentation::IndentationTracker;
 use crate::lexer::elements::components::{
     parameter_integration_v2::{
@@ -57,7 +57,7 @@ impl Lexer {
     }
 
     /// Tokenize the input text into Token enum variants
-    pub fn tokenize(&mut self) -> Vec<Token> {
+    pub fn tokenize(&mut self) -> Vec<ScannerToken> {
         let mut tokens = Vec::new();
 
         // First, pre-scan for verbatim blocks
@@ -194,7 +194,7 @@ impl Lexer {
         tokens.extend(final_indent_tokens);
 
         // Add EOF token
-        tokens.push(Token::Eof {
+        tokens.push(ScannerToken::Eof {
             span: SourceSpan {
                 start: self.current_position(),
                 end: self.current_position(),
@@ -205,7 +205,7 @@ impl Lexer {
     }
 
     /// Read a text token (any non-whitespace, non-delimiter characters)
-    fn read_text(&mut self) -> Option<Token> {
+    fn read_text(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
         let mut content = String::new();
 
@@ -293,7 +293,7 @@ impl Lexer {
         if content.is_empty() {
             None
         } else {
-            Some(Token::Text {
+            Some(ScannerToken::Text {
                 content,
                 span: SourceSpan {
                     start: start_pos,
@@ -304,12 +304,12 @@ impl Lexer {
     }
 
     /// Read a dash token (standalone -)
-    fn read_dash(&mut self) -> Option<Token> {
+    fn read_dash(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some('-') {
             self.advance();
-            return Some(Token::Dash {
+            return Some(ScannerToken::Dash {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -322,7 +322,7 @@ impl Lexer {
 
     /// Read a period token (standalone .)
     /// Only tokenizes periods that are structural markers, not those within text content
-    fn read_period(&mut self) -> Option<Token> {
+    fn read_period(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some('.') {
@@ -350,7 +350,7 @@ impl Lexer {
             }
 
             self.advance();
-            return Some(Token::Period {
+            return Some(ScannerToken::Period {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -362,12 +362,12 @@ impl Lexer {
     }
 
     /// Read a left bracket token ([)
-    fn read_left_bracket(&mut self) -> Option<Token> {
+    fn read_left_bracket(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some('[') {
             self.advance();
-            return Some(Token::LeftBracket {
+            return Some(ScannerToken::LeftBracket {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -379,12 +379,12 @@ impl Lexer {
     }
 
     /// Read a right bracket token (])
-    fn read_right_bracket(&mut self) -> Option<Token> {
+    fn read_right_bracket(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some(']') {
             self.advance();
-            return Some(Token::RightBracket {
+            return Some(ScannerToken::RightBracket {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -396,12 +396,12 @@ impl Lexer {
     }
 
     /// Read a left parenthesis token (()
-    fn read_left_paren(&mut self) -> Option<Token> {
+    fn read_left_paren(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some('(') {
             self.advance();
-            return Some(Token::LeftParen {
+            return Some(ScannerToken::LeftParen {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -413,12 +413,12 @@ impl Lexer {
     }
 
     /// Read a right parenthesis token ())
-    fn read_right_paren(&mut self) -> Option<Token> {
+    fn read_right_paren(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some(')') {
             self.advance();
-            return Some(Token::RightParen {
+            return Some(ScannerToken::RightParen {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -430,7 +430,7 @@ impl Lexer {
     }
 
     /// Read a colon token (:)
-    fn read_colon(&mut self) -> Option<Token> {
+    fn read_colon(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some(':') {
@@ -444,7 +444,7 @@ impl Lexer {
             }
 
             self.advance();
-            return Some(Token::Colon {
+            return Some(ScannerToken::Colon {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -456,12 +456,12 @@ impl Lexer {
     }
 
     /// Read an equals token (=)
-    fn read_equals(&mut self) -> Option<Token> {
+    fn read_equals(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some('=') {
             self.advance();
-            return Some(Token::Text {
+            return Some(ScannerToken::Text {
                 content: "=".to_string(),
                 span: SourceSpan {
                     start: start_pos,
@@ -474,12 +474,12 @@ impl Lexer {
     }
 
     /// Read a comma token (,)
-    fn read_comma(&mut self) -> Option<Token> {
+    fn read_comma(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if self.peek() == Some(',') {
             self.advance();
-            return Some(Token::Text {
+            return Some(ScannerToken::Text {
                 content: ",".to_string(),
                 span: SourceSpan {
                     start: start_pos,
@@ -492,7 +492,7 @@ impl Lexer {
     }
 
     /// Read an identifier token (alphanumeric starting with letter or underscore)
-    fn read_identifier(&mut self) -> Option<Token> {
+    fn read_identifier(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
         let mut content = String::new();
 
@@ -531,7 +531,7 @@ impl Lexer {
             }
         }
 
-        Some(Token::Identifier {
+        Some(ScannerToken::Identifier {
             content,
             span: SourceSpan {
                 start: start_pos,
@@ -565,7 +565,7 @@ impl Lexer {
     }
 
     /// Read a newline token (\n or \r\n)
-    fn read_newline(&mut self) -> Option<Token> {
+    fn read_newline(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
 
         if let Some(ch) = self.peek() {
@@ -576,7 +576,7 @@ impl Lexer {
                     self.advance(); // Consume \n
                 }
 
-                return Some(Token::Newline {
+                return Some(ScannerToken::Newline {
                     span: SourceSpan {
                         start: start_pos,
                         end: self.current_position(),
@@ -586,7 +586,7 @@ impl Lexer {
                 // Handle LF
                 self.advance(); // Consume \n
 
-                return Some(Token::Newline {
+                return Some(ScannerToken::Newline {
                     span: SourceSpan {
                         start: start_pos,
                         end: self.current_position(),
@@ -599,7 +599,7 @@ impl Lexer {
     }
 
     /// Read whitespace token (spaces and tabs, but not newlines)
-    fn read_whitespace(&mut self) -> Option<Token> {
+    fn read_whitespace(&mut self) -> Option<ScannerToken> {
         let start_pos = self.current_position();
         let mut content = String::new();
 
@@ -615,7 +615,7 @@ impl Lexer {
         if content.is_empty() {
             None
         } else {
-            Some(Token::Whitespace {
+            Some(ScannerToken::Whitespace {
                 content,
                 span: SourceSpan {
                     start: start_pos,
@@ -626,7 +626,7 @@ impl Lexer {
     }
 
     /// Read a blank line token (line containing only whitespace, NOT including line break)  
-    fn read_blankline(&mut self) -> Option<Token> {
+    fn read_blankline(&mut self) -> Option<ScannerToken> {
         // Only try to read blank lines when we're at column 0 (start of line)
         if self.column != 0 {
             return None;
@@ -659,7 +659,7 @@ impl Lexer {
             if ch == '\n' {
                 // This is a blank line - consume the newline
                 self.advance(); // Consume \n
-                return Some(Token::BlankLine {
+                return Some(ScannerToken::BlankLine {
                     whitespace: whitespace_content,
                     span: SourceSpan {
                         start: start_pos,
@@ -672,7 +672,7 @@ impl Lexer {
                 if self.peek() == Some('\n') {
                     self.advance(); // Consume \n
                 }
-                return Some(Token::BlankLine {
+                return Some(ScannerToken::BlankLine {
                     whitespace: whitespace_content,
                     span: SourceSpan {
                         start: start_pos,
@@ -684,7 +684,7 @@ impl Lexer {
 
         // Also handle end of file after whitespace-only content
         if self.is_at_end() && self.position > saved_position {
-            return Some(Token::BlankLine {
+            return Some(ScannerToken::BlankLine {
                 whitespace: whitespace_content,
                 span: SourceSpan {
                     start: start_pos,
@@ -740,7 +740,7 @@ impl Lexer {
     }
 
     /// Check if we're at the start of line content after proper indentation
-    fn is_at_line_start_after_indent(&self, tokens: &[Token]) -> bool {
+    fn is_at_line_start_after_indent(&self, tokens: &[ScannerToken]) -> bool {
         use crate::lexer::core::indentation::is_valid_indentation_level;
 
         // Look back at recent tokens to see if we just processed proper indentation
@@ -752,7 +752,7 @@ impl Lexer {
         // and the most recent token is whitespace, we might be at a valid position
         if self.column > 0 && is_valid_indentation_level(self.column) {
             if let Some(last_token) = tokens.last() {
-                if matches!(last_token, Token::Whitespace { .. }) {
+                if matches!(last_token, ScannerToken::Whitespace { .. }) {
                     // We're at a valid indentation level with whitespace - this is a valid position
                     return true;
                 }
@@ -774,7 +774,7 @@ impl Lexer {
             }
 
             match token {
-                Token::Whitespace { .. } => {
+                ScannerToken::Whitespace { .. } => {
                     if !saw_whitespace {
                         saw_whitespace = true;
                         // If this is the first token we see (most recent),
@@ -782,7 +782,7 @@ impl Lexer {
                         continue;
                     }
                 }
-                Token::Indent { span, .. } => {
+                ScannerToken::Indent { span, .. } => {
                     // We found an Indent token
                     // Check if the indent itself is valid (multiple of 4)
                     let indent_level = span.end.column - span.start.column;
@@ -792,12 +792,12 @@ impl Lexer {
                     }
                     return false;
                 }
-                Token::Newline { .. } => {
+                ScannerToken::Newline { .. } => {
                     // We found a newline
                     // Valid if the next token (going forward) is whitespace with valid indentation
                     if saw_whitespace {
                         // Get the whitespace token that came after this newline
-                        if let Some(Token::Whitespace { content, .. }) =
+                        if let Some(ScannerToken::Whitespace { content, .. }) =
                             tokens.iter().rev().nth(tokens_checked - 2)
                         {
                             return is_valid_indentation_level(content.len());
@@ -828,7 +828,7 @@ impl Lexer {
         self.column
     }
 
-    pub fn test_read_newline(&mut self) -> Option<Token> {
+    pub fn test_read_newline(&mut self) -> Option<ScannerToken> {
         self.read_newline()
     }
 
@@ -933,8 +933,8 @@ impl PageRefLexer for Lexer {
 }
 
 impl crate::lexer::elements::references::session_ref::SessionRefLexer for Lexer {
-    fn current_position(&self) -> crate::ast::tokens::Position {
-        crate::ast::tokens::Position {
+    fn current_position(&self) -> crate::ast::scanner_tokens::Position {
+        crate::ast::scanner_tokens::Position {
             row: self.row,
             column: self.column,
         }
@@ -1034,8 +1034,8 @@ impl crate::lexer::elements::references::ReferenceLexer for Lexer {
 }
 
 impl crate::lexer::elements::references::footnote_ref::FootnoteRefLexer for Lexer {
-    fn current_position(&self) -> crate::ast::tokens::Position {
-        crate::ast::tokens::Position {
+    fn current_position(&self) -> crate::ast::scanner_tokens::Position {
+        crate::ast::scanner_tokens::Position {
             row: self.row,
             column: self.column,
         }

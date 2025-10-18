@@ -7,7 +7,7 @@
 //!
 //! **Phase 3: Assembly (Final Output)**
 //!
-//! The assembly phase takes the hierarchical token structure from Phase 1c (TokenTree)
+//! The assembly phase takes the hierarchical token structure from Phase 1c (ScannerTokenTree)
 //! and produces the final document structure:
 //! - Phase 3a: Document Assembly - Wrap AST tree in Session container and Document node
 //! - Phase 3b: Annotation Attachment - Apply proximity rules to attach annotations
@@ -25,12 +25,12 @@
 //!
 //! ```rust,ignore
 //! use txxt::assembler::Assembler;
-//! use txxt::lexer::pipeline::TokenTreeBuilder;
+//! use txxt::lexer::pipeline::ScannerTokenTreeBuilder;
 //! use txxt::lexer::tokenize;
 //!
 //! // Phase 1: Lexer
 //! let tokens = tokenize(input_text);
-//! let token_tree_builder = TokenTreeBuilder::new();
+//! let token_tree_builder = ScannerTokenTreeBuilder::new();
 //! let token_tree = token_tree_builder.build_tree(tokens)?;
 //!
 //! // Phase 3: Assembly
@@ -44,11 +44,11 @@ use crate::ast::{
     elements::{
         annotation::annotation_content::Annotation,
         document::document_structure::{AssemblyInfo, Meta, MetaValue, ProcessingStats},
+        scanner_tokens::{ScannerToken, ScannerTokenSequence},
         session::SessionContainer,
-        tokens::{Token, TokenSequence},
     },
 };
-use crate::lexer::pipeline::TokenTree;
+use crate::lexer::pipeline::ScannerTokenTree;
 
 // Pipeline modules
 pub mod pipeline;
@@ -72,15 +72,15 @@ impl Assembler {
 
     /// Phase 3a: Wrap token tree in Session container and Document node
     ///
-    /// Takes the hierarchical token structure from Phase 1c (TokenTree) and
+    /// Takes the hierarchical token structure from Phase 1c (ScannerTokenTree) and
     /// wraps it in the proper document structure:
-    /// - TokenTree → SessionContainer (content root)
+    /// - ScannerTokenTree → SessionContainer (content root)
     /// - SessionContainer → Document (with metadata)
     ///
     /// This creates the basic document structure: `document.content.session[0][content].blocks`
     pub fn assemble_document(
         &self,
-        token_tree: TokenTree,
+        token_tree: ScannerTokenTree,
         source_path: Option<String>,
     ) -> Result<Document, AssemblyError> {
         // Phase 3b: Extract and attach annotations
@@ -104,14 +104,14 @@ impl Assembler {
         // Convert document-level annotations to metadata
         let meta = self.extract_metadata_from_annotations(&document_annotations)?;
 
-        // Convert TokenTree to SessionContainer
+        // Convert ScannerTokenTree to SessionContainer
         // For now, we'll create a simple session container that holds the raw token tree
         // Later when Phase 2 is implemented, this will contain proper AST nodes
         let session_container = SessionContainer::new(
             vec![], // TODO: Parse sessions from token_tree when Phase 2 is implemented
             vec![], // TODO: Parse other blocks when Phase 2 is implemented
             Parameters::default(),
-            TokenSequence::new(), // TODO: Extract tokens from token_tree
+            ScannerTokenSequence::new(), // TODO: Extract tokens from token_tree
         );
 
         // Create document with metadata from annotations
@@ -146,7 +146,7 @@ impl Assembler {
     /// - content_annotations: Other annotations (attach to elements or parents)
     fn extract_annotations(
         &self,
-        token_tree: &TokenTree,
+        token_tree: &ScannerTokenTree,
     ) -> Result<(Vec<Annotation>, Vec<Annotation>), AssemblyError> {
         let mut document_annotations = Vec::new();
         let mut content_annotations = Vec::new();
@@ -167,7 +167,7 @@ impl Assembler {
     /// Recursively extract annotations from token trees
     fn extract_annotations_recursive(
         &self,
-        token_tree: &TokenTree,
+        token_tree: &ScannerTokenTree,
     ) -> Result<Vec<Annotation>, AssemblyError> {
         let mut annotations = Vec::new();
 
@@ -187,13 +187,13 @@ impl Assembler {
     /// Extract annotations from a sequence of tokens
     fn extract_annotations_from_tokens(
         &self,
-        tokens: &[Token],
+        tokens: &[ScannerToken],
     ) -> Result<Vec<Annotation>, AssemblyError> {
         let mut annotations = Vec::new();
         let mut i = 0;
 
         while i < tokens.len() {
-            if let Token::AnnotationMarker { .. } = &tokens[i] {
+            if let ScannerToken::AnnotationMarker { .. } = &tokens[i] {
                 // Found annotation start, extract the complete annotation
                 if let Some((annotation, next_idx)) =
                     self.parse_annotation_from_tokens(tokens, i)?
@@ -214,18 +214,18 @@ impl Assembler {
     /// Parse a complete annotation from tokens starting at the given index
     fn parse_annotation_from_tokens(
         &self,
-        tokens: &[Token],
+        tokens: &[ScannerToken],
         start_idx: usize,
     ) -> Result<Option<(Annotation, usize)>, AssemblyError> {
         // Look for opening :: marker
-        if !matches!(&tokens[start_idx], Token::AnnotationMarker { .. }) {
+        if !matches!(&tokens[start_idx], ScannerToken::AnnotationMarker { .. }) {
             return Ok(None);
         }
 
         // Find closing :: marker
         let mut end_idx = start_idx + 1;
         while end_idx < tokens.len() {
-            if matches!(&tokens[end_idx], Token::AnnotationMarker { .. }) {
+            if matches!(&tokens[end_idx], ScannerToken::AnnotationMarker { .. }) {
                 break;
             }
             end_idx += 1;
@@ -245,8 +245,8 @@ impl Assembler {
             label,
             parameters,
             content: crate::ast::elements::annotation::annotation_content::AnnotationContent::Empty, // TODO: Parse content
-            tokens: TokenSequence::new(), // TODO: Create proper TokenSequence from content_tokens
-            namespace: None,              // TODO: Parse namespace
+            tokens: ScannerTokenSequence::new(), // TODO: Create proper ScannerTokenSequence from content_tokens
+            namespace: None,                     // TODO: Parse namespace
         };
 
         Ok(Some((annotation, end_idx + 1)))
@@ -255,19 +255,19 @@ impl Assembler {
     /// Parse annotation content to extract label and parameters
     fn parse_annotation_content(
         &self,
-        tokens: &[Token],
+        tokens: &[ScannerToken],
     ) -> Result<(String, Parameters), AssemblyError> {
         let mut label = String::new();
         let parameters = Parameters::default();
 
         for token in tokens {
             match token {
-                Token::Text { content, .. } => {
+                ScannerToken::Text { content, .. } => {
                     if label.is_empty() {
                         label = content.clone();
                     }
                 }
-                Token::Colon { .. } => {
+                ScannerToken::Colon { .. } => {
                     // Colon separates label from parameters
                     // TODO: Parse parameters after colon
                 }
@@ -357,7 +357,7 @@ impl std::fmt::Display for AssemblyError {
 impl std::error::Error for AssemblyError {}
 
 /// Helper function to count total tokens in a token tree
-fn count_tokens_in_token_tree(token_tree: &TokenTree) -> usize {
+fn count_tokens_in_token_tree(token_tree: &ScannerTokenTree) -> usize {
     let mut count = token_tree.tokens.len();
     for child in &token_tree.children {
         count += count_tokens_in_token_tree(child);
@@ -366,7 +366,7 @@ fn count_tokens_in_token_tree(token_tree: &TokenTree) -> usize {
 }
 
 /// Helper function to count blocks (non-empty trees) in a token tree
-fn count_blocks_in_token_tree(token_tree: &TokenTree) -> usize {
+fn count_blocks_in_token_tree(token_tree: &ScannerTokenTree) -> usize {
     let mut count = if token_tree.tokens.is_empty() { 0 } else { 1 };
     for child in &token_tree.children {
         count += count_blocks_in_token_tree(child);
@@ -375,7 +375,7 @@ fn count_blocks_in_token_tree(token_tree: &TokenTree) -> usize {
 }
 
 /// Helper function to calculate maximum nesting depth
-fn calculate_max_depth(token_tree: &TokenTree) -> usize {
+fn calculate_max_depth(token_tree: &ScannerTokenTree) -> usize {
     let mut max_child_depth = 0;
     for child in &token_tree.children {
         max_child_depth = max_child_depth.max(calculate_max_depth(child));

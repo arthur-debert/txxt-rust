@@ -1,6 +1,6 @@
 //! Integration tests for math delimiter tokenization with main lexer
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_math_delimiter_integration_simple() {
     assert_eq!(tokens.len(), 4);
 
     match &tokens[0] {
-        Token::MathDelimiter { span } => {
+        ScannerToken::MathDelimiter { span } => {
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 0);
@@ -21,19 +21,19 @@ fn test_math_delimiter_integration_simple() {
     }
 
     match &tokens[1] {
-        Token::Text { content, .. } => {
+        ScannerToken::Text { content, .. } => {
             assert_eq!(content, "formula");
         }
         _ => panic!("Expected Text token, got {:?}", tokens[1]),
     }
 
     match &tokens[2] {
-        Token::MathDelimiter { .. } => {}
+        ScannerToken::MathDelimiter { .. } => {}
         _ => panic!("Expected MathDelimiter token, got {:?}", tokens[2]),
     }
 
     match &tokens[3] {
-        Token::Eof { .. } => {}
+        ScannerToken::Eof { .. } => {}
         _ => panic!("Expected Eof token, got {:?}", tokens[3]),
     }
 }
@@ -48,7 +48,7 @@ fn test_math_delimiter_integration_with_text() {
     // Find the math delimiters and content
     let math_delimiters: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .filter(|token| matches!(token, ScannerToken::MathDelimiter { .. }))
         .collect();
     assert_eq!(math_delimiters.len(), 2);
 
@@ -56,7 +56,7 @@ fn test_math_delimiter_integration_with_text() {
     let e_token = tokens
         .iter()
         .find(|token| {
-            if let Token::Text { content, .. } = token {
+            if let ScannerToken::Text { content, .. } = token {
                 content == "E"
             } else {
                 false
@@ -67,7 +67,7 @@ fn test_math_delimiter_integration_with_text() {
     let mc_squared_token = tokens
         .iter()
         .find(|token| {
-            if let Token::Text { content, .. } = token {
+            if let ScannerToken::Text { content, .. } = token {
                 content == "mc^2"
             } else {
                 false
@@ -79,7 +79,7 @@ fn test_math_delimiter_integration_with_text() {
     let equals_token = tokens
         .iter()
         .find(|token| {
-            if let Token::Text { content, .. } = token {
+            if let ScannerToken::Text { content, .. } = token {
                 content == "="
             } else {
                 false
@@ -89,15 +89,15 @@ fn test_math_delimiter_integration_with_text() {
 
     // Verify the tokens have correct content
     match e_token {
-        Token::Text { content, .. } => assert_eq!(content, "E"),
+        ScannerToken::Text { content, .. } => assert_eq!(content, "E"),
         _ => unreachable!(),
     }
     match equals_token {
-        Token::Text { content, .. } => assert_eq!(content, "="),
+        ScannerToken::Text { content, .. } => assert_eq!(content, "="),
         _ => unreachable!(),
     }
     match mc_squared_token {
-        Token::Text { content, .. } => assert_eq!(content, "mc^2"),
+        ScannerToken::Text { content, .. } => assert_eq!(content, "mc^2"),
         _ => unreachable!(),
     }
 }
@@ -109,7 +109,7 @@ fn test_math_delimiter_consistency() {
     // Should now produce MathDelimiter tokens
     let math_delimiters: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .filter(|token| matches!(token, ScannerToken::MathDelimiter { .. }))
         .collect();
 
     assert_eq!(
@@ -126,13 +126,13 @@ fn test_math_delimiter_adjacent() {
     // Should parse as: MathDelimiter, Text("a"), MathDelimiter, MathDelimiter, Text("b"), MathDelimiter, Eof
     let math_delimiters: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::MathDelimiter { .. }))
+        .filter(|token| matches!(token, ScannerToken::MathDelimiter { .. }))
         .collect();
 
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.as_str()),
+            ScannerToken::Text { content, .. } => Some(content.as_str()),
             _ => None,
         })
         .collect();
@@ -148,7 +148,7 @@ fn test_incomplete_math_delimiter_behavior() {
     // Should produce MathDelimiter + Text (standalone behavior)
     let has_math_delimiter = tokens
         .iter()
-        .any(|token| matches!(token, Token::MathDelimiter { .. }));
+        .any(|token| matches!(token, ScannerToken::MathDelimiter { .. }));
 
     assert!(
         has_math_delimiter,
@@ -156,7 +156,7 @@ fn test_incomplete_math_delimiter_behavior() {
     );
 
     let has_text = tokens.iter().any(|token| {
-        if let Token::Text { content, .. } = token {
+        if let ScannerToken::Text { content, .. } = token {
             content == "incomplete"
         } else {
             false

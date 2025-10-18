@@ -3,15 +3,15 @@
 //! This module handles parameter detection and parsing while preserving
 //! all tokens (including whitespace) and maintaining correct source positions.
 
-use crate::ast::tokens::{SourceSpan, Token};
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 
 /// Integrate parameters in annotation contexts while preserving all tokens
-pub fn integrate_annotation_parameters_v2(tokens: Vec<Token>) -> Vec<Token> {
+pub fn integrate_annotation_parameters_v2(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
-        if matches!(&tokens[i], Token::AnnotationMarker { .. }) {
+        if matches!(&tokens[i], ScannerToken::AnnotationMarker { .. }) {
             // Found opening annotation marker
             result.push(tokens[i].clone());
             i += 1;
@@ -30,12 +30,12 @@ pub fn integrate_annotation_parameters_v2(tokens: Vec<Token>) -> Vec<Token> {
 }
 
 /// Integrate parameters in definition contexts while preserving all tokens
-pub fn integrate_definition_parameters_v2(tokens: Vec<Token>) -> Vec<Token> {
+pub fn integrate_definition_parameters_v2(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
-        if matches!(&tokens[i], Token::DefinitionMarker { .. }) {
+        if matches!(&tokens[i], ScannerToken::DefinitionMarker { .. }) {
             // Found definition marker, look backwards for term:params pattern
             let (processed, start_idx) = process_definition_term(&result);
 
@@ -56,7 +56,7 @@ pub fn integrate_definition_parameters_v2(tokens: Vec<Token>) -> Vec<Token> {
 }
 
 /// Process tokens until we find a closing annotation marker
-fn process_until_annotation_end(tokens: &[Token]) -> (Vec<Token>, usize) {
+fn process_until_annotation_end(tokens: &[ScannerToken]) -> (Vec<ScannerToken>, usize) {
     let mut result = Vec::new();
     let mut i = 0;
     let mut in_parameters = false;
@@ -64,7 +64,7 @@ fn process_until_annotation_end(tokens: &[Token]) -> (Vec<Token>, usize) {
 
     while i < tokens.len() {
         match &tokens[i] {
-            Token::AnnotationMarker { .. } => {
+            ScannerToken::AnnotationMarker { .. } => {
                 // Found closing marker
                 if in_parameters {
                     // Process accumulated parameter tokens
@@ -74,7 +74,7 @@ fn process_until_annotation_end(tokens: &[Token]) -> (Vec<Token>, usize) {
                 result.push(tokens[i].clone());
                 return (result, i + 1);
             }
-            Token::Colon { span: _ } if !in_parameters => {
+            ScannerToken::Colon { span: _ } if !in_parameters => {
                 // This might be the start of parameters
                 // Check if we have a label before this
                 if has_label_before_colon(&result) {
@@ -105,19 +105,19 @@ fn process_until_annotation_end(tokens: &[Token]) -> (Vec<Token>, usize) {
 }
 
 /// Process tokens that should contain parameters
-fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
+fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
         match &tokens[i] {
-            Token::Text { content, span } => {
+            ScannerToken::Text { content, span } => {
                 // Check if this contains an equals sign
                 if let Some(eq_pos) = content.find('=') {
                     let key = &content[..eq_pos];
                     let value = &content[eq_pos + 1..];
 
-                    result.push(Token::Parameter {
+                    result.push(ScannerToken::Parameter {
                         key: key.to_string(),
                         value: value.to_string(),
                         span: span.clone(),
@@ -129,7 +129,8 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
                     i += 1;
 
                     // Skip whitespace
-                    while i < tokens.len() && matches!(&tokens[i], Token::Whitespace { .. }) {
+                    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. })
+                    {
                         result.push(tokens[i].clone());
                         i += 1;
                     }
@@ -140,7 +141,8 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
                     }
 
                     // Skip whitespace after equals
-                    while i < tokens.len() && matches!(&tokens[i], Token::Whitespace { .. }) {
+                    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. })
+                    {
                         result.push(tokens[i].clone());
                         i += 1;
                     }
@@ -149,7 +151,7 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
                     if i < tokens.len() {
                         if let Some(value) = get_token_text(&tokens[i]) {
                             let value_span = get_token_span(&tokens[i]);
-                            result.push(Token::Parameter {
+                            result.push(ScannerToken::Parameter {
                                 key,
                                 value,
                                 span: SourceSpan {
@@ -159,21 +161,21 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
                             });
                         } else {
                             // Not a valid value token, just push the key as text
-                            result.push(Token::Text {
+                            result.push(ScannerToken::Text {
                                 content: key,
                                 span: key_span,
                             });
                         }
                     } else {
                         // No value, treat as text
-                        result.push(Token::Text {
+                        result.push(ScannerToken::Text {
                             content: key,
                             span: key_span,
                         });
                     }
                 } else if is_valid_param_key(content) {
                     // Boolean parameter (key without value)
-                    result.push(Token::Parameter {
+                    result.push(ScannerToken::Parameter {
                         key: content.clone(),
                         value: "true".to_string(),
                         span: span.clone(),
@@ -183,7 +185,7 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
                     result.push(tokens[i].clone());
                 }
             }
-            Token::Identifier { content, span } if is_valid_param_key(content) => {
+            ScannerToken::Identifier { content, span } if is_valid_param_key(content) => {
                 // Check for key=value pattern
                 if peek_equals(&tokens[i + 1..]) {
                     // Process as parameter (similar to above)
@@ -193,14 +195,14 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
 
                     // Skip to value (similar logic as above)
                     // ... (abbreviated for brevity)
-                    result.push(Token::Parameter {
+                    result.push(ScannerToken::Parameter {
                         key,
                         value: "value".to_string(), // Simplified
                         span: key_span,
                     });
                 } else {
                     // Boolean parameter
-                    result.push(Token::Parameter {
+                    result.push(ScannerToken::Parameter {
                         key: content.clone(),
                         value: "true".to_string(),
                         span: span.clone(),
@@ -219,7 +221,7 @@ fn process_parameter_tokens(tokens: &[Token]) -> Vec<Token> {
 }
 
 /// Process definition term looking for parameters
-fn process_definition_term(tokens: &[Token]) -> (Vec<Token>, usize) {
+fn process_definition_term(tokens: &[ScannerToken]) -> (Vec<ScannerToken>, usize) {
     // Look backwards for term:params pattern
     let mut term_start = tokens.len();
     let mut found_colon = false;
@@ -228,11 +230,13 @@ fn process_definition_term(tokens: &[Token]) -> (Vec<Token>, usize) {
     // Scan backwards to find the term boundaries
     for i in (0..tokens.len()).rev() {
         match &tokens[i] {
-            Token::Colon { .. } if !found_colon => {
+            ScannerToken::Colon { .. } if !found_colon => {
                 found_colon = true;
                 colon_idx = i;
             }
-            Token::Text { .. } | Token::Identifier { .. } | Token::Whitespace { .. } => {
+            ScannerToken::Text { .. }
+            | ScannerToken::Identifier { .. }
+            | ScannerToken::Whitespace { .. } => {
                 if i < term_start {
                     term_start = i;
                 }
@@ -262,23 +266,23 @@ fn process_definition_term(tokens: &[Token]) -> (Vec<Token>, usize) {
 
 // Helper functions
 
-fn has_label_before_colon(tokens: &[Token]) -> bool {
+fn has_label_before_colon(tokens: &[ScannerToken]) -> bool {
     // Check if there's a text or identifier token before the colon
     for i in (0..tokens.len()).rev() {
         match &tokens[i] {
-            Token::Text { .. } | Token::Identifier { .. } => return true,
-            Token::Whitespace { .. } => continue,
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. } => return true,
+            ScannerToken::Whitespace { .. } => continue,
             _ => return false,
         }
     }
     false
 }
 
-fn peek_equals(tokens: &[Token]) -> bool {
+fn peek_equals(tokens: &[ScannerToken]) -> bool {
     for token in tokens {
         match token {
-            Token::Text { content, .. } if content.starts_with('=') => return true,
-            Token::Whitespace { .. } => continue,
+            ScannerToken::Text { content, .. } if content.starts_with('=') => return true,
+            ScannerToken::Whitespace { .. } => continue,
             _ => return false,
         }
     }
@@ -291,17 +295,19 @@ fn is_valid_param_key(s: &str) -> bool {
             .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
 }
 
-fn get_token_text(token: &Token) -> Option<String> {
+fn get_token_text(token: &ScannerToken) -> Option<String> {
     match token {
-        Token::Text { content, .. } | Token::Identifier { content, .. } => Some(content.clone()),
+        ScannerToken::Text { content, .. } | ScannerToken::Identifier { content, .. } => {
+            Some(content.clone())
+        }
         _ => None,
     }
 }
 
-fn get_token_span(token: &Token) -> &SourceSpan {
+fn get_token_span(token: &ScannerToken) -> &SourceSpan {
     token.span()
 }
 
-fn is_equals(token: &Token) -> bool {
-    matches!(token, Token::Text { content, .. } if content == "=")
+fn is_equals(token: &ScannerToken) -> bool {
+    matches!(token, ScannerToken::Text { content, .. } if content == "=")
 }

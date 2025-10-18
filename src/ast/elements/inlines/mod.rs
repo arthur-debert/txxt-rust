@@ -19,7 +19,7 @@ use crate::ast::elements::{
     annotation::annotation_content::Annotation,
     components::parameters::Parameters,
     references::reference_types::ReferenceTarget,
-    tokens::{Token, TokenSequence},
+    scanner_tokens::{ScannerToken, ScannerTokenSequence},
 };
 
 use super::core::{ElementType, SpanElement, TxxtElement};
@@ -37,7 +37,7 @@ pub use super::references::{
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TextSpan {
     /// Token sequence with character-level precision
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 
     /// Annotations (rare for text spans)
     pub annotations: Vec<Annotation>,
@@ -61,7 +61,7 @@ pub struct TextLine {
     pub parameters: Parameters,
 
     /// Raw tokens for precise source reconstruction
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Text transform layer - uniform processing for all text content
@@ -122,7 +122,7 @@ pub struct Link {
     pub parameters: Parameters,
 
     /// Raw tokens for precise positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Reference element for document elements (citations, cross-refs, etc.)
@@ -141,7 +141,7 @@ pub struct Reference {
     pub parameters: Parameters,
 
     /// Raw tokens for language server support
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 // Implement TxxtElement for TextSpan
@@ -150,7 +150,7 @@ impl TxxtElement for TextSpan {
         ElementType::Span
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -175,7 +175,7 @@ impl TxxtElement for TextLine {
         ElementType::Line
     }
 
-    fn tokens(&self) -> &TokenSequence {
+    fn tokens(&self) -> &ScannerTokenSequence {
         &self.tokens
     }
 
@@ -199,12 +199,12 @@ impl TextSpan {
     /// Create a simple text span from a string (for testing/convenience)
     pub fn simple(content: &str) -> Self {
         Self {
-            tokens: TokenSequence {
-                tokens: vec![Token::Text {
+            tokens: ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
                     content: content.to_string(),
-                    span: crate::ast::tokens::SourceSpan {
-                        start: crate::ast::tokens::Position { row: 0, column: 0 },
-                        end: crate::ast::tokens::Position {
+                    span: crate::ast::scanner_tokens::SourceSpan {
+                        start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
+                        end: crate::ast::scanner_tokens::Position {
                             row: 0,
                             column: content.len(),
                         },

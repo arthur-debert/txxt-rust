@@ -54,7 +54,7 @@ pub use math::*;
 pub use strong::*;
 
 use crate::ast::elements::formatting::inlines::{Inline, TextTransform};
-use crate::ast::tokens::Token;
+use crate::ast::scanner_tokens::ScannerToken;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Parse all formatting elements from a sequence of tokens
@@ -74,7 +74,9 @@ use crate::parser::elements::inlines::InlineParseError;
 /// 3. **Strong elements** (asterisk tokens)
 /// 4. **Emphasis elements** (underscore tokens)
 /// 5. **Plain text** (default)
-pub fn parse_formatting_elements(tokens: &[Token]) -> Result<Vec<TextTransform>, InlineParseError> {
+pub fn parse_formatting_elements(
+    tokens: &[ScannerToken],
+) -> Result<Vec<TextTransform>, InlineParseError> {
     if tokens.is_empty() {
         return Ok(Vec::new());
     }
@@ -85,7 +87,7 @@ pub fn parse_formatting_elements(tokens: &[Token]) -> Result<Vec<TextTransform>,
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
-            Token::Text { content, .. } => Some(content.clone()),
+            ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -113,7 +115,7 @@ pub fn parse_formatting_elements(tokens: &[Token]) -> Result<Vec<TextTransform>,
 ///
 /// # Returns
 /// * `Result<Vec<Inline>, InlineParseError>`
-pub fn parse_formatting_inlines(tokens: &[Token]) -> Result<Vec<Inline>, InlineParseError> {
+pub fn parse_formatting_inlines(tokens: &[ScannerToken]) -> Result<Vec<Inline>, InlineParseError> {
     let transforms = parse_formatting_elements(tokens)?;
 
     let inlines = transforms.into_iter().map(Inline::TextLine).collect();

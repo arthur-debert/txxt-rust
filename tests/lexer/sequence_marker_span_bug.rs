@@ -3,7 +3,7 @@
 //! These tests show that sequence markers calculate spans incorrectly
 //! by adding string length to column position, which fails for multi-byte characters.
 
-use txxt::ast::tokens::{SequenceMarkerType, Token};
+use txxt::ast::scanner_tokens::{ScannerToken, SequenceMarkerType};
 use txxt::lexer::Lexer;
 
 #[test]
@@ -17,7 +17,7 @@ fn test_sequence_marker_span_with_unicode() {
     // Should NOT find sequence marker
     let has_marker = tokens
         .iter()
-        .any(|t| matches!(t, Token::SequenceMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::SequenceMarker { .. }));
 
     assert!(
         !has_marker,
@@ -27,11 +27,11 @@ fn test_sequence_marker_span_with_unicode() {
     // Should find dash token instead
     let dash = tokens
         .iter()
-        .find(|t| matches!(t, Token::Dash { .. }))
+        .find(|t| matches!(t, ScannerToken::Dash { .. }))
         .expect("Should find dash token");
 
     match dash {
-        Token::Dash { span } => {
+        ScannerToken::Dash { span } => {
             // The emoji takes 1 character position
             assert_eq!(
                 span.start.column, 1,
@@ -49,11 +49,11 @@ fn test_sequence_marker_span_with_unicode() {
 
     let marker = tokens
         .iter()
-        .find(|t| matches!(t, Token::SequenceMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
         .expect("Should find sequence marker at column 0");
 
     match marker {
-        Token::SequenceMarker { span, .. } => {
+        ScannerToken::SequenceMarker { span, .. } => {
             assert_eq!(span.start.column, 0, "Sequence marker at line start");
             assert_eq!(span.end.column, 1, "Plain dash marker is 1 char");
         }
@@ -78,11 +78,11 @@ fn test_sequence_marker_span_calculation() {
 
         let marker = tokens
             .iter()
-            .find(|t| matches!(t, Token::SequenceMarker { .. }))
+            .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
             .unwrap_or_else(|| panic!("Should find sequence marker for {}", description));
 
         match marker {
-            Token::SequenceMarker { span, .. } => {
+            ScannerToken::SequenceMarker { span, .. } => {
                 assert_eq!(
                     span.start.column, expected_start,
                     "{}: incorrect start column",
@@ -117,11 +117,12 @@ fn test_sequence_marker_correct_type_detection() {
 
         let marker = tokens
             .iter()
-            .find(|t| matches!(t, Token::SequenceMarker { .. }))
+            .find(|t| matches!(t, ScannerToken::SequenceMarker { .. }))
             .unwrap_or_else(|| panic!("Should find sequence marker in '{}'", input));
 
         match marker {
-            Token::SequenceMarker { marker_type, .. } => match (marker_type, &expected_type) {
+            ScannerToken::SequenceMarker { marker_type, .. } => match (marker_type, &expected_type)
+            {
                 (SequenceMarkerType::Plain(a), SequenceMarkerType::Plain(b)) => {
                     assert_eq!(a, b, "Plain marker mismatch");
                 }

@@ -4,7 +4,7 @@
 //! Indent and Dedent tokens are properly generated for TXXT text.
 
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 
 /// Test basic indentation tokenization
@@ -16,12 +16,12 @@ fn test_basic_indentation_integration() {
     // Find Indent and Dedent tokens
     let indent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Indent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Indent { .. }))
         .collect();
 
     let dedent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Dedent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Dedent { .. }))
         .collect();
 
     assert_eq!(indent_tokens.len(), 1, "Should have one Indent token");
@@ -36,12 +36,12 @@ fn test_multiple_indentation_levels() {
 
     let indent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Indent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Indent { .. }))
         .collect();
 
     let dedent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Dedent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Dedent { .. }))
         .collect();
 
     assert_eq!(indent_tokens.len(), 2, "Should have two Indent tokens");
@@ -60,12 +60,12 @@ fn test_empty_lines_ignored() {
 
     let indent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Indent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Indent { .. }))
         .collect();
 
     let dedent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Dedent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Dedent { .. }))
         .collect();
 
     assert_eq!(
@@ -88,13 +88,13 @@ fn test_tab_indentation_integration() {
 
     let indent_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Indent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Indent { .. }))
         .collect();
 
     assert_eq!(indent_tokens.len(), 1, "Should handle tab indentation");
 
     // Check that the span reflects the normalized indentation (4 spaces)
-    if let Token::Indent { span } = &indent_tokens[0] {
+    if let ScannerToken::Indent { span } = &indent_tokens[0] {
         assert_eq!(span.end.column, 4, "Tab should be normalized to 4 spaces");
     }
 }
@@ -117,12 +117,12 @@ fn test_indentation_patterns(
 
     let indent_count = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Indent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Indent { .. }))
         .count();
 
     let dedent_count = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Dedent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Dedent { .. }))
         .count();
 
     assert_eq!(
@@ -143,10 +143,10 @@ fn test_indentation_token_spans() {
 
     let indent_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Indent { .. }))
+        .find(|token| matches!(token, ScannerToken::Indent { .. }))
         .expect("Should find Indent token");
 
-    if let Token::Indent { span } = indent_token {
+    if let ScannerToken::Indent { span } = indent_token {
         assert_eq!(span.start.row, 1, "Indent should be on line 1 (0-indexed)");
         assert_eq!(span.start.column, 0, "Indent should start at column 0");
         assert_eq!(span.end.column, 4, "Indent should end at column 4");
@@ -154,10 +154,10 @@ fn test_indentation_token_spans() {
 
     let dedent_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Dedent { .. }))
+        .find(|token| matches!(token, ScannerToken::Dedent { .. }))
         .expect("Should find Dedent token");
 
-    if let Token::Dedent { span } = dedent_token {
+    if let ScannerToken::Dedent { span } = dedent_token {
         assert_eq!(span.start.row, 2, "Dedent should be on line 2 (0-indexed)");
         assert_eq!(span.start.column, 0, "Dedent should start at column 0");
     }
@@ -172,14 +172,14 @@ fn test_indentation_with_other_tokens() {
     // Should have indentation tokens
     let indent_count = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Indent { .. }))
+        .filter(|token| matches!(token, ScannerToken::Indent { .. }))
         .count();
     assert!(indent_count > 0, "Should have indentation tokens");
 
     // Should also have text and other tokens
     let text_count = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Text { .. }))
+        .filter(|token| matches!(token, ScannerToken::Text { .. }))
         .count();
     assert!(text_count > 0, "Should have text tokens");
 
@@ -190,7 +190,7 @@ fn test_indentation_with_other_tokens() {
     // Should have newline tokens
     let newline_count = tokens
         .iter()
-        .filter(|token| matches!(token, Token::Newline { .. }))
+        .filter(|token| matches!(token, ScannerToken::Newline { .. }))
         .count();
     assert!(newline_count > 0, "Should have newline tokens");
 }

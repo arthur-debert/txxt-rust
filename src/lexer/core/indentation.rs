@@ -11,7 +11,7 @@
 //! - **Verbatim awareness**: Skips indentation processing for verbatim content
 //! - **Multiple dedent support**: Generates multiple Dedent tokens for multi-level decreases
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use std::collections::VecDeque;
 
 /// Standard indentation size (4 spaces) - matches verbatim_scanner.rs
@@ -26,7 +26,7 @@ pub struct IndentationTracker {
     /// Stack of indentation levels (in spaces)
     indent_stack: Vec<usize>,
     /// Pending dedent tokens to emit
-    pending_dedents: VecDeque<Token>,
+    pending_dedents: VecDeque<ScannerToken>,
     /// Current position in source
     current_position: Position,
 }
@@ -50,7 +50,7 @@ impl IndentationTracker {
     ///
     /// This is the main entry point for indentation processing. It should be called
     /// for each line at column 0, but only for lines that are not part of verbatim content.
-    pub fn process_line_indentation(&mut self, line: &str) -> Vec<Token> {
+    pub fn process_line_indentation(&mut self, line: &str) -> Vec<ScannerToken> {
         let mut tokens = Vec::new();
 
         // First emit any pending dedents
@@ -71,7 +71,7 @@ impl IndentationTracker {
         if current_indent > previous_indent {
             // Increased indentation - emit Indent token
             self.indent_stack.push(current_indent);
-            tokens.push(Token::Indent {
+            tokens.push(ScannerToken::Indent {
                 span: SourceSpan {
                     start: Position {
                         row: self.current_position.row,
@@ -91,7 +91,7 @@ impl IndentationTracker {
                 }
 
                 self.indent_stack.pop();
-                self.pending_dedents.push_back(Token::Dedent {
+                self.pending_dedents.push_back(ScannerToken::Dedent {
                     span: SourceSpan {
                         start: Position {
                             row: self.current_position.row,
@@ -113,7 +113,7 @@ impl IndentationTracker {
             // Check if we need to record a new indentation level
             if !self.indent_stack.contains(&current_indent) && current_indent > 0 {
                 self.indent_stack.push(current_indent);
-                tokens.push(Token::Indent {
+                tokens.push(ScannerToken::Indent {
                     span: SourceSpan {
                         start: Position {
                             row: self.current_position.row,
@@ -136,7 +136,7 @@ impl IndentationTracker {
     ///
     /// This should be called at the end of document processing to ensure
     /// all indentation levels are properly closed.
-    pub fn finalize(&mut self) -> Vec<Token> {
+    pub fn finalize(&mut self) -> Vec<ScannerToken> {
         let mut tokens = Vec::new();
 
         // Emit pending dedents
@@ -147,7 +147,7 @@ impl IndentationTracker {
         // Emit dedents for all remaining levels except base level (0)
         while self.indent_stack.len() > 1 {
             let stack_indent = self.indent_stack.pop().unwrap();
-            tokens.push(Token::Dedent {
+            tokens.push(ScannerToken::Dedent {
                 span: SourceSpan {
                     start: Position {
                         row: self.current_position.row,
@@ -265,7 +265,7 @@ mod tests {
         let tokens = tracker.process_line_indentation("    indented");
         assert_eq!(tokens.len(), 1);
         match &tokens[0] {
-            Token::Indent { span } => {
+            ScannerToken::Indent { span } => {
                 assert_eq!(span.start.row, 1);
                 assert_eq!(span.start.column, 0);
                 assert_eq!(span.end.column, 4);
@@ -292,7 +292,7 @@ mod tests {
 
         for token in &tokens {
             match token {
-                Token::Dedent { .. } => {}
+                ScannerToken::Dedent { .. } => {}
                 _ => panic!("Expected Dedent token, got {:?}", token),
             }
         }
@@ -318,7 +318,7 @@ mod tests {
         let tokens = tracker.process_line_indentation("    content");
         assert_eq!(tokens.len(), 1);
         match &tokens[0] {
-            Token::Indent { .. } => {}
+            ScannerToken::Indent { .. } => {}
             _ => panic!("Expected Indent token"),
         }
     }
@@ -341,7 +341,7 @@ mod tests {
 
         for token in &tokens {
             match token {
-                Token::Dedent { .. } => {}
+                ScannerToken::Dedent { .. } => {}
                 _ => panic!("Expected Dedent token from finalize"),
             }
         }
@@ -357,7 +357,7 @@ mod tests {
         assert_eq!(tokens.len(), 1);
 
         match &tokens[0] {
-            Token::Indent { span } => {
+            ScannerToken::Indent { span } => {
                 assert_eq!(span.end.column, 4); // Tab normalized to 4 spaces
             }
             _ => panic!("Expected Indent token"),
@@ -385,7 +385,7 @@ mod tests {
 
         for token in &tokens {
             match token {
-                Token::Dedent { .. } => {}
+                ScannerToken::Dedent { .. } => {}
                 _ => panic!("Expected Dedent token"),
             }
         }

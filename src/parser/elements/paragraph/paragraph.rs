@@ -34,7 +34,7 @@
 //!         Annotations attached to this element, post parsing at assembly (during time aanotations are regular items in container)
 //!     │   ├── annotations: Vec<Annotation>
 //!     │   ├── parameters: Parameters
-//!     │   └── tokens: TokenSequence
+//!     │   └── tokens: ScannerTokenSequence
 //! ```
 //!
 //! Key structural properties:
@@ -55,7 +55,7 @@
 //!     /// Parameters for this paragraph
 //!     pub parameters: Parameters,
 //!     /// Raw tokens for precise source reconstruction
-//!     pub tokens: TokenSequence,
+//!     pub tokens: ScannerTokenSequence,
 //! }
 //! ```
 //!
@@ -155,7 +155,7 @@ use crate::ast::{
         inlines::{TextSpan, TextTransform},
         paragraph::ParagraphBlock,
     },
-    tokens::{Token, TokenSequence},
+    scanner_tokens::{ScannerToken, ScannerTokenSequence},
 };
 use crate::lexer::elements::paragraph::paragraph_tokenizer::{
     collect_paragraph_lines, detect_paragraph, ParagraphParseResult,
@@ -167,7 +167,7 @@ use crate::parser::pipeline::parse_blocks::BlockParseError;
 /// This function takes a sequence of tokens and converts them into a
 /// ParagraphBlock AST node. It handles the recognition, line grouping,
 /// and inline processing as described in the processing rules.
-pub fn parse_paragraph(tokens: &[Token]) -> Result<ParagraphBlock, BlockParseError> {
+pub fn parse_paragraph(tokens: &[ScannerToken]) -> Result<ParagraphBlock, BlockParseError> {
     // Step 1: Detect if this is a paragraph
     match detect_paragraph(tokens) {
         ParagraphParseResult::ValidParagraph(_paragraph) => {
@@ -175,7 +175,7 @@ pub fn parse_paragraph(tokens: &[Token]) -> Result<ParagraphBlock, BlockParseErr
             let content = parse_inline_content(tokens)?;
 
             // Step 3: Create token sequence for reconstruction
-            let mut token_sequence = TokenSequence::new();
+            let mut token_sequence = ScannerTokenSequence::new();
             token_sequence.tokens = tokens.to_vec();
 
             // Step 4: Create ParagraphBlock AST node
@@ -199,7 +199,7 @@ pub fn parse_paragraph(tokens: &[Token]) -> Result<ParagraphBlock, BlockParseErr
 /// lines at the same indentation level and processing them as a single
 /// paragraph unit.
 pub fn parse_multiline_paragraph(
-    line_tokens: &[Vec<Token>],
+    line_tokens: &[Vec<ScannerToken>],
 ) -> Result<ParagraphBlock, BlockParseError> {
     // Step 1: Collect paragraph lines
     let _paragraph = collect_paragraph_lines(line_tokens).ok_or_else(|| {
@@ -207,11 +207,11 @@ pub fn parse_multiline_paragraph(
     })?;
 
     // Step 2: Process inline content using all tokens
-    let all_tokens: Vec<Token> = line_tokens.iter().flatten().cloned().collect();
+    let all_tokens: Vec<ScannerToken> = line_tokens.iter().flatten().cloned().collect();
     let content = parse_inline_content(&all_tokens)?;
 
     // Step 3: Create token sequence from all line tokens
-    let mut token_sequence = TokenSequence::new();
+    let mut token_sequence = ScannerTokenSequence::new();
     token_sequence.tokens = all_tokens;
 
     // Step 4: Create ParagraphBlock AST node
@@ -228,16 +228,16 @@ pub fn parse_multiline_paragraph(
 /// For Phase 1 Simple Elements, we only handle plain text without
 /// inline formatting. This will be expanded in Phase 2.
 fn parse_inline_content(
-    tokens: &[Token],
+    tokens: &[ScannerToken],
 ) -> Result<Vec<crate::ast::elements::inlines::TextTransform>, BlockParseError> {
     if tokens.is_empty() {
         return Ok(vec![]);
     }
 
     // Filter out non-content tokens (blank lines, etc.)
-    let content_tokens: Vec<Token> = tokens
+    let content_tokens: Vec<ScannerToken> = tokens
         .iter()
-        .filter(|token| !matches!(token, Token::BlankLine { .. }))
+        .filter(|token| !matches!(token, ScannerToken::BlankLine { .. }))
         .cloned()
         .collect();
 
@@ -251,39 +251,39 @@ fn parse_inline_content(
 
     for token in content_tokens {
         match token {
-            Token::Text { .. } => {
+            ScannerToken::Text { .. } => {
                 if prev_was_text {
                     // Add space between text tokens
-                    normalized_tokens.push(Token::Text {
+                    normalized_tokens.push(ScannerToken::Text {
                         content: " ".to_string(),
-                        span: crate::ast::tokens::SourceSpan {
-                            start: crate::ast::tokens::Position { row: 0, column: 0 },
-                            end: crate::ast::tokens::Position { row: 0, column: 1 },
+                        span: crate::ast::scanner_tokens::SourceSpan {
+                            start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
+                            end: crate::ast::scanner_tokens::Position { row: 0, column: 1 },
                         },
                     });
                 }
                 normalized_tokens.push(token);
                 prev_was_text = true;
             }
-            Token::Whitespace { .. } => {
+            ScannerToken::Whitespace { .. } => {
                 // Convert whitespace to space for normalization
-                normalized_tokens.push(Token::Text {
+                normalized_tokens.push(ScannerToken::Text {
                     content: " ".to_string(),
-                    span: crate::ast::tokens::SourceSpan {
-                        start: crate::ast::tokens::Position { row: 0, column: 0 },
-                        end: crate::ast::tokens::Position { row: 0, column: 1 },
+                    span: crate::ast::scanner_tokens::SourceSpan {
+                        start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
+                        end: crate::ast::scanner_tokens::Position { row: 0, column: 1 },
                     },
                 });
                 prev_was_text = true;
             }
-            Token::Newline { .. } => {
+            ScannerToken::Newline { .. } => {
                 // Convert newlines to spaces for paragraph flow
                 if prev_was_text {
-                    normalized_tokens.push(Token::Text {
+                    normalized_tokens.push(ScannerToken::Text {
                         content: " ".to_string(),
-                        span: crate::ast::tokens::SourceSpan {
-                            start: crate::ast::tokens::Position { row: 0, column: 0 },
-                            end: crate::ast::tokens::Position { row: 0, column: 1 },
+                        span: crate::ast::scanner_tokens::SourceSpan {
+                            start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
+                            end: crate::ast::scanner_tokens::Position { row: 0, column: 1 },
                         },
                     });
                 }
@@ -298,7 +298,7 @@ fn parse_inline_content(
 
     // Create a text span with the normalized tokens
     let mut text_span = TextSpan {
-        tokens: TokenSequence::new(),
+        tokens: ScannerTokenSequence::new(),
         annotations: Vec::new(),
         parameters: Parameters::new(),
     };
@@ -315,7 +315,7 @@ fn parse_inline_content(
 mod tests {
     use super::*;
     use crate::ast::elements::inlines::TextTransform;
-    use crate::ast::tokens::{Position, SourceSpan};
+    use crate::ast::scanner_tokens::{Position, SourceSpan};
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -324,8 +324,8 @@ mod tests {
         }
     }
 
-    fn create_text_token(content: &str) -> Token {
-        Token::Text {
+    fn create_text_token(content: &str) -> ScannerToken {
+        ScannerToken::Text {
             content: content.to_string(),
             span: create_test_span(),
         }

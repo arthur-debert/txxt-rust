@@ -4,7 +4,7 @@
 //! (citations, footnotes, sessions, files, URLs) using the TxxtCorpora framework.
 
 use txxt::ast::elements::references::reference_types::*;
-use txxt::ast::elements::tokens::{Position, SourceSpan, Token};
+use txxt::ast::elements::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use txxt::parser::elements::inlines::references::*;
 
 /// Helper function to create a test source span
@@ -16,18 +16,18 @@ fn test_span() -> SourceSpan {
 }
 
 /// Helper function to create bracket tokens around content
-fn create_bracketed_tokens(content: &str) -> Vec<Token> {
-    let mut tokens = vec![Token::Text {
+fn create_bracketed_tokens(content: &str) -> Vec<ScannerToken> {
+    let mut tokens = vec![ScannerToken::Text {
         content: "[".to_string(),
         span: test_span(),
     }];
 
-    tokens.push(Token::Text {
+    tokens.push(ScannerToken::Text {
         content: content.to_string(),
         span: test_span(),
     });
 
-    tokens.push(Token::Text {
+    tokens.push(ScannerToken::Text {
         content: "]".to_string(),
         span: test_span(),
     });
@@ -387,7 +387,7 @@ fn test_parse_reference_file_with_section() {
 /// Test error handling for empty content
 #[test]
 fn test_reference_empty_content_error() {
-    let empty_tokens: Vec<Token> = vec![];
+    let empty_tokens: Vec<ScannerToken> = vec![];
 
     assert!(parse_citation(&empty_tokens).is_err());
     assert!(parse_footnote_ref(&empty_tokens).is_err());

@@ -1,7 +1,7 @@
 //! Integration tests for footnote reference tokenization
 
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::inline::references::footnote_ref::FootnoteType;
 use txxt::lexer::tokenize;
 
@@ -21,7 +21,7 @@ fn test_footnote_ref_naked_passing(#[case] input: &str, #[case] expected_number:
     assert_eq!(tokens.len(), 2); // FootnoteRef + EOF
 
     match &tokens[0] {
-        Token::FootnoteRef { footnote_type, span } => {
+        ScannerToken::FootnoteRef { footnote_type, span } => {
             assert_eq!(footnote_type, &FootnoteType::Naked(expected_number));
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -44,7 +44,7 @@ fn test_footnote_ref_naked_failing(#[case] input: &str) {
     // Should not produce FootnoteRef token
     let footnote_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .collect();
     
     assert_eq!(footnote_refs.len(), 0, "Should not produce FootnoteRef for: {}", input);
@@ -68,7 +68,7 @@ fn test_footnote_ref_labeled_passing(#[case] input: &str, #[case] expected_label
     assert_eq!(tokens.len(), 2); // FootnoteRef + EOF
 
     match &tokens[0] {
-        Token::FootnoteRef { footnote_type, span } => {
+        ScannerToken::FootnoteRef { footnote_type, span } => {
             assert_eq!(footnote_type, &FootnoteType::Labeled(expected_label.to_string()));
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -92,7 +92,7 @@ fn test_footnote_ref_labeled_failing(#[case] input: &str) {
     // Should not produce FootnoteRef token
     let footnote_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .collect();
     
     assert_eq!(footnote_refs.len(), 0, "Should not produce FootnoteRef for: {}", input);
@@ -115,7 +115,7 @@ fn test_footnote_ref_malformed(#[case] input: &str) {
     // Should not produce FootnoteRef token
     let footnote_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .collect();
     
     assert_eq!(footnote_refs.len(), 0, "Should not produce FootnoteRef for malformed: {}", input);
@@ -129,7 +129,7 @@ fn test_footnote_ref_multiline_rejection() {
     // Should not produce FootnoteRef token (cannot span lines)
     let footnote_refs: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+        .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .collect();
     
     assert_eq!(footnote_refs.len(), 0);
@@ -150,11 +150,11 @@ fn test_footnote_ref_with_surrounding_text() {
     // Find the FootnoteRef token
     let footnote_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::FootnoteRef { .. }))
+        .find(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .expect("Should find FootnoteRef token");
 
     match footnote_ref {
-        Token::FootnoteRef { footnote_type, .. } => {
+        ScannerToken::FootnoteRef { footnote_type, .. } => {
             assert_eq!(footnote_type, &FootnoteType::Naked(1));
         }
         _ => unreachable!(),
@@ -169,11 +169,11 @@ fn test_footnote_ref_labeled_with_text() {
     // Find the FootnoteRef token
     let footnote_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::FootnoteRef { .. }))
+        .find(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .expect("Should find FootnoteRef token");
 
     match footnote_ref {
-        Token::FootnoteRef { footnote_type, .. } => {
+        ScannerToken::FootnoteRef { footnote_type, .. } => {
             assert_eq!(footnote_type, &FootnoteType::Labeled("methodology-note".to_string()));
         }
         _ => unreachable!(),
@@ -197,12 +197,12 @@ fn test_footnote_ref_vs_other_references() {
         
         let footnote_refs: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, Token::FootnoteRef { .. }))
+            .filter(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
             .collect();
         
         let ref_markers: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, Token::RefMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::RefMarker { .. }))
             .collect();
 
         assert_eq!(footnote_refs.len(), 1, "Should find FootnoteRef for {}", description);
@@ -228,11 +228,11 @@ fn test_footnote_ref_span_consistency() {
         
         let footnote_ref = tokens
             .iter()
-            .find(|token| matches!(token, Token::FootnoteRef { .. }))
+            .find(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
             .expect("Should find FootnoteRef token");
 
         match footnote_ref {
-            Token::FootnoteRef { span, .. } => {
+            ScannerToken::FootnoteRef { span, .. } => {
                 assert_eq!(span.start.row, 0);
                 assert_eq!(span.start.column, 0);
                 assert_eq!(span.end.row, 0);
@@ -250,7 +250,7 @@ fn test_footnote_ref_token_access_methods() {
     
     let footnote_ref = tokens
         .iter()
-        .find(|token| matches!(token, Token::FootnoteRef { .. }))
+        .find(|token| matches!(token, ScannerToken::FootnoteRef { .. }))
         .expect("Should find FootnoteRef token");
 
     // Test footnote_type() accessor method
@@ -260,7 +260,7 @@ fn test_footnote_ref_token_access_methods() {
     // Test that other tokens return None for footnote_type()
     let text_token = tokens
         .iter()
-        .find(|token| matches!(token, Token::Eof { .. }))
+        .find(|token| matches!(token, ScannerToken::Eof { .. }))
         .expect("Should find EOF token");
     
     assert!(text_token.footnote_type().is_none());

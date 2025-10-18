@@ -6,7 +6,7 @@
 
 use proptest::prelude::*;
 use rstest::rstest;
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::{core::patterns::IDENTIFIER_PATTERN, tokenize};
 
 // =============================================================================
@@ -21,7 +21,7 @@ fn test_annotation_marker_isolated_passing(#[case] input: &str, #[case] expected
     assert!(!tokens.is_empty(), "Should have at least one token");
 
     match &tokens[0] {
-        Token::AnnotationMarker { content, span } => {
+        ScannerToken::AnnotationMarker { content, span } => {
             assert_eq!(content, expected_content);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -50,7 +50,7 @@ fn test_annotation_marker_with_content_passing(
 
     // First token should be annotation marker
     match &tokens[0] {
-        Token::AnnotationMarker { content, span } => {
+        ScannerToken::AnnotationMarker { content, span } => {
             assert_eq!(content, expected_first_marker);
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -62,12 +62,12 @@ fn test_annotation_marker_with_content_passing(
     let text_token = tokens
         .iter()
         .find(
-            |token| matches!(token, Token::Text { content, .. } if content == expected_identifier),
+            |token| matches!(token, ScannerToken::Text { content, .. } if content == expected_identifier),
         )
         .expect("Should find text token");
 
     match text_token {
-        Token::Text { content, span } => {
+        ScannerToken::Text { content, span } => {
             assert_eq!(content, expected_identifier);
             assert_eq!(span.start.row, 0);
             assert!(span.start.column > 0); // After first ::
@@ -78,11 +78,11 @@ fn test_annotation_marker_with_content_passing(
     // Find the second annotation marker
     let second_marker_token = tokens.iter()
         .skip(1) // Skip first marker
-        .find(|token| matches!(token, Token::AnnotationMarker { content, .. } if content == expected_second_marker))
+        .find(|token| matches!(token, ScannerToken::AnnotationMarker { content, .. } if content == expected_second_marker))
         .expect("Should find second annotation marker");
 
     match second_marker_token {
-        Token::AnnotationMarker { content, .. } => {
+        ScannerToken::AnnotationMarker { content, .. } => {
             assert_eq!(content, expected_second_marker);
         }
         _ => unreachable!(),
@@ -103,7 +103,7 @@ fn test_annotation_marker_indented_passing(
     // Should find annotation markers even when indented
     let pragma_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::AnnotationMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::AnnotationMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -116,7 +116,7 @@ fn test_annotation_marker_indented_passing(
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter(
-            |token| matches!(token, Token::Text { content, .. } if content == expected_identifier),
+            |token| matches!(token, ScannerToken::Text { content, .. } if content == expected_identifier),
         )
         .collect();
 
@@ -137,7 +137,7 @@ fn test_annotation_marker_isolated_failing(#[case] input: &str) {
     // Should not contain any ANNOTATION_MARKER tokens
     let pragma_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, Token::AnnotationMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::AnnotationMarker { .. }))
         .collect();
 
     assert_eq!(
@@ -200,7 +200,7 @@ proptest! {
 
         // Should have exactly 2 ANNOTATION_MARKER tokens
         let pragma_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::AnnotationMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::AnnotationMarker { .. }))
             .collect();
 
         prop_assert_eq!(pragma_tokens.len(), 2, "Should produce exactly 2 ANNOTATION_MARKER tokens");
@@ -209,7 +209,7 @@ proptest! {
         // Find indices of annotation markers
         let marker_indices: Vec<usize> = tokens.iter().enumerate()
             .filter_map(|(i, token)| {
-                if matches!(token, Token::AnnotationMarker { .. }) {
+                if matches!(token, ScannerToken::AnnotationMarker { .. }) {
                     Some(i)
                 } else {
                     None
@@ -224,13 +224,13 @@ proptest! {
             let content_tokens = &tokens[marker_indices[0] + 1..marker_indices[1]];
             let reconstructed: String = content_tokens.iter()
                 .filter_map(|token| match token {
-                    Token::Text { content, .. } => Some(content.as_str()),
-                    Token::Identifier { content, .. } => Some(content.as_str()),
-                    Token::ItalicDelimiter { .. } => Some("_"),
-                    Token::BoldDelimiter { .. } => Some("*"),
-                    Token::CodeDelimiter { .. } => Some("`"),
-                    Token::MathDelimiter { .. } => Some("#"),
-                    Token::Whitespace { .. } => None, // Skip whitespace in reconstruction
+                    ScannerToken::Text { content, .. } => Some(content.as_str()),
+                    ScannerToken::Identifier { content, .. } => Some(content.as_str()),
+                    ScannerToken::ItalicDelimiter { .. } => Some("_"),
+                    ScannerToken::BoldDelimiter { .. } => Some("*"),
+                    ScannerToken::CodeDelimiter { .. } => Some("`"),
+                    ScannerToken::MathDelimiter { .. } => Some("#"),
+                    ScannerToken::Whitespace { .. } => None, // Skip whitespace in reconstruction
                     _ => None,
                 })
                 .collect();
@@ -247,7 +247,7 @@ proptest! {
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let Token::AnnotationMarker { content, span } = token {
+            if let ScannerToken::AnnotationMarker { content, span } = token {
                 // Span should be consistent with content length
                 prop_assert_eq!(
                     span.end.column - span.start.column,
@@ -279,7 +279,7 @@ proptest! {
 
         // Should have exactly 2 * identifiers.len() ANNOTATION_MARKER tokens
         let pragma_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, Token::AnnotationMarker { .. }))
+            .filter(|token| matches!(token, ScannerToken::AnnotationMarker { .. }))
             .collect();
 
         prop_assert_eq!(pragma_tokens.len(), 2 * identifiers.len(),
@@ -288,7 +288,7 @@ proptest! {
         // Each annotation should contain the expected identifier
         let marker_indices: Vec<usize> = tokens.iter().enumerate()
             .filter_map(|(i, token)| {
-                if matches!(token, Token::AnnotationMarker { .. }) {
+                if matches!(token, ScannerToken::AnnotationMarker { .. }) {
                     Some(i)
                 } else {
                     None
@@ -306,13 +306,13 @@ proptest! {
                 let content_tokens = &tokens[marker_indices[i] + 1..marker_indices[i + 1]];
                 let reconstructed: String = content_tokens.iter()
                     .filter_map(|token| match token {
-                        Token::Text { content, .. } => Some(content.as_str()),
-                        Token::Identifier { content, .. } => Some(content.as_str()),
-                        Token::ItalicDelimiter { .. } => Some("_"),
-                        Token::BoldDelimiter { .. } => Some("*"),
-                        Token::CodeDelimiter { .. } => Some("`"),
-                        Token::MathDelimiter { .. } => Some("#"),
-                        Token::Whitespace { .. } => None, // Skip whitespace
+                        ScannerToken::Text { content, .. } => Some(content.as_str()),
+                        ScannerToken::Identifier { content, .. } => Some(content.as_str()),
+                        ScannerToken::ItalicDelimiter { .. } => Some("_"),
+                        ScannerToken::BoldDelimiter { .. } => Some("*"),
+                        ScannerToken::CodeDelimiter { .. } => Some("`"),
+                        ScannerToken::MathDelimiter { .. } => Some("#"),
+                        ScannerToken::Whitespace { .. } => None, // Skip whitespace
                         _ => None,
                     })
                     .collect();
@@ -355,7 +355,7 @@ fn test_simple_annotation_parameter() {
     let param_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| {
-            if let Token::Parameter { key, value, .. } = token {
+            if let ScannerToken::Parameter { key, value, .. } = token {
                 Some((key.as_str(), value.as_str()))
             } else {
                 None
@@ -370,7 +370,7 @@ fn test_simple_annotation_parameter() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| {
-            if let Token::Text { content, .. } = token {
+            if let ScannerToken::Text { content, .. } = token {
                 Some(content.as_str())
             } else {
                 None
@@ -390,7 +390,7 @@ fn test_simple_definition_parameter() {
     let param_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| {
-            if let Token::Parameter { key, value, .. } = token {
+            if let ScannerToken::Parameter { key, value, .. } = token {
                 Some((key.as_str(), value.as_str()))
             } else {
                 None
@@ -405,7 +405,7 @@ fn test_simple_definition_parameter() {
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| {
-            if let Token::Text { content, .. } = token {
+            if let ScannerToken::Text { content, .. } = token {
                 Some(content.as_str())
             } else {
                 None

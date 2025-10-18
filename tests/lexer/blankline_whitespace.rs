@@ -1,6 +1,6 @@
 //! Tests for BlankLine whitespace preservation (issue #30)
 
-use txxt::lexer::{tokenize, Token};
+use txxt::lexer::{tokenize, ScannerToken};
 use txxt::tools::detokenizer::Detokenizer;
 
 /// Helper to verify round-trip tokenization for verification purposes
@@ -63,7 +63,7 @@ fn test_blank_line_token_content() {
     let blank_line = tokens
         .iter()
         .find_map(|t| match t {
-            Token::BlankLine { whitespace, .. } => Some(whitespace),
+            ScannerToken::BlankLine { whitespace, .. } => Some(whitespace),
             _ => None,
         })
         .expect("Should have a BlankLine token");

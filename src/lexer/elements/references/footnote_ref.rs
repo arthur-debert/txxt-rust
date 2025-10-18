@@ -6,7 +6,7 @@
 //!
 //! Footnote references provide links to footnote content and supplementary information.
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
 /// Trait for footnote reference lexing
 pub trait FootnoteRefLexer {
@@ -36,7 +36,7 @@ pub trait FootnoteRefLexer {
 }
 
 /// Read a footnote reference token ([1], [2], [^label])
-pub fn read_footnote_ref<L>(lexer: &mut L) -> Option<Token>
+pub fn read_footnote_ref<L>(lexer: &mut L) -> Option<ScannerToken>
 where
     L: FootnoteRefLexer,
 {
@@ -79,7 +79,7 @@ where
 
     // Check if this is a valid footnote reference
     if let Some(footnote_type) = classify_footnote_content(&content) {
-        Some(Token::FootnoteRef {
+        Some(ScannerToken::FootnoteRef {
             footnote_type,
             span: SourceSpan {
                 start: start_pos,

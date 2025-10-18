@@ -36,13 +36,13 @@
 //! // Full pipeline: String → Document
 //! let document = full_pipeline("Hello, world!")?;
 //!
-//! // Partial pipeline: String → TokenTree (for testing)
+//! // Partial pipeline: String → ScannerTokenTree (for testing)
 //! let token_tree = lexer_pipeline("Hello, world!")?;
 //! ```
 
 use crate::assembler::pipeline::{AnnotationAttacher, DocumentAssembler};
 use crate::ast::base::Document;
-use crate::lexer::pipeline::TokenTreeBuilder;
+use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
 use crate::parser::pipeline::{BlockParser, InlineParser};
 
@@ -87,16 +87,16 @@ impl From<std::io::Error> for PipelineError {
 /// * `source_text` - The TXXT source text to process
 ///
 /// # Returns
-/// * `Result<TokenTree, PipelineError>` - The hierarchical token tree
+/// * `Result<ScannerTokenTree, PipelineError>` - The hierarchical token tree
 pub fn lexer_pipeline(
     source_text: &str,
-) -> Result<crate::lexer::pipeline::TokenTree, PipelineError> {
+) -> Result<crate::lexer::pipeline::ScannerTokenTree, PipelineError> {
     // Phase 1.a: Verbatim Scanning (handled internally by tokenize)
     // Phase 1.b: Tokenization
     let tokens = tokenize(source_text);
 
     // Phase 1.c: Token Tree Building
-    let token_tree_builder = TokenTreeBuilder::new();
+    let token_tree_builder = ScannerTokenTreeBuilder::new();
     let token_tree = token_tree_builder
         .build_tree(tokens)
         .map_err(|err| PipelineError::Lexer(err.to_string()))?;
@@ -115,7 +115,7 @@ pub fn lexer_pipeline(
 /// # Returns
 /// * `Result<Vec<ElementNode>, PipelineError>` - The AST element nodes
 pub fn parser_pipeline(
-    token_tree: crate::lexer::pipeline::TokenTree,
+    token_tree: crate::lexer::pipeline::ScannerTokenTree,
 ) -> Result<Vec<crate::ast::ElementNode>, PipelineError> {
     // Phase 2.a: Block Parsing
     let block_parser = BlockParser::new();
@@ -165,7 +165,7 @@ pub fn assembler_pipeline(
 /// Execute Full Pipeline: All Three Phases
 ///
 /// Processes source text through the complete pipeline:
-/// String → TokenTree → AST Elements → Document
+/// String → ScannerTokenTree → AST Elements → Document
 ///
 /// # Arguments
 /// * `source_text` - The TXXT source text to process
@@ -177,10 +177,10 @@ pub fn full_pipeline(
     source_text: &str,
     source_path: Option<String>,
 ) -> Result<Document, PipelineError> {
-    // Phase 1: Lexer (String → TokenTree)
+    // Phase 1: Lexer (String → ScannerTokenTree)
     let token_tree = lexer_pipeline(source_text)?;
 
-    // Phase 2: Parser (TokenTree → AST Elements)
+    // Phase 2: Parser (ScannerTokenTree → AST Elements)
     let elements = parser_pipeline(token_tree)?;
 
     // Phase 3: Assembler (AST Elements → Document)
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn test_parser_pipeline_placeholder() {
-        let token_tree = crate::lexer::pipeline::TokenTree {
+        let token_tree = crate::lexer::pipeline::ScannerTokenTree {
             tokens: vec![],
             children: vec![],
         };

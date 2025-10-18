@@ -3,13 +3,13 @@
 //! These tests verify the detokenizer's ability to reconstruct source text
 //! from tokens, enabling round-trip verification of the tokenization process.
 
-use txxt::ast::tokens::Token;
+use txxt::ast::scanner_tokens::ScannerToken;
 use txxt::lexer::tokenize;
 use txxt::tools::detokenizer::Detokenizer;
 
 /// Helper function to verify detokenization produces identical tokens for round-trip verification
 fn verify_round_trip(original: &str) {
-    // Step 1: Tokenize
+    // Step 1: ScannerTokenize
     let tokens1 = tokenize(original);
 
     // Step 2: Simple detokenization for verification (not using BlockGroup as it's for parsing)
@@ -43,8 +43,8 @@ fn verify_round_trip(original: &str) {
 }
 
 /// Compare tokens for equality (ignoring source spans)
-fn tokens_equal(t1: &Token, t2: &Token) -> bool {
-    use Token::*;
+fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
+    use ScannerToken::*;
     match (t1, t2) {
         (Text { content: c1, .. }, Text { content: c2, .. }) => c1 == c2,
         (Newline { .. }, Newline { .. }) => true,

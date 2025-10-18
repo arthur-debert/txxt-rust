@@ -8,7 +8,7 @@
 
 use proptest::prelude::*;
 use std::collections::HashMap;
-use txxt::ast::tokens::{Position, Token};
+use txxt::ast::scanner_tokens::{Position, ScannerToken};
 use txxt::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 
 /// Mock lexer for testing parameter parsing
@@ -51,10 +51,10 @@ impl ParameterLexer for MockParameterLexer {
 }
 
 /// Extract parameter data from tokens for easier testing
-fn extract_parameters(tokens: &[Token]) -> HashMap<String, String> {
+fn extract_parameters(tokens: &[ScannerToken]) -> HashMap<String, String> {
     let mut params = HashMap::new();
     for token in tokens {
-        if let Token::Parameter { key, value, .. } = token {
+        if let ScannerToken::Parameter { key, value, .. } = token {
             params.insert(key.clone(), value.clone());
         }
     }
@@ -438,7 +438,8 @@ mod property_based_tests {
             let params = extract_parameters(&tokens);
 
             prop_assert_eq!(params.len(), 1);
-            prop_assert_eq!(params.get(&key), Some(&"true".to_string()));
+            let expected = "true".to_string();
+            prop_assert_eq!(params.get(&key), Some(&expected));
         }
 
         #[test]
@@ -484,7 +485,7 @@ mod token_span_tests {
         assert_eq!(tokens.len(), 2);
 
         for token in &tokens {
-            if let Token::Parameter { span, .. } = token {
+            if let ScannerToken::Parameter { span, .. } = token {
                 // All spans should have valid positions
                 assert!(span.end.column >= span.start.column);
                 assert_eq!(span.start.row, span.end.row); // Single line parameters
@@ -502,7 +503,7 @@ mod token_span_tests {
 
         assert_eq!(tokens.len(), 1);
 
-        if let Token::Parameter { key, value, .. } = &tokens[0] {
+        if let ScannerToken::Parameter { key, value, .. } = &tokens[0] {
             assert_eq!(key, "debug");
             assert_eq!(value, "true");
         } else {

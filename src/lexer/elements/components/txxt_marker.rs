@@ -5,7 +5,7 @@
 //! - Definition: term :: or term:params ::
 //! - Standalone: isolated :: tokens
 
-use crate::ast::tokens::{Position, SourceSpan, Token};
+use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::lexer::{Lexer, LexerState};
 use crate::lexer::core::patterns::{
     extract_raw_content_before_span, extract_raw_content_between_spans, get_current_line,
@@ -62,7 +62,7 @@ pub trait TxxtMarkerLexer {
 }
 
 /// Read definition marker tokens (term ::)
-pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token> {
+pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<ScannerToken> {
     let start_pos = lexer.current_position();
 
     // Check for "::"
@@ -104,7 +104,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token
             match pattern {
                 ColonPattern::Definition => {
                     // This is definitely a definition marker
-                    return Some(Token::DefinitionMarker {
+                    return Some(ScannerToken::DefinitionMarker {
                         content: "::".to_string(),
                         span: SourceSpan {
                             start: start_pos,
@@ -123,7 +123,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token
                         if next_ch == '\n' || next_ch == '\r' || next_ch == ' ' || next_ch == '\t' {
                             // Check if there's content before this :: (making it a definition)
                             if !lexer.is_start_of_annotation_pattern(start_pos) {
-                                return Some(Token::DefinitionMarker {
+                                return Some(ScannerToken::DefinitionMarker {
                                     content: "::".to_string(),
                                     span: SourceSpan {
                                         start: start_pos,
@@ -135,7 +135,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token
                     } else if lexer.is_at_end() {
                         // At end of input, check if there's content before
                         if !lexer.is_start_of_annotation_pattern(start_pos) {
-                            return Some(Token::DefinitionMarker {
+                            return Some(ScannerToken::DefinitionMarker {
                                 content: "::".to_string(),
                                 span: SourceSpan {
                                     start: start_pos,
@@ -156,7 +156,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token
 }
 
 /// Read annotation marker tokens (::)
-pub fn read_annotation_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token> {
+pub fn read_annotation_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<ScannerToken> {
     let start_pos = lexer.current_position();
 
     // Check for "::"
@@ -193,7 +193,7 @@ pub fn read_annotation_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Token
                 }
             }
 
-            return Some(Token::AnnotationMarker {
+            return Some(ScannerToken::AnnotationMarker {
                 content: "::".to_string(),
                 span: SourceSpan {
                     start: start_pos,
@@ -247,14 +247,14 @@ pub fn is_start_of_annotation_pattern<L: TxxtMarkerLexer>(lexer: &L, start_pos: 
 
 /// Simple annotation parameter integration - find :: label:params :: and split
 pub fn integrate_annotation_parameters<L: ParameterLexer>(
-    tokens: Vec<Token>,
+    tokens: Vec<ScannerToken>,
     lexer: &mut L,
-) -> Vec<Token> {
+) -> Vec<ScannerToken> {
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
-        if let Some(Token::AnnotationMarker { .. }) = tokens.get(i) {
+        if let Some(ScannerToken::AnnotationMarker { .. }) = tokens.get(i) {
             // Look for content between annotation markers
             if let Some((start_idx, end_idx, content)) = find_annotation_content(&tokens, i, lexer)
             {
@@ -268,14 +268,14 @@ pub fn integrate_annotation_parameters<L: ParameterLexer>(
 
                     // Add clean label token
                     if let Some(first_token) = tokens.get(start_idx + 1) {
-                        result.push(Token::Text {
+                        result.push(ScannerToken::Text {
                             content: label.to_string(),
                             span: first_token.span().clone(),
                         });
                     }
 
                     // Add colon token to separate label from parameters
-                    result.push(Token::Colon {
+                    result.push(ScannerToken::Colon {
                         span: SourceSpan {
                             start: Position {
                                 row: 0, // This is a synthetic token, position isn't exact
@@ -293,7 +293,7 @@ pub fn integrate_annotation_parameters<L: ParameterLexer>(
                 } else {
                     // No parameters, create a clean TEXT token with the raw content
                     if let Some(first_token) = tokens.get(start_idx + 1) {
-                        result.push(Token::Text {
+                        result.push(ScannerToken::Text {
                             content: content.clone(),
                             span: first_token.span().clone(),
                         });
@@ -318,9 +318,9 @@ pub fn integrate_annotation_parameters<L: ParameterLexer>(
 
 /// Simple definition parameter integration - find term:params :: and split
 pub fn integrate_definition_parameters<L: ParameterLexer>(
-    tokens: Vec<Token>,
+    tokens: Vec<ScannerToken>,
     _lexer: &mut L,
-) -> Vec<Token> {
+) -> Vec<ScannerToken> {
     // For now, disable parameter integration to fix duplication issue
     // TODO: Implement proper parameter parsing without token duplication
     tokens
@@ -329,7 +329,7 @@ pub fn integrate_definition_parameters<L: ParameterLexer>(
 /// Find annotation content between markers by extracting raw text
 #[allow(dead_code)]
 fn find_annotation_content<L: ParameterLexer>(
-    tokens: &[Token],
+    tokens: &[ScannerToken],
     start_idx: usize,
     lexer: &L,
 ) -> Option<(usize, usize, String)> {
@@ -337,7 +337,7 @@ fn find_annotation_content<L: ParameterLexer>(
 
     // Find the closing annotation marker
     for (i, token) in tokens.iter().enumerate().skip(start_idx + 1) {
-        if matches!(token, Token::AnnotationMarker { .. }) {
+        if matches!(token, ScannerToken::AnnotationMarker { .. }) {
             end_idx = Some(i);
             break;
         }
@@ -364,7 +364,7 @@ fn find_annotation_content<L: ParameterLexer>(
 /// Find definition content before marker by extracting raw text
 #[allow(dead_code)]
 fn find_definition_content<L: ParameterLexer>(
-    tokens: &[Token],
+    tokens: &[ScannerToken],
     def_idx: usize,
     lexer: &L,
 ) -> Option<(String, usize)> {
@@ -373,10 +373,10 @@ fn find_definition_content<L: ParameterLexer>(
     // Look backwards for the start of term content
     for i in (0..def_idx).rev() {
         match &tokens[i] {
-            Token::Text { .. } | Token::Identifier { .. } => {
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. } => {
                 term_start_idx = i;
             }
-            Token::Newline { .. } | Token::BlankLine { .. } => continue,
+            ScannerToken::Newline { .. } | ScannerToken::BlankLine { .. } => continue,
             _ => break,
         }
     }

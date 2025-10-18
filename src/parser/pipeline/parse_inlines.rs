@@ -60,7 +60,7 @@ pub enum InlineParseError {
     UnsupportedInlineType(String),
     /// Parse error at specific position
     ParseError {
-        position: crate::ast::tokens::Position,
+        position: crate::ast::scanner_tokens::Position,
         message: String,
     },
     /// Reference resolution error

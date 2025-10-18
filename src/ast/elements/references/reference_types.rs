@@ -29,7 +29,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::tokens::TokenSequence;
+use super::super::scanner_tokens::ScannerTokenSequence;
 
 /// Comprehensive reference target system for TXXT documents
 ///
@@ -61,7 +61,7 @@ pub enum ReferenceTarget {
         raw: String,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// Section reference within current or other documents
@@ -74,7 +74,7 @@ pub enum ReferenceTarget {
         raw: String,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// URL reference to external resources
@@ -90,7 +90,7 @@ pub enum ReferenceTarget {
         raw: String,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// Citation reference to bibliography entries
@@ -103,7 +103,7 @@ pub enum ReferenceTarget {
         raw: String,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// Named anchor reference using parameters
@@ -116,7 +116,7 @@ pub enum ReferenceTarget {
         raw: String,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// Naked numerical reference (footnote-style shorthand)
@@ -129,7 +129,7 @@ pub enum ReferenceTarget {
         raw: String,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 
     /// Unresolved or malformed reference
@@ -145,7 +145,7 @@ pub enum ReferenceTarget {
         reason: Option<String>,
 
         /// Source position
-        tokens: TokenSequence,
+        tokens: ScannerTokenSequence,
     },
 }
 
@@ -221,7 +221,7 @@ pub struct Citation {
     pub suffix: Option<String>,
 
     /// Raw tokens for positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Cross-reference to document elements
@@ -240,7 +240,7 @@ pub struct CrossReference {
     pub custom_text: Option<Vec<super::super::formatting::inlines::Inline>>,
 
     /// Raw tokens for positioning
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Types of cross-references supported
@@ -303,7 +303,7 @@ pub struct Bibliography {
     pub metadata: HashMap<String, String>,
 
     /// Source position
-    pub tokens: TokenSequence,
+    pub tokens: ScannerTokenSequence,
 }
 
 /// Supported bibliography formats
@@ -337,7 +337,7 @@ impl ReferenceTarget {
     }
 
     /// Get the source tokens for this reference
-    pub fn tokens(&self) -> &TokenSequence {
+    pub fn tokens(&self) -> &ScannerTokenSequence {
         match self {
             ReferenceTarget::File { tokens, .. } => tokens,
             ReferenceTarget::Section { tokens, .. } => tokens,

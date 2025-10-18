@@ -1,20 +1,20 @@
 :: title :: txxt Semantic Tokens Reference
 :: author :: Arthur Debert
-:: pub-date :: 2025-01-12
+:: pub-date :: 2025-10-18
 
 This document is part of the txxt syntax tree documentation. Together with @grammar.txxt, it defines the complete syntax and structure of the txxt format.
 
 - @scanner-tokens.txxt defines the low-level scanner tokens
 - @semantic-tokens.txxt (this document) defines semantic node types
-- @grammar.txxt defines how blocks are constructed from semantic tokens
+- @grammar.txxt defines how blocks are constructed from scanner tokens
 
-This document defines the semantic tokens used in the txxt parsing pipeline. Semantic tokens are higher-level constructs that bridge the gap between low-level scanner tokens and block elements, providing a more meaningful representation for the parsing stages.
+This document defines the semantic tokens used in the txxt parsing pipeline. Semantic tokens are higher-level constructs that bridge the gap between low-level scanner tokens and block elements, providing structured components for parsing stages.
 
 1. Introduction
 
     The Semantic Token Parsing phase transforms scanner tokens into semantic tokens. This intermediate representation provides structured, reusable components that make subsequent block parsing simpler and more direct.
 
-    Semantic tokens describe the *syntactic shape* of content, not its final semantic role (e.g., a paragraph vs. a definition term).
+    Semantic tokens describe the *syntactic shape* of content, not its final semantic role (e.g., a paragraph vs. a definition term). They bridge the gap between format-only scanner tokens and semantic block elements.
 
 2. Semantic Token Definitions
 
@@ -63,5 +63,42 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Line containing only whitespace or completely empty.
         Critical for whitespace enclosure detection in sessions vs lists.
         Sessions require blank line separation; lists cannot have blank lines between items.
+
+3. Token Composition Patterns
+
+    Semantic tokens are composed from scanner tokens using well-defined patterns:
+
+    3.1. Annotation Composition
+
+        Annotations combine txxt markers with labels and optional content:
+        `TxxtMarker` + `Whitespace` + `Text` + `Whitespace` + `TxxtMarker` + `Text`?
+
+    3.2. Definition Composition
+
+        Definitions combine text with txxt markers:
+        `Text` + `Whitespace` + `TxxtMarker`
+
+    3.3. Verbatim Composition
+
+        Verbatim blocks use wall architecture:
+        `VerbatimTitle` + `IndentationWall` + `IgnoreTextSpan` + `VerbatimLabel`
+
+    3.4. Parameter Composition
+
+        Parameters combine identifiers, equals signs, and values:
+        `Identifier` + `Equals` + `Value` + `Comma`?
+
+4. Separation of Concerns
+
+    The semantic token layer provides clear separation between:
+    - Format recognition (scanner tokens)
+    - Syntactic structure (semantic tokens)
+    - Semantic meaning (block elements)
+
+    This separation enables:
+    - Cleaner parsing logic
+    - Better error handling
+    - Easier testing and debugging
+    - More maintainable code
 
 :: note :: This semantic tokens reference defines the intermediate representation used in txxt parsing. For complete block grammar, see @grammar.txxt.

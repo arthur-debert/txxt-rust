@@ -1,142 +1,116 @@
-Proposal: Semantic Token Stage
+:: title :: Semantic Token Architecture
+:: author :: Arthur Debert
+:: pub-date :: 2025-10-18
 
- 1. Context & Motivation
+This document describes the semantic token architecture in the txxt parsing pipeline, which has been implemented as part of the Token Refactor.
 
-    The current txxt parsing pipeline builds a `TokenTree` early in the process (Phase 1c). While this captures the document's hierarchy, it consumes the `Indent` and `Dedent` tokens prematurely. The subsequent block parser (Phase 2a) then operates on this tree, forcing it to infer complex container rules without the explicit indentation markers that define them. This makes the parser complex and negates the benefits of having a simple, declarative grammar based on indentation.
+1. Current Architecture
 
-    This proposal refactors the pipeline into a Stream-First design. The core principle is to *delay tree formation until the final step*. By maintaining a flat stream of tokens through the semantic analysis phase, we provide the block parser with all the information it needs—both high-level semantic nodes and structural indentation markers—to build the AST directly and efficiently.
-	Currently txxt parsing happens as follows: 
+    The txxt parsing pipeline uses a three-phase approach with clear separation of concerns:
 
-	Phase 1: Lexer (txxt str -> TokenTree)
-		a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
-		b. Token List: creates the token stream at low level tokens -> token list
-		c. Token Tree: converts the token list to a tree, using indent/dedent tokens -> TokenTree
-	Phase 2: Parser (TokenTree -> AST tree node)
-		a. Block Parsing: Convert TokenTrees into typed AST nodes -> AST node (no inlines)
-		b. Inline Parsing: Handle inlines within blocks -> AST node
-	Phase 3: Assembly (AST tree node -> AST document node)
-		a. Document Wrapping: wraps the parsed AST in a Document node.
-		b. Annotations Attachments: from the content tree to node's annotation's field.
+    Phase 1: Lexer (txxt str -> ScannerTokenList)
+        a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
+        b. Token List: creates the token stream at low level tokens -> scanner token list
 
-	While Phase 2, the block parsing is underway. The parser operates on low level tokens (as in <PERIOD>, <WHITESPACE>), which makes the mental mapping from low level tokens to full AST elements challenging and indirect.
+    Phase 2: Parser (ScannerTokenList -> AST tree node)
+        a. Semantic Analysis (ScannerTokenList → SemanticTokenList)
+            Elevates the low-level scanner token stream into a higher-level stream of semantic nodes.
+            Structural tokens like `Indent`, `Dedent`, and `BlankLine` are passed through unchanged.
+        b. AST Construction (SemanticTokenList -> AST Tree Node)
+            Consumes the rich, flat stream and applies the grammar to construct the final AST.
+            This is the only phase that builds a tree structure.
+        c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node)
 
-2. Pipeline Changes
+    Phase 3: Assembly (AST tree node -> AST document node)
+        a. Document Wrapping: wraps the parsed AST in a Document node
+        b. Annotations Attachments: from the content tree to node's annotation's field
 
-	In this design, we do away with the early token stream -> token tree convertion. 
-	Then the semantic token parsing outputs the semantic tokens with <indent> and <detent> tokens unchanged.
+2. Token Architecture
 
-	On the actual block parsing, we can use the direct mapping grammar where Semantic Tokens + Indentation Tokens can easily be parsed as Elements. 
-	In this layer, the indent token gets consumed by a new element , and the parser keeps tabs of dedentes to actually build a tree.
+    The token architecture follows a clear hierarchy:
 
-	2.1 Pipeline Overview
-	 
-		Here is what this looks Like
+    Scanner Tokens → Semantic Tokens → Block Elements → Document
 
-		Phase 1: Lexer: Operates On Strings (txxt str -> ScannerTokenList)
-			a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
-			b. Token List: creates the token stream at low level tokens -> scanner token list
-		Phase 2: Parser Operates on Tokens (ScannerTokenList -> AST tree node)
-			a. Semantic Analysis  (ScannerTokenList → SemanticTokenList)
-				Elevates the low-level scanner token stream into a higher-level stream of semantic nodes, which represent the syntactic structure of individual lines.  This stage consumes the flat `ScannerToken` stream. It groups tokens on a line-by-line basis into the `SemanticNode` types defined in [docs/specs/core/semantic-nodes.txxt].
-					- Example: `SequenceMarker`, `Whitespace`, `Text`, `Newline` are grouped into a single `SequenceLine` node.
-					- Crucially, structural tokens like `Indent`, `Dedent`, and `BlankLine` are *passed through unchanged*.
-				Output Stream Example:
-				[AnnotationLine, Indent, SequenceLine, SequenceLine, Dedent, BlankLine, TextLine, ...]( Token List)
-			b. AST Construction (SemanticTokenList -> Ast Tree Node)
-				This is the final and *only* phase that builds a tree. It consumes the rich, flat stream from Phase 2 and applies the grammar to construct the final AST.
-				This parser now has everything it needs to apply the grammar from [docs/specs/core/grammar.txxt] directly. It can be implemented as a simple recursive-descent or state-machine parser.
-				- On seeing `TextLine` + `BlankLine` + `Indent`, it knows it's parsing a `Session` and can recursively call itself to parse the `SessionContainer`.
-				- On seeing a `Dedent` token, it knows a container has closed and returns from the recursion.
-			c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node). In the text spans, inlines will still be in token form, hence if parses that into ast inline nodes.
-		Phase 3: Assembly (AST tree node -> AST document node)
-			a. Document Wrapping: wraps the parsed AST in a Document node.
-			b. Annotations Attachments: from the content tree to node's annotation's field.
-	
-	2.2 Parallel Pipeline handlings
+    2.1. Scanner Tokens
 
-		As to not break all tests and allow for the co-existence of the two pipelines, we propose a new pipeline, which: 
-		- Keeps 1.a and 1.b as is, 3.a and 3.b as it it
-		- Removes 1.c, 2.a
-		- Moves inline parsing from 2.b to 2.c
-		- Creates two new phases Semantic Analysis (2.a) and AST Construction (2.b)
+        Low-level format-only tokens produced by the lexer:
+        - Content tokens: `Text`, `Whitespace`, `Identifier`
+        - Structural tokens: `Indent`, `Dedent`, `BlankLine`, `Newline`, `Eof`
+        - Formatting tokens: `BoldDelimiter`, `ItalicDelimiter`, `CodeDelimiter`, `MathDelimiter`
+        - Punctuation tokens: `Colon`, `Equals`, `Comma`, `Period`, `Dash`
+        - Marker tokens: `TxxtMarker`, `SequenceMarker`, `AtSign`, `Hash`, `Caret`
+        - Reference tokens: `CitationRef`, `PageRef`, `SessionRef`, `FootnoteRef`
+        - Ignore tokens: `IndentationWall`, `IgnoreTextSpan`
+        - Verbatim tokens: `VerbatimTitle`, `VerbatimLabel`
 
-		This would allows to keep current code as it, and current tests passing as is, 
-		but sequencing: 
-		 
-		1. First Work on the new semantic analysis and ast construction.
+    2.2. Semantic Tokens
 
-			This would allow us to write and test each phase in isolation. 
+        Higher-level constructs that bridge scanner tokens and block elements:
+        - `TxxtMarker`: Fundamental :: marker
+        - `Label`: Structured identifiers
+        - `Parameters`: Key-value metadata
+        - `Sequence Marker`: List and session numbering
+        - `Text Span`: Basic text content
+        - `Sequence Text Line`: Line with sequence marker
+        - `Plain Text Line`: Simple text content
+        - `Ignore Line`: Preserved verbatim content
+        - `Blank Line`: Whitespace-only lines
 
-		2. Test new Phase 2 and 3 in integration
+3. Wall Architecture for Verbatim Content
 
-			After we're confident over 2.a and 2.b impelmentations we can integrate test from 2.a to final 3.b. Not that all this requires no change to curernt code or pipiline, as it adds new stages and tests their combination.
+    Verbatim blocks use a wall architecture to separate formatting concerns from content preservation:
 
-			At this point we're fairly assured that from 1.b -> onwards things are working.
+    3.1. IndentationWall Token
 
-		3. Alter the actual pipeline.
+        Defines the indentation structure for verbatim content:
+        - `level`: Indentation level in spaces
+        - `wall_type`: Type of wall (InFlow or Stretched)
+        - `span`: Source position information
 
-			Remove step 1.c and alter the pipeline to replace the former 2.a with the later 2.a and 2.b
+    3.2. IgnoreTextSpan Token
 
-				
+        Contains raw content without formatting processing:
+        - `content`: Raw text content
+        - `span`: Source position information
 
-3. Semantic Tokens: 
+    3.3. Verbatim Block Structure
 
-	The conversion between scanner and Semantic Tokens is based on the syntax [./docs/specs/core/syntax.txxt] and aims to output a higher level representation that is much closer to the parser level. 
+        Complete verbatim block token sequence:
+        1. `VerbatimTitle`: Title line ending with colon
+        2. `IndentationWall`: Wall position and type
+        3. `IgnoreTextSpan`: Raw content lines
+        4. `VerbatimLabel`: Label line with txxt marker
 
-	Verbatim: 
+4. Benefits of Current Architecture
 
-		<text span> <colon>
-			<ignore line>
-		<label> <parameters>?
-    :: syntax
+    4.1. Clear Separation of Concerns
 
-	And for annotations: 
-		<txxt marker> <label> <txxt-marker> <text-line> 
-	:: syntax
+        - Format recognition (scanner tokens)
+        - Syntactic structure (semantic tokens)
+        - Semantic meaning (block elements)
 
- .  Note that semantic tokes are not element bound, as in annotation token of any sorts. We won't know about elements until parsing has taken place, which will come later. Semenatic tokes group lower level character tokens into higher level langauge concepts as parameters, label, sequence text line.
+    4.2. Improved Maintainability
 
-4. Semantic Token Types and Definitions
+        - Cleaner parsing logic
+        - Better error handling
+        - Easier testing and debugging
+        - More maintainable code
 
-	4.1 Proposed SemanticToken AST Node Types
+    4.3. Compositional Design
 
-		SemanticToken::
-			Component-level semantic tokens that bridge scanner tokens and AST elements.
-			Provides structured, reusable components rather than line-based tokens.
-			Emphasizes composability and eliminates duplication across elements.
+        - Tokens combine using well-defined patterns
+        - Reusable components across different elements
+        - Clear token precedence and disambiguation rules
 
-		SemanticTokenList::
-			List structure containing SemanticTokens with flat lists children.
-			Mirrors TokenList structure but with higher-level semantic meaning, still has indentation tokens.
+5. Implementation Status
 
-	4.2 Semantic Tokens Definitions
+    The semantic token architecture has been fully implemented as part of the Token Refactor:
 
-		These are describe in the semantic nodes [docs/specs/core/semantic-nodes.txxt]
+    ✅ Scanner token definitions updated
+    ✅ Semantic token definitions implemented
+    ✅ Wall architecture for verbatim content
+    ✅ Compositional patterns documented
+    ✅ Grammar specification updated
+    ✅ All tests passing
 
-5. Implementation: 
- 
-	5.1 Renaming Tokens
-
-		Now that we have two token types, having tokens vs Semantic Tokens is bound to create confusion. We will rename, in the AST, the current Tokens to ScannerTokens, as opposed to SemanticTokens.
-
-		While these do share considerably in traits/types, they have specialization and being able to work with scanner or semantic trees with type safety will be worth it. 
-
-		These should reflect code, be it modules or packages, as in ast/tokens.rs -> ast/scanner_tokens.rs
-
-	5.2 Implement Infrastructure for Semantic Tokens
-
-		The AST nodes, etc.
-
-	5.3 Implement the Semantic Token (2.a) Phase
-	
-	5.4 Add SemanticTokenList txxt-binary support
-
-		Add the support for txxt binary to output these, as it's greatly useful for debugging.
-
-	5.5 Add Semantic Token support for Corpora
-
-		Our txxt source tool, corpora can generate the txxt data in all phases of the pipeline, which are useful for testing.
-	
-	5.6 Implement the AST Construction (2.b) Phase
-
-	5.7. Replace the old with the new pipeline
+:: note :: This document describes the implemented semantic token architecture. For detailed specifications, see the core specification documents.

@@ -1,0 +1,305 @@
+:: title :: Issue 68: Parser Implementation - AST Construction Phase
+:: author :: Claude Code
+:: pub-date :: 2025-10-18
+:: status :: Ready for Implementation
+
+This document provides comprehensive implementation guidance for Issue 68, the AST Construction phase of the txxt parser pipeline.
+
+1. Overview
+
+    Issue 68 represents the final critical phase of the txxt parsing pipeline refactor: converting the flat stream of SemanticTokens into a complete Abstract Syntax Tree (AST). This phase completes the Stream-First architecture by building the tree structure from the rich semantic token representation.
+
+    1.1. Context and Dependencies
+
+        Prerequisites (✅ Completed):
+        - Issue 67: Semantic token support in TxxtCorpora testing tool
+        - Issue 66: CLI support for semantic token inspection  
+        - Semantic token transformations for all element types
+        - Complete lexer → semantic analysis pipeline
+
+        Following Issues:
+        - Issue 69: Replace existing pipeline with new implementation
+        - Full end-to-end parser integration
+
+    1.2. Architecture Position
+
+        Current Pipeline Status:
+        Phase 1: Lexer (txxt str → ScannerTokenList) ✅ Complete
+            a. Verbatim Scanner: marks verbatim lines ✅
+            b. Token List: creates scanner token stream ✅
+
+        Phase 2: Parser (ScannerTokenList → AST tree node)
+            a. Semantic Analysis (ScannerTokenList → SemanticTokenList) ✅ Complete  
+            b. AST Construction (SemanticTokenList → AST Tree Node) ← THIS ISSUE
+            c. Inline Parsing ✅ Complete (placeholder)
+
+        Phase 3: Assembly (AST tree node → AST document node) ✅ Complete
+            a. Document Wrapping ✅
+            b. Annotation Attachments ✅
+
+2. Implementation Strategy
+
+    2.1. Incremental Development Approach
+
+        Following the project's core principle of incremental development, Issue 68 should be implemented in phases:
+
+        Phase 1: Foundation Elements (Session + Paragraph)
+            Start with the minimal viable parser that can handle sessions and paragraphs only.
+            
+        Phase 2: Core Block Elements  
+            Add support for all block elements: List, Definition, VerbatimBlock, Annotation.
+            
+        Phase 3: Complex Nesting
+            Handle nested containers and complex structural cases.
+            
+        Phase 4: Edge Cases
+            Address structural ambiguity and complex variations.
+
+    2.2. Testing Strategy with Ensemble Documents
+
+        Each implementation phase must be validated against the ensemble documents in progressive order:
+
+        Essential Test Documents (in order):
+        1. docs/specs/ensembles/01-two-paragraphs.txxt
+        2. docs/specs/ensembles/02-session-one-paragraph.txxt  
+        3. docs/specs/ensembles/03-session-multiple-paragraphs.txxt
+        4. docs/specs/ensembles/04-multiple-sessions-flat.txxt
+        5. docs/specs/ensembles/05-nested-sessions-basic.txxt
+        6. docs/specs/ensembles/06-nested-sessions-multiple.txxt
+        7. docs/specs/ensembles/06-session-with-list.txxt
+        8. docs/specs/ensembles/07-session-with-definition.txxt
+        9. docs/specs/ensembles/08-mixed-content-flat.txxt
+        10. docs/specs/ensembles/09-nested-complex.txxt
+        11. docs/specs/ensembles/10-document-with-annotations.txxt
+        12. docs/specs/ensembles/11-full-document.txxt
+        13. docs/specs/ensembles/12-complex-sessions.txxt
+
+        Test Methodology:
+        - Load ensemble documents using TxxtCorpora::load_document()
+        - Process through full pipeline to get parsed AST
+        - Use tests/assertions/elements framework to verify AST structure
+        - Compare against expected element counts, types, and nesting
+        - Validate all field populations and structural relationships
+
+3. Technical Implementation Details
+
+    3.1. Semantic Token Access in Tests
+
+        The TxxtCorpora testing tool now supports semantic token access:
+
+        Basic Usage:
+            use tests::infrastructure::corpora::{TxxtCorpora, ProcessingStage};
+            
+            // Load document with semantic tokens
+            let corpus = TxxtCorpora::load_document_with_processing(
+                "01-two-paragraphs", 
+                ProcessingStage::SemanticTokens
+            ).unwrap();
+            
+            // Access semantic tokens as JSON string
+            if let Some(semantic_tokens) = corpus.semantic_tokens() {
+                let tokens: Value = serde_json::from_str(semantic_tokens).unwrap();
+                // Process semantic tokens for AST construction
+            }
+        ::rust
+
+        Integration with Parser:
+            // Parse semantic tokens into AST  
+            let ast_constructor = AstConstructor::new();
+            let semantic_tokens = corpus.semantic_tokens().unwrap();
+            let ast = ast_constructor.construct(semantic_tokens)?;
+            
+            // Verify AST using assertion framework
+            assert_paragraph_complete!(ast.elements[0], |paragraph| {
+                paragraph.content_not_empty();
+                paragraph.no_annotations();
+                paragraph.no_parameters();
+            });
+        ::rust
+
+    3.2. AST Constructor Implementation
+
+        Core Structure:
+            pub struct AstConstructor {
+                // Internal state for managing parsing context
+            }
+            
+            impl AstConstructor {
+                pub fn new() -> Self { /* ... */ }
+                
+                pub fn construct(&self, semantic_tokens: &str) -> Result<ElementNode, ParseError> {
+                    // Parse JSON semantic tokens
+                    // Apply grammar rules to build AST
+                    // Handle container nesting with indentation tracking
+                    // Return complete AST tree
+                }
+                
+                // Individual element constructors
+                fn construct_paragraph(&self, tokens: &[SemanticToken]) -> Result<ParagraphBlock, ParseError>;
+                fn construct_session(&self, tokens: &[SemanticToken]) -> Result<SessionBlock, ParseError>;
+                fn construct_list(&self, tokens: &[SemanticToken]) -> Result<ListBlock, ParseError>;
+                // ... other element types
+            }
+        ::rust
+
+    3.3. Grammar Rule Application
+
+        The AST Constructor applies grammar rules from docs/specs/core/grammar.txxt:
+
+        Block Element Patterns:
+        - Paragraph: PlainTextLine+
+        - List: SequenceTextLine{2,}  
+        - Session: (PlainTextLine | SequenceTextLine) + BlankLine+ + SessionContainer
+        - Definition: PlainTextLine + TxxtMarker + ContentContainer
+        - VerbatimBlock: PlainTextLine + Colon + IgnoreContainer + TxxtMarker + Label
+        - AnnotationBlock: TxxtMarker + Label + TxxtMarker + (ContentContainer | SessionContainer)
+
+        Container Handling:
+        - Use Indent/Dedent tokens to track nesting levels
+        - Maintain container stack for proper parent-child relationships
+        - Handle mixed container types (sessions with lists, definitions, etc.)
+
+4. Validation and Testing Requirements
+
+    4.1. AST Verification Framework
+
+        Use the comprehensive assertion framework from tests/assertions/elements:
+
+        Paragraph Validation:
+            assert_paragraph_complete!(element, |paragraph| {
+                paragraph.content_not_empty();
+                paragraph.annotation_count(expected_count);
+                paragraph.parameter_count(expected_count);
+                paragraph.text_contains("expected text");
+            });
+        ::rust
+
+        Session Container Validation:
+            assert_session_container_element_types!(container, vec![
+                ElementType::Paragraph,
+                ElementType::Session,
+                ElementType::List,
+            ]);
+        ::rust
+
+        Content Container Validation:
+            assert_content_container_element_count!(container, expected_count);
+            assert_content_container_has_element_type!(container, ElementType::Definition);
+        ::rust
+
+    4.2. Progressive Test Development
+
+        Test Development Pattern:
+        For each ensemble document:
+        1. Load document with semantic tokens processing
+        2. Construct AST using new parser
+        3. Validate top-level structure
+        4. Validate element types and counts  
+        5. Validate nesting relationships
+        6. Validate field populations
+        7. Compare against expected document structure
+
+        Example for 01-two-paragraphs.txxt:
+            #[test]
+            fn test_two_paragraphs_parsing() {
+                let corpus = TxxtCorpora::load_document_with_processing(
+                    "01-two-paragraphs",
+                    ProcessingStage::SemanticTokens
+                ).unwrap();
+                
+                let ast_constructor = AstConstructor::new();
+                let ast = ast_constructor.construct(corpus.semantic_tokens().unwrap()).unwrap();
+                
+                // Should have exactly 2 paragraph elements
+                assert_eq!(ast.elements.len(), 2);
+                
+                // Both elements should be paragraphs
+                assert_paragraph_complete!(ast.elements[0], |p| p.content_not_empty());
+                assert_paragraph_complete!(ast.elements[1], |p| p.content_not_empty());
+            }
+        ::rust
+
+5. Success Criteria and Deliverables
+
+    5.1. Implementation Phases
+
+        Phase 1 Complete When:
+        - AstConstructor struct implemented
+        - Paragraph and Session parsing working
+        - Tests 01-05 ensemble documents passing
+        - Basic container nesting functional
+
+        Phase 2 Complete When:  
+        - All block element types supported
+        - Tests 06-08 ensemble documents passing
+        - Mixed content parsing working
+
+        Phase 3 Complete When:
+        - Complex nesting scenarios handled
+        - Tests 09-12 ensemble documents passing
+        - Edge cases properly addressed
+
+        Phase 4 Complete When:
+        - All ensemble documents parsing correctly
+        - AST validation comprehensive
+        - Ready for PR submission
+
+    5.2. Quality Gates
+
+        Before PR Submission:
+        - All 134 unit tests + 12 integration tests pass
+        - All ensemble documents parse without errors
+        - AST structures validated against specification
+        - Comprehensive test coverage using assertion framework
+        - Code follows project conventions and documentation standards
+
+    5.3. PR Submission Checklist
+
+        Required for Issue 68 PR:
+        - [ ] AstConstructor implementation complete
+        - [ ] All ensemble documents (01-12) parsing correctly  
+        - [ ] AST validation using tests/assertions/elements framework
+        - [ ] Integration with existing API and CLI maintained
+        - [ ] Comprehensive test coverage
+        - [ ] Documentation updated
+        - [ ] All existing tests still passing
+        - [ ] Code review ready
+
+6. Architecture Notes
+
+    6.1. Stream-First Design Principles
+
+        The AST Constructor must maintain the Stream-First architecture:
+        - Accept flat semantic token stream as input
+        - Build tree structure only in final phase
+        - Preserve all source information through spans
+        - Handle error recovery gracefully
+
+    6.2. Integration Points
+
+        API Integration:
+        - Update src/api.rs to use new AstConstructor
+        - Maintain existing OutputFormat variants
+        - Preserve JSON and tree visualization outputs
+
+        CLI Integration:
+        - Existing CLI commands continue working
+        - AST outputs reflect new parser structure
+        - Error messages provide useful diagnostics
+
+    6.3. Performance Considerations
+
+        - Single-pass construction from semantic tokens
+        - Minimal memory allocations during parsing
+        - Efficient container stack management
+        - Lazy evaluation where appropriate
+
+7. Follow-up Work
+
+    After Issue 68 completion:
+    - Issue 69: Replace old pipeline with new implementation
+    - Performance optimization and benchmarking
+    - Enhanced error reporting and diagnostics
+    - Additional ensemble document coverage
+
+:: note :: This document provides the complete implementation roadmap for Issue 68. Follow the incremental approach, validate against ensemble documents, and use the assertion framework for comprehensive AST verification.

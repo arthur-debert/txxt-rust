@@ -32,7 +32,7 @@
 //! - **Input**: `ScannerTokenList` from lexer (Phase 1b)
 //! - **Output**: `SemanticTokenList` for AST construction (Phase 2b)
 
-use crate::ast::scanner_tokens::ScannerToken;
+use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
 use crate::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenList};
 
 /// Semantic analysis parser for converting scanner tokens to semantic tokens
@@ -91,6 +91,11 @@ impl SemanticAnalyzer {
                     semantic_tokens.push(self.transform_txxt_marker(token)?);
                 }
 
+                // Label transformation - Issue #82
+                ScannerToken::Identifier { content, span } => {
+                    semantic_tokens.push(self.transform_label(content.clone(), span.clone())?);
+                }
+
                 // For now, handle other tokens as text spans
                 // This will be expanded in subsequent issues
                 ScannerToken::Text { content, span } => {
@@ -147,7 +152,64 @@ impl SemanticAnalyzer {
         }
     }
 
-    /// Convert a scanner token to text content for fallback handling
+    /// Transform Identifier scanner token to Label semantic token
+    ///
+    /// This implements the Label transformation as specified in Issue #82.
+    /// Label tokens represent structured identifiers used in annotations and
+    /// verbatim blocks, supporting namespaced identifiers like "python",
+    /// "org.example.custom".
+    ///
+    /// # Arguments
+    /// * `content` - The identifier content from the scanner token
+    /// * `span` - The source span of the identifier
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_label(
+        &self,
+        content: String,
+        span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate that the content is a valid label
+        if content.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Label content cannot be empty".to_string(),
+            ));
+        }
+
+        // Check if the label starts with a valid character
+        if let Some(first_char) = content.chars().next() {
+            if !self.is_valid_label_start(first_char) {
+                return Err(SemanticAnalysisError::AnalysisError(format!(
+                    "Label must start with a letter, got '{}'",
+                    first_char
+                )));
+            }
+        }
+
+        // Validate all characters in the label
+        for (i, c) in content.chars().enumerate() {
+            if !self.is_valid_label_char(c) && c != '.' {
+                return Err(SemanticAnalysisError::AnalysisError(format!(
+                    "Invalid character '{}' at position {} in label '{}'",
+                    c, i, content
+                )));
+            }
+        }
+
+        // Transform Identifier scanner token to Label semantic token
+        Ok(SemanticTokenBuilder::label(content, span))
+    }
+
+    /// Check if a character is valid at the start of a label
+    pub fn is_valid_label_start(&self, c: char) -> bool {
+        c.is_ascii_alphabetic()
+    }
+
+    /// Check if a character is valid within a label
+    pub fn is_valid_label_char(&self, c: char) -> bool {
+        c.is_ascii_alphanumeric() || c == '_' || c == '-'
+    }
     ///
     /// This is a utility method to convert any scanner token to text content
     /// when we don't have a specific transformation for it yet.

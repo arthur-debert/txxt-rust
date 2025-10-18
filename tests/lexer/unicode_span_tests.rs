@@ -24,7 +24,7 @@ fn test_all_tokenizers_with_emoji() {
     enum ExpectedToken {
         Text(&'static str),
         Dash,
-        AnnotationMarker,
+        TxxtMarker,
         BoldDelimiter,
         ItalicDelimiter,
         CodeDelimiter,
@@ -56,7 +56,7 @@ fn test_all_tokenizers_with_emoji() {
         TestCase {
             input: "🎉:: label ::",
             description: "annotation markers after emoji",
-            expected_tokens: vec![ExpectedToken::Text("🎉"), ExpectedToken::AnnotationMarker],
+            expected_tokens: vec![ExpectedToken::Text("🎉"), ExpectedToken::TxxtMarker],
         },
         TestCase {
             input: "🎉*bold*",
@@ -165,10 +165,10 @@ fn test_all_tokenizers_with_emoji() {
                     );
                     expected_col = span.end.column;
                 }
-                (ExpectedToken::AnnotationMarker, ScannerToken::AnnotationMarker { span, .. }) => {
+                (ExpectedToken::TxxtMarker, ScannerToken::TxxtMarker { span, .. }) => {
                     assert_eq!(
                         span.start.column, expected_col,
-                        "{}: AnnotationMarker should start at column {}",
+                        "{}: TxxtMarker should start at column {}",
                         test_case.description, expected_col
                     );
                     expected_col = span.end.column;
@@ -244,7 +244,7 @@ fn test_all_tokenizers_with_emoji() {
                         match expected {
                             ExpectedToken::Text(_) => "Text",
                             ExpectedToken::Dash => "Dash",
-                            ExpectedToken::AnnotationMarker => "AnnotationMarker",
+                            ExpectedToken::TxxtMarker => "TxxtMarker",
                             ExpectedToken::BoldDelimiter => "BoldDelimiter",
                             ExpectedToken::ItalicDelimiter => "ItalicDelimiter",
                             ExpectedToken::CodeDelimiter => "CodeDelimiter",
@@ -348,11 +348,11 @@ fn test_annotation_definition_unicode() {
 
     let first_annotation = tokens
         .iter()
-        .find(|t| matches!(t, ScannerToken::AnnotationMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
         .expect("Should find annotation marker");
 
     match first_annotation {
-        ScannerToken::AnnotationMarker { span, .. } => {
+        ScannerToken::TxxtMarker { span, .. } => {
             assert_eq!(
                 span.start.column, 5,
                 "Annotation after 'café ' should start at column 5"
@@ -368,11 +368,11 @@ fn test_annotation_definition_unicode() {
 
     let definition = tokens
         .iter()
-        .find(|t| matches!(t, ScannerToken::DefinitionMarker { .. }))
+        .find(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
         .expect("Should find definition marker");
 
     match definition {
-        ScannerToken::DefinitionMarker { span, .. } => {
+        ScannerToken::TxxtMarker { span, .. } => {
             assert_eq!(
                 span.start.column, 5,
                 "Definition after 'café ' should start at column 5"
@@ -657,8 +657,7 @@ fn get_token_span(token: &ScannerToken) -> &txxt::ast::scanner_tokens::SourceSpa
     match token {
         ScannerToken::Text { span, .. }
         | ScannerToken::Identifier { span, .. }
-        | ScannerToken::AnnotationMarker { span, .. }
-        | ScannerToken::DefinitionMarker { span, .. }
+        | ScannerToken::TxxtMarker { span, .. }
         | ScannerToken::SequenceMarker { span, .. }
         | ScannerToken::BoldDelimiter { span }
         | ScannerToken::ItalicDelimiter { span }
@@ -670,6 +669,8 @@ fn get_token_span(token: &ScannerToken) -> &txxt::ast::scanner_tokens::SourceSpa
         | ScannerToken::LeftParen { span }
         | ScannerToken::RightParen { span }
         | ScannerToken::Colon { span }
+        | ScannerToken::Equals { span }
+        | ScannerToken::Comma { span }
         | ScannerToken::Dash { span }
         | ScannerToken::Period { span }
         | ScannerToken::Newline { span }

@@ -104,8 +104,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Scann
             match pattern {
                 ColonPattern::Definition => {
                     // This is definitely a definition marker
-                    return Some(ScannerToken::DefinitionMarker {
-                        content: "::".to_string(),
+                    return Some(ScannerToken::TxxtMarker {
                         span: SourceSpan {
                             start: start_pos,
                             end: lexer.current_position(),
@@ -123,8 +122,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Scann
                         if next_ch == '\n' || next_ch == '\r' || next_ch == ' ' || next_ch == '\t' {
                             // Check if there's content before this :: (making it a definition)
                             if !lexer.is_start_of_annotation_pattern(start_pos) {
-                                return Some(ScannerToken::DefinitionMarker {
-                                    content: "::".to_string(),
+                                return Some(ScannerToken::TxxtMarker {
                                     span: SourceSpan {
                                         start: start_pos,
                                         end: lexer.current_position(),
@@ -135,8 +133,7 @@ pub fn read_definition_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Scann
                     } else if lexer.is_at_end() {
                         // At end of input, check if there's content before
                         if !lexer.is_start_of_annotation_pattern(start_pos) {
-                            return Some(ScannerToken::DefinitionMarker {
-                                content: "::".to_string(),
+                            return Some(ScannerToken::TxxtMarker {
                                 span: SourceSpan {
                                     start: start_pos,
                                     end: lexer.current_position(),
@@ -193,8 +190,7 @@ pub fn read_annotation_marker<L: TxxtMarkerLexer>(lexer: &mut L) -> Option<Scann
                 }
             }
 
-            return Some(ScannerToken::AnnotationMarker {
-                content: "::".to_string(),
+            return Some(ScannerToken::TxxtMarker {
                 span: SourceSpan {
                     start: start_pos,
                     end: lexer.current_position(),
@@ -254,7 +250,7 @@ pub fn integrate_annotation_parameters<L: ParameterLexer>(
     let mut i = 0;
 
     while i < tokens.len() {
-        if let Some(ScannerToken::AnnotationMarker { .. }) = tokens.get(i) {
+        if let Some(ScannerToken::TxxtMarker { .. }) = tokens.get(i) {
             // Look for content between annotation markers
             if let Some((start_idx, end_idx, content)) = find_annotation_content(&tokens, i, lexer)
             {
@@ -337,7 +333,7 @@ fn find_annotation_content<L: ParameterLexer>(
 
     // Find the closing annotation marker
     for (i, token) in tokens.iter().enumerate().skip(start_idx + 1) {
-        if matches!(token, ScannerToken::AnnotationMarker { .. }) {
+        if matches!(token, ScannerToken::TxxtMarker { .. }) {
             end_idx = Some(i);
             break;
         }

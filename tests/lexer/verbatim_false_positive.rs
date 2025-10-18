@@ -25,7 +25,7 @@ fn test_colon_followed_by_annotation_not_verbatim() {
     // Should have annotation marker tokens
     let has_annotation = tokens
         .iter()
-        .any(|t| matches!(t, ScannerToken::AnnotationMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::TxxtMarker { .. }));
 
     assert!(has_annotation, "Should have annotation marker");
 }
@@ -60,7 +60,7 @@ fn test_definition_followed_by_annotation() {
     // Should have definition marker
     let has_definition = tokens
         .iter()
-        .any(|t| matches!(t, ScannerToken::DefinitionMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::TxxtMarker { .. }));
 
     assert!(has_definition, "Should have definition marker");
 

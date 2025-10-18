@@ -27,7 +27,6 @@
 //!
 //! Based on the semantic tokens specification in `docs/specs/core/semantic-tokens.txxt`:
 //!
-//! - `TxxtMarker`: The fundamental :: marker for structural elements
 //! - `Label`: Structured identifier component (supports namespacing)
 //! - `Parameters`: Key-value metadata component
 //! - `SequenceMarker`: List and session numbering component
@@ -47,13 +46,6 @@ use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 /// Semantic token representing higher-level syntactic constructs
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SemanticToken {
-    /// The fundamental :: marker used across annotations, definitions, and verbatim blocks
-    /// Identifies txxt structural elements and provides disambiguation anchor points
-    TxxtMarker {
-        /// Source span of the marker
-        span: SourceSpan,
-    },
-
     /// Structured identifier component for annotations and verbatim blocks
     /// Supports namespaced identifiers like "python", "org.example.custom"
     Label {
@@ -251,8 +243,7 @@ pub trait SemanticTokenSpan {
 impl SemanticTokenSpan for SemanticToken {
     fn span(&self) -> &SourceSpan {
         match self {
-            SemanticToken::TxxtMarker { span }
-            | SemanticToken::Label { span, .. }
+            SemanticToken::Label { span, .. }
             | SemanticToken::Parameters { span, .. }
             | SemanticToken::SequenceMarker { span, .. }
             | SemanticToken::TextSpan { span, .. }
@@ -283,12 +274,6 @@ pub trait ToScannerToken {
 impl FromScannerToken for SemanticToken {
     fn from_scanner_token(token: &ScannerToken) -> Option<Self> {
         match token {
-            ScannerToken::AnnotationMarker { span, .. } => {
-                Some(SemanticToken::TxxtMarker { span: span.clone() })
-            }
-            ScannerToken::DefinitionMarker { span, .. } => {
-                Some(SemanticToken::TxxtMarker { span: span.clone() })
-            }
             ScannerToken::BlankLine { span, .. } => {
                 Some(SemanticToken::BlankLine { span: span.clone() })
             }
@@ -303,10 +288,6 @@ impl FromScannerToken for SemanticToken {
 impl ToScannerToken for SemanticToken {
     fn to_scanner_tokens(&self) -> Vec<ScannerToken> {
         match self {
-            SemanticToken::TxxtMarker { span } => vec![ScannerToken::AnnotationMarker {
-                content: "::".to_string(),
-                span: span.clone(),
-            }],
             SemanticToken::BlankLine { span } => vec![ScannerToken::BlankLine {
                 whitespace: "".to_string(),
                 span: span.clone(),
@@ -323,11 +304,6 @@ impl ToScannerToken for SemanticToken {
 pub struct SemanticTokenBuilder;
 
 impl SemanticTokenBuilder {
-    /// Create a txxt marker semantic token
-    pub fn txxt_marker(span: SourceSpan) -> SemanticToken {
-        SemanticToken::TxxtMarker { span }
-    }
-
     /// Create a label semantic token
     pub fn label(text: String, span: SourceSpan) -> SemanticToken {
         SemanticToken::Label { text, span }

@@ -91,12 +91,8 @@ fn looks_like_other_element(tokens: &[ScannerToken]) -> bool {
                 // For now, be lenient and let paragraph parser handle it
                 false
             }
-            ScannerToken::AnnotationMarker { .. } => {
-                // Annotation block
-                true
-            }
-            ScannerToken::DefinitionMarker { .. } => {
-                // Definition block
+            ScannerToken::TxxtMarker { .. } => {
+                // Annotation or definition block
                 true
             }
             ScannerToken::VerbatimTitle { .. } => {
@@ -219,8 +215,7 @@ pub fn should_terminate_paragraph(tokens: &[ScannerToken]) -> bool {
             ScannerToken::Text { .. }
                 | ScannerToken::Identifier { .. }
                 | ScannerToken::SequenceMarker { .. }
-                | ScannerToken::AnnotationMarker { .. }
-                | ScannerToken::DefinitionMarker { .. }
+                | ScannerToken::TxxtMarker { .. }
         )
     });
 

@@ -28,7 +28,10 @@ fn test_semantic_token_list_with_tokens() {
         start: Position { row: 1, column: 1 },
         end: Position { row: 1, column: 2 },
     };
-    let token = SemanticToken::TxxtMarker { span: span.clone() };
+    let token = SemanticToken::Label {
+        text: "test".to_string(),
+        span: span.clone(),
+    };
     let list = SemanticTokenList::with_tokens(vec![token.clone()]);
 
     assert!(!list.is_empty());
@@ -43,7 +46,10 @@ fn test_semantic_token_list_push() {
         start: Position { row: 1, column: 1 },
         end: Position { row: 1, column: 2 },
     };
-    let token = SemanticToken::TxxtMarker { span };
+    let token = SemanticToken::Label {
+        text: "test".to_string(),
+        span,
+    };
 
     list.push(token);
     assert!(!list.is_empty());
@@ -56,8 +62,8 @@ fn test_from_scanner_token_conversion() {
         start: Position { row: 1, column: 1 },
         end: Position { row: 1, column: 2 },
     };
-    let scanner_token = ScannerToken::AnnotationMarker {
-        content: "::".to_string(),
+    let scanner_token = ScannerToken::BlankLine {
+        whitespace: "".to_string(),
         span: span.clone(),
     };
 
@@ -66,10 +72,10 @@ fn test_from_scanner_token_conversion() {
 
     let semantic_token = semantic_token.unwrap();
     match semantic_token {
-        SemanticToken::TxxtMarker { span: token_span } => {
+        SemanticToken::BlankLine { span: token_span } => {
             assert_eq!(token_span, span);
         }
-        _ => panic!("Expected TxxtMarker"),
+        _ => panic!("Expected BlankLine"),
     }
 }
 
@@ -79,18 +85,18 @@ fn test_to_scanner_token_conversion() {
         start: Position { row: 1, column: 1 },
         end: Position { row: 1, column: 2 },
     };
-    let semantic_token = SemanticToken::TxxtMarker { span: span.clone() };
+    let semantic_token = SemanticToken::BlankLine { span: span.clone() };
 
     let scanner_tokens = semantic_token.to_scanner_tokens();
     assert_eq!(scanner_tokens.len(), 1);
 
     match &scanner_tokens[0] {
-        ScannerToken::AnnotationMarker {
+        ScannerToken::BlankLine {
             span: token_span, ..
         } => {
             assert_eq!(token_span, &span);
         }
-        _ => panic!("Expected AnnotationMarker"),
+        _ => panic!("Expected BlankLine"),
     }
 }
 
@@ -100,14 +106,6 @@ fn test_semantic_token_builder() {
         start: Position { row: 1, column: 1 },
         end: Position { row: 1, column: 2 },
     };
-
-    let txxt_marker = SemanticTokenBuilder::txxt_marker(span.clone());
-    match txxt_marker {
-        SemanticToken::TxxtMarker { span: token_span } => {
-            assert_eq!(token_span, span);
-        }
-        _ => panic!("Expected TxxtMarker"),
-    }
 
     let label = SemanticTokenBuilder::label("test".to_string(), span.clone());
     match label {
@@ -154,7 +152,10 @@ fn test_serialization() {
         start: Position { row: 1, column: 1 },
         end: Position { row: 1, column: 2 },
     };
-    let token = SemanticToken::TxxtMarker { span };
+    let token = SemanticToken::Label {
+        text: "test".to_string(),
+        span,
+    };
 
     let serialized = serde_json::to_string(&token).unwrap();
     let deserialized: SemanticToken = serde_json::from_str(&serialized).unwrap();
@@ -170,7 +171,6 @@ fn test_all_semantic_token_variants() {
     };
 
     // Test all semantic token variants can be created
-    let _txxt_marker = SemanticToken::TxxtMarker { span: span.clone() };
     let _label = SemanticToken::Label {
         text: "test".to_string(),
         span: span.clone(),

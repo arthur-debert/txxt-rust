@@ -193,7 +193,7 @@ impl Assembler {
         let mut i = 0;
 
         while i < tokens.len() {
-            if let ScannerToken::AnnotationMarker { .. } = &tokens[i] {
+            if let ScannerToken::TxxtMarker { .. } = &tokens[i] {
                 // Found annotation start, extract the complete annotation
                 if let Some((annotation, next_idx)) =
                     self.parse_annotation_from_tokens(tokens, i)?
@@ -218,14 +218,14 @@ impl Assembler {
         start_idx: usize,
     ) -> Result<Option<(Annotation, usize)>, AssemblyError> {
         // Look for opening :: marker
-        if !matches!(&tokens[start_idx], ScannerToken::AnnotationMarker { .. }) {
+        if !matches!(&tokens[start_idx], ScannerToken::TxxtMarker { .. }) {
             return Ok(None);
         }
 
         // Find closing :: marker
         let mut end_idx = start_idx + 1;
         while end_idx < tokens.len() {
-            if matches!(&tokens[end_idx], ScannerToken::AnnotationMarker { .. }) {
+            if matches!(&tokens[end_idx], ScannerToken::TxxtMarker { .. }) {
                 break;
             }
             end_idx += 1;

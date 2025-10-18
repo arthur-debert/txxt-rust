@@ -59,8 +59,7 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
                 marker_type: m2, ..
             },
         ) => m1 == m2,
-        (AnnotationMarker { content: c1, .. }, AnnotationMarker { content: c2, .. }) => c1 == c2,
-        (DefinitionMarker { content: c1, .. }, DefinitionMarker { content: c2, .. }) => c1 == c2,
+        (TxxtMarker { .. }, TxxtMarker { .. }) => true,
         (Dash { .. }, Dash { .. }) => true,
         (Period { .. }, Period { .. }) => true,
         (LeftBracket { .. }, LeftBracket { .. }) => true,
@@ -69,6 +68,8 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
         (LeftParen { .. }, LeftParen { .. }) => true,
         (RightParen { .. }, RightParen { .. }) => true,
         (Colon { .. }, Colon { .. }) => true,
+        (Equals { .. }, Equals { .. }) => true,
+        (Comma { .. }, Comma { .. }) => true,
         (Identifier { content: c1, .. }, Identifier { content: c2, .. }) => c1 == c2,
         (RefMarker { content: c1, .. }, RefMarker { content: c2, .. }) => c1 == c2,
         (

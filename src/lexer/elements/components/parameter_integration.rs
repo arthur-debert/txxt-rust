@@ -15,7 +15,7 @@ pub fn integrate_annotation_parameters_fixed<L: ParameterLexer>(
     let mut i = 0;
 
     while i < tokens.len() {
-        if let ScannerToken::AnnotationMarker { .. } = &tokens[i] {
+        if let ScannerToken::TxxtMarker { .. } = &tokens[i] {
             // Found opening annotation marker
             result.push(tokens[i].clone());
             i += 1;
@@ -26,7 +26,7 @@ pub fn integrate_annotation_parameters_fixed<L: ParameterLexer>(
             let mut closing_idx = i;
 
             while i < tokens.len() {
-                if matches!(&tokens[i], ScannerToken::AnnotationMarker { .. }) {
+                if matches!(&tokens[i], ScannerToken::TxxtMarker { .. }) {
                     found_closing = true;
                     closing_idx = i;
                     break;
@@ -65,7 +65,7 @@ pub fn integrate_definition_parameters_fixed<L: ParameterLexer>(
     let mut i = 0;
 
     while i < tokens.len() {
-        if let ScannerToken::DefinitionMarker { .. } = &tokens[i] {
+        if let ScannerToken::TxxtMarker { .. } = &tokens[i] {
             // Found definition marker - look backwards for content
 
             let mut j = result.len();

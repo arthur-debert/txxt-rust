@@ -10,7 +10,6 @@ use crate::lexer::elements::components::{
         integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
     },
     sequence::read_sequence_marker,
-    txxt_marker::{read_annotation_marker, read_definition_marker},
 };
 use crate::lexer::elements::formatting::read_inline_delimiter;
 use crate::lexer::elements::references::{
@@ -136,9 +135,7 @@ impl Lexer {
                 break;
             }
 
-            if let Some(token) = read_definition_marker(&mut *self) {
-                tokens.push(token);
-            } else if let Some(token) = read_annotation_marker(&mut *self) {
+            if let Some(token) = self.read_txxt_marker() {
                 tokens.push(token);
             // TODO: Update these to work with atomic tokens from parser level
             } else if let Some(token) = read_citation_ref(self) {
@@ -461,8 +458,7 @@ impl Lexer {
 
         if self.peek() == Some('=') {
             self.advance();
-            return Some(ScannerToken::Text {
-                content: "=".to_string(),
+            return Some(ScannerToken::Equals {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -479,8 +475,7 @@ impl Lexer {
 
         if self.peek() == Some(',') {
             self.advance();
-            return Some(ScannerToken::Text {
-                content: ",".to_string(),
+            return Some(ScannerToken::Comma {
                 span: SourceSpan {
                     start: start_pos,
                     end: self.current_position(),
@@ -489,6 +484,57 @@ impl Lexer {
         }
 
         None
+    }
+
+    /// Read a TxxtMarker token (::)
+    fn read_txxt_marker(&mut self) -> Option<ScannerToken> {
+        let start_pos = self.current_position();
+
+        if self.peek() == Some(':') {
+            let saved_state = self.save_state();
+            self.advance(); // First ':'
+
+            if self.peek() == Some(':') {
+                self.advance(); // Second ':'
+
+                // Check that this is not part of a longer sequence like ":::"
+                if let Some(next_ch) = self.peek() {
+                    if next_ch == ':' {
+                        // This is ":::" or longer, not a valid TxxtMarker
+                        self.restore_state(saved_state);
+                        return None;
+                    }
+                }
+
+                return Some(ScannerToken::TxxtMarker {
+                    span: SourceSpan {
+                        start: start_pos,
+                        end: self.current_position(),
+                    },
+                });
+            } else {
+                // Not a TxxtMarker, backtrack
+                self.restore_state(saved_state);
+            }
+        }
+
+        None
+    }
+
+    /// Save current lexer state for backtracking
+    fn save_state(&self) -> LexerState {
+        LexerState {
+            position: self.position,
+            row: self.row,
+            column: self.column,
+        }
+    }
+
+    /// Restore previous lexer state
+    fn restore_state(&mut self, state: LexerState) {
+        self.position = state.position;
+        self.row = state.row;
+        self.column = state.column;
     }
 
     /// Read an identifier token (alphanumeric starting with letter or underscore)

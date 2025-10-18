@@ -37,7 +37,7 @@ impl Detokenizer {
         let mut result = String::new();
         let mut prev_token: Option<&ScannerToken> = None;
 
-        for token in tokens {
+        for (i, token) in tokens.iter().enumerate() {
             // Skip Indent/Dedent tokens as they're structural markers, not content
             if matches!(
                 token,
@@ -54,7 +54,7 @@ impl Detokenizer {
                             result.push(':'); // First param after verbatim label
                         }
                         ScannerToken::Parameter { .. } => {
-                            result.push(','); // Subsequent params
+                            result.push(','); // Subsequent params - no space after comma
                         }
                         _ => {}
                     }
@@ -70,6 +70,25 @@ impl Detokenizer {
                     result.push('"');
                 } else {
                     result.push_str(value);
+                }
+
+                // Add whitespace after parameter if next token is not whitespace or comma
+                if let Some(next_token) = tokens.get(i + 1) {
+                    match next_token {
+                        ScannerToken::Whitespace { .. } => {
+                            // Next token is whitespace, don't add extra space
+                        }
+                        ScannerToken::Comma { .. } => {
+                            // Next token is comma, don't add space (comma comes immediately after value)
+                        }
+                        ScannerToken::Parameter { .. } => {
+                            // Next token is another parameter, don't add space (comma will be added)
+                        }
+                        _ => {
+                            // Next token is not whitespace, comma, or parameter, add a space
+                            result.push(' ');
+                        }
+                    }
                 }
 
                 prev_token = Some(token);
@@ -119,7 +138,7 @@ impl Detokenizer {
                             // After a colon in annotation context, no separator needed
                         }
                         ScannerToken::Parameter { .. } => {
-                            result.push(','); // Subsequent params
+                            result.push(','); // Subsequent params - no space after comma
                         }
                         _ => {}
                     }
@@ -221,11 +240,8 @@ impl Detokenizer {
                 result.push_str(marker_type.content());
                 result.push(' ');
             }
-            ScannerToken::AnnotationMarker { content, .. } => {
-                result.push_str(content);
-            }
-            ScannerToken::DefinitionMarker { content, .. } => {
-                result.push_str(content);
+            ScannerToken::TxxtMarker { .. } => {
+                result.push_str("::");
             }
             ScannerToken::Dash { .. } => {
                 result.push('-');
@@ -250,6 +266,12 @@ impl Detokenizer {
             }
             ScannerToken::Colon { .. } => {
                 result.push(':');
+            }
+            ScannerToken::Equals { .. } => {
+                result.push('=');
+            }
+            ScannerToken::Comma { .. } => {
+                result.push(',');
             }
             ScannerToken::Identifier { content, .. } => {
                 result.push_str(content);

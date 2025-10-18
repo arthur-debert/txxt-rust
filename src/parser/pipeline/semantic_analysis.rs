@@ -96,13 +96,9 @@ impl SemanticAnalyzer {
                     semantic_tokens.push(self.transform_label(content.clone(), span.clone())?);
                 }
 
-                // For now, handle other tokens as text spans
-                // This will be expanded in subsequent issues
+                // Text Span transformation - Issue #85
                 ScannerToken::Text { content, span } => {
-                    semantic_tokens.push(SemanticTokenBuilder::text_span(
-                        content.clone(),
-                        span.clone(),
-                    ));
+                    semantic_tokens.push(self.transform_text_span(content.clone(), span.clone())?);
                 }
 
                 // Handle other tokens as text spans for now
@@ -210,7 +206,90 @@ impl SemanticAnalyzer {
     pub fn is_valid_label_char(&self, c: char) -> bool {
         c.is_ascii_alphanumeric() || c == '_' || c == '-'
     }
+
+    /// Transform Text scanner token to TextSpan semantic token
     ///
+    /// This implements the Text Span transformation as specified in Issue #85.
+    /// TextSpan tokens represent basic text content without special formatting,
+    /// serving as building blocks for larger line constructs.
+    ///
+    /// # Arguments
+    /// * `content` - The text content from the scanner token
+    /// * `span` - The source span of the text
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_text_span(
+        &self,
+        content: String,
+        span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate that the content is not empty
+        if content.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Text span content cannot be empty".to_string(),
+            ));
+        }
+
+        // Transform Text scanner token to TextSpan semantic token
+        // This preserves the basic text content for use in subsequent parsing phases
+        Ok(SemanticTokenBuilder::text_span(content, span))
+    }
+
+    /// Transform a sequence of text tokens into a PlainTextLine semantic token
+    ///
+    /// This implements the Plain Text Line transformation as specified in Issue #87.
+    /// PlainTextLine tokens represent simple text content without special markers
+    /// or structure, containing a single TextSpan component.
+    ///
+    /// # Arguments
+    /// * `text_tokens` - Vector of Text scanner tokens that form a line
+    /// * `line_span` - The source span covering the entire line
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    pub fn transform_plain_text_line(
+        &self,
+        text_tokens: Vec<ScannerToken>,
+        line_span: SourceSpan,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Validate that we have at least one text token
+        if text_tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Plain text line must contain at least one text token".to_string(),
+            ));
+        }
+
+        // Validate that all tokens are Text tokens
+        for token in &text_tokens {
+            if !matches!(token, ScannerToken::Text { .. }) {
+                return Err(SemanticAnalysisError::AnalysisError(format!(
+                    "Plain text line can only contain Text tokens, got {:?}",
+                    token
+                )));
+            }
+        }
+
+        // Combine all text content into a single string
+        let combined_content = text_tokens
+            .iter()
+            .map(|token| {
+                if let ScannerToken::Text { content, .. } = token {
+                    content.as_str()
+                } else {
+                    "" // This should never happen due to validation above
+                }
+            })
+            .collect::<Vec<&str>>()
+            .join("");
+
+        // Create a single TextSpan for the combined content
+        let text_span = SemanticTokenBuilder::text_span(combined_content, line_span.clone());
+
+        // Transform to PlainTextLine semantic token
+        Ok(SemanticTokenBuilder::plain_text_line(text_span, line_span))
+    }
+
     /// This is a utility method to convert any scanner token to text content
     /// when we don't have a specific transformation for it yet.
     fn token_to_text_content(&self, token: &ScannerToken) -> String {

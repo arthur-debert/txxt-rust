@@ -87,7 +87,6 @@ code and its corresponding tests.
 
 ### Test Directory Structure
 
-```
 tests/
 ├── suite.rs                    # Main test suite integration - includes all test modules
 ├── testing_framework_check.rs  # Only remaining top-level test file
@@ -97,7 +96,6 @@ tests/
 
 │   └── pipeline/
 │       └── mod.rs                # mod.rs must export up to top level
-...
 
 ### Test Organization Principles
 

@@ -55,6 +55,13 @@ pub enum SemanticToken {
         span: SourceSpan,
     },
 
+    /// Fundamental :: marker used across annotations, definitions, and verbatim blocks
+    /// Identifies txxt structural elements and provides disambiguation anchor points
+    TxxtMarker {
+        /// Source span of the marker
+        span: SourceSpan,
+    },
+
     /// Key-value metadata component used in annotations and verbatim elements
     /// Structured parameter list with proper key-value pair parsing
     Parameters {
@@ -132,6 +139,50 @@ pub enum SemanticToken {
     /// Dedentation marker - passed through unchanged from scanner tokens
     Dedent {
         /// Source span of the dedent token
+        span: SourceSpan,
+    },
+
+    /// Annotation semantic token combining txxt markers with labels and optional content
+    /// Composition: TxxtMarker + Whitespace + Text + Whitespace + TxxtMarker + Text?
+    /// Used for metadata elements that attach structured information to other elements
+    Annotation {
+        /// The annotation label/type
+        label: Box<SemanticToken>,
+        /// Optional parameters in key=value format
+        parameters: Option<Box<SemanticToken>>,
+        /// Optional annotation content
+        content: Option<Box<SemanticToken>>,
+        /// Source span of the entire annotation
+        span: SourceSpan,
+    },
+
+    /// Definition semantic token combining text with txxt markers
+    /// Composition: Text + Whitespace + TxxtMarker
+    /// Used for structured elements that define terms, concepts, and entities
+    Definition {
+        /// The definition term/label
+        term: Box<SemanticToken>,
+        /// Optional parameters in key=value format
+        parameters: Option<Box<SemanticToken>>,
+        /// Source span of the entire definition
+        span: SourceSpan,
+    },
+
+    /// Verbatim block semantic token using wall architecture
+    /// Composition: VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+    /// Used for content that preserves exact formatting and spacing
+    VerbatimBlock {
+        /// The verbatim title
+        title: Box<SemanticToken>,
+        /// The indentation wall marker
+        wall: Box<SemanticToken>,
+        /// The verbatim content (preserved exactly)
+        content: Box<SemanticToken>,
+        /// The verbatim label
+        label: Box<SemanticToken>,
+        /// Optional parameters in key=value format
+        parameters: Option<Box<SemanticToken>>,
+        /// Source span of the entire verbatim block
         span: SourceSpan,
     },
 }
@@ -244,6 +295,7 @@ impl SemanticTokenSpan for SemanticToken {
     fn span(&self) -> &SourceSpan {
         match self {
             SemanticToken::Label { span, .. }
+            | SemanticToken::TxxtMarker { span }
             | SemanticToken::Parameters { span, .. }
             | SemanticToken::SequenceMarker { span, .. }
             | SemanticToken::TextSpan { span, .. }
@@ -252,7 +304,10 @@ impl SemanticTokenSpan for SemanticToken {
             | SemanticToken::IgnoreLine { span, .. }
             | SemanticToken::BlankLine { span }
             | SemanticToken::Indent { span }
-            | SemanticToken::Dedent { span } => span,
+            | SemanticToken::Dedent { span }
+            | SemanticToken::Annotation { span, .. }
+            | SemanticToken::Definition { span, .. }
+            | SemanticToken::VerbatimBlock { span, .. } => span,
         }
     }
 }
@@ -309,6 +364,11 @@ impl SemanticTokenBuilder {
         SemanticToken::Label { text, span }
     }
 
+    /// Create a txxt marker semantic token
+    pub fn txxt_marker(span: SourceSpan) -> SemanticToken {
+        SemanticToken::TxxtMarker { span }
+    }
+
     /// Create a parameters semantic token
     pub fn parameters(params: HashMap<String, String>, span: SourceSpan) -> SemanticToken {
         SemanticToken::Parameters { params, span }
@@ -342,6 +402,19 @@ impl SemanticTokenBuilder {
         }
     }
 
+    /// Create a sequence text line semantic token
+    pub fn sequence_text_line(
+        marker: SemanticToken,
+        content: SemanticToken,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::SequenceTextLine {
+            marker: Box::new(marker),
+            content: Box::new(content),
+            span,
+        }
+    }
+
     /// Create an ignore line semantic token
     pub fn ignore_line(content: String, span: SourceSpan) -> SemanticToken {
         SemanticToken::IgnoreLine { content, span }
@@ -360,5 +433,52 @@ impl SemanticTokenBuilder {
     /// Create a dedent semantic token
     pub fn dedent(span: SourceSpan) -> SemanticToken {
         SemanticToken::Dedent { span }
+    }
+
+    /// Create an annotation semantic token
+    pub fn annotation(
+        label: SemanticToken,
+        parameters: Option<SemanticToken>,
+        content: Option<SemanticToken>,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::Annotation {
+            label: Box::new(label),
+            parameters: parameters.map(Box::new),
+            content: content.map(Box::new),
+            span,
+        }
+    }
+
+    /// Create a definition semantic token
+    pub fn definition(
+        term: SemanticToken,
+        parameters: Option<SemanticToken>,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::Definition {
+            term: Box::new(term),
+            parameters: parameters.map(Box::new),
+            span,
+        }
+    }
+
+    /// Create a verbatim block semantic token
+    pub fn verbatim_block(
+        title: SemanticToken,
+        wall: SemanticToken,
+        content: SemanticToken,
+        label: SemanticToken,
+        parameters: Option<SemanticToken>,
+        span: SourceSpan,
+    ) -> SemanticToken {
+        SemanticToken::VerbatimBlock {
+            title: Box::new(title),
+            wall: Box::new(wall),
+            content: Box::new(content),
+            label: Box::new(label),
+            parameters: parameters.map(Box::new),
+            span,
+        }
     }
 }

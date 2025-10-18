@@ -1,5 +1,6 @@
 //! Parser tests
 mod elements;
+mod semantic_analysis;
 
 // Parser integration and bug tests
 mod issue_26_indented_sequence_markers;

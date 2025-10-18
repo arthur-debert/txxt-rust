@@ -167,13 +167,10 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
 
     5.2. Verbatim Block Tokens
 
-        Input:
-        ```
-        Python example:
+        Input: Python example:
             def hello():
                 print("Hello!")
         :: python
-        ```
         Tokens: `VerbatimTitle` `IndentationWall` `IgnoreTextSpan` `VerbatimLabel`
 
     5.3. Reference Tokens

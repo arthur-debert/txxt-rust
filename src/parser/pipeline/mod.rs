@@ -30,7 +30,9 @@
 
 pub mod parse_blocks;
 pub mod parse_inlines;
+pub mod semantic_analysis;
 
 // Re-export main interfaces
 pub use parse_blocks::{BlockParseError, BlockParser};
 pub use parse_inlines::{InlineParseError, InlineParser};
+pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};

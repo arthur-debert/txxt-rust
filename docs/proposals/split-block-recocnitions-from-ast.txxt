@@ -1,0 +1,86 @@
+:: title :: Proposal: Split Block Recognition from AST Construction
+:: author :: Gemini
+:: pub-date :: 2025-10-17
+
+1. Context: The Final Hurdle in Parsing
+
+    The "Stream-First" parser architecture, as defined in [docs/dev/semantic-tokens.txxt], has successfully broken down the parsing process into clear, sequential phases. The final phase, AST Construction, is tasked with converting the flat stream of `SemanticNode`s and structural markers (`Indent`, `Dedent`) into a complete Abstract Syntax Tree.
+
+    However, as currently envisioned, this phase is monolithic. It is responsible for two distinct and highly complex tasks simultaneously:
+
+    - 1. Element Recognition: Applying grammar rules to a sequence of semantic nodes to identify a complete block element (e.g., a `VerbatimBlock`).
+    - 2. Tree Construction: Managing a stack or recursion to place the recognized element correctly within the document's parent-child hierarchy.
+
+    Combining these two concerns forces the parser to constantly switch context between "what am I looking at?" and "where does it go?". Historically, in this and other implementations, this combined complexity has been the primary source of bugs, difficult edge cases, and maintenance challenges.
+
+2. Proposal: A Two-Phase AST Construction Process
+
+    To mitigate this complexity, this document proposes splitting the final AST Construction phase into two smaller, more focused sub-phases. We introduce a new, intermediate stream called the `BlockInstruction` stream.
+
+    2.1. Phase 3a: Block Recognition
+
+        This phase is a pure parser that recognizes grammar rules. It has no concept of a tree.
+
+        - Input: The flat stream of `SemanticNode`s (`TextLine`, `Indent`, etc.).
+        - Process: Consumes the semantic stream and applies the grammar rules from [docs/specs/core/grammar.txxt]. When it recognizes a complete block element, it consumes all of its constituent `SemanticNode`s and emits a single, data-rich `BlockInstruction`.
+        - Output: A new, flat stream of `BlockInstruction`s.
+
+    2.2. The Block Instruction Stream
+
+        This new intermediate representation captures fully-parsed elements and structural commands.
+
+        Example Definition:
+            enum BlockInstruction {
+                Element(BlockToken),
+                StartContainer, // Replaces Indent
+                EndContainer,   // Replaces Dedent
+            }
+
+            enum BlockToken {
+                Paragraph { lines: Vec<String> },
+                VerbatimBlock {
+                    title: String,
+                    content: String,
+                    label: String,
+                    params: Parameters,
+                },
+                SessionStart { title: String, numbering: Option<String> },
+                // ... and so on for every other element
+            }
+        :: spec
+
+    2.3. Phase 3b: AST Tree Construction
+
+        This phase is a pure tree builder. It has no concept of grammar.
+
+        - Input: The flat stream of `BlockInstruction`s.
+        - Process: A simple state machine that builds the tree.
+            - It maintains a stack of parent `ElementNode`s.
+            - On `StartContainer`: It pushes a new `Container` node onto the stack.
+            - On `Element(BlockToken)`: It converts the `BlockToken` into its final `ElementNode` form and appends it as a child to the current parent on the stack.
+            - On `EndContainer`: It pops from the stack.
+        - Output: The final, complete AST.
+
+3. Value Proposition & Feasibility
+
+    3.1. Benefits
+
+        - Extreme Simplification: We transform one very complex problem into two much simpler, decoupled problems. The recognizer only knows grammar, and the builder only knows trees.
+        - Declarative Power: The code for the Block Recognizer becomes a near 1:1 mapping of the declarative grammar rules in the specification documents, making it far easier to verify for correctness.
+        - Superior Testability: Each phase can be unit-tested in complete isolation. We can test the `recognize_verbatim_block` function with a small vector of semantic nodes and test the tree builder with a handcrafted vector of block instructions.
+        - Maintainability and Debugging: When a parsing bug occurs, the layered streams make it trivial to pinpoint the failure. We can inspect the `SemanticNode` stream, then the `BlockInstruction` stream, to see exactly where the process went wrong.
+
+    3.2. Costs
+
+        - Additional Boilerplate: The `BlockInstruction` and `BlockToken` enums must be defined and maintained. This is a modest, one-time cost.
+        - Extra Processing Pass: This design introduces one extra pass over an intermediate representation. Given the nature of the task, this will have a negligible impact on performance, which is far outweighed by the gains in correctness and maintainability.
+
+    3.3. Feasibility
+
+        This approach is highly feasible. It is a standard, robust pattern used in compiler design to separate parsing (syntax) from code generation (semantics/structure).
+
+4. Conclusion
+
+    Adopting this two-phase approach for AST construction is a strategic investment in the long-term health and correctness of the `txxt` parser. It directly addresses the most complex part of the system by applying our successful core strategy: breaking down complex problems into smaller, simpler, and more verifiable phases.
+
+    It is strongly recommended that we adopt this design for the implementation of the AST Construction phase.

@@ -36,6 +36,7 @@ impl Detokenizer {
     ) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&ScannerToken> = None;
+        let mut current_wall_info: Option<(usize, crate::ast::scanner_tokens::WallType)> = None;
 
         for (i, token) in tokens.iter().enumerate() {
             // Skip Indent/Dedent tokens as they're structural markers, not content
@@ -95,6 +96,108 @@ impl Detokenizer {
                 continue;
             }
 
+            // Handle VerbatimTitle tokens with proper indentation
+            if let ScannerToken::VerbatimTitle { content, span, .. } = token {
+                // Use the wall information to determine correct indentation
+                if let Some((_, wall_type)) = &current_wall_info {
+                    match wall_type {
+                        crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                            // For in-flow verbatim, title should have base_indent spaces
+                            let indent_ws = " ".repeat(*base_indent);
+                            result.push_str(&indent_ws);
+                        }
+                        crate::ast::scanner_tokens::WallType::Stretched => {
+                            // For stretched verbatim, title starts at column 1 (to disambiguate from regular TXXT content)
+                            result.push(' ');
+                        }
+                    }
+                } else {
+                    // Fallback: use span information
+                    let original_indent = span.start.column;
+                    let indent_ws = " ".repeat(original_indent);
+                    result.push_str(&indent_ws);
+                }
+                result.push_str(content);
+                result.push(':');
+                result.push('\n');
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Handle VerbatimLabel tokens with proper indentation
+            if let ScannerToken::VerbatimLabel { content, span, .. } = token {
+                // Use the wall information to determine correct indentation
+                if let Some((_, wall_type)) = &current_wall_info {
+                    match wall_type {
+                        crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                            // For in-flow verbatim, label should have base_indent spaces
+                            let indent_ws = " ".repeat(*base_indent);
+                            result.push_str(&indent_ws);
+                        }
+                        crate::ast::scanner_tokens::WallType::Stretched => {
+                            // For stretched verbatim, label starts at column 1 (to disambiguate from regular TXXT content)
+                            result.push(' ');
+                        }
+                    }
+                } else {
+                    // Fallback: use span information
+                    let original_indent = span.start.column;
+                    let indent_ws = " ".repeat(original_indent);
+                    result.push_str(&indent_ws);
+                }
+                result.push_str("::");
+                result.push(' ');
+                result.push_str(content);
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Handle IndentationWall tokens to store wall information
+            if let ScannerToken::IndentationWall {
+                level, wall_type, ..
+            } = token
+            {
+                current_wall_info = Some((*level, wall_type.clone()));
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Handle IgnoreTextSpan tokens with wall information
+            if let ScannerToken::IgnoreTextSpan { content, .. } = token {
+                if let Some((_, wall_type)) = &current_wall_info {
+                    // Reconstruct the original formatting based on wall type
+                    let lines: Vec<&str> = content.split('\n').collect();
+                    for (i, line) in lines.iter().enumerate() {
+                        if i > 0 {
+                            result.push('\n');
+                        }
+
+                        if !line.is_empty() {
+                            match wall_type {
+                                crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                                    // For in-flow verbatim, add base indent + wall offset
+                                    result.push_str(&" ".repeat(base_indent + INDENT_SIZE));
+                                    result.push_str(line);
+                                }
+                                crate::ast::scanner_tokens::WallType::Stretched => {
+                                    // For stretched verbatim, content starts at column 0
+                                    result.push_str(line);
+                                }
+                            }
+                        }
+                    }
+                    result.push('\n');
+                } else {
+                    // Fallback: treat as regular content
+                    result.push_str(content);
+                }
+
+                // Reset wall info after processing
+                current_wall_info = None;
+                prev_token = Some(token);
+                continue;
+            }
+
             // Append the token using simple logic
             self.append_token(&mut result, token, 0)?;
             prev_token = Some(token);
@@ -123,6 +226,7 @@ impl Detokenizer {
         // Track whether we're at the start of a line
         let mut at_line_start = result.is_empty() || result.ends_with('\n');
         let mut prev_token: Option<&ScannerToken> = None;
+        let mut current_wall_info: Option<(usize, crate::ast::scanner_tokens::WallType)> = None;
 
         // Process all tokens at this level
         for token in &token_tree.tokens {
@@ -157,6 +261,66 @@ impl Detokenizer {
                     result.push_str(value);
                 }
 
+                prev_token = Some(token);
+                at_line_start = false;
+                continue;
+            }
+
+            // Handle VerbatimTitle tokens with proper indentation
+            if let ScannerToken::VerbatimTitle { content, .. } = token {
+                // Add proper indentation for verbatim title
+                let indent_ws = " ".repeat(indent_level * INDENT_SIZE);
+                result.push_str(&indent_ws);
+                result.push_str(content);
+                result.push(':');
+                result.push('\n');
+                prev_token = Some(token);
+                at_line_start = true;
+                continue;
+            }
+
+            // Handle IndentationWall tokens to store wall information
+            if let ScannerToken::IndentationWall {
+                level, wall_type, ..
+            } = token
+            {
+                current_wall_info = Some((*level, wall_type.clone()));
+                prev_token = Some(token);
+                continue;
+            }
+
+            // Handle IgnoreTextSpan tokens with wall information
+            if let ScannerToken::IgnoreTextSpan { content, .. } = token {
+                if let Some((_, wall_type)) = &current_wall_info {
+                    // Reconstruct the original formatting based on wall type
+                    let lines: Vec<&str> = content.split('\n').collect();
+                    for (i, line) in lines.iter().enumerate() {
+                        if i > 0 {
+                            result.push('\n');
+                        }
+
+                        if !line.is_empty() {
+                            match wall_type {
+                                crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                                    // For in-flow verbatim, add base indent + wall offset
+                                    result.push_str(&" ".repeat(base_indent + INDENT_SIZE));
+                                    result.push_str(line);
+                                }
+                                crate::ast::scanner_tokens::WallType::Stretched => {
+                                    // For stretched verbatim, content starts at column 0
+                                    result.push_str(line);
+                                }
+                            }
+                        }
+                    }
+                    result.push('\n');
+                } else {
+                    // Fallback: treat as regular content
+                    result.push_str(content);
+                }
+
+                // Reset wall info after processing
+                current_wall_info = None;
                 prev_token = Some(token);
                 at_line_start = false;
                 continue;
@@ -214,7 +378,7 @@ impl Detokenizer {
         &self,
         result: &mut String,
         token: &ScannerToken,
-        current_indent_level: usize,
+        _current_indent_level: usize,
     ) -> Result<(), DetokenizeError> {
         match token {
             ScannerToken::Text { content, .. } => {
@@ -297,26 +461,18 @@ impl Detokenizer {
                     }
                 }
             }
-            ScannerToken::VerbatimTitle { content, .. } => {
-                result.push_str(content);
-                result.push(':');
-                result.push('\n');
+            ScannerToken::VerbatimTitle { .. } => {
+                // VerbatimTitle tokens are handled in append_token_tree method
+                unreachable!("VerbatimTitle tokens should be handled in append_token_tree");
             }
-            ScannerToken::VerbatimContent { content, .. } => {
-                // For verbatim content, we need to add the wall indentation back
-                // Split content into lines and add proper indentation to each
-                let lines: Vec<&str> = content.split('\n').collect();
-                for (i, line) in lines.iter().enumerate() {
-                    if i > 0 {
-                        result.push('\n');
-                    }
-                    // Add current indentation plus one extra level for the wall
-                    if !line.is_empty() {
-                        result.push_str(&" ".repeat((current_indent_level + 1) * INDENT_SIZE));
-                        result.push_str(line);
-                    }
-                }
-                result.push('\n');
+            ScannerToken::IndentationWall { .. } => {
+                // Wall tokens are handled in append_token_tree method
+                // This is a structural token that doesn't produce output directly
+            }
+            ScannerToken::IgnoreTextSpan { .. } => {
+                // IgnoreTextSpan tokens are handled in append_token_tree method
+                // This is a fallback that shouldn't be reached
+                unreachable!("IgnoreTextSpan tokens should be handled in append_token_tree");
             }
             ScannerToken::VerbatimLabel { content, .. } => {
                 result.push_str("::");

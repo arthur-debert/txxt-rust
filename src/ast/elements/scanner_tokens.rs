@@ -19,6 +19,15 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Type of indentation wall for verbatim blocks
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum WallType {
+    /// In-flow mode: wall at title_indent + 4 spaces
+    InFlow(usize),
+    /// Stretched mode: wall at absolute column 1 (0-based)
+    Stretched,
+}
+
 /// Rich semantic information for sequence markers
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SequenceMarkerType {
@@ -170,8 +179,15 @@ pub enum ScannerToken {
     /// Verbatim block title (title:)
     VerbatimTitle { content: String, span: SourceSpan },
 
-    /// Verbatim block content (preserved exactly)
-    VerbatimContent { content: String, span: SourceSpan },
+    /// Indentation wall marker for verbatim blocks
+    IndentationWall {
+        level: usize,
+        wall_type: WallType,
+        span: SourceSpan,
+    },
+
+    /// Raw content after indentation wall (preserved exactly)
+    IgnoreTextSpan { content: String, span: SourceSpan },
 
     /// Verbatim block label (:: label syntax)
     VerbatimLabel { content: String, span: SourceSpan },
@@ -234,7 +250,8 @@ impl ScannerToken {
             ScannerToken::RefMarker { span, .. } => span,
             ScannerToken::FootnoteRef { span, .. } => span,
             ScannerToken::VerbatimTitle { span, .. } => span,
-            ScannerToken::VerbatimContent { span, .. } => span,
+            ScannerToken::IndentationWall { span, .. } => span,
+            ScannerToken::IgnoreTextSpan { span, .. } => span,
             ScannerToken::VerbatimLabel { span, .. } => span,
             ScannerToken::Parameter { span, .. } => span,
             ScannerToken::BoldDelimiter { span } => span,
@@ -259,7 +276,8 @@ impl ScannerToken {
             ScannerToken::RefMarker { content, .. } => content,
             ScannerToken::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
             ScannerToken::VerbatimTitle { content, .. } => content,
-            ScannerToken::VerbatimContent { content, .. } => content,
+            ScannerToken::IndentationWall { .. } => "", // Structural token, no content
+            ScannerToken::IgnoreTextSpan { content, .. } => content,
             ScannerToken::VerbatimLabel { content, .. } => content,
             ScannerToken::Parameter { key, .. } => key, // Return key for content (value accessible separately)
             ScannerToken::BoldDelimiter { .. } => "*",

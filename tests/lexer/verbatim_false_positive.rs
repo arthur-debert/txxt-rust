@@ -15,7 +15,8 @@ fn test_colon_followed_by_annotation_not_verbatim() {
         matches!(
             t,
             ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::IndentationWall { .. }
+                | ScannerToken::IgnoreTextSpan { .. }
                 | ScannerToken::VerbatimLabel { .. }
         )
     });
@@ -42,7 +43,8 @@ fn test_multiple_colons_followed_by_annotation() {
         matches!(
             t,
             ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::IndentationWall { .. }
+                | ScannerToken::IgnoreTextSpan { .. }
                 | ScannerToken::VerbatimLabel { .. }
         )
     });
@@ -69,7 +71,8 @@ fn test_definition_followed_by_annotation() {
         matches!(
             t,
             ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::IndentationWall { .. }
+                | ScannerToken::IgnoreTextSpan { .. }
                 | ScannerToken::VerbatimLabel { .. }
         )
     });
@@ -91,7 +94,8 @@ fn test_real_verbatim_still_works() {
         matches!(
             t,
             ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::IndentationWall { .. }
+                | ScannerToken::IgnoreTextSpan { .. }
                 | ScannerToken::VerbatimLabel { .. }
         )
     });
@@ -111,7 +115,8 @@ fn test_colon_with_indented_annotation() {
         matches!(
             t,
             ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::VerbatimContent { .. }
+                | ScannerToken::IndentationWall { .. }
+                | ScannerToken::IgnoreTextSpan { .. }
                 | ScannerToken::VerbatimLabel { .. }
         )
     });

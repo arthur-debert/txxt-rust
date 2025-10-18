@@ -30,9 +30,19 @@ mod tests {
                         i, content, span
                     );
                 }
-                ScannerToken::VerbatimContent { content, span } => {
+                ScannerToken::IndentationWall {
+                    level,
+                    wall_type,
+                    span,
+                } => {
                     println!(
-                        "  {}: VerbatimContent {{ content: {:?}, span: {:?} }}",
+                        "  {}: IndentationWall {{ level: {}, wall_type: {:?}, span: {:?} }}",
+                        i, level, wall_type, span
+                    );
+                }
+                ScannerToken::IgnoreTextSpan { content, span } => {
+                    println!(
+                        "  {}: IgnoreTextSpan {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }

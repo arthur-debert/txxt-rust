@@ -85,7 +85,7 @@ fn test_whitespace_in_annotation() {
     let reconstructed: String = tokens
         .iter()
         .map(|t| match t {
-            ScannerToken::AnnotationMarker { content, .. } => content.as_str(),
+            ScannerToken::TxxtMarker { .. } => "::",
             ScannerToken::Text { content, .. } => content.as_str(),
             ScannerToken::Whitespace { content, .. } => content.as_str(),
             _ => "",

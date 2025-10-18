@@ -122,12 +122,6 @@ pub enum ScannerToken {
         span: SourceSpan,
     },
 
-    /// Annotation markers (:: label ::)
-    AnnotationMarker { content: String, span: SourceSpan },
-
-    /// Definition markers (term ::)
-    DefinitionMarker { content: String, span: SourceSpan },
-
     /// Dash character (-)
     Dash { span: SourceSpan },
 
@@ -225,8 +219,7 @@ impl ScannerToken {
             ScannerToken::Indent { span } => span,
             ScannerToken::Dedent { span } => span,
             ScannerToken::SequenceMarker { span, .. } => span,
-            ScannerToken::AnnotationMarker { span, .. } => span,
-            ScannerToken::DefinitionMarker { span, .. } => span,
+            ScannerToken::TxxtMarker { span } => span,
             ScannerToken::Dash { span } => span,
             ScannerToken::Period { span } => span,
             ScannerToken::LeftBracket { span } => span,
@@ -237,7 +230,6 @@ impl ScannerToken {
             ScannerToken::Colon { span } => span,
             ScannerToken::Equals { span } => span,
             ScannerToken::Comma { span } => span,
-            ScannerToken::TxxtMarker { span } => span,
             ScannerToken::Identifier { span, .. } => span,
             ScannerToken::RefMarker { span, .. } => span,
             ScannerToken::FootnoteRef { span, .. } => span,
@@ -262,8 +254,7 @@ impl ScannerToken {
             ScannerToken::Text { content, .. } => content,
             ScannerToken::Whitespace { content, .. } => content,
             ScannerToken::SequenceMarker { marker_type, .. } => marker_type.content(),
-            ScannerToken::AnnotationMarker { content, .. } => content,
-            ScannerToken::DefinitionMarker { content, .. } => content,
+            ScannerToken::TxxtMarker { .. } => "::",
             ScannerToken::Identifier { content, .. } => content,
             ScannerToken::RefMarker { content, .. } => content,
             ScannerToken::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
@@ -292,7 +283,6 @@ impl ScannerToken {
             ScannerToken::Colon { .. } => ":",
             ScannerToken::Equals { .. } => "=",
             ScannerToken::Comma { .. } => ",",
-            ScannerToken::TxxtMarker { .. } => "::",
             ScannerToken::Eof { .. } => "",
         }
     }

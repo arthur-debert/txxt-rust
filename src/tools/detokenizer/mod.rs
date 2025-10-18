@@ -221,11 +221,8 @@ impl Detokenizer {
                 result.push_str(marker_type.content());
                 result.push(' ');
             }
-            ScannerToken::AnnotationMarker { content, .. } => {
-                result.push_str(content);
-            }
-            ScannerToken::DefinitionMarker { content, .. } => {
-                result.push_str(content);
+            ScannerToken::TxxtMarker { .. } => {
+                result.push_str("::");
             }
             ScannerToken::Dash { .. } => {
                 result.push('-');
@@ -256,9 +253,6 @@ impl Detokenizer {
             }
             ScannerToken::Comma { .. } => {
                 result.push(',');
-            }
-            ScannerToken::TxxtMarker { .. } => {
-                result.push_str("::");
             }
             ScannerToken::Identifier { content, .. } => {
                 result.push_str(content);

@@ -24,8 +24,7 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
                 marker_type: m2, ..
             },
         ) => m1 == m2,
-        (AnnotationMarker { content: c1, .. }, AnnotationMarker { content: c2, .. }) => c1 == c2,
-        (DefinitionMarker { content: c1, .. }, DefinitionMarker { content: c2, .. }) => c1 == c2,
+        (TxxtMarker { .. }, TxxtMarker { .. }) => true,
         (Dash { .. }, Dash { .. }) => true,
         (Period { .. }, Period { .. }) => true,
         (LeftBracket { .. }, LeftBracket { .. }) => true,

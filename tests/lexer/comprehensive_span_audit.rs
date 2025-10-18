@@ -124,7 +124,7 @@ fn audit_annotation_markers() {
 
     let markers: Vec<_> = tokens
         .iter()
-        .filter(|t| matches!(t, ScannerToken::AnnotationMarker { .. }))
+        .filter(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
         .collect();
 
     assert_eq!(markers.len(), 2);
@@ -242,8 +242,7 @@ fn get_span(token: &ScannerToken) -> &SourceSpan {
         ScannerToken::Text { span, .. }
         | ScannerToken::Whitespace { span, .. }
         | ScannerToken::SequenceMarker { span, .. }
-        | ScannerToken::AnnotationMarker { span, .. }
-        | ScannerToken::DefinitionMarker { span, .. }
+        | ScannerToken::TxxtMarker { span, .. }
         | ScannerToken::Parameter { span, .. }
         | ScannerToken::BoldDelimiter { span }
         | ScannerToken::ItalicDelimiter { span }

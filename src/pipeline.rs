@@ -3,42 +3,7 @@
 //! This module provides the centralized pipeline that orchestrates the three
 //! main phases of TXXT processing: Lexer, Parser, and Assembler.
 //!
-//! # Three-Phase Pipeline Architecture
-//!
-//! The TXXT processing pipeline follows a three-phase architecture:
-//!
-//! ## Phase 1: Lexer (String → Token Tree)
-//! - **1.a Verbatim Scanning**: Mark verbatim lines in the source text
-//! - **1.b Tokenization**: Convert text to stream of positioned tokens
-//! - **1.c Token Tree Building**: Convert flat token stream to hierarchical tree
-//!
-//! ## Phase 2: Parser (Token Tree → AST Tree)
-//! - **2.a Block Parsing**: Convert token tree to AST block elements
-//! - **2.b Inline Parsing**: Process inline elements within blocks
-//!
-//! ## Phase 3: Assembler (AST Tree → Document)
-//! - **3.a Document Assembly**: Wrap AST in Session container and Document node
-//! - **3.b Annotation Attachment**: Apply proximity rules to attach annotations
-//!
-//! # Pipeline Stages
-//!
-//! Each phase can be executed independently for testing and debugging:
-//! - `lexer_pipeline()` - Execute Phase 1 (Lexer) only
-//! - `parser_pipeline()` - Execute Phase 2 (Parser) only  
-//! - `assembler_pipeline()` - Execute Phase 3 (Assembler) only
-//! - `full_pipeline()` - Execute all phases in sequence
-//!
-//! # Usage
-//!
-//! ```rust,ignore
-//! use txxt::pipeline::{full_pipeline, lexer_pipeline};
-//!
-//! // Full pipeline: String → Document
-//! let document = full_pipeline("Hello, world!")?;
-//!
-//! // Partial pipeline: String → ScannerTokenTree (for testing)
-//! let token_tree = lexer_pipeline("Hello, world!")?;
-//! ```
+//! src/parser/mod.rs has the full architecture overview.
 
 use crate::assembler::pipeline::{AnnotationAttacher, DocumentAssembler};
 use crate::ast::base::Document;

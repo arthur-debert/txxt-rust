@@ -155,19 +155,66 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                         i += 1;
                     }
 
-                    // Get value
+                    // Get value - handle quoted strings properly
                     if i < tokens.len() {
                         if let Some(value) = get_token_text(&tokens[i]) {
-                            let value_span = get_token_span(&tokens[i]);
+                            let mut value_parts = vec![value.clone()];
+                            let mut value_end_span = get_token_span(&tokens[i]).clone();
+                            i += 1;
+
+                            // Check if this is a quoted value (starts with quote)
+                            if value.starts_with('"') && !value.ends_with('"') {
+                                // This is a quoted value that spans multiple tokens
+                                // Collect all tokens until we find the closing quote
+                                while i < tokens.len() {
+                                    match &tokens[i] {
+                                        ScannerToken::Text { content, span } => {
+                                            value_parts.push(content.clone());
+                                            value_end_span = span.clone();
+                                            i += 1;
+                                            // Check if this token ends the quoted value
+                                            if content.ends_with('"') {
+                                                break;
+                                            }
+                                        }
+                                        ScannerToken::Comma { span } => {
+                                            // Include comma in quoted value
+                                            value_parts.push(",".to_string());
+                                            value_end_span = span.clone();
+                                            i += 1;
+                                        }
+                                        ScannerToken::Whitespace { content, span } => {
+                                            // Include whitespace in quoted value
+                                            value_parts.push(content.clone());
+                                            value_end_span = span.clone();
+                                            i += 1;
+                                        }
+                                        _ => {
+                                            // End of quoted value
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                // For unquoted values, stop at comma (it's a parameter separator)
+                                // Don't collect additional tokens
+                            }
+
+                            let mut value = value_parts.join("");
+
+                            // Strip quotes from quoted values (detokenizer will add them back)
+                            if value.starts_with('"') && value.ends_with('"') && value.len() > 1 {
+                                value = value[1..value.len() - 1].to_string();
+                            }
+
                             result.push(ScannerToken::Parameter {
                                 key,
                                 value,
                                 span: SourceSpan {
                                     start: key_span.start,
-                                    end: value_span.end,
+                                    end: value_end_span.end,
                                 },
                             });
-                            i += 1; // Move past the value token
                         } else {
                             // Not a valid value token, just push the key as text
                             result.push(ScannerToken::Text {
@@ -257,8 +304,9 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                 }
             }
             ScannerToken::Comma { .. } => {
-                // Skip comma tokens - they're just separators
-                // Don't push, just move to next token
+                // Keep comma tokens - they might be inside quoted values
+                // Only treat as separator when between parameters (handled by detokenizer)
+                result.push(tokens[i].clone());
             }
             _ => {
                 // Keep other tokens as-is (whitespace, etc.)
@@ -322,12 +370,12 @@ fn process_definition_term(tokens: &[ScannerToken]) -> (Vec<ScannerToken>, usize
 fn is_annotation_start(tokens: &[ScannerToken]) -> bool {
     // An annotation pattern starts with :: and has the form :: label:params ::
     // A definition pattern ends with :: and has the form term:params ::
-    
+
     // If this is the first token in the stream, it's likely an annotation start
     if tokens.len() == 1 {
         return true;
     }
-    
+
     // Look backwards to see if there's content before this TxxtMarker
     // If there's significant content (not just whitespace), this is likely a definition end
     for i in (0..tokens.len() - 1).rev() {
@@ -342,7 +390,7 @@ fn is_annotation_start(tokens: &[ScannerToken]) -> bool {
             }
         }
     }
-    
+
     // No significant content before the TxxtMarker, likely an annotation start
     true
 }

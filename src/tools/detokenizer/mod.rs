@@ -72,14 +72,17 @@ impl Detokenizer {
                     result.push_str(value);
                 }
 
-                // Add whitespace after parameter if next token is not whitespace
+                // Add whitespace after parameter if next token is not whitespace or comma
                 if let Some(next_token) = tokens.get(i + 1) {
                     match next_token {
                         ScannerToken::Whitespace { .. } => {
                             // Next token is whitespace, don't add extra space
                         }
+                        ScannerToken::Comma { .. } => {
+                            // Next token is comma, don't add space (comma comes immediately after value)
+                        }
                         _ => {
-                            // Next token is not whitespace, add a space
+                            // Next token is not whitespace or comma, add a space
                             result.push(' ');
                         }
                     }

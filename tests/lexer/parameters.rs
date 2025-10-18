@@ -438,7 +438,8 @@ mod property_based_tests {
             let params = extract_parameters(&tokens);
 
             prop_assert_eq!(params.len(), 1);
-            prop_assert_eq!(params.get(&key), Some(&"true".to_string()));
+            let expected = "true".to_string();
+            prop_assert_eq!(params.get(&key), Some(&expected));
         }
 
         #[test]

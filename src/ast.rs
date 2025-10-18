@@ -138,6 +138,7 @@
 // NEW: Spec-aligned element structure (replaces nodes/)
 pub mod debug;
 pub mod elements;
+pub mod semantic_tokens;
 
 // REMOVED: Legacy nodes/ structure - replaced by spec-aligned elements/
 
@@ -165,6 +166,12 @@ pub use elements::{
     document as base, // base.rs moved to elements/document/document.rs
     scanner_tokens,
     traversal,
+};
+
+// Semantic tokens infrastructure
+pub use semantic_tokens::{
+    FromScannerToken, SemanticNumberingForm, SemanticNumberingStyle, SemanticToken,
+    SemanticTokenBuilder, SemanticTokenList, SemanticTokenSpan, ToScannerToken,
 };
 
 // Legacy re-exports for backward compatibility - REMOVED

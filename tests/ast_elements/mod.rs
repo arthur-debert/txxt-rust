@@ -11,5 +11,6 @@ mod formatting;
 mod list;
 mod paragraph;
 mod references;
+mod semantic_tokens;
 mod session;
 mod verbatim;

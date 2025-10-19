@@ -68,19 +68,7 @@ impl<'a> AstConstructor<'a> {
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
 
-            // Check for session patterns first (sessions start with blank lines)
-            if matches!(token, SemanticToken::BlankLine { .. }) {
-                if let Some((node, tokens_consumed)) = self.try_parse_session()? {
-                    ast_nodes.push(node);
-                    self.position += tokens_consumed;
-                    continue;
-                }
-                // If not a session, skip the blank line
-                self.position += 1;
-                continue;
-            }
-
-            // Handle other structural tokens
+            // Handle structural tokens that don't contribute to content
             match token {
                 SemanticToken::Indent { .. } => {
                     self.indentation_level += 1;
@@ -95,8 +83,8 @@ impl<'a> AstConstructor<'a> {
                     continue;
                 }
                 _ => {
-                    // Process content tokens
-                    if let Some(node) = self.dispatch_parsing()? {
+                    // Process all content tokens through the dispatcher
+                    if let Some((node, _tokens_consumed)) = self.dispatch_parsing()? {
                         ast_nodes.push(node);
                     }
                 }
@@ -111,12 +99,9 @@ impl<'a> AstConstructor<'a> {
     /// This function looks at the current token(s) and decides which specific
     /// parsing function to call based on precedence rules.
     ///
-    /// # Arguments
-    /// * `semantic_tokens` - The semantic token list
-    ///
     /// # Returns
-    /// * `Result<Option<TempAstNode>, BlockParseError>` - Parsed node or None
-    fn dispatch_parsing(&mut self) -> Result<Option<TempAstNode>, BlockParseError> {
+    /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - Parsed node and tokens consumed
+    fn dispatch_parsing(&mut self) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
         if self.position >= self.tokens.len() {
             return Ok(None);
         }
@@ -127,35 +112,42 @@ impl<'a> AstConstructor<'a> {
         // 1. VerbatimBlock pattern (highest precedence)
         if let Some(node) = self.try_parse_verbatim_block(current_token)? {
             self.position += 1; // Consume the token
-            return Ok(Some(node));
+            return Ok(Some((node, 1)));
         }
 
         // 2. Annotation pattern
         if let Some(node) = self.try_parse_annotation(current_token)? {
             self.position += 1; // Consume the token
-            return Ok(Some(node));
+            return Ok(Some((node, 1)));
         }
 
         // 3. Definition pattern
         if let Some(node) = self.try_parse_definition(current_token)? {
             self.position += 1; // Consume the token
-            return Ok(Some(node));
+            return Ok(Some((node, 1)));
         }
 
-        // 4. Session pattern (handled in main loop)
-        // Sessions are handled in the main parsing loop when we encounter blank lines
+        // 4. Session pattern (check for BlankLine and trigger lookahead)
+        if matches!(current_token, SemanticToken::BlankLine { .. }) {
+            if let Some((node, tokens_consumed)) = self.try_parse_session()? {
+                self.position += tokens_consumed;
+                return Ok(Some((node, tokens_consumed)));
+            }
+            // If not a session, skip the blank line
+            self.position += 1;
+            return Ok(None); // Blank line consumed but no node created
+        }
 
         // 5. List pattern
         if let Some((node, tokens_consumed)) = self.try_parse_list()? {
-            // List parsing consumes multiple tokens, so we need to advance position accordingly
             self.position += tokens_consumed;
-            return Ok(Some(node));
+            return Ok(Some((node, tokens_consumed)));
         }
 
         // 6. Paragraph pattern (catch-all, lowest precedence)
         if let Some(node) = self.try_parse_paragraph(current_token)? {
             self.position += 1; // Consume the token
-            return Ok(Some(node));
+            return Ok(Some((node, 1)));
         }
 
         // No pattern matched

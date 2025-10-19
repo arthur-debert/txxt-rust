@@ -54,8 +54,10 @@ pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
         ("ast-block", "treeviz") => process_ast_no_inline_treeviz(&args.content, &args.source_path),
         ("ast-inlines", "json") => process_ast_json(&args.content, &args.source_path),
         ("ast-inlines", "treeviz") => process_ast_treeviz(&args.content, &args.source_path),
-        ("ast-document", "json") => process_ast_full_json(&args.content, &args.source_path),
-        ("ast-document", "treeviz") => process_ast_full_treeviz(&args.content, &args.source_path),
+        ("ast-document", "json") => process_ast_document_json(&args.content, &args.source_path),
+        ("ast-document", "treeviz") => {
+            process_ast_document_treeviz(&args.content, &args.source_path)
+        }
         ("ast-full", "json") => process_ast_full_json(&args.content, &args.source_path),
         ("ast-full", "treeviz") => process_ast_full_treeviz(&args.content, &args.source_path),
         _ => Err(ProcessError::NotImplemented(format!(
@@ -100,6 +102,68 @@ fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, P
 }
 
 // Phase 3 processing functions
+fn process_ast_document_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Use lexer and parser pipelines, then document assembly only (no annotation attachment)
+    let token_tree = crate::pipeline::lexer_pipeline(content)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+
+    let ast_elements = crate::pipeline::parser_pipeline(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Document assembly phase only (Phase 3a)
+    let document = crate::assembler::pipeline::DocumentAssembler::new()
+        .assemble_document(ast_elements, Some(source_path.to_string()))
+        .map_err(|e| ProcessError::AssemblyError(e.to_string()))?;
+
+    // Serialize the document to JSON
+    let result = serde_json::json!({
+        "source": source_path,
+        "document": {
+            "content": {
+                "elements": document.content.content,
+                "element_count": document.content.content.len()
+            },
+            "assembly_info": {
+                "parser_version": document.assembly_info.parser_version,
+                "processed_at": document.assembly_info.processed_at,
+                "source_path": document.assembly_info.source_path
+            }
+        }
+    });
+
+    serde_json::to_string_pretty(&result)
+        .map_err(|e| ProcessError::SerializationError(e.to_string()))
+}
+
+fn process_ast_document_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
+    // Use lexer and parser pipelines, then document assembly only (no annotation attachment)
+    let token_tree = crate::pipeline::lexer_pipeline(content)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+
+    let ast_elements = crate::pipeline::parser_pipeline(token_tree)
+        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+
+    // Document assembly phase only (Phase 3a)
+    let document = crate::assembler::pipeline::DocumentAssembler::new()
+        .assemble_document(ast_elements, Some(source_path.to_string()))
+        .map_err(|e| ProcessError::AssemblyError(e.to_string()))?;
+
+    // Convert Document content to ElementNode for treeviz
+    let document_element = crate::ast::ElementNode::SessionContainer(document.content);
+
+    // Use the proper treeviz system to render the AST
+    let treeviz_output = crate::tools::treeviz::ast_to_tree_notation(&document_element)
+        .map_err(|e| ProcessError::AssemblyError(format!("Treeviz rendering failed: {}", e)))?;
+
+    // Format with document header
+    let result = format!(
+        "⧉ Document (No Annotations): {}\n{}",
+        source_path, treeviz_output
+    );
+
+    Ok(result)
+}
+
 fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Use the actual pipeline functions instead of placeholders
     let document = crate::pipeline::full_pipeline(content, Some(source_path.to_string()))
@@ -145,12 +209,20 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
 
 // Phase 2 processing functions
 fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
-    // Use lexer and parser pipelines (without assembler)
-    let token_tree =
-        lexer_pipeline(content).map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+    // Use lexer pipeline
+    let token_tree = crate::pipeline::lexer_pipeline(content)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
+    // Phase 2.a: Semantic Analysis only
+    let semantic_analyzer = crate::parser::pipeline::SemanticAnalyzer::new();
+    let semantic_tokens = semantic_analyzer
+        .analyze(token_tree.tokens)
+        .map_err(|err| ProcessError::ParseError(err.to_string()))?;
+
+    // Phase 2.b: AST Construction only (no inline parsing)
     let ast_elements =
-        parser_pipeline(token_tree).map_err(|e| ProcessError::ParseError(e.to_string()))?;
+        crate::parser::pipeline::AstConstructor::parse_to_element_nodes(&semantic_tokens)
+            .map_err(|err| ProcessError::ParseError(err.to_string()))?;
 
     // Serialize AST elements to JSON
     let result = serde_json::json!({
@@ -163,12 +235,20 @@ fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String
 }
 
 fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
-    // Use lexer and parser pipelines (without assembler)
-    let token_tree =
-        lexer_pipeline(content).map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+    // Use lexer pipeline
+    let token_tree = crate::pipeline::lexer_pipeline(content)
+        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
+    // Phase 2.a: Semantic Analysis only
+    let semantic_analyzer = crate::parser::pipeline::SemanticAnalyzer::new();
+    let semantic_tokens = semantic_analyzer
+        .analyze(token_tree.tokens)
+        .map_err(|err| ProcessError::ParseError(err.to_string()))?;
+
+    // Phase 2.b: AST Construction only (no inline parsing)
     let ast_elements =
-        parser_pipeline(token_tree).map_err(|e| ProcessError::ParseError(e.to_string()))?;
+        crate::parser::pipeline::AstConstructor::parse_to_element_nodes(&semantic_tokens)
+            .map_err(|err| ProcessError::ParseError(err.to_string()))?;
 
     // Create treeviz representation
     let mut result = format!("📄 AST (No Inlines): {}\n", source_path);

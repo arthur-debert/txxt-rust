@@ -10,7 +10,7 @@ This document is part of the txxt syntax tree documentation. Together with @scan
 
 This document specifies how block elements in a txxt document are constructed from scanner tokens using compositional patterns. It focuses on format-only tokenization without semantic interpretation.
 
-The grammar is represented using compositional rules that combine scanner tokens into meaningful structures.
+The grammar is represented using compositional rules that combine scanner tokens into meaningful structures. Pattern recognition uses local token analysis rather than global document properties, ensuring deterministic and reliable parsing behavior.
 
 1. Compositional Patterns
 
@@ -26,11 +26,12 @@ The grammar is represented using compositional rules that combine scanner tokens
 
     1.2. Definition Pattern
 
-        Definitions combine text with txxt markers:
-        <Definition> = <Text> <Whitespace> <TxxtMarker>
+        Definitions combine text with txxt markers, optionally with parameters:
+        <SimpleDefinition> = <Text> <Whitespace> <TxxtMarker>
+        <ParameterizedDefinition> = <Text> <Colon> <Text> <Whitespace> <TxxtMarker>
         :: grammar
 
-        Example: `Term ::`
+        Examples: `Term ::` or `Term: param ::`
 
     1.3. VerbatimTitle Pattern
 
@@ -183,6 +184,7 @@ The grammar is represented using compositional rules that combine scanner tokens
         - Incomplete formatting → Literal text
         - Malformed list → Text line
         - Unclosed verbatim → Text line
+        - Misplaced syntactic markers → Preserved as semantic tokens for error reporting
 
     5.2. Recovery Strategies
 

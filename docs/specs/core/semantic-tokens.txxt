@@ -23,6 +23,11 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Identifies txxt structural elements and provides disambiguation anchor points.
         Essential for recognizing txxt syntax vs plain text.
 
+    Colon::
+        Colon punctuation marker used for parameter separation.
+        Preserves syntactic meaning for parameter parsing and error reporting.
+        Allows AST construction phase to identify misplaced syntactic markers with precision.
+
     Label::
         Structured identifier component for annotations and verbatim blocks.
         Supports namespaced identifiers like "python", "org.example.custom".
@@ -75,8 +80,9 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
     3.2. Definition Composition
 
-        Definitions combine text with txxt markers:
-        `Text` + `Whitespace` + `TxxtMarker`
+        Definitions combine text with txxt markers, optionally with parameters:
+        `Text` + `Whitespace` + `TxxtMarker` (simple definition)
+        `Text` + `Colon` + `Text` + `Whitespace` + `TxxtMarker` (parameterized definition)
 
     3.3. Verbatim Composition
 

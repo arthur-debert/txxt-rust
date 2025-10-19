@@ -37,17 +37,45 @@ impl DocumentAssembler {
     /// hierarchy with Session containers, metadata, and assembly info.
     pub fn assemble_document(
         &self,
-        _elements: Vec<ElementNode>,
+        elements: Vec<ElementNode>,
         source_path: Option<String>,
     ) -> Result<Document, DocumentAssemblyError> {
-        // TODO: Implement document assembly logic
-        // For now, return a placeholder document structure
+        // Convert ElementNodes to SessionContainerElements
+        let mut all_elements = Vec::new();
+
+        for element in elements {
+            match element {
+                ElementNode::SessionBlock(session) => {
+                    all_elements.push(crate::ast::elements::session::session_container::SessionContainerElement::Session(session));
+                }
+                ElementNode::ParagraphBlock(paragraph) => {
+                    all_elements.push(crate::ast::elements::session::session_container::SessionContainerElement::Paragraph(paragraph));
+                }
+                ElementNode::ListBlock(list) => {
+                    all_elements.push(crate::ast::elements::session::session_container::SessionContainerElement::List(list));
+                }
+                ElementNode::DefinitionBlock(definition) => {
+                    all_elements.push(crate::ast::elements::session::session_container::SessionContainerElement::Definition(definition));
+                }
+                ElementNode::VerbatimBlock(verbatim) => {
+                    all_elements.push(crate::ast::elements::session::session_container::SessionContainerElement::Verbatim(verbatim));
+                }
+                ElementNode::AnnotationBlock(annotation) => {
+                    all_elements.push(crate::ast::elements::session::session_container::SessionContainerElement::Annotation(annotation));
+                }
+                // Handle other element types as needed
+                _ => {
+                    // For now, skip unsupported element types
+                    continue;
+                }
+            }
+        }
 
         let stats = ProcessingStats {
-            token_count: 0,
-            annotation_count: 0,
-            block_count: 0,
-            max_depth: 0,
+            token_count: 0,      // TODO: Calculate from elements
+            annotation_count: 0, // TODO: Calculate from elements
+            block_count: all_elements.len(),
+            max_depth: 0, // TODO: Calculate from elements
         };
 
         let assembly_info = AssemblyInfo {
@@ -60,8 +88,8 @@ impl DocumentAssembler {
         let document = Document {
             meta: Meta::default(),
             content: SessionContainer::new(
-                vec![], // TODO: Create sessions from elements
-                vec![], // TODO: Handle other blocks
+                all_elements,
+                vec![], // Empty annotations for now
                 crate::ast::elements::components::parameters::Parameters::default(),
                 crate::ast::elements::scanner_tokens::ScannerTokenSequence::new(),
             ),

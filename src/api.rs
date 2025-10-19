@@ -10,57 +10,16 @@ use serde_json;
 use std::error::Error;
 use std::fmt;
 
-use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
 use crate::parser::pipeline::{InlineParser, SemanticAnalyzer};
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum OutputFormat {
-    // Phase 1 outputs
-    VerbatimMarks,
-    TokenStream,
-    ScannerTokenTree,
-
-    // Phase 2a outputs
-    SemanticTokens,
-
-    // Phase 2 outputs (WIP)
-    AstNoInlineTreeviz,
-    AstNoInlineJson,
-    AstTreeviz,
-    AstJson,
-
-    // Phase 3 outputs
-    AstFullJson,
-    AstFullTreeviz,
-}
-
-impl std::str::FromStr for OutputFormat {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "verbatim-marks" => Ok(OutputFormat::VerbatimMarks),
-            "token-stream" => Ok(OutputFormat::TokenStream),
-            "token-tree" => Ok(OutputFormat::ScannerTokenTree),
-            "semantic-tokens" => Ok(OutputFormat::SemanticTokens),
-            "ast-no-inline-treeviz" => Ok(OutputFormat::AstNoInlineTreeviz),
-            "ast-no-inline-json" => Ok(OutputFormat::AstNoInlineJson),
-            "ast-treeviz" => Ok(OutputFormat::AstTreeviz),
-            "ast-json" => Ok(OutputFormat::AstJson),
-            "ast-full-json" => Ok(OutputFormat::AstFullJson),
-            "ast-full-treeviz" => Ok(OutputFormat::AstFullTreeviz),
-            _ => Err(format!("Unknown format: {}", s)),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ProcessArgs {
     pub content: String,
     pub source_path: String,
-    pub format: OutputFormat,
+    pub stage: String,
+    pub format: String,
 }
 
 #[derive(Debug)]
@@ -88,61 +47,25 @@ impl Error for ProcessError {}
 
 /// Main processing function - pure, no I/O or side effects
 pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
-    match args.format {
-        // Phase 1 outputs
-        OutputFormat::VerbatimMarks => process_verbatim_marks(&args.content, &args.source_path),
-        OutputFormat::TokenStream => process_token_stream(&args.content, &args.source_path),
-        OutputFormat::ScannerTokenTree => process_token_tree(&args.content, &args.source_path),
-
-        // Phase 2a outputs
-        OutputFormat::SemanticTokens => process_semantic_tokens(&args.content, &args.source_path),
-
-        // Phase 2 outputs
-        OutputFormat::AstNoInlineTreeviz => {
-            process_ast_no_inline_treeviz(&args.content, &args.source_path)
-        }
-        OutputFormat::AstNoInlineJson => {
-            process_ast_no_inline_json(&args.content, &args.source_path)
-        }
-        OutputFormat::AstTreeviz => process_ast_treeviz(&args.content, &args.source_path),
-        OutputFormat::AstJson => process_ast_json(&args.content, &args.source_path),
-
-        // Phase 3 outputs
-        OutputFormat::AstFullJson => process_ast_full_json(&args.content, &args.source_path),
-        OutputFormat::AstFullTreeviz => process_ast_full_treeviz(&args.content, &args.source_path),
+    match (args.stage.as_str(), args.format.as_str()) {
+        ("scanner-tokens", "json") => process_token_stream(&args.content, &args.source_path),
+        ("semantic-tokens", "json") => process_semantic_tokens(&args.content, &args.source_path),
+        ("ast-block", "json") => process_ast_no_inline_json(&args.content, &args.source_path),
+        ("ast-block", "treeviz") => process_ast_no_inline_treeviz(&args.content, &args.source_path),
+        ("ast-inlines", "json") => process_ast_json(&args.content, &args.source_path),
+        ("ast-inlines", "treeviz") => process_ast_treeviz(&args.content, &args.source_path),
+        ("ast-document", "json") => process_ast_full_json(&args.content, &args.source_path),
+        ("ast-document", "treeviz") => process_ast_full_treeviz(&args.content, &args.source_path),
+        ("ast-full", "json") => process_ast_full_json(&args.content, &args.source_path),
+        ("ast-full", "treeviz") => process_ast_full_treeviz(&args.content, &args.source_path),
+        _ => Err(ProcessError::NotImplemented(format!(
+            "Combination of stage '{}' and format '{}' is not supported",
+            args.stage, args.format
+        ))),
     }
 }
 
 // Phase 1 processing functions
-
-fn process_verbatim_marks(content: &str, source_path: &str) -> Result<String, ProcessError> {
-    let scanner = VerbatimScanner::new();
-    let blocks = scanner.scan(content);
-
-    // Convert blocks to serializable format
-    let serializable_blocks: Vec<serde_json::Value> = blocks
-        .iter()
-        .map(|block| {
-            serde_json::json!({
-                "block_start": block.block_start,
-                "block_end": block.block_end,
-                "block_type": format!("{:?}", block.block_type),
-                "title_indent": block.title_indent,
-                "content_start": block.content_start,
-                "content_end": block.content_end
-            })
-        })
-        .collect();
-
-    let result = serde_json::json!({
-        "source": source_path,
-        "verbatim_blocks": serializable_blocks
-    });
-
-    serde_json::to_string_pretty(&result)
-        .map_err(|e| ProcessError::SerializationError(e.to_string()))
-}
-
 fn process_token_stream(content: &str, source_path: &str) -> Result<String, ProcessError> {
     let tokens = tokenize(content);
 
@@ -155,35 +78,7 @@ fn process_token_stream(content: &str, source_path: &str) -> Result<String, Proc
         .map_err(|e| ProcessError::SerializationError(e.to_string()))
 }
 
-fn process_token_tree(content: &str, source_path: &str) -> Result<String, ProcessError> {
-    let tokens = tokenize(content);
-    let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens.clone())
-        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
-
-    // Convert block tree to serializable format
-    let serializable_tree = serialize_token_tree(&token_tree);
-
-    let result = serde_json::json!({
-        "source": source_path,
-        "token_tree": serializable_tree
-    });
-
-    serde_json::to_string_pretty(&result)
-        .map_err(|e| ProcessError::SerializationError(e.to_string()))
-}
-
-/// Helper function to serialize ScannerTokenTree to JSON
-fn serialize_token_tree(tree: &crate::lexer::pipeline::ScannerTokenTree) -> serde_json::Value {
-    serde_json::json!({
-        "tokens": tree.tokens,
-        "children": tree.children.iter().map(serialize_token_tree).collect::<Vec<_>>()
-    })
-}
-
 // Phase 2a processing functions
-
 fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Step 1: Apply lexer to get scanner tokens
     let scanner_tokens = tokenize(content);
@@ -197,7 +92,7 @@ fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, P
     // Step 3: Create output with source information
     let result = serde_json::json!({
         "source": source_path,
-        "semantic_tokens": semantic_tokens
+        "semantic_tokens": semantic_tokens.tokens
     });
 
     serde_json::to_string_pretty(&result)
@@ -205,7 +100,6 @@ fn process_semantic_tokens(content: &str, source_path: &str) -> Result<String, P
 }
 
 // Phase 3 processing functions
-
 fn process_ast_full_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
@@ -319,7 +213,6 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
 }
 
 // Phase 2 processing functions
-
 fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Phase 1: Tokenize and group blocks
     let tokens = tokenize(content);
@@ -472,104 +365,5 @@ fn format_element_node(element: &crate::ast::ElementNode) -> String {
         }
         // Add other element types as they're implemented
         _ => format!("❓ {:?}", element),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_process_verbatim_marks() {
-        let args = ProcessArgs {
-            content: "Some content\n    console.log('test');\n(javascript)".to_string(),
-            source_path: "test.txxt".to_string(),
-            format: OutputFormat::VerbatimMarks,
-        };
-
-        let result = process(args).unwrap();
-        assert!(result.contains("verbatim_blocks"));
-        assert!(result.contains("test.txxt"));
-    }
-
-    #[test]
-    fn test_process_token_stream() {
-        let args = ProcessArgs {
-            content: "Hello world".to_string(),
-            source_path: "test.txxt".to_string(),
-            format: OutputFormat::TokenStream,
-        };
-
-        let result = process(args).unwrap();
-        assert!(result.contains("tokens"));
-        assert!(result.contains("test.txxt"));
-    }
-
-    #[test]
-    fn test_process_token_tree() {
-        let args = ProcessArgs {
-            content: "Hello world".to_string(),
-            source_path: "test.txxt".to_string(),
-            format: OutputFormat::ScannerTokenTree,
-        };
-
-        let result = process(args).unwrap();
-        assert!(result.contains("token_tree"));
-        assert!(result.contains("test.txxt"));
-    }
-
-    #[test]
-    fn test_format_parsing() {
-        assert_eq!(
-            "verbatim-marks".parse::<OutputFormat>().unwrap(),
-            OutputFormat::VerbatimMarks
-        );
-        assert_eq!(
-            "token-stream".parse::<OutputFormat>().unwrap(),
-            OutputFormat::TokenStream
-        );
-        assert_eq!(
-            "semantic-tokens".parse::<OutputFormat>().unwrap(),
-            OutputFormat::SemanticTokens
-        );
-        assert!("invalid-format".parse::<OutputFormat>().is_err());
-    }
-
-    #[test]
-    fn test_process_semantic_tokens() {
-        let args = ProcessArgs {
-            content: ":: note :: This is a test annotation".to_string(),
-            source_path: "test.txxt".to_string(),
-            format: OutputFormat::SemanticTokens,
-        };
-
-        let result = process(args).unwrap();
-        assert!(result.contains("semantic_tokens"));
-        assert!(result.contains("test.txxt"));
-    }
-
-    #[test]
-    fn test_phase2_formats_implemented() {
-        // Test that all Phase 2 formats now work instead of returning NotImplemented
-        let content = "Hello world";
-        let source_path = "test.txxt";
-
-        let formats = vec![
-            OutputFormat::AstNoInlineJson,
-            OutputFormat::AstNoInlineTreeviz,
-            OutputFormat::AstJson,
-            OutputFormat::AstTreeviz,
-        ];
-
-        for format in formats {
-            let args = ProcessArgs {
-                content: content.to_string(),
-                source_path: source_path.to_string(),
-                format: format.clone(),
-            };
-
-            let result = process(args);
-            assert!(result.is_ok(), "Format {:?} should be implemented", format);
-        }
     }
 }

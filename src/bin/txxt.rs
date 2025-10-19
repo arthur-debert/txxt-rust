@@ -3,89 +3,89 @@
 //! A thin CLI wrapper around the TXXT processing API.
 //! This binary handles argument parsing and I/O, delegating all logic to the API module.
 
-use clap::{Arg, Command};
+use clap::Parser;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
+use txxt::api::{process, ProcessArgs};
+use txxt::processing_stages::{
+    initialize_registries, CONVERSION_FACTORY, FORMAT_REGISTRY, STAGE_REGISTRY,
+};
 
-use txxt::api::{process, OutputFormat, ProcessArgs};
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Path to TXXT file to process
+    path: String,
+
+    /// Output stage
+    #[arg(long, short, default_value = "ast-full")]
+    stage: String,
+
+    /// Output format
+    #[arg(long, short, default_value = "json")]
+    format: String,
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = Command::new("txxt")
-        .version("1.0.0")
-        .author("TXXT Project")
-        .about("TXXT Processing Pipeline CLI")
-        .arg(
-            Arg::new("path")
-                .help("Path to TXXT file to process")
-                .required(true)
-                .index(1),
-        )
-        .arg(
-            Arg::new("format")
-                .long("format")
-                .short('f')
-                .value_name("FORMAT")
-                .help("Output format (see --help for options)")
-                .required(true),
-        )
-        .get_matches();
+    initialize_registries();
+    let args = Args::parse();
 
-    let input_path = matches.get_one::<String>("path").unwrap();
-    let format_str = matches.get_one::<String>("format").unwrap();
+    let stage_registry = STAGE_REGISTRY.lock().unwrap();
+    let format_registry = FORMAT_REGISTRY.lock().unwrap();
+    let conversion_factory = CONVERSION_FACTORY.lock().unwrap();
 
-    // Validate input file
-    if !Path::new(input_path).exists() {
-        eprintln!("Error: Input file '{}' does not exist", input_path);
+    // Validate stage
+    if stage_registry.get(&args.stage).is_none() {
+        eprintln!("Error: Invalid stage '{}'\n", args.stage);
+        eprintln!("Available stages:");
+        for stage in stage_registry.list() {
+            eprintln!("  - {}: {}", stage.name, stage.description);
+        }
         std::process::exit(1);
     }
 
-    // Parse format
-    let format = match format_str.parse::<OutputFormat>() {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            print_format_help();
-            std::process::exit(1);
+    // Validate format
+    if format_registry.get(&args.format).is_none() {
+        eprintln!("Error: Invalid format '{}'\n", args.format);
+        eprintln!("Available formats:");
+        for format in format_registry.list() {
+            eprintln!("  - {}: {}", format.name, format.description);
         }
-    };
+        std::process::exit(1);
+    }
+
+    // Validate combination
+    if !conversion_factory.is_supported(&args.stage, &args.format, &stage_registry) {
+        eprintln!(
+            "Error: Format '{}' is not supported for stage '{}'",
+            args.format, args.stage
+        );
+        std::process::exit(1);
+    }
+
+    // Validate input file
+    if !Path::new(&args.path).exists() {
+        eprintln!("Error: Input file '{}' does not exist", &args.path);
+        std::process::exit(1);
+    }
 
     // Read input file
-    let content = fs::read_to_string(input_path)?;
+    let content = fs::read_to_string(&args.path)?;
 
     // Call the pure API function
-    let args = ProcessArgs {
+    let process_args = ProcessArgs {
         content,
-        source_path: input_path.to_string(),
-        format,
+        source_path: args.path,
+        stage: args.stage,
+        format: args.format,
     };
 
-    let output = process(args).map_err(|e| -> Box<dyn std::error::Error> { Box::new(e) })?;
+    let output = process(process_args)?;
 
     // Output to stdout
     print!("{}", output);
     io::stdout().flush()?;
 
     Ok(())
-}
-
-fn print_format_help() {
-    eprintln!("\nAvailable formats:");
-    eprintln!("  Phase 1 (Lexer) - Ready:");
-    eprintln!("    verbatim-marks    - JSON output of verbatim block detection");
-    eprintln!("    token-stream      - JSON output of positioned tokens");
-    eprintln!("    token-tree        - JSON output of hierarchical token structure");
-    eprintln!();
-    eprintln!("  Phase 2a (Semantic Analysis) - Ready:");
-    eprintln!("    semantic-tokens   - JSON output of semantic tokens");
-    eprintln!();
-    eprintln!("  Phase 2 (Parser) - Available:");
-    eprintln!("    ast-no-inline-treeviz - Tree visualization of AST without inlines");
-    eprintln!("    ast-no-inline-json    - JSON output of AST without inlines");
-    eprintln!("    ast-treeviz           - Tree visualization of AST with inlines (stubbed)");
-    eprintln!("    ast-json              - JSON output of AST with inlines (stubbed)");
-    eprintln!();
-    eprintln!("  Phase 3 (Assembly) - Available:");
-    eprintln!("    ast-full-json     - Complete document with metadata");
-    eprintln!("    ast-full-treeviz  - Complete document visualization");
 }

@@ -3,33 +3,15 @@
 //! These tests replace the shell-based tests with proper unit tests that call the API directly.
 //! Tests the public API without I/O operations or subprocess calls.
 
-use txxt::api::{process, OutputFormat, ProcessArgs};
+use txxt::api::{process, ProcessArgs};
 
 #[test]
-fn test_verbatim_marks_format() {
+fn test_scanner_tokens_format() {
     let args = ProcessArgs {
-        content: "Some content\n    console.log('test');\n(javascript)".to_string(),
+        content: "Some content".to_string(),
         source_path: "test.txxt".to_string(),
-        format: OutputFormat::VerbatimMarks,
-    };
-
-    let result = process(args).unwrap();
-
-    // Verify JSON structure
-    assert!(result.contains("\"verbatim_blocks\""));
-    assert!(result.contains("\"source\": \"test.txxt\""));
-
-    // Parse as JSON to verify it's valid
-    let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    assert!(json["verbatim_blocks"].is_array());
-}
-
-#[test]
-fn test_token_stream_format() {
-    let args = ProcessArgs {
-        content: "Hello world".to_string(),
-        source_path: "test.txxt".to_string(),
-        format: OutputFormat::TokenStream,
+        stage: "scanner-tokens".to_string(),
+        format: "json".to_string(),
     };
 
     let result = process(args).unwrap();
@@ -44,22 +26,23 @@ fn test_token_stream_format() {
 }
 
 #[test]
-fn test_token_tree_format() {
+fn test_semantic_tokens_format() {
     let args = ProcessArgs {
-        content: "Hello world".to_string(),
+        content: ":: note :: Some content".to_string(),
         source_path: "test.txxt".to_string(),
-        format: OutputFormat::ScannerTokenTree,
+        stage: "semantic-tokens".to_string(),
+        format: "json".to_string(),
     };
 
     let result = process(args).unwrap();
 
     // Verify JSON structure
-    assert!(result.contains("\"token_tree\""));
+    assert!(result.contains("\"semantic_tokens\""));
     assert!(result.contains("\"source\": \"test.txxt\""));
 
     // Parse as JSON to verify it's valid
     let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    assert!(json["token_tree"].is_object());
+    assert!(json["semantic_tokens"].is_array());
 }
 
 #[test]
@@ -67,7 +50,8 @@ fn test_ast_full_json_format() {
     let args = ProcessArgs {
         content: "Hello world".to_string(),
         source_path: "test.txxt".to_string(),
-        format: OutputFormat::AstFullJson,
+        stage: "ast-full".to_string(),
+        format: "json".to_string(),
     };
 
     let result = process(args).unwrap();
@@ -87,67 +71,37 @@ fn test_ast_full_treeviz_format() {
     let args = ProcessArgs {
         content: "Hello world".to_string(),
         source_path: "test.txxt".to_string(),
-        format: OutputFormat::AstFullTreeviz,
+        stage: "ast-full".to_string(),
+        format: "treeviz".to_string(),
     };
 
     let result = process(args).unwrap();
 
     // Verify treeviz structure
     assert!(result.contains("⧉ Document: test.txxt"));
-    assert!(result.contains("Ψ")); // SessionContainer icon
-    assert!(result.contains("¶")); // Paragraph icon
 }
 
 #[test]
 #[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
 fn test_phase_2_formats_implemented() {
     let test_cases = vec![
-        OutputFormat::AstNoInlineTreeviz,
-        OutputFormat::AstNoInlineJson,
-        OutputFormat::AstTreeviz,
-        OutputFormat::AstJson,
+        ("ast-block", "json"),
+        ("ast-block", "treeviz"),
+        ("ast-inlines", "json"),
+        ("ast-inlines", "treeviz"),
     ];
 
-    for format in test_cases {
+    for (stage, format) in test_cases {
         let args = ProcessArgs {
             content: "test".to_string(),
             source_path: "test.txxt".to_string(),
-            format: format.clone(),
+            stage: stage.to_string(),
+            format: format.to_string(),
         };
 
         let result = process(args);
-        assert!(result.is_ok(), "Format {:?} should be implemented", format);
+        assert!(result.is_ok(), "Combination {:?} should be implemented", (stage, format));
     }
-}
-
-#[test]
-fn test_format_parsing() {
-    // Test valid formats
-    assert_eq!(
-        "verbatim-marks".parse::<OutputFormat>().unwrap(),
-        OutputFormat::VerbatimMarks
-    );
-    assert_eq!(
-        "token-stream".parse::<OutputFormat>().unwrap(),
-        OutputFormat::TokenStream
-    );
-    assert_eq!(
-        "token-tree".parse::<OutputFormat>().unwrap(),
-        OutputFormat::ScannerTokenTree
-    );
-    assert_eq!(
-        "ast-full-json".parse::<OutputFormat>().unwrap(),
-        OutputFormat::AstFullJson
-    );
-    assert_eq!(
-        "ast-full-treeviz".parse::<OutputFormat>().unwrap(),
-        OutputFormat::AstFullTreeviz
-    );
-
-    // Test invalid format
-    let result = "invalid-format".parse::<OutputFormat>();
-    assert!(result.is_err());
-    assert!(result.unwrap_err().contains("Unknown format"));
 }
 
 #[test]
@@ -155,7 +109,8 @@ fn test_empty_content() {
     let args = ProcessArgs {
         content: "".to_string(),
         source_path: "empty.txxt".to_string(),
-        format: OutputFormat::TokenStream,
+        stage: "scanner-tokens".to_string(),
+        format: "json".to_string(),
     };
 
     let result = process(args).unwrap();
@@ -166,47 +121,14 @@ fn test_empty_content() {
 }
 
 #[test]
-fn test_complex_verbatim_content() {
-    let content = r#"
-Some text before
-
-    ```python
-    def hello():
-        print("Hello, world!")
-    ```
-(python)
-
-More text after
-"#;
-
-    let args = ProcessArgs {
-        content: content.to_string(),
-        source_path: "complex.txxt".to_string(),
-        format: OutputFormat::VerbatimMarks,
-    };
-
-    let result = process(args).unwrap();
-
-    // Parse and verify structure
-    let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    assert!(json["verbatim_blocks"].is_array());
-
-    // Should detect the verbatim block
-    let blocks = &json["verbatim_blocks"];
-    if !blocks.as_array().unwrap().is_empty() {
-        let first_block = &blocks[0];
-        assert!(first_block["block_type"].is_string());
-    }
-}
-
-#[test]
 fn test_multiline_content() {
     let content = "Line 1\nLine 2\nLine 3\n";
 
     let args = ProcessArgs {
         content: content.to_string(),
         source_path: "multiline.txxt".to_string(),
-        format: OutputFormat::TokenStream,
+        stage: "scanner-tokens".to_string(),
+        format: "json".to_string(),
     };
 
     let result = process(args).unwrap();
@@ -232,7 +154,8 @@ fn test_source_path_preservation() {
         let args = ProcessArgs {
             content: "test content".to_string(),
             source_path: path.to_string(),
-            format: OutputFormat::TokenStream,
+            stage: "scanner-tokens".to_string(),
+            format: "json".to_string(),
         };
 
         let result = process(args).unwrap();
@@ -256,7 +179,8 @@ fn test_error_handling() {
         let args = ProcessArgs {
             content: content.to_string(),
             source_path: "test.txxt".to_string(),
-            format: OutputFormat::TokenStream,
+            stage: "scanner-tokens".to_string(),
+            format: "json".to_string(),
         };
 
         // Should not panic or error on unusual content

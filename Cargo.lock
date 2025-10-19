@@ -865,6 +865,7 @@ dependencies = [
  "clap",
  "ego-tree",
  "insta",
+ "once_cell",
  "proptest",
  "quick-xml",
  "regex",

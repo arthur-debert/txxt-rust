@@ -18,8 +18,8 @@ The grammar is represented using compositional rules that combine scanner tokens
 
     1.1. Annotation Pattern
 
-        Annotations combine txxt markers with labels and optional content:
-        <Annotation> = <TxxtMarker> <Whitespace> <Text> <Whitespace> <TxxtMarker> <Text>?
+        Annotations combine txxt markers with identifiers and optional content:
+        <Annotation> = <TxxtMarker> <Whitespace> <Identifier> <Whitespace> <TxxtMarker> <Text>?
         :: grammar
 
         Example: `:: note :: This is an annotation`
@@ -27,11 +27,13 @@ The grammar is represented using compositional rules that combine scanner tokens
     1.2. Definition Pattern
 
         Definitions combine text with txxt markers, optionally with parameters:
-        <SimpleDefinition> = <Text> <Whitespace> <TxxtMarker>
-        <ParameterizedDefinition> = <Text> <Colon> <Text> <Whitespace> <TxxtMarker>
+        <Definition> = <Text> (<Whitespace> | <Colon> <Text>)* <TxxtMarker>
         :: grammar
 
-        Examples: `Term ::` or `Term: param ::`
+        The pattern is flexible and allows:
+        - Simple definitions: `Term ::` (Text + Whitespace + TxxtMarker)
+        - Parameterized definitions: `Term: param ::` (Text + Colon + Text + Whitespace + TxxtMarker)
+        - Complex definitions with multiple parameters
 
     1.3. VerbatimTitle Pattern
 
@@ -43,11 +45,11 @@ The grammar is represented using compositional rules that combine scanner tokens
 
     1.4. VerbatimLabel Pattern
 
-        Verbatim labels combine txxt markers with identifiers:
-        <VerbatimLabel> = <TxxtMarker> <Whitespace> <Identifier>
+        Verbatim labels are atomic tokens that combine txxt markers with identifiers:
+        <VerbatimLabel> = VerbatimLabel token (atomic)
         :: grammar
 
-        Example: `:: python`
+        Example: `:: python` (processed as single VerbatimLabel token)
 
     1.5. Parameters Pattern
 

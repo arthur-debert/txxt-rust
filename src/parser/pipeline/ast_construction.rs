@@ -6,7 +6,7 @@
 //! This phase focuses on the core block elements: Session, Paragraph, List,
 //! Annotation, Definition, and Verbatim.
 
-use crate::ast::scanner_tokens::SourceSpan;
+use crate::ast::scanner_tokens::{Position, SourceSpan};
 use crate::ast::semantic_tokens::{SemanticToken, SemanticTokenList};
 use crate::parser::pipeline::BlockParseError;
 
@@ -54,7 +54,19 @@ impl AstConstructor {
         while self.position < semantic_tokens.tokens.len() {
             let token = &semantic_tokens.tokens[self.position];
 
-            // Skip structural tokens that don't contribute to content
+            // Check for session patterns first (sessions start with blank lines)
+            if matches!(token, SemanticToken::BlankLine { .. }) {
+                if let Some((node, tokens_consumed)) = self.try_parse_session(semantic_tokens)? {
+                    ast_nodes.push(node);
+                    self.position += tokens_consumed;
+                    continue;
+                }
+                // If not a session, skip the blank line
+                self.position += 1;
+                continue;
+            }
+
+            // Handle other structural tokens
             match token {
                 SemanticToken::Indent { .. } => {
                     self.indentation_level += 1;
@@ -65,10 +77,6 @@ impl AstConstructor {
                     if self.indentation_level > 0 {
                         self.indentation_level -= 1;
                     }
-                    self.position += 1;
-                    continue;
-                }
-                SemanticToken::BlankLine { .. } => {
                     self.position += 1;
                     continue;
                 }
@@ -123,15 +131,13 @@ impl AstConstructor {
             return Ok(Some(node));
         }
 
-        // 4. Session pattern
-        if let Some(node) = self.try_parse_session(current_token)? {
-            self.position += 1; // Consume the token
-            return Ok(Some(node));
-        }
+        // 4. Session pattern (handled in main loop)
+        // Sessions are handled in the main parsing loop when we encounter blank lines
 
         // 5. List pattern
-        if let Some(node) = self.try_parse_list(current_token)? {
-            self.position += 1; // Consume the token
+        if let Some((node, tokens_consumed)) = self.try_parse_list(semantic_tokens)? {
+            // List parsing consumes multiple tokens, so we need to advance position accordingly
+            self.position += tokens_consumed;
             return Ok(Some(node));
         }
 
@@ -301,36 +307,219 @@ impl AstConstructor {
         }
     }
 
-    /// Try to parse a session semantic token
+    /// Try to parse a session pattern
+    ///
+    /// Sessions follow the pattern:
+    /// 1. Blank line (mandatory)
+    /// 2. Title line (can be plain text, sequence marker, or definition)
+    /// 3. Blank line (mandatory)
+    /// 4. Indent token
+    /// 5. Content block (must have at least one indented child)
     ///
     /// # Arguments
-    /// * `token` - The current semantic token
+    /// * `semantic_tokens` - The semantic token list
     ///
     /// # Returns
-    /// * `Result<Option<TempAstNode>, BlockParseError>` - Session node if matched
+    /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - Session node and tokens consumed if matched
     fn try_parse_session(
         &self,
-        _token: &SemanticToken,
-    ) -> Result<Option<TempAstNode>, BlockParseError> {
-        // TODO: Implement session parsing
-        // Sessions are not simple semantic tokens, they need complex pattern recognition
-        Ok(None)
+        semantic_tokens: &SemanticTokenList,
+    ) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
+        if self.position >= semantic_tokens.tokens.len() {
+            return Ok(None);
+        }
+
+        // Look ahead to see if we have a session pattern
+        let mut lookahead_pos = self.position;
+
+        // Step 1: Must start with blank line
+        if lookahead_pos >= semantic_tokens.tokens.len() {
+            return Ok(None);
+        }
+        let first_token = &semantic_tokens.tokens[lookahead_pos];
+        match first_token {
+            SemanticToken::BlankLine { .. } => {
+                lookahead_pos += 1;
+            }
+            _ => return Ok(None),
+        }
+
+        // Step 2: Must have title line (any content except blank line)
+        if lookahead_pos >= semantic_tokens.tokens.len() {
+            return Ok(None);
+        }
+        let title_token = &semantic_tokens.tokens[lookahead_pos];
+        let title_text = match title_token {
+            SemanticToken::PlainTextLine { content, .. } => match content.as_ref() {
+                SemanticToken::TextSpan { content, .. } => content.clone(),
+                _ => "unknown".to_string(),
+            },
+            SemanticToken::SequenceTextLine { content, .. } => match content.as_ref() {
+                SemanticToken::TextSpan { content, .. } => content.clone(),
+                _ => "unknown".to_string(),
+            },
+            SemanticToken::Definition { term, .. } => match term.as_ref() {
+                SemanticToken::TextSpan { content, .. } => content.clone(),
+                _ => "unknown".to_string(),
+            },
+            _ => return Ok(None), // Not a valid title
+        };
+        lookahead_pos += 1;
+
+        // Step 3: Must have blank line after title
+        if lookahead_pos >= semantic_tokens.tokens.len() {
+            return Ok(None);
+        }
+        let second_blank_token = &semantic_tokens.tokens[lookahead_pos];
+        match second_blank_token {
+            SemanticToken::BlankLine { .. } => {
+                lookahead_pos += 1;
+            }
+            _ => return Ok(None),
+        }
+
+        // Step 4: Must have indent token
+        if lookahead_pos >= semantic_tokens.tokens.len() {
+            return Ok(None);
+        }
+        let indent_token = &semantic_tokens.tokens[lookahead_pos];
+        match indent_token {
+            SemanticToken::Indent { .. } => {
+                lookahead_pos += 1;
+            }
+            _ => return Ok(None),
+        }
+
+        // Step 5: Must have at least one indented child
+        let mut child_count = 0;
+        let mut current_pos = lookahead_pos;
+        while current_pos < semantic_tokens.tokens.len() {
+            let token = &semantic_tokens.tokens[current_pos];
+            match token {
+                SemanticToken::Dedent { .. } => break,
+                SemanticToken::BlankLine { .. } => {
+                    current_pos += 1;
+                    continue;
+                }
+                _ => {
+                    child_count += 1;
+                    current_pos += 1;
+                }
+            }
+        }
+
+        if child_count == 0 {
+            return Ok(None); // No children, not a session
+        }
+
+        // We have a valid session pattern!
+        let span = match first_token {
+            SemanticToken::BlankLine { span } => span.clone(),
+            _ => return Ok(None),
+        };
+
+        // Calculate how many tokens we consumed
+        let tokens_consumed = current_pos - self.position;
+
+        Ok(Some((
+            TempAstNode::Session {
+                title: title_text,
+                child_count,
+                span,
+            },
+            tokens_consumed,
+        )))
     }
 
-    /// Try to parse a list semantic token
+    /// Try to parse a list pattern
+    ///
+    /// Lists follow the pattern:
+    /// 1. Sequence of at least 2 items with sequence markers
+    /// 2. Items cannot have blank lines between them
+    /// 3. Items can be nested (but we'll handle simple lists first)
     ///
     /// # Arguments
-    /// * `token` - The current semantic token
+    /// * `semantic_tokens` - The semantic token list
     ///
     /// # Returns
-    /// * `Result<Option<TempAstNode>, BlockParseError>` - List node if matched
+    /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - List node and tokens consumed if matched
     fn try_parse_list(
         &self,
-        _token: &SemanticToken,
-    ) -> Result<Option<TempAstNode>, BlockParseError> {
-        // TODO: Implement list parsing
-        // Lists are not simple semantic tokens, they need complex pattern recognition
-        Ok(None)
+        semantic_tokens: &SemanticTokenList,
+    ) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
+        if self.position >= semantic_tokens.tokens.len() {
+            return Ok(None);
+        }
+
+        // Look ahead to see if we have a list pattern
+        let mut lookahead_pos = self.position;
+        let mut item_count = 0;
+        let mut has_blank_lines = false;
+        let start_pos = lookahead_pos;
+
+        // Count consecutive sequence text lines
+        while lookahead_pos < semantic_tokens.tokens.len() {
+            let token = &semantic_tokens.tokens[lookahead_pos];
+            match token {
+                SemanticToken::SequenceTextLine { .. } => {
+                    item_count += 1;
+                    lookahead_pos += 1;
+                }
+                SemanticToken::BlankLine { .. } => {
+                    // Check if this blank line is between list items
+                    if item_count > 0 {
+                        // Look ahead to see if there's another sequence marker
+                        let mut next_pos = lookahead_pos + 1;
+                        while next_pos < semantic_tokens.tokens.len() {
+                            let next_token = &semantic_tokens.tokens[next_pos];
+                            match next_token {
+                                SemanticToken::BlankLine { .. } => {
+                                    next_pos += 1;
+                                    continue;
+                                }
+                                SemanticToken::SequenceTextLine { .. } => {
+                                    has_blank_lines = true;
+                                    break;
+                                }
+                                _ => break,
+                            }
+                        }
+                    }
+                    lookahead_pos += 1;
+                }
+                _ => break,
+            }
+        }
+
+        // Lists must have at least 2 items
+        if item_count < 2 {
+            return Ok(None);
+        }
+
+        // Lists cannot have blank lines between items
+        if has_blank_lines {
+            return Ok(None);
+        }
+
+        // We have a valid list pattern!
+        let span = match semantic_tokens.tokens.get(start_pos) {
+            Some(SemanticToken::SequenceTextLine { span, .. }) => span.clone(),
+            _ => {
+                // Fallback span
+                SourceSpan {
+                    start: Position { row: 1, column: 0 },
+                    end: Position { row: 1, column: 0 },
+                }
+            }
+        };
+
+        // Calculate how many tokens we consumed
+        let tokens_consumed = lookahead_pos - self.position;
+
+        Ok(Some((
+            TempAstNode::List { item_count, span },
+            tokens_consumed,
+        )))
     }
 
     /// Try to parse a paragraph semantic token
@@ -408,7 +597,9 @@ pub enum TempAstNode {
 mod tests {
     use super::*;
     use crate::ast::scanner_tokens::{Position, SourceSpan};
-    use crate::ast::semantic_tokens::{SemanticTokenBuilder, SemanticTokenList};
+    use crate::ast::semantic_tokens::{
+        SemanticNumberingForm, SemanticNumberingStyle, SemanticTokenBuilder, SemanticTokenList,
+    };
 
     /// Test that the parser machinery initializes correctly
     #[test]
@@ -616,6 +807,132 @@ mod tests {
                 assert_eq!(node_span.start.column, 0);
             }
             _ => panic!("Expected Paragraph node, got {:?}", ast_nodes[0]),
+        }
+    }
+
+    /// Test that the parser can parse session patterns
+    #[test]
+    fn test_parse_session() {
+        let mut parser = AstConstructor::new();
+
+        let span1 = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 0 },
+        };
+
+        let span2 = SourceSpan {
+            start: Position { row: 2, column: 0 },
+            end: Position { row: 2, column: 10 },
+        };
+
+        let span3 = SourceSpan {
+            start: Position { row: 3, column: 0 },
+            end: Position { row: 3, column: 0 },
+        };
+
+        let span4 = SourceSpan {
+            start: Position { row: 4, column: 0 },
+            end: Position { row: 4, column: 4 },
+        };
+
+        let span5 = SourceSpan {
+            start: Position { row: 5, column: 4 },
+            end: Position { row: 5, column: 20 },
+        };
+
+        // Create a session pattern: blank line + title + blank line + indent + content
+        let tokens = vec![
+            SemanticTokenBuilder::blank_line(span1),
+            SemanticTokenBuilder::plain_text_line(
+                SemanticTokenBuilder::text_span("Session Title".to_string(), span2.clone()),
+                span2,
+            ),
+            SemanticTokenBuilder::blank_line(span3),
+            SemanticTokenBuilder::indent(span4),
+            SemanticTokenBuilder::plain_text_line(
+                SemanticTokenBuilder::text_span("Session content".to_string(), span5.clone()),
+                span5,
+            ),
+        ];
+
+        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let result = parser.parse(&semantic_tokens);
+
+        assert!(result.is_ok());
+        let ast_nodes = result.unwrap();
+        assert_eq!(ast_nodes.len(), 1);
+
+        match &ast_nodes[0] {
+            TempAstNode::Session {
+                title,
+                child_count,
+                span: node_span,
+            } => {
+                assert_eq!(title, "Session Title");
+                assert_eq!(*child_count, 1);
+                assert_eq!(node_span.start.row, 1);
+                assert_eq!(node_span.start.column, 0);
+            }
+            _ => panic!("Expected Session node, got {:?}", ast_nodes[0]),
+        }
+    }
+
+    /// Test that the parser can parse list patterns
+    #[test]
+    fn test_parse_list() {
+        let mut parser = AstConstructor::new();
+
+        let span1 = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 10 },
+        };
+
+        let span2 = SourceSpan {
+            start: Position { row: 2, column: 0 },
+            end: Position { row: 2, column: 12 },
+        };
+
+        // Create a list pattern: two sequence text lines
+        let tokens = vec![
+            SemanticTokenBuilder::sequence_text_line(
+                SemanticTokenBuilder::sequence_marker(
+                    SemanticNumberingStyle::Plain,
+                    SemanticNumberingForm::Regular,
+                    "-".to_string(),
+                    span1.clone(),
+                ),
+                SemanticTokenBuilder::text_span("First item".to_string(), span1.clone()),
+                span1,
+            ),
+            SemanticTokenBuilder::sequence_text_line(
+                SemanticTokenBuilder::sequence_marker(
+                    SemanticNumberingStyle::Plain,
+                    SemanticNumberingForm::Regular,
+                    "-".to_string(),
+                    span2.clone(),
+                ),
+                SemanticTokenBuilder::text_span("Second item".to_string(), span2.clone()),
+                span2,
+            ),
+        ];
+
+        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let result = parser.parse(&semantic_tokens);
+
+        assert!(result.is_ok());
+        let ast_nodes = result.unwrap();
+        assert_eq!(ast_nodes.len(), 1);
+
+        match &ast_nodes[0] {
+            TempAstNode::List {
+                item_count,
+                span: node_span,
+            } => {
+                assert_eq!(*item_count, 2);
+                assert_eq!(node_span.start.row, 1);
+                assert_eq!(node_span.start.column, 0);
+            }
+            _ => panic!("Expected List node, got {:?}", ast_nodes[0]),
         }
     }
 }

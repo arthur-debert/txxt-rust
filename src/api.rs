@@ -10,7 +10,6 @@ use serde_json;
 use std::error::Error;
 use std::fmt;
 
-use crate::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
 use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
 use crate::parser::pipeline::{InlineParser, SemanticAnalyzer};

@@ -7,8 +7,10 @@ use clap::Parser;
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
-use txxt::processing_stages::{initialize_registries, STAGE_REGISTRY, FORMAT_REGISTRY, CONVERSION_FACTORY};
 use txxt::api::{process, ProcessArgs};
+use txxt::processing_stages::{
+    initialize_registries, CONVERSION_FACTORY, FORMAT_REGISTRY, STAGE_REGISTRY,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -55,7 +57,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Validate combination
     if !conversion_factory.is_supported(&args.stage, &args.format, &stage_registry) {
-        eprintln!("Error: Format '{}' is not supported for stage '{}'", args.format, args.stage);
+        eprintln!(
+            "Error: Format '{}' is not supported for stage '{}'",
+            args.format, args.stage
+        );
         std::process::exit(1);
     }
 

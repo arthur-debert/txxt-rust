@@ -100,7 +100,11 @@ fn test_phase_2_formats_implemented() {
         };
 
         let result = process(args);
-        assert!(result.is_ok(), "Combination {:?} should be implemented", (stage, format));
+        assert!(
+            result.is_ok(),
+            "Combination {:?} should be implemented",
+            (stage, format)
+        );
     }
 }
 

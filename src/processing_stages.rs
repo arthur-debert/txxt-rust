@@ -14,8 +14,8 @@
 //! This setup allows for a flexible and extensible CLI, where new stages and formats
 //! can be added without modifying the core logic of the binary.
 
-use std::collections::{HashMap, HashSet};
 use once_cell::sync::Lazy;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
 // --- Data Structures ---
@@ -103,7 +103,12 @@ impl ConversionFactory {
         self.conversions.insert(data_structure, format_set);
     }
 
-    pub fn is_supported(&self, stage_name: &str, format_name: &str, stage_registry: &StageRegistry) -> bool {
+    pub fn is_supported(
+        &self,
+        stage_name: &str,
+        format_name: &str,
+        stage_registry: &StageRegistry,
+    ) -> bool {
         if let Some(stage) = stage_registry.get(stage_name) {
             if let Some(supported_formats) = self.conversions.get(stage.data_structure) {
                 return supported_formats.contains(format_name);
@@ -115,9 +120,12 @@ impl ConversionFactory {
 
 // --- Global Static Instances ---
 
-pub static STAGE_REGISTRY: Lazy<Mutex<StageRegistry>> = Lazy::new(|| Mutex::new(StageRegistry::new()));
-pub static FORMAT_REGISTRY: Lazy<Mutex<FormatRegistry>> = Lazy::new(|| Mutex::new(FormatRegistry::new()));
-pub static CONVERSION_FACTORY: Lazy<Mutex<ConversionFactory>> = Lazy::new(|| Mutex::new(ConversionFactory::new()));
+pub static STAGE_REGISTRY: Lazy<Mutex<StageRegistry>> =
+    Lazy::new(|| Mutex::new(StageRegistry::new()));
+pub static FORMAT_REGISTRY: Lazy<Mutex<FormatRegistry>> =
+    Lazy::new(|| Mutex::new(FormatRegistry::new()));
+pub static CONVERSION_FACTORY: Lazy<Mutex<ConversionFactory>> =
+    Lazy::new(|| Mutex::new(ConversionFactory::new()));
 
 // --- Initialization ---
 
@@ -128,16 +136,46 @@ pub fn initialize_registries() {
     let mut conversion_factory = CONVERSION_FACTORY.lock().unwrap();
 
     // Register Stages
-    stage_registry.register(Stage { name: "scanner-tokens", description: "Raw scanner tokens", data_structure: "token-scanner" });
-    stage_registry.register(Stage { name: "semantic-tokens", description: "Semantically analyzed tokens", data_structure: "token-semantic" });
-    stage_registry.register(Stage { name: "ast-block", description: "Block-level Abstract Syntax Tree", data_structure: "ast-block" });
-    stage_registry.register(Stage { name: "ast-inlines", description: "AST with parsed inlines", data_structure: "ast-inlines" });
-    stage_registry.register(Stage { name: "ast-document", description: "Document-level AST", data_structure: "ast-document" });
-    stage_registry.register(Stage { name: "ast-full", description: "Full AST with annotations", data_structure: "ast-full" });
+    stage_registry.register(Stage {
+        name: "scanner-tokens",
+        description: "Raw scanner tokens",
+        data_structure: "token-scanner",
+    });
+    stage_registry.register(Stage {
+        name: "semantic-tokens",
+        description: "Semantically analyzed tokens",
+        data_structure: "token-semantic",
+    });
+    stage_registry.register(Stage {
+        name: "ast-block",
+        description: "Block-level Abstract Syntax Tree",
+        data_structure: "ast-block",
+    });
+    stage_registry.register(Stage {
+        name: "ast-inlines",
+        description: "AST with parsed inlines",
+        data_structure: "ast-inlines",
+    });
+    stage_registry.register(Stage {
+        name: "ast-document",
+        description: "Document-level AST",
+        data_structure: "ast-document",
+    });
+    stage_registry.register(Stage {
+        name: "ast-full",
+        description: "Full AST with annotations",
+        data_structure: "ast-full",
+    });
 
     // Register Formats
-    format_registry.register(Format { name: "json", description: "JSON output" });
-    format_registry.register(Format { name: "treeviz", description: "Tree visualization" });
+    format_registry.register(Format {
+        name: "json",
+        description: "JSON output",
+    });
+    format_registry.register(Format {
+        name: "treeviz",
+        description: "Tree visualization",
+    });
 
     // Register Conversions
     conversion_factory.register("token-scanner", vec!["json"]);

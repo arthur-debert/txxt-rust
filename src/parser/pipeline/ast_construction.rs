@@ -330,6 +330,8 @@ impl<'a> AstConstructor<'a> {
     /// 4. Indent token
     /// 5. Content block (must have at least one indented child)
     ///
+    /// The content block is recursively parsed to handle nested sessions, lists, etc.
+    ///
     /// # Returns
     /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - Session node and tokens consumed if matched
     fn try_parse_session(&mut self) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
@@ -394,23 +396,37 @@ impl<'a> AstConstructor<'a> {
         match indent_token {
             SemanticToken::Indent { .. } => {
                 self.position += 1; // Consume the indent token
+                self.indentation_level += 1; // Track indentation level
             }
             _ => return Ok(None),
         }
 
-        // Step 5: Must have at least one indented child
+        // Step 5: Parse indented content recursively
+        let mut child_nodes = Vec::new();
         let mut child_count = 0;
+
+        // Parse all indented content until we hit a dedent
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
             match token {
-                SemanticToken::Dedent { .. } => break,
+                SemanticToken::Dedent { .. } => {
+                    self.position += 1; // Consume the dedent token
+                    self.indentation_level -= 1; // Track indentation level
+                    break;
+                }
                 SemanticToken::BlankLine { .. } => {
                     self.position += 1; // Consume blank lines
                     continue;
                 }
                 _ => {
-                    child_count += 1;
-                    self.position += 1; // Consume child tokens
+                    // Parse the content token using the dispatcher
+                    if let Some((node, _tokens_consumed)) = self.dispatch_parsing()? {
+                        child_nodes.push(node);
+                        child_count += 1;
+                    } else {
+                        // If no pattern matched, advance to avoid infinite loop
+                        self.position += 1;
+                    }
                 }
             }
         }
@@ -446,6 +462,8 @@ impl<'a> AstConstructor<'a> {
     /// 2. Items cannot have blank lines between them
     /// 3. Items can be nested (but we'll handle simple lists first)
     ///
+    /// Each list item is parsed recursively to handle nested content.
+    ///
     /// # Returns
     /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - List node and tokens consumed if matched
     fn try_parse_list(&mut self) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
@@ -458,13 +476,16 @@ impl<'a> AstConstructor<'a> {
         let mut item_count = 0;
         let mut has_blank_lines = false;
 
-        // Count consecutive sequence text lines
+        // Count consecutive sequence text lines and parse their content
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
             match token {
                 SemanticToken::SequenceTextLine { .. } => {
                     item_count += 1;
                     self.position += 1; // Consume the sequence text line
+
+                    // Parse any indented content that follows this list item
+                    self.parse_list_item_content()?;
                 }
                 SemanticToken::BlankLine { .. } => {
                     // Check if this blank line is between list items
@@ -516,6 +537,54 @@ impl<'a> AstConstructor<'a> {
             TempAstNode::List { item_count, span },
             tokens_consumed,
         )))
+    }
+
+    /// Parse the content of a list item (indented content following a sequence text line)
+    ///
+    /// This handles nested content within list items, including nested lists and sessions.
+    fn parse_list_item_content(&mut self) -> Result<(), BlockParseError> {
+        // Check if there's indented content following the list item
+        if self.position >= self.tokens.len() {
+            return Ok(());
+        }
+
+        let token = &self.tokens[self.position];
+        match token {
+            SemanticToken::Indent { .. } => {
+                self.position += 1; // Consume the indent token
+                self.indentation_level += 1; // Track indentation level
+
+                // Parse all indented content until we hit a dedent
+                while self.position < self.tokens.len() {
+                    let token = &self.tokens[self.position];
+                    match token {
+                        SemanticToken::Dedent { .. } => {
+                            self.position += 1; // Consume the dedent token
+                            self.indentation_level -= 1; // Track indentation level
+                            break;
+                        }
+                        SemanticToken::BlankLine { .. } => {
+                            self.position += 1; // Consume blank lines
+                            continue;
+                        }
+                        _ => {
+                            // Parse the content token using the dispatcher
+                            if let Some((_node, _tokens_consumed)) = self.dispatch_parsing()? {
+                                // Content parsed successfully
+                            } else {
+                                // If no pattern matched, advance to avoid infinite loop
+                                self.position += 1;
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {
+                // No indented content, this is a simple list item
+            }
+        }
+
+        Ok(())
     }
 
     /// Try to parse a paragraph semantic token
@@ -934,6 +1003,109 @@ mod tests {
                 assert_eq!(node_span.start.column, 0);
             }
             _ => panic!("Expected List node, got {:?}", ast_nodes[0]),
+        }
+    }
+
+    /// Test that the parser can parse nested session patterns
+    #[test]
+    fn test_parse_nested_sessions() {
+        let mut parser = AstConstructor::new();
+
+        let span1 = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 0 },
+        };
+
+        let span2 = SourceSpan {
+            start: Position { row: 2, column: 0 },
+            end: Position { row: 2, column: 15 },
+        };
+
+        let span3 = SourceSpan {
+            start: Position { row: 3, column: 0 },
+            end: Position { row: 3, column: 0 },
+        };
+
+        let span4 = SourceSpan {
+            start: Position { row: 4, column: 0 },
+            end: Position { row: 4, column: 4 },
+        };
+
+        let span5 = SourceSpan {
+            start: Position { row: 5, column: 4 },
+            end: Position { row: 5, column: 20 },
+        };
+
+        let span6 = SourceSpan {
+            start: Position { row: 6, column: 4 },
+            end: Position { row: 6, column: 0 },
+        };
+
+        let span7 = SourceSpan {
+            start: Position { row: 7, column: 4 },
+            end: Position { row: 7, column: 4 },
+        };
+
+        let _span8 = SourceSpan {
+            start: Position { row: 8, column: 4 },
+            end: Position { row: 8, column: 8 },
+        };
+
+        let span9 = SourceSpan {
+            start: Position { row: 9, column: 8 },
+            end: Position { row: 9, column: 25 },
+        };
+
+        let span10 = SourceSpan {
+            start: Position { row: 10, column: 4 },
+            end: Position { row: 10, column: 4 },
+        };
+
+        // Create a nested session pattern:
+        // Blank line + "Outer Session" + blank line + indent +
+        //   blank line + "Inner Session" + blank line + indent + "Content" + dedent + dedent
+        let tokens = vec![
+            SemanticTokenBuilder::blank_line(span1),
+            SemanticTokenBuilder::plain_text_line(
+                SemanticTokenBuilder::text_span("Outer Session".to_string(), span2.clone()),
+                span2,
+            ),
+            SemanticTokenBuilder::blank_line(span3),
+            SemanticTokenBuilder::indent(span4),
+            SemanticTokenBuilder::blank_line(span6.clone()), // Add blank line before inner session
+            SemanticTokenBuilder::plain_text_line(
+                SemanticTokenBuilder::text_span("Inner Session".to_string(), span5.clone()),
+                span5,
+            ),
+            SemanticTokenBuilder::blank_line(span6),
+            SemanticTokenBuilder::indent(span7),
+            SemanticTokenBuilder::plain_text_line(
+                SemanticTokenBuilder::text_span("Nested content".to_string(), span9.clone()),
+                span9,
+            ),
+            SemanticTokenBuilder::dedent(span10.clone()),
+            SemanticTokenBuilder::dedent(span10),
+        ];
+
+        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let result = parser.parse(&semantic_tokens);
+
+        assert!(result.is_ok());
+        let ast_nodes = result.unwrap();
+        assert_eq!(ast_nodes.len(), 1);
+
+        match &ast_nodes[0] {
+            TempAstNode::Session {
+                title,
+                child_count,
+                span: node_span,
+            } => {
+                assert_eq!(title, "Outer Session");
+                assert_eq!(*child_count, 2); // Should have two children: "Inner Session" and "Nested content"
+                assert_eq!(node_span.start.row, 1);
+                assert_eq!(node_span.start.column, 0);
+            }
+            _ => panic!("Expected Session node, got {:?}", ast_nodes[0]),
         }
     }
 }

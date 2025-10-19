@@ -1,0 +1,9 @@
+:: title :: Simple Test Document
+
+This is a simple paragraph.
+
+Term ::
+
+    This is the definition content.
+
+:: note :: This is a note annotation

@@ -1,0 +1,207 @@
+We are working on the core parser implementation and back tracking on  a previous one that failed. 
+
+This document presents the txxt format and general ideas about parsing, but it is not sufficient, see the necessary reading below.
+
+This is txxt's parsing architecture: 
+These are done:
+    1. Lexer (txxt str -> ScannerTokenList)
+        a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
+        b. Token List: creates the token stream at low level tokens -> scanner token list
+    2. Parser (ScannerTokenList -> AST tree node)
+        a. Semantic Token Analysis (ScannerTokenList → SemanticTokenList)
+
+This is what we will work on: 
+    b. AST Construction : With the ast nodes + dedent construct the final ast tree
+    
+These are done:
+    c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node)
+3. Assembly (AST tree node -> AST document node)
+    a. Document Wrapping: wraps the parsed AST in a Document node
+    b. Annotations Attachments: from the content tree to node's annotation's field
+
+
+The idea behind 2.b is that , from the semantic token list we can parse and construct the ast tree.
+
+The first point is that inlines are not included. They are already correctly handled and their structure is much simpler as they don't nest. This is about the core block elements: Session, Paragraph, List, Annotation,  Definition and Verbatim.
+
+We wish to do so by a homegrown grammar engine, that is, we will supply a sequence of grammar rules, with a carefuly planned precedence rules.
+
+Before we start, I want us to review both the grammar.txxt file and the semantic.tokens.txxt.
+What we want to ensure is that our grammar is specific enough to be able to parse the semantic token list correctly, and that we can generate the correct semantic tokens, which requires us to generate the correct scanner tokens, and that we can do the transformations. In short: are the tokens we currently expect correct and enough? If so as we walk from string up to semantic tokens, are we able to generate the needed tokens? 
+
+This task is about walking backwards: 
+
+- analyze the grammaer (semmantic tokens) and the parsing rules, are they enough?
+- if so can we generate the correct semantic tokens? and so on.
+
+
+I'll give context about the format, grammar and elements. For starters, inline parsing is simple and workign, hence we will ignore them for now.  
+
+txx has two key aspects: 
+    - it's a recursive format: blocks can contain blocks, which can contain blocks, which can contain blocks, etc.
+    - except for paragraphs, which are the only blocks that can contain inline elements, all other blocks can contain other blocks.
+    - when a block contains other blocks it does so by using a container block (content, session and ignore blocks)
+    - What is indented is the content block, which is counter intuivie at times (e.g the session title is not indented, but it's children, insice the container are. )
+    The lack of syntax makes for some challening parsing rules, but they are possible.
+
+txx has the txx-marker, which is a double colon: "::" and signle colon ":" as the only syntax markers.
+
+In very broad terms (except pargraphs and inlines), blocks look like this: 
+
+<star line>
+    <container>
+
+Hence most parsing is about: 
+
+some initial line syntax
+indent token, content block (recursive.)
+
+1. Elements with explicit syntax:
+	
+    a. Definitions
+
+        <term being defined><txt-marker><line-break>
+        <indent> <container>
+
+        ex: 
+
+        Parsing::
+            Transforming strings to structured data.
+
+            Can be done in multiple phases.
+
+    b. Annotations
+    
+        <txxt-marker><annotation-label><txt-marker><container><line-break>
+
+        Ex: 
+
+        :: author :: Arthur Debert
+
+        and the multiline version: 
+        :: warning ::
+            This is a warning
+            with multiple lines.
+
+    c. Verbatim
+
+        <verbatim-title><colon>
+        <indent> <container>
+        <txxt-marker><verbatim-label><line-break>
+
+        Example:
+            print("hello")
+        :: python
+
+    A few things to note: 
+    - Only the verbatim block has an end marker, all others are delimited by dedent tokens. 
+    - We have titiles/term which are free text, and labels which are identifiers.
+    - These interact with txxt markers and colons
+    - In short: 
+        <text> + <txxt-marker> -> Definition
+        <text> + <colon> -> Verbatim open
+        <txxt-marker> + <identifier> -> Verbatim close
+        <txxt-marker> + <identifier> + <txxt-marker> -> Annotation
+
+
+
+2. Elements with implicit syntax:
+
+    The trifecta: paragraphs, lists and sessions do not have explicit syntax, and have overlapping syntax.
+    Disambiguating them is the hardest part of the parsing. But the rules define a very narrow space, so it must be understood and implemented precisely.
+    We will walk from most to least defined identification rules. 
+
+
+    a. Lists
+
+        Lists are a sequence of at least two least items, which can be nested, and the two rule is for the full nested list, not per level.
+        List MUST have a decoration marker (plain (-), numerical (1.), alphabetical (a.), roman (i.), but very persmissive).
+        List Items cannot have blank lines between them.
+
+        These are lists: 
+
+        - John
+            1. Mary
+
+        - Mary
+        1. Will
+
+        These are not: 
+
+        - Mary
+
+        John
+        Mary
+
+        - John
+
+        - Mary
+
+    b. Sessions
+
+        Sessions are formed by a mandatory blank line, followed by title line, followed by a blank line, followed by a content block, which must be +1 indented and have at least one indented child.
+
+        Sessions can be plained or numbered. That is, aside from the plain style (-), they can have the same numbering styles as lists.
+
+        <blank-line>
+        <session-title><line-break>
+        <blank-line>
+        <indent> <container>
+
+    c. Paragraphs
+
+        As long as the line starts at, or later the current indentation level, and has at least one non-whitespace character, it is a paragraph.
+        That means that paragraphs are too vague to be defined. Hence paragraphs are a catch all, the element type when no other element is found.
+        Note that this is a perfectly valid paragraph:
+
+        1. Hi
+
+        Paragraphs can start or containe anything as long as it is not matched by other elements. 
+
+CRITICAL POINTS: 
+    The very CRITICAL point: colons must be passed as specific tokens (txxt markers or single colons), but cannot be parsed as text spans.
+    Also, content blocks allow empty lines, hence we need to track dedent tokens to delimit a content block close.
+    We can also derive that label and a generic text span (titles) are critical tokens to be correctly handled.    In short: both paragraphs and session titles can pretty much contanin anything but the syntax for elements in group 1.
+    The only way to disambiguate is exluding the list first, then by indendation and blank linens, not by a lines content.
+
+
+3. The grammar rules
+
+    One can see that there is enough definition and distinction between elements to write a grammar enginie. 
+    However it does require : 
+        - Exact tokens for colon, txxt-markers, labels , indent, dedent and line breaks.
+        - The match to be made against several lines and indent tokens.
+
+    The order in which they are listed in this document is the right precedence order.
+
+4. Containers
+
+    Note that all these elements can contain other elements, recursively. 
+    That means when the parser matches the container, it must parse the content recursively.
+
+
+5. Final notes: 
+
+    This document simplifies various points. For example the elements in group 1 can have parameters. 
+    Verbatim blocks can be empty of lines and also has a streched mode.
+
+    But the ideas here are valid, and they must guide the implementation. 
+
+    In a general sense, the hard part to get right is the disambiguation of paragraphs, lists and sessions as they nest.
+    If that works, everything follows, because all other elements are easier to identify.
+
+6. Necessary reading: 
+
+Tokens: 
+    - docs/specs/core/grammar.txxt
+    - docs/specs/core/scanner-tokens.txxt
+    - docs/specs/core/semantic-tokens.txxt
+
+Element Specs: 
+    - docs/specs/elements/<element>/<element>.txxt
+    - docs/specs/elements/session/session.txxt
+    - docs/specs/elements/paragraph/paragraph.txxt
+    - docs/specs/elements/list/list.txxt
+
+Specifics: 
+    - this docs goes over all relevant paragraph, lists and session ambiguities:  docs/specs/ensembles/12-complex-sessions.txxt

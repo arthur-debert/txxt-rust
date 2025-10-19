@@ -14,17 +14,29 @@ use crate::parser::pipeline::BlockParseError;
 ///
 /// This parser takes semantic tokens and transforms them into structured AST nodes
 /// using precedence-based pattern matching.
-pub struct AstConstructor {
+pub struct AstConstructor<'a> {
+    /// The semantic token stream being parsed
+    tokens: &'a [SemanticToken],
     /// Current parsing position in the token stream
     position: usize,
     /// Current indentation level for nested parsing
     indentation_level: usize,
 }
 
-impl AstConstructor {
+impl<'a> AstConstructor<'a> {
     /// Create a new AST constructor instance
     pub fn new() -> Self {
         Self {
+            tokens: &[],
+            position: 0,
+            indentation_level: 0,
+        }
+    }
+
+    /// Create a new AST constructor instance with token stream
+    pub fn with_tokens(tokens: &'a [SemanticToken]) -> Self {
+        Self {
+            tokens,
             position: 0,
             indentation_level: 0,
         }
@@ -39,11 +51,13 @@ impl AstConstructor {
     /// * `semantic_tokens` - The semantic token list to parse
     ///
     /// # Returns
-    /// * `Result<Vec<AstNode>, BlockParseError>` - Parsed AST nodes
+    /// * `Result<Vec<TempAstNode>, BlockParseError>` - Parsed AST nodes
     pub fn parse(
         &mut self,
-        semantic_tokens: &SemanticTokenList,
+        semantic_tokens: &'a SemanticTokenList,
     ) -> Result<Vec<TempAstNode>, BlockParseError> {
+        // Update the token stream
+        self.tokens = &semantic_tokens.tokens;
         let mut ast_nodes = Vec::new();
 
         // Reset parser state
@@ -51,12 +65,12 @@ impl AstConstructor {
         self.indentation_level = 0;
 
         // Main parsing loop
-        while self.position < semantic_tokens.tokens.len() {
-            let token = &semantic_tokens.tokens[self.position];
+        while self.position < self.tokens.len() {
+            let token = &self.tokens[self.position];
 
             // Check for session patterns first (sessions start with blank lines)
             if matches!(token, SemanticToken::BlankLine { .. }) {
-                if let Some((node, tokens_consumed)) = self.try_parse_session(semantic_tokens)? {
+                if let Some((node, tokens_consumed)) = self.try_parse_session()? {
                     ast_nodes.push(node);
                     self.position += tokens_consumed;
                     continue;
@@ -82,7 +96,7 @@ impl AstConstructor {
                 }
                 _ => {
                     // Process content tokens
-                    if let Some(node) = self.dispatch_parsing(semantic_tokens)? {
+                    if let Some(node) = self.dispatch_parsing()? {
                         ast_nodes.push(node);
                     }
                 }
@@ -102,15 +116,12 @@ impl AstConstructor {
     ///
     /// # Returns
     /// * `Result<Option<TempAstNode>, BlockParseError>` - Parsed node or None
-    fn dispatch_parsing(
-        &mut self,
-        semantic_tokens: &SemanticTokenList,
-    ) -> Result<Option<TempAstNode>, BlockParseError> {
-        if self.position >= semantic_tokens.tokens.len() {
+    fn dispatch_parsing(&mut self) -> Result<Option<TempAstNode>, BlockParseError> {
+        if self.position >= self.tokens.len() {
             return Ok(None);
         }
 
-        let current_token = &semantic_tokens.tokens[self.position];
+        let current_token = &self.tokens[self.position];
 
         // Apply precedence rules (first match wins):
         // 1. VerbatimBlock pattern (highest precedence)
@@ -135,7 +146,7 @@ impl AstConstructor {
         // Sessions are handled in the main parsing loop when we encounter blank lines
 
         // 5. List pattern
-        if let Some((node, tokens_consumed)) = self.try_parse_list(semantic_tokens)? {
+        if let Some((node, tokens_consumed)) = self.try_parse_list()? {
             // List parsing consumes multiple tokens, so we need to advance position accordingly
             self.position += tokens_consumed;
             return Ok(Some(node));
@@ -153,21 +164,26 @@ impl AstConstructor {
 
     /// Check if we're at the end of the token stream
     #[allow(dead_code)] // Will be used in next steps
-    fn is_at_end(&self, semantic_tokens: &SemanticTokenList) -> bool {
-        self.position >= semantic_tokens.tokens.len()
+    fn is_at_end(&self) -> bool {
+        self.position >= self.tokens.len()
     }
 
     /// Get current token without advancing position
     #[allow(dead_code)] // Will be used in next steps
-    fn peek<'a>(&self, semantic_tokens: &'a SemanticTokenList) -> Option<&'a SemanticToken> {
-        semantic_tokens.tokens.get(self.position)
+    fn peek(&self) -> Option<&SemanticToken> {
+        self.tokens.get(self.position)
     }
 
     /// Get current token and advance position
     #[allow(dead_code)] // Will be used in next steps
-    fn consume(&mut self) -> Option<SemanticToken> {
-        // This will be implemented when we have actual tokens to consume
-        None
+    fn consume(&mut self) -> Option<&SemanticToken> {
+        if self.position < self.tokens.len() {
+            let token = &self.tokens[self.position];
+            self.position += 1;
+            Some(token)
+        } else {
+            None
+        }
     }
 
     /// Try to parse an annotation semantic token
@@ -316,16 +332,10 @@ impl AstConstructor {
     /// 4. Indent token
     /// 5. Content block (must have at least one indented child)
     ///
-    /// # Arguments
-    /// * `semantic_tokens` - The semantic token list
-    ///
     /// # Returns
     /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - Session node and tokens consumed if matched
-    fn try_parse_session(
-        &self,
-        semantic_tokens: &SemanticTokenList,
-    ) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
-        if self.position >= semantic_tokens.tokens.len() {
+    fn try_parse_session(&self) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
+        if self.position >= self.tokens.len() {
             return Ok(None);
         }
 
@@ -333,10 +343,10 @@ impl AstConstructor {
         let mut lookahead_pos = self.position;
 
         // Step 1: Must start with blank line
-        if lookahead_pos >= semantic_tokens.tokens.len() {
+        if lookahead_pos >= self.tokens.len() {
             return Ok(None);
         }
-        let first_token = &semantic_tokens.tokens[lookahead_pos];
+        let first_token = &self.tokens[lookahead_pos];
         match first_token {
             SemanticToken::BlankLine { .. } => {
                 lookahead_pos += 1;
@@ -345,10 +355,10 @@ impl AstConstructor {
         }
 
         // Step 2: Must have title line (any content except blank line)
-        if lookahead_pos >= semantic_tokens.tokens.len() {
+        if lookahead_pos >= self.tokens.len() {
             return Ok(None);
         }
-        let title_token = &semantic_tokens.tokens[lookahead_pos];
+        let title_token = &self.tokens[lookahead_pos];
         let title_text = match title_token {
             SemanticToken::PlainTextLine { content, .. } => match content.as_ref() {
                 SemanticToken::TextSpan { content, .. } => content.clone(),
@@ -367,10 +377,10 @@ impl AstConstructor {
         lookahead_pos += 1;
 
         // Step 3: Must have blank line after title
-        if lookahead_pos >= semantic_tokens.tokens.len() {
+        if lookahead_pos >= self.tokens.len() {
             return Ok(None);
         }
-        let second_blank_token = &semantic_tokens.tokens[lookahead_pos];
+        let second_blank_token = &self.tokens[lookahead_pos];
         match second_blank_token {
             SemanticToken::BlankLine { .. } => {
                 lookahead_pos += 1;
@@ -379,10 +389,10 @@ impl AstConstructor {
         }
 
         // Step 4: Must have indent token
-        if lookahead_pos >= semantic_tokens.tokens.len() {
+        if lookahead_pos >= self.tokens.len() {
             return Ok(None);
         }
-        let indent_token = &semantic_tokens.tokens[lookahead_pos];
+        let indent_token = &self.tokens[lookahead_pos];
         match indent_token {
             SemanticToken::Indent { .. } => {
                 lookahead_pos += 1;
@@ -393,8 +403,8 @@ impl AstConstructor {
         // Step 5: Must have at least one indented child
         let mut child_count = 0;
         let mut current_pos = lookahead_pos;
-        while current_pos < semantic_tokens.tokens.len() {
-            let token = &semantic_tokens.tokens[current_pos];
+        while current_pos < self.tokens.len() {
+            let token = &self.tokens[current_pos];
             match token {
                 SemanticToken::Dedent { .. } => break,
                 SemanticToken::BlankLine { .. } => {
@@ -438,16 +448,10 @@ impl AstConstructor {
     /// 2. Items cannot have blank lines between them
     /// 3. Items can be nested (but we'll handle simple lists first)
     ///
-    /// # Arguments
-    /// * `semantic_tokens` - The semantic token list
-    ///
     /// # Returns
     /// * `Result<Option<(TempAstNode, usize)>, BlockParseError>` - List node and tokens consumed if matched
-    fn try_parse_list(
-        &self,
-        semantic_tokens: &SemanticTokenList,
-    ) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
-        if self.position >= semantic_tokens.tokens.len() {
+    fn try_parse_list(&self) -> Result<Option<(TempAstNode, usize)>, BlockParseError> {
+        if self.position >= self.tokens.len() {
             return Ok(None);
         }
 
@@ -458,8 +462,8 @@ impl AstConstructor {
         let start_pos = lookahead_pos;
 
         // Count consecutive sequence text lines
-        while lookahead_pos < semantic_tokens.tokens.len() {
-            let token = &semantic_tokens.tokens[lookahead_pos];
+        while lookahead_pos < self.tokens.len() {
+            let token = &self.tokens[lookahead_pos];
             match token {
                 SemanticToken::SequenceTextLine { .. } => {
                     item_count += 1;
@@ -470,8 +474,8 @@ impl AstConstructor {
                     if item_count > 0 {
                         // Look ahead to see if there's another sequence marker
                         let mut next_pos = lookahead_pos + 1;
-                        while next_pos < semantic_tokens.tokens.len() {
-                            let next_token = &semantic_tokens.tokens[next_pos];
+                        while next_pos < self.tokens.len() {
+                            let next_token = &self.tokens[next_pos];
                             match next_token {
                                 SemanticToken::BlankLine { .. } => {
                                     next_pos += 1;
@@ -502,7 +506,7 @@ impl AstConstructor {
         }
 
         // We have a valid list pattern!
-        let span = match semantic_tokens.tokens.get(start_pos) {
+        let span = match self.tokens.get(start_pos) {
             Some(SemanticToken::SequenceTextLine { span, .. }) => span.clone(),
             _ => {
                 // Fallback span
@@ -551,7 +555,7 @@ impl AstConstructor {
     }
 }
 
-impl Default for AstConstructor {
+impl<'a> Default for AstConstructor<'a> {
     fn default() -> Self {
         Self::new()
     }

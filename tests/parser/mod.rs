@@ -1,4 +1,5 @@
 //! Parser tests
+mod ast_construction;
 mod elements;
 mod semantic_analysis;
 

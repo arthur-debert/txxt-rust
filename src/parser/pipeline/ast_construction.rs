@@ -690,6 +690,61 @@ pub enum AstNode {
     Paragraph(ParagraphBlock),
 }
 
+impl AstNode {
+    /// Convert an AstNode to an ElementNode for integration with the parsing pipeline
+    ///
+    /// This function converts the internal AST construction representation
+    /// to the standard ElementNode format used throughout the pipeline.
+    ///
+    /// # Returns
+    /// * `ElementNode` - The converted element node
+    pub fn to_element_node(&self) -> crate::ast::elements::core::ElementNode {
+        match self {
+            AstNode::Annotation(block) => {
+                crate::ast::elements::core::ElementNode::AnnotationBlock(block.clone())
+            }
+            AstNode::Definition(block) => {
+                crate::ast::elements::core::ElementNode::DefinitionBlock(block.clone())
+            }
+            AstNode::VerbatimBlock(block) => {
+                crate::ast::elements::core::ElementNode::VerbatimBlock(block.clone())
+            }
+            AstNode::Session(block) => {
+                crate::ast::elements::core::ElementNode::SessionBlock(block.clone())
+            }
+            AstNode::List(block) => {
+                crate::ast::elements::core::ElementNode::ListBlock(block.clone())
+            }
+            AstNode::Paragraph(block) => {
+                crate::ast::elements::core::ElementNode::ParagraphBlock(block.clone())
+            }
+        }
+    }
+}
+
+impl AstConstructor<'_> {
+    /// Parse semantic tokens and return ElementNodes for pipeline integration
+    ///
+    /// This is a convenience method that parses semantic tokens and converts
+    /// the resulting AstNodes to ElementNodes for use in the parsing pipeline.
+    ///
+    /// # Arguments
+    /// * `semantic_tokens` - The semantic token list to parse
+    ///
+    /// # Returns
+    /// * `Result<Vec<ElementNode>, BlockParseError>` - Vector of ElementNodes
+    pub fn parse_to_element_nodes(
+        semantic_tokens: &SemanticTokenList,
+    ) -> Result<Vec<crate::ast::elements::core::ElementNode>, BlockParseError> {
+        let mut constructor = AstConstructor::new();
+        let ast_nodes = constructor.parse(semantic_tokens)?;
+        Ok(ast_nodes
+            .into_iter()
+            .map(|node| node.to_element_node())
+            .collect())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

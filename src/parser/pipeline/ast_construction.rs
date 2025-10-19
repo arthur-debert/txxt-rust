@@ -646,13 +646,18 @@ impl<'a> AstConstructor<'a> {
                 self.position += 1;
 
                 // Extract content text
-                let _content_text = match content.as_ref() {
+                let content_text = match content.as_ref() {
                     SemanticToken::TextSpan { content, .. } => content.clone(),
                     _ => "unknown".to_string(),
                 };
 
+                // Create a simple TextTransform::Identity for the plain text content
+                let text_span = crate::ast::elements::inlines::TextSpan::simple(&content_text);
+                let text_transform =
+                    crate::ast::elements::inlines::TextTransform::Identity(text_span);
+
                 Ok(Some(AstNode::Paragraph(ParagraphBlock {
-                    content: vec![], // TODO: Convert content_text to TextTransform
+                    content: vec![text_transform],
                     annotations: Vec::new(),
                     parameters: crate::ast::elements::components::parameters::Parameters::new(),
                     tokens: ScannerTokenSequence::new(),

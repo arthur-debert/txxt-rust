@@ -10,7 +10,7 @@ pub mod parse_inlines;
 pub mod semantic_analysis;
 
 // Re-export main interfaces
-pub use ast_construction::{AstConstructor, TempAstNode};
+pub use ast_construction::{AstConstructor, AstNode};
 pub use parse_inlines::{InlineParseError, InlineParser};
 pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 

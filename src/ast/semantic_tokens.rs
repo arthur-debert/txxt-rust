@@ -62,6 +62,13 @@ pub enum SemanticToken {
         span: SourceSpan,
     },
 
+    /// Colon punctuation marker used for parameter separation
+    /// Preserves syntactic meaning for parameter parsing and error reporting
+    Colon {
+        /// Source span of the colon
+        span: SourceSpan,
+    },
+
     /// Key-value metadata component used in annotations and verbatim elements
     /// Structured parameter list with proper key-value pair parsing
     Parameters {
@@ -296,6 +303,7 @@ impl SemanticTokenSpan for SemanticToken {
         match self {
             SemanticToken::Label { span, .. }
             | SemanticToken::TxxtMarker { span }
+            | SemanticToken::Colon { span }
             | SemanticToken::Parameters { span, .. }
             | SemanticToken::SequenceMarker { span, .. }
             | SemanticToken::TextSpan { span, .. }
@@ -367,6 +375,11 @@ impl SemanticTokenBuilder {
     /// Create a txxt marker semantic token
     pub fn txxt_marker(span: SourceSpan) -> SemanticToken {
         SemanticToken::TxxtMarker { span }
+    }
+
+    /// Create a colon semantic token
+    pub fn colon(span: SourceSpan) -> SemanticToken {
+        SemanticToken::Colon { span }
     }
 
     /// Create a parameters semantic token

@@ -116,10 +116,7 @@ impl SemanticAnalyzer {
                             // Preserve syntactic markers instead of converting to text spans
                             ScannerToken::Colon { span } => {
                                 // Preserve colon as a syntactic marker for parameter parsing
-                                semantic_tokens.push(SemanticTokenBuilder::text_span(
-                                    ":".to_string(),
-                                    span.clone(),
-                                ));
+                                semantic_tokens.push(SemanticTokenBuilder::colon(span.clone()));
                             }
 
                             // Handle other tokens as text spans for now
@@ -527,6 +524,15 @@ impl SemanticAnalyzer {
                     .any(|token| matches!(token, ScannerToken::SequenceMarker { .. }));
 
                 if has_sequence_markers {
+                    return false;
+                }
+
+                // If the line contains syntactic markers like colons, use individual processing to preserve them
+                let has_syntactic_markers = line_tokens
+                    .iter()
+                    .any(|token| matches!(token, ScannerToken::Colon { .. }));
+
+                if has_syntactic_markers {
                     return false;
                 }
 

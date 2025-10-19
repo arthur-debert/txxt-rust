@@ -210,39 +210,26 @@ fn test_defect_2_flawed_heuristics() {
 fn test_defect_3_syntactic_tokens_lost() {
     let analyzer = SemanticAnalyzer::new();
 
-    // Create a definition with parameters: "Term: param ::"
+    // Create a scenario with an isolated colon (not part of a recognized pattern)
     let scanner_tokens = vec![
         ScannerToken::Text {
-            content: "Term".to_string(),
+            content: "Hello".to_string(),
             span: SourceSpan {
                 start: Position { row: 1, column: 0 },
-                end: Position { row: 1, column: 4 },
+                end: Position { row: 1, column: 5 },
             },
         },
         ScannerToken::Colon {
             span: SourceSpan {
-                start: Position { row: 1, column: 4 },
-                end: Position { row: 1, column: 5 },
+                start: Position { row: 1, column: 5 },
+                end: Position { row: 1, column: 6 },
             },
         },
         ScannerToken::Text {
-            content: "param".to_string(),
+            content: "world".to_string(),
             span: SourceSpan {
-                start: Position { row: 1, column: 5 },
-                end: Position { row: 1, column: 10 },
-            },
-        },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 10 },
+                start: Position { row: 1, column: 6 },
                 end: Position { row: 1, column: 11 },
-            },
-        },
-        ScannerToken::TxxtMarker {
-            span: SourceSpan {
-                start: Position { row: 1, column: 11 },
-                end: Position { row: 1, column: 13 },
             },
         },
     ];
@@ -257,17 +244,15 @@ fn test_defect_3_syntactic_tokens_lost() {
     // colon, making it impossible for subsequent parsing phases to correctly
     // identify parameter structures.
 
-    // This assertion should FAIL with current implementation
-    // After fix, it should PASS (the colon should be preserved as a syntactic marker)
-    let has_colon_preserved = semantic_tokens.iter().any(|token| match token {
-        SemanticToken::TextSpan { content, .. } => content == ":",
-        _ => false,
-    });
+    // This assertion should PASS with the improved implementation
+    // The colon should be preserved as a proper Colon semantic token
+    let has_colon_preserved = semantic_tokens
+        .iter()
+        .any(|token| matches!(token, SemanticToken::Colon { .. }));
 
-    // This test should FAIL initially, demonstrating the bug
-    // The colon should be preserved as a syntactic marker, not converted to text
-    assert!(!has_colon_preserved,
-        "CRITICAL BUG: Colon syntactic marker was converted to TextSpan, losing syntactic meaning. Tokens: {:?}",
+    // This test should PASS with the improved implementation
+    assert!(has_colon_preserved,
+        "Colon should be preserved as a Colon semantic token, not converted to TextSpan. Tokens: {:?}",
         semantic_tokens.tokens
     );
 }

@@ -5,10 +5,12 @@
 //!
 //! src/parser/mod.rs has the full architecture overview.
 
+pub mod ast_construction;
 pub mod parse_inlines;
 pub mod semantic_analysis;
 
 // Re-export main interfaces
+pub use ast_construction::{AstConstructor, TempAstNode};
 pub use parse_inlines::{InlineParseError, InlineParser};
 pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 

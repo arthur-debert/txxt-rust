@@ -23,6 +23,11 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Identifies txxt structural elements and provides disambiguation anchor points.
         Essential for recognizing txxt syntax vs plain text.
 
+    Colon::
+        Colon punctuation marker used for parameter separation.
+        Preserves syntactic meaning for parameter parsing and error reporting.
+        Allows AST construction phase to identify misplaced syntactic markers with precision.
+
     Label::
         Structured identifier component for annotations and verbatim blocks.
         Supports namespaced identifiers like "python", "org.example.custom".
@@ -64,6 +69,31 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Critical for whitespace enclosure detection in sessions vs lists.
         Sessions require blank line separation; lists cannot have blank lines between items.
 
+    Indent::
+        Indentation marker passed through unchanged from scanner tokens.
+        Marks the beginning of a new indentation level.
+        Used for block structure and nesting.
+
+    Dedent::
+        Dedentation marker passed through unchanged from scanner tokens.
+        Marks the end of an indentation level.
+        Used for block structure and nesting.
+
+    Annotation::
+        Annotation semantic token combining txxt markers with labels and optional content.
+        Composition: TxxtMarker + Whitespace + Text + Whitespace + TxxtMarker + Text?
+        Used for metadata elements that attach structured information to other elements.
+
+    Definition::
+        Definition semantic token combining text with txxt markers.
+        Composition: Text + Whitespace + TxxtMarker (simple) or Text + Colon + Text + Whitespace + TxxtMarker (parameterized)
+        Used for structured elements that define terms, concepts, and entities.
+
+    Verbatim Block::
+        Verbatim block semantic token using wall architecture.
+        Composition: VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+        Used for content that preserves exact formatting and spacing.
+
 3. Token Composition Patterns
 
     Semantic tokens are composed from scanner tokens using well-defined patterns:
@@ -75,8 +105,9 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
     3.2. Definition Composition
 
-        Definitions combine text with txxt markers:
-        `Text` + `Whitespace` + `TxxtMarker`
+        Definitions combine text with txxt markers, optionally with parameters:
+        `Text` + `Whitespace` + `TxxtMarker` (simple definition)
+        `Text` + `Colon` + `Text` + `Whitespace` + `TxxtMarker` (parameterized definition)
 
     3.3. Verbatim Composition
 
@@ -87,6 +118,19 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
         Parameters combine identifiers, equals signs, and values:
         `Identifier` + `Equals` + `Value` + `Comma`?
+
+    3.5. Structural Token Composition
+
+        Structural tokens are passed through unchanged from scanner tokens:
+        `Indent` and `Dedent` tokens preserve indentation structure
+        `BlankLine` tokens preserve whitespace structure
+
+    3.6. Complex Semantic Token Composition
+
+        Complex semantic tokens combine multiple simpler tokens:
+        - `Annotation`: Combines multiple tokens into structured metadata
+        - `Definition`: Combines text and markers into structured definitions
+        - `VerbatimBlock`: Combines verbatim components into content blocks
 
 4. Separation of Concerns
 

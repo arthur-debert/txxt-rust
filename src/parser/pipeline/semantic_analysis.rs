@@ -55,51 +55,703 @@ impl SemanticAnalyzer {
                 // Structural tokens - pass through unchanged
                 ScannerToken::BlankLine { span, .. } => {
                     semantic_tokens.push(SemanticToken::BlankLine { span: span.clone() });
+                    i += 1;
                 }
                 ScannerToken::Indent { span } => {
                     semantic_tokens.push(SemanticToken::Indent { span: span.clone() });
+                    i += 1;
                 }
                 ScannerToken::Dedent { span } => {
                     semantic_tokens.push(SemanticToken::Dedent { span: span.clone() });
+                    i += 1;
                 }
 
-                // TxxtMarker transformation - Issue #81
-                ScannerToken::TxxtMarker { .. } => {
-                    semantic_tokens.push(self.transform_txxt_marker(token)?);
-                }
-
-                // Label transformation - Issue #82
-                ScannerToken::Identifier { content, span } => {
-                    semantic_tokens.push(self.transform_label(content.clone(), span.clone())?);
-                }
-
-                // Text Span transformation - Issue #85
-                ScannerToken::Text { content, span } => {
-                    semantic_tokens.push(self.transform_text_span(content.clone(), span.clone())?);
-                }
-
-                // Sequence Marker transformation - Issue #84
-                ScannerToken::SequenceMarker { marker_type, span } => {
-                    semantic_tokens
-                        .push(self.transform_sequence_marker(marker_type.clone(), span.clone())?);
-                }
-
-                // Handle other tokens as text spans for now
+                // Process line-level tokens
                 _ => {
-                    // Convert other tokens to text spans as fallback
-                    // This will be refined in subsequent transformation issues
-                    let content = self.token_to_text_content(token);
-                    semantic_tokens.push(SemanticTokenBuilder::text_span(
-                        content,
-                        token.span().clone(),
-                    ));
+                    // First, try to recognize complex patterns (annotations, definitions, verbatim blocks)
+                    if let Some((pattern_tokens, consumed)) =
+                        self.recognize_complex_pattern(&scanner_tokens, i)?
+                    {
+                        let pattern_semantic_token =
+                            self.transform_complex_pattern(pattern_tokens)?;
+                        semantic_tokens.push(pattern_semantic_token);
+                        i += consumed;
+                    }
+                    // Then check if this looks like a core block element (paragraph, session, list)
+                    else if self.is_core_block_element(&scanner_tokens, i) {
+                        let (line_tokens, consumed) =
+                            self.extract_line_tokens(&scanner_tokens, i)?;
+                        let line_semantic_token = self.process_line_tokens(line_tokens)?;
+                        semantic_tokens.push(line_semantic_token);
+                        i += consumed;
+                    } else {
+                        // Process individual tokens for specific elements (annotations, definitions, etc.)
+                        let token = &scanner_tokens[i];
+                        match token {
+                            // TxxtMarker transformation - Issue #81
+                            ScannerToken::TxxtMarker { .. } => {
+                                semantic_tokens.push(self.transform_txxt_marker(token)?);
+                            }
+
+                            // Label transformation - Issue #82
+                            ScannerToken::Identifier { content, span } => {
+                                semantic_tokens
+                                    .push(self.transform_label(content.clone(), span.clone())?);
+                            }
+
+                            // Text Span transformation - Issue #85
+                            ScannerToken::Text { content, span } => {
+                                semantic_tokens
+                                    .push(self.transform_text_span(content.clone(), span.clone())?);
+                            }
+
+                            // Sequence Marker transformation - Issue #84
+                            ScannerToken::SequenceMarker { marker_type, span } => {
+                                semantic_tokens.push(self.transform_sequence_marker(
+                                    marker_type.clone(),
+                                    span.clone(),
+                                )?);
+                            }
+
+                            // Preserve syntactic markers instead of converting to text spans
+                            ScannerToken::Colon { span } => {
+                                // Preserve colon as a syntactic marker for parameter parsing
+                                semantic_tokens.push(SemanticTokenBuilder::colon(span.clone()));
+                            }
+
+                            // Handle other tokens as text spans for now
+                            _ => {
+                                // Convert other tokens to text spans as fallback
+                                // This will be refined in subsequent transformation issues
+                                let content = self.token_to_text_content(token);
+                                semantic_tokens.push(SemanticTokenBuilder::text_span(
+                                    content,
+                                    token.span().clone(),
+                                ));
+                            }
+                        }
+                        i += 1;
+                    }
                 }
             }
-
-            i += 1;
         }
 
         Ok(SemanticTokenList::with_tokens(semantic_tokens))
+    }
+
+    /// Recognize complex patterns like definitions, annotations, and verbatim blocks
+    ///
+    /// This method looks ahead from the current position to identify patterns
+    /// that should be transformed into complex semantic tokens instead of
+    /// being processed as individual tokens.
+    ///
+    /// # Arguments
+    /// * `scanner_tokens` - The full scanner token vector
+    /// * `start_index` - The index to start checking from
+    ///
+    /// # Returns
+    /// * `Result<Option<(Vec<ScannerToken>, usize)>, SemanticAnalysisError>` -
+    ///   If a pattern is recognized, returns Some((pattern_tokens, tokens_consumed))
+    ///   If no pattern is recognized, returns None
+    fn recognize_complex_pattern(
+        &self,
+        scanner_tokens: &[ScannerToken],
+        start_index: usize,
+    ) -> Result<Option<(Vec<ScannerToken>, usize)>, SemanticAnalysisError> {
+        if start_index >= scanner_tokens.len() {
+            return Ok(None);
+        }
+
+        let token = &scanner_tokens[start_index];
+
+        match token {
+            // Check for definition pattern: Text + Whitespace + TxxtMarker
+            ScannerToken::Text { .. } => {
+                if let Some((tokens, consumed)) =
+                    self.recognize_definition_pattern(scanner_tokens, start_index)?
+                {
+                    return Ok(Some((tokens, consumed)));
+                }
+            }
+
+            // Check for annotation pattern: TxxtMarker + Whitespace + Identifier + ... + TxxtMarker
+            ScannerToken::TxxtMarker { .. } => {
+                if let Some((tokens, consumed)) =
+                    self.recognize_annotation_pattern(scanner_tokens, start_index)?
+                {
+                    return Ok(Some((tokens, consumed)));
+                }
+            }
+
+            // Check for verbatim block pattern: VerbatimTitle + IndentationWall + ... + VerbatimLabel
+            ScannerToken::VerbatimTitle { .. } => {
+                if let Some((tokens, consumed)) =
+                    self.recognize_verbatim_block_pattern(scanner_tokens, start_index)?
+                {
+                    return Ok(Some((tokens, consumed)));
+                }
+            }
+
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
+    /// Recognize definition pattern: Text + ... + TxxtMarker
+    /// Supports both simple definitions (Text + Whitespace + TxxtMarker)
+    /// and parameterized definitions (Text + Colon + Text + ... + Whitespace + TxxtMarker)
+    fn recognize_definition_pattern(
+        &self,
+        scanner_tokens: &[ScannerToken],
+        start_index: usize,
+    ) -> Result<Option<(Vec<ScannerToken>, usize)>, SemanticAnalysisError> {
+        if start_index + 2 >= scanner_tokens.len() {
+            return Ok(None);
+        }
+
+        // Must start with Text
+        if !matches!(scanner_tokens[start_index], ScannerToken::Text { .. }) {
+            return Ok(None);
+        }
+
+        // Look for the closing TxxtMarker, but be more restrictive about what we accept
+        let mut consumed = 1;
+        let mut i = start_index + 1;
+        let mut has_whitespace = false;
+
+        while i < scanner_tokens.len() {
+            let token = &scanner_tokens[i];
+            match token {
+                ScannerToken::TxxtMarker { .. } => {
+                    // Found the closing TxxtMarker - this is a definition
+                    consumed += 1;
+                    break;
+                }
+                ScannerToken::Whitespace { .. } => {
+                    has_whitespace = true;
+                    consumed += 1;
+                    i += 1;
+                }
+                ScannerToken::Colon { .. } => {
+                    // Allow colon for parameterized definitions
+                    consumed += 1;
+                    i += 1;
+                }
+                ScannerToken::Text { .. } => {
+                    // Allow additional text for parameterized definitions
+                    consumed += 1;
+                    i += 1;
+                }
+                ScannerToken::Newline { .. } => {
+                    // Stop at line boundaries
+                    break;
+                }
+                ScannerToken::BlankLine { .. }
+                | ScannerToken::Indent { .. }
+                | ScannerToken::Dedent { .. } => {
+                    // Stop at structural tokens
+                    break;
+                }
+                _ => {
+                    // Don't include other token types (like Identifier) in definitions
+                    break;
+                }
+            }
+        }
+
+        // Must have found a TxxtMarker and have proper structure
+        if consumed >= 3
+            && matches!(
+                scanner_tokens[start_index + consumed - 1],
+                ScannerToken::TxxtMarker { .. }
+            )
+            && (has_whitespace || consumed > 3)
+        // Either has whitespace or has parameters
+        {
+            let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
+            return Ok(Some((pattern_tokens, consumed)));
+        }
+
+        Ok(None)
+    }
+
+    /// Recognize annotation pattern: TxxtMarker + Whitespace + Identifier + ... + TxxtMarker
+    fn recognize_annotation_pattern(
+        &self,
+        scanner_tokens: &[ScannerToken],
+        start_index: usize,
+    ) -> Result<Option<(Vec<ScannerToken>, usize)>, SemanticAnalysisError> {
+        if start_index + 4 >= scanner_tokens.len() {
+            return Ok(None);
+        }
+
+        // Look for opening TxxtMarker
+        if !matches!(scanner_tokens[start_index], ScannerToken::TxxtMarker { .. }) {
+            return Ok(None);
+        }
+
+        // Look for pattern: TxxtMarker + Whitespace + Identifier + Whitespace + TxxtMarker
+        if matches!(
+            scanner_tokens[start_index + 1],
+            ScannerToken::Whitespace { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 2],
+            ScannerToken::Identifier { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 3],
+            ScannerToken::Whitespace { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 4],
+            ScannerToken::TxxtMarker { .. }
+        ) {
+            // Extract tokens up to the closing TxxtMarker (minimum 5 tokens)
+            let mut consumed = 5;
+
+            // Look for optional content after the closing TxxtMarker
+            let mut i = start_index + 5;
+            while i < scanner_tokens.len() {
+                let token = &scanner_tokens[i];
+                match token {
+                    ScannerToken::Newline { .. } => {
+                        consumed += 1;
+                        break;
+                    }
+                    ScannerToken::BlankLine { .. }
+                    | ScannerToken::Indent { .. }
+                    | ScannerToken::Dedent { .. } => {
+                        // Stop at structural tokens
+                        break;
+                    }
+                    _ => {
+                        consumed += 1;
+                        i += 1;
+                    }
+                }
+            }
+
+            let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
+            return Ok(Some((pattern_tokens, consumed)));
+        }
+
+        Ok(None)
+    }
+
+    /// Recognize verbatim block pattern: VerbatimTitle + IndentationWall + ... + VerbatimLabel
+    fn recognize_verbatim_block_pattern(
+        &self,
+        scanner_tokens: &[ScannerToken],
+        start_index: usize,
+    ) -> Result<Option<(Vec<ScannerToken>, usize)>, SemanticAnalysisError> {
+        if start_index + 2 >= scanner_tokens.len() {
+            return Ok(None);
+        }
+
+        // Look for VerbatimTitle + IndentationWall
+        if matches!(
+            scanner_tokens[start_index],
+            ScannerToken::VerbatimTitle { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 1],
+            ScannerToken::IndentationWall { .. }
+        ) {
+            // Look for VerbatimLabel (may have content in between)
+            let mut consumed = 2;
+            let mut i = start_index + 2;
+
+            while i < scanner_tokens.len() {
+                let token = &scanner_tokens[i];
+                match token {
+                    ScannerToken::VerbatimLabel { .. } => {
+                        consumed += 1;
+                        break;
+                    }
+                    ScannerToken::IgnoreTextSpan { .. } => {
+                        consumed += 1;
+                        i += 1;
+                    }
+                    _ => {
+                        // Stop if we encounter unexpected tokens
+                        break;
+                    }
+                }
+            }
+
+            if consumed >= 3 {
+                // Must have at least VerbatimTitle + IndentationWall + VerbatimLabel
+                let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
+                return Ok(Some((pattern_tokens, consumed)));
+            }
+        }
+
+        Ok(None)
+    }
+
+    /// Transform complex pattern tokens into semantic tokens
+    ///
+    /// This method determines which transformation to apply based on the
+    /// pattern of tokens and calls the appropriate transformation function.
+    ///
+    /// # Arguments
+    /// * `pattern_tokens` - The tokens that form a complex pattern
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The transformed semantic token
+    fn transform_complex_pattern(
+        &self,
+        pattern_tokens: Vec<ScannerToken>,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if pattern_tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Cannot transform empty pattern".to_string(),
+            ));
+        }
+
+        let first_token = &pattern_tokens[0];
+
+        match first_token {
+            // Definition pattern: Text + ... + TxxtMarker
+            ScannerToken::Text { .. } => {
+                if pattern_tokens.len() >= 3
+                    && matches!(
+                        pattern_tokens[pattern_tokens.len() - 1],
+                        ScannerToken::TxxtMarker { .. }
+                    )
+                {
+                    let span = SourceSpan {
+                        start: pattern_tokens[0].span().start,
+                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                    };
+                    return self.transform_definition(pattern_tokens, span);
+                }
+            }
+
+            // Annotation pattern: TxxtMarker + ... + TxxtMarker
+            ScannerToken::TxxtMarker { .. } => {
+                if pattern_tokens.len() >= 5
+                    && matches!(pattern_tokens[1], ScannerToken::Whitespace { .. })
+                    && matches!(pattern_tokens[2], ScannerToken::Identifier { .. })
+                    && matches!(pattern_tokens[3], ScannerToken::Whitespace { .. })
+                    && matches!(pattern_tokens[4], ScannerToken::TxxtMarker { .. })
+                {
+                    let span = SourceSpan {
+                        start: pattern_tokens[0].span().start,
+                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                    };
+                    return self.transform_annotation(pattern_tokens, span);
+                }
+            }
+
+            // Verbatim block pattern: VerbatimTitle + IndentationWall + ... + VerbatimLabel
+            ScannerToken::VerbatimTitle { .. } => {
+                if pattern_tokens.len() >= 3
+                    && matches!(pattern_tokens[1], ScannerToken::IndentationWall { .. })
+                    && matches!(
+                        pattern_tokens[pattern_tokens.len() - 1],
+                        ScannerToken::VerbatimLabel { .. }
+                    )
+                {
+                    let span = SourceSpan {
+                        start: pattern_tokens[0].span().start,
+                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                    };
+                    return self.transform_verbatim_block(pattern_tokens, span);
+                }
+            }
+
+            _ => {}
+        }
+
+        Err(SemanticAnalysisError::AnalysisError(
+            "Unable to determine pattern type for transformation".to_string(),
+        ))
+    }
+
+    /// Check if the current position looks like a core block element (paragraph, session, list)
+    ///
+    /// This method detects when we should apply line-level grouping vs individual
+    /// token transformation. Core block elements are paragraphs, sessions, and lists
+    /// that should be processed as complete lines.
+    ///
+    /// Uses proper local pattern matching instead of flawed global heuristics.
+    ///
+    /// # Arguments
+    /// * `scanner_tokens` - The full scanner token vector
+    /// * `start_index` - The index to start checking from
+    ///
+    /// # Returns
+    /// * `bool` - True if this looks like a core block element
+    fn is_core_block_element(&self, scanner_tokens: &[ScannerToken], start_index: usize) -> bool {
+        if start_index >= scanner_tokens.len() {
+            return false;
+        }
+
+        let token = &scanner_tokens[start_index];
+
+        match token {
+            // SequenceMarker tokens should be processed as line-level elements for lists/sessions
+            ScannerToken::SequenceMarker { .. } => {
+                // Look ahead to see if this line has content after the marker
+                let (line_tokens, _) = match self.extract_line_tokens(scanner_tokens, start_index) {
+                    Ok(result) => result,
+                    Err(_) => return false,
+                };
+
+                // If the line has content after the sequence marker, it's a list/session item
+                line_tokens.len() > 1
+            }
+
+            // Text tokens should be processed as line-level elements for paragraphs
+            ScannerToken::Text { .. } => {
+                // Look ahead to see if this line contains any special markers
+                let (line_tokens, _) = match self.extract_line_tokens(scanner_tokens, start_index) {
+                    Ok(result) => result,
+                    Err(_) => return false,
+                };
+
+                // If the line contains TxxtMarkers, it's not a simple paragraph - use individual processing
+                let has_txxt_markers = line_tokens
+                    .iter()
+                    .any(|token| matches!(token, ScannerToken::TxxtMarker { .. }));
+
+                if has_txxt_markers {
+                    return false;
+                }
+
+                // If the line contains sequence markers, it's not a simple paragraph
+                let has_sequence_markers = line_tokens
+                    .iter()
+                    .any(|token| matches!(token, ScannerToken::SequenceMarker { .. }));
+
+                if has_sequence_markers {
+                    return false;
+                }
+
+                // If the line contains syntactic markers like colons, use individual processing to preserve them
+                let has_syntactic_markers = line_tokens
+                    .iter()
+                    .any(|token| matches!(token, ScannerToken::Colon { .. }));
+
+                if has_syntactic_markers {
+                    return false;
+                }
+
+                // Otherwise, this looks like a paragraph - use line-level processing
+                true
+            }
+
+            // All other tokens should use individual processing
+            _ => false,
+        }
+    }
+
+    /// Extract tokens that belong to a single line
+    ///
+    /// This method groups scanner tokens by line, stopping at line boundaries
+    /// (Newline tokens or end of input).
+    ///
+    /// # Arguments
+    /// * `scanner_tokens` - The full scanner token vector
+    /// * `start_index` - The index to start extracting from
+    ///
+    /// # Returns
+    /// * `Result<(Vec<ScannerToken>, usize), SemanticAnalysisError>` - Tuple of (line_tokens, tokens_consumed)
+    fn extract_line_tokens(
+        &self,
+        scanner_tokens: &[ScannerToken],
+        start_index: usize,
+    ) -> Result<(Vec<ScannerToken>, usize), SemanticAnalysisError> {
+        let mut line_tokens = Vec::new();
+        let mut i = start_index;
+
+        while i < scanner_tokens.len() {
+            let token = &scanner_tokens[i];
+
+            match token {
+                // Stop at line boundaries
+                ScannerToken::Newline { .. } => {
+                    line_tokens.push(token.clone());
+                    i += 1;
+                    break;
+                }
+                // Stop at structural tokens (they're handled separately)
+                ScannerToken::BlankLine { .. }
+                | ScannerToken::Indent { .. }
+                | ScannerToken::Dedent { .. } => {
+                    break;
+                }
+                // Include all other tokens in the line
+                _ => {
+                    line_tokens.push(token.clone());
+                    i += 1;
+                }
+            }
+        }
+
+        // If we reached the end without finding a newline, that's the last line
+        let consumed = i - start_index;
+        Ok((line_tokens, consumed))
+    }
+
+    /// Process a line of scanner tokens into a semantic token
+    ///
+    /// This method analyzes a line of tokens and creates the appropriate
+    /// line-level semantic token (PlainTextLine or SequenceTextLine).
+    ///
+    /// # Arguments
+    /// * `line_tokens` - The scanner tokens for a single line
+    ///
+    /// # Returns
+    /// * `Result<SemanticToken, SemanticAnalysisError>` - The line-level semantic token
+    fn process_line_tokens(
+        &self,
+        line_tokens: Vec<ScannerToken>,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if line_tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Cannot process empty line tokens".to_string(),
+            ));
+        }
+
+        // Check if this line starts with a sequence marker
+        if let Some(first_token) = line_tokens.first() {
+            if matches!(first_token, ScannerToken::SequenceMarker { .. }) {
+                return self.create_sequence_text_line(line_tokens);
+            }
+        }
+
+        // Otherwise, create a plain text line
+        self.create_plain_text_line(line_tokens)
+    }
+
+    /// Create a SequenceTextLine semantic token from line tokens
+    fn create_sequence_text_line(
+        &self,
+        line_tokens: Vec<ScannerToken>,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        if line_tokens.len() < 2 {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "SequenceTextLine requires at least a marker and some content".to_string(),
+            ));
+        }
+
+        let marker_token = line_tokens[0].clone();
+        let content_tokens = line_tokens[1..].to_vec();
+
+        // Transform the sequence marker
+        let marker_semantic = match &marker_token {
+            ScannerToken::SequenceMarker { marker_type, span } => {
+                self.transform_sequence_marker(marker_type.clone(), span.clone())?
+            }
+            _ => {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "Expected SequenceMarker as first token".to_string(),
+                ));
+            }
+        };
+
+        // Transform the content tokens into a single text span
+        let content_semantic = self.tokens_to_text_span_line_level(content_tokens)?;
+
+        // Calculate the span for the entire line
+        let start_span = marker_token.span();
+        let end_span = line_tokens.last().unwrap().span();
+        let line_span = SourceSpan {
+            start: start_span.start,
+            end: end_span.end,
+        };
+
+        Ok(SemanticTokenBuilder::sequence_text_line(
+            marker_semantic,
+            content_semantic,
+            line_span,
+        ))
+    }
+
+    /// Create a PlainTextLine semantic token from line tokens
+    fn create_plain_text_line(
+        &self,
+        line_tokens: Vec<ScannerToken>,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        // Transform all tokens into a single text span
+        let content_semantic = self.tokens_to_text_span_line_level(line_tokens.clone())?;
+
+        // Calculate the span for the entire line
+        let start_span = line_tokens.first().unwrap().span();
+        let end_span = line_tokens.last().unwrap().span();
+        let line_span = SourceSpan {
+            start: start_span.start,
+            end: end_span.end,
+        };
+
+        Ok(SemanticTokenBuilder::plain_text_line(
+            content_semantic,
+            line_span,
+        ))
+    }
+
+    /// Convert a list of scanner tokens into a single TextSpan semantic token (for line-level processing)
+    fn tokens_to_text_span_line_level(
+        &self,
+        tokens: Vec<ScannerToken>,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        let mut content = String::new();
+        let mut start_span = None;
+        let mut end_span = None;
+
+        for token in tokens {
+            if start_span.is_none() {
+                start_span = Some(token.span().start);
+            }
+            end_span = Some(token.span().end);
+
+            // Convert token to text content, preserving whitespace for line-level processing
+            let token_content = self.token_to_text_content(&token);
+            content.push_str(&token_content);
+        }
+
+        let span = SourceSpan {
+            start: start_span.unwrap_or(Position { row: 0, column: 0 }),
+            end: end_span.unwrap_or(Position { row: 0, column: 0 }),
+        };
+
+        Ok(SemanticTokenBuilder::text_span(content, span))
+    }
+
+    /// Convert a list of scanner tokens into a single TextSpan semantic token (for individual processing)
+    fn tokens_to_text_span(
+        &self,
+        tokens: Vec<ScannerToken>,
+    ) -> Result<SemanticToken, SemanticAnalysisError> {
+        let mut content = String::new();
+        let mut start_span = None;
+        let mut end_span = None;
+
+        for token in tokens {
+            if start_span.is_none() {
+                start_span = Some(token.span().start);
+            }
+            end_span = Some(token.span().end);
+
+            // Convert token to text content, but filter out whitespace tokens
+            match &token {
+                ScannerToken::Whitespace { .. } => {
+                    // Skip whitespace tokens when combining
+                    continue;
+                }
+                _ => {
+                    let token_content = self.token_to_text_content(&token);
+                    content.push_str(&token_content);
+                }
+            }
+        }
+
+        let span = SourceSpan {
+            start: start_span.unwrap_or(Position { row: 0, column: 0 }),
+            end: end_span.unwrap_or(Position { row: 0, column: 0 }),
+        };
+
+        Ok(SemanticTokenBuilder::text_span(content, span))
     }
 
     /// Transform TxxtMarker scanner token to semantic token
@@ -709,7 +1361,7 @@ impl SemanticAnalyzer {
             let param_tokens = &tokens[pos + 1..];
 
             // Create label semantic token
-            let label_token = self.tokens_to_text_span(label_tokens)?;
+            let label_token = self.tokens_to_text_span(label_tokens.to_vec())?;
 
             // Create parameters semantic token if there are parameter tokens
             let parameters = if param_tokens.is_empty()
@@ -725,7 +1377,7 @@ impl SemanticAnalyzer {
             Ok((label_token, parameters))
         } else {
             // No parameters, just create label
-            let label_token = self.tokens_to_text_span(tokens)?;
+            let label_token = self.tokens_to_text_span(tokens.to_vec())?;
             Ok((label_token, None))
         }
     }
@@ -874,43 +1526,6 @@ impl SemanticAnalyzer {
             .join("")
             .trim()
             .to_string();
-
-        let span = SourceSpan {
-            start: tokens[0].span().start,
-            end: tokens[tokens.len() - 1].span().end,
-        };
-
-        Ok(SemanticTokenBuilder::text_span(content, span))
-    }
-
-    /// Convert a sequence of tokens to a TextSpan semantic token
-    ///
-    /// This helper method combines multiple tokens into a single TextSpan,
-    /// preserving the source span information. It filters out whitespace tokens
-    /// to create clean text content.
-    ///
-    /// # Arguments
-    /// * `tokens` - The tokens to combine
-    ///
-    /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The text span semantic token
-    fn tokens_to_text_span(
-        &self,
-        tokens: &[ScannerToken],
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
-        if tokens.is_empty() {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Cannot create text span from empty tokens".to_string(),
-            ));
-        }
-
-        // Filter out whitespace tokens and combine content
-        let content = tokens
-            .iter()
-            .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
-            .map(|token| token.content())
-            .collect::<Vec<&str>>()
-            .join("");
 
         let span = SourceSpan {
             start: tokens[0].span().start,

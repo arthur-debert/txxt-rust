@@ -41,7 +41,7 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
     1.4. Punctuation Tokens
 
         Tokens that provide structural punctuation:
-        - `Colon`: Single colon (:)
+        - `Colon`: Single colon (:) - preserved as syntactic marker for parameter parsing
         - `Equals`: Equals sign (=)
         - `Comma`: Comma separator (,)
         - `Period`: Period (.)
@@ -165,7 +165,12 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
         Input: `:: note :: This is an annotation`
         Tokens: `TxxtMarker` `Whitespace` `Text` `Whitespace` `TxxtMarker` `Whitespace` `Text`
 
-    5.2. Verbatim Block Tokens
+    5.2. Definition Tokens
+
+        Input: `Term: param ::`
+        Tokens: `Text` `Colon` `Text` `Whitespace` `TxxtMarker`
+
+    5.3. Verbatim Block Tokens
 
         Input: Python example:
             def hello():
@@ -173,7 +178,7 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
         :: python
         Tokens: `VerbatimTitle` `IndentationWall` `IgnoreTextSpan` `VerbatimLabel`
 
-    5.3. Reference Tokens
+    5.4. Reference Tokens
 
         Input: `See [@smith2023] for details`
         Tokens: `Text` `Whitespace` `LeftBracket` `AtSign` `Text` `RightBracket` `Whitespace` `Text`

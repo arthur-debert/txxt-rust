@@ -142,6 +142,12 @@ fn test_text_span_in_semantic_analysis() {
                 end: Position { row: 1, column: 11 },
             },
         },
+        ScannerToken::Newline {
+            span: SourceSpan {
+                start: Position { row: 1, column: 11 },
+                end: Position { row: 1, column: 11 },
+            },
+        },
         ScannerToken::Text {
             content: "Another line".to_string(),
             span: SourceSpan {
@@ -155,35 +161,62 @@ fn test_text_span_in_semantic_analysis() {
     assert!(result.is_ok());
 
     let semantic_tokens = result.unwrap();
+
+    // With the corrected logic, each text line should be processed as a PlainTextLine token
+    // The test has two separate lines, so we expect two PlainTextLine tokens
     assert_eq!(semantic_tokens.len(), 2);
 
-    // Check first text span
+    // Check first plain text line
     match &semantic_tokens.tokens[0] {
-        SemanticToken::TextSpan { content, span } => {
-            assert_eq!(content, "Hello world");
+        SemanticToken::PlainTextLine { content, span } => {
+            // The content should be a TextSpan containing "Hello world" (with newline for line-level processing)
+            match content.as_ref() {
+                SemanticToken::TextSpan {
+                    content: text_content,
+                    ..
+                } => {
+                    assert_eq!(text_content, "Hello world\n");
+                }
+                _ => panic!(
+                    "Expected TextSpan content in PlainTextLine, got {:?}",
+                    content.as_ref()
+                ),
+            }
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 1);
             assert_eq!(span.end.column, 11);
         }
         _ => panic!(
-            "Expected TextSpan semantic token, got {:?}",
-            semantic_tokens.tokens[0]
+            "Expected PlainTextLine semantic token at position 0, got {:?}",
+            &semantic_tokens.tokens[0]
         ),
     }
 
-    // Check second text span
+    // Check second plain text line
     match &semantic_tokens.tokens[1] {
-        SemanticToken::TextSpan { content, span } => {
-            assert_eq!(content, "Another line");
+        SemanticToken::PlainTextLine { content, span } => {
+            // The content should be a TextSpan containing "Another line"
+            match content.as_ref() {
+                SemanticToken::TextSpan {
+                    content: text_content,
+                    ..
+                } => {
+                    assert_eq!(text_content, "Another line");
+                }
+                _ => panic!(
+                    "Expected TextSpan content in PlainTextLine, got {:?}",
+                    content.as_ref()
+                ),
+            }
             assert_eq!(span.start.row, 2);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2);
             assert_eq!(span.end.column, 12);
         }
         _ => panic!(
-            "Expected TextSpan semantic token, got {:?}",
-            semantic_tokens.tokens[1]
+            "Expected PlainTextLine semantic token at position 1, got {:?}",
+            &semantic_tokens.tokens[1]
         ),
     }
 }
@@ -263,13 +296,25 @@ fn test_text_span_with_structural_tokens() {
         ),
     }
 
-    // Check that text span is created
+    // Check that text is processed as a line-level element
     match &semantic_tokens.tokens[1] {
-        SemanticToken::TextSpan { content, .. } => {
-            assert_eq!(content, "Indented text");
+        SemanticToken::PlainTextLine { content, .. } => {
+            // The content should be a TextSpan containing "Indented text"
+            match content.as_ref() {
+                SemanticToken::TextSpan {
+                    content: text_content,
+                    ..
+                } => {
+                    assert_eq!(text_content, "Indented text");
+                }
+                _ => panic!(
+                    "Expected TextSpan content in PlainTextLine, got {:?}",
+                    content.as_ref()
+                ),
+            }
         }
         _ => panic!(
-            "Expected TextSpan semantic token, got {:?}",
+            "Expected PlainTextLine semantic token, got {:?}",
             semantic_tokens.tokens[1]
         ),
     }
@@ -316,19 +361,34 @@ fn test_text_span_multiple_text_tokens() {
     assert!(result.is_ok());
 
     let semantic_tokens = result.unwrap();
-    assert_eq!(semantic_tokens.len(), 3);
 
-    // Each text token should become a separate TextSpan
-    let expected_contents = ["First", "Second", "Third"];
-    for (i, expected_content) in expected_contents.iter().enumerate() {
-        match &semantic_tokens.tokens[i] {
-            SemanticToken::TextSpan { content, .. } => {
-                assert_eq!(content, *expected_content);
+    // With the corrected logic, multiple text tokens on the same line should be combined into a single PlainTextLine
+    assert_eq!(semantic_tokens.len(), 1);
+
+    // Check that all text tokens are combined into a single line-level element
+    match &semantic_tokens.tokens[0] {
+        SemanticToken::PlainTextLine { content, span } => {
+            // The content should be a TextSpan containing the combined text "FirstSecondThird"
+            match content.as_ref() {
+                SemanticToken::TextSpan {
+                    content: text_content,
+                    ..
+                } => {
+                    assert_eq!(text_content, "FirstSecondThird");
+                }
+                _ => panic!(
+                    "Expected TextSpan content in PlainTextLine, got {:?}",
+                    content.as_ref()
+                ),
             }
-            _ => panic!(
-                "Expected TextSpan semantic token, got {:?}",
-                semantic_tokens.tokens[i]
-            ),
+            assert_eq!(span.start.row, 1);
+            assert_eq!(span.start.column, 0);
+            assert_eq!(span.end.row, 1);
+            assert_eq!(span.end.column, 16);
         }
+        _ => panic!(
+            "Expected PlainTextLine semantic token, got {:?}",
+            semantic_tokens.tokens[0]
+        ),
     }
 }

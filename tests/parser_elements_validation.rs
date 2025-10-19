@@ -27,9 +27,7 @@ fn test_paragraph_semantic_tokens() {
     println!("{}", semantic_tokens);
 
     // Basic validation - should contain PlainTextLine tokens
-    // TODO: Currently semantic analysis produces individual TextSpan tokens instead of PlainTextLine
-    // This test documents the current behavior and will be updated when semantic analysis is fixed
-    assert!(semantic_tokens.contains("TextSpan"));
+    assert!(semantic_tokens.contains("PlainTextLine"));
 }
 
 #[test]
@@ -50,9 +48,7 @@ fn test_session_semantic_tokens() {
     println!("{}", semantic_tokens);
 
     // Basic validation - should contain SequenceTextLine and PlainTextLine tokens
-    // TODO: Currently semantic analysis produces individual TextSpan tokens instead of line-level tokens
-    // This test documents the current behavior and will be updated when semantic analysis is fixed
-    assert!(semantic_tokens.contains("TextSpan"));
+    assert!(semantic_tokens.contains("PlainTextLine"));
 }
 
 #[test]
@@ -73,7 +69,5 @@ fn test_list_semantic_tokens() {
     println!("{}", semantic_tokens);
 
     // Basic validation - should contain SequenceTextLine tokens
-    // TODO: Currently semantic analysis produces individual TextSpan tokens instead of line-level tokens
-    // This test documents the current behavior and will be updated when semantic analysis is fixed
-    assert!(semantic_tokens.contains("SequenceMarker"));
+    assert!(semantic_tokens.contains("SequenceTextLine"));
 }

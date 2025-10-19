@@ -389,6 +389,9 @@ fn test_sequence_marker_with_structural_tokens() {
     ];
 
     let result = analyzer.analyze(scanner_tokens);
+    if let Err(e) = &result {
+        println!("Error: {}", e);
+    }
     assert!(result.is_ok());
 
     let semantic_tokens = result.unwrap();

@@ -102,18 +102,46 @@ impl AstConstructor {
             return Ok(None);
         }
 
-        let _current_token = &semantic_tokens.tokens[self.position];
+        let current_token = &semantic_tokens.tokens[self.position];
 
         // Apply precedence rules (first match wins):
         // 1. VerbatimBlock pattern (highest precedence)
-        // 2. Annotation pattern
-        // 3. Definition pattern
-        // 4. Session pattern
-        // 5. List pattern
-        // 6. Paragraph pattern (catch-all, lowest precedence)
+        if let Some(node) = self.try_parse_verbatim_block(current_token)? {
+            self.position += 1; // Consume the token
+            return Ok(Some(node));
+        }
 
-        // TODO: Implement pattern recognition for each element type
-        // For now, just return None to indicate no pattern matched
+        // 2. Annotation pattern
+        if let Some(node) = self.try_parse_annotation(current_token)? {
+            self.position += 1; // Consume the token
+            return Ok(Some(node));
+        }
+
+        // 3. Definition pattern
+        if let Some(node) = self.try_parse_definition(current_token)? {
+            self.position += 1; // Consume the token
+            return Ok(Some(node));
+        }
+
+        // 4. Session pattern
+        if let Some(node) = self.try_parse_session(current_token)? {
+            self.position += 1; // Consume the token
+            return Ok(Some(node));
+        }
+
+        // 5. List pattern
+        if let Some(node) = self.try_parse_list(current_token)? {
+            self.position += 1; // Consume the token
+            return Ok(Some(node));
+        }
+
+        // 6. Paragraph pattern (catch-all, lowest precedence)
+        if let Some(node) = self.try_parse_paragraph(current_token)? {
+            self.position += 1; // Consume the token
+            return Ok(Some(node));
+        }
+
+        // No pattern matched
         Ok(None)
     }
 
@@ -134,6 +162,203 @@ impl AstConstructor {
     fn consume(&mut self) -> Option<SemanticToken> {
         // This will be implemented when we have actual tokens to consume
         None
+    }
+
+    /// Try to parse an annotation semantic token
+    ///
+    /// Annotations are already constructed semantic tokens, so we just need to
+    /// extract the information and create a temporary AST node.
+    ///
+    /// # Arguments
+    /// * `token` - The current semantic token
+    ///
+    /// # Returns
+    /// * `Result<Option<TempAstNode>, BlockParseError>` - Annotation node if matched
+    fn try_parse_annotation(
+        &self,
+        token: &SemanticToken,
+    ) -> Result<Option<TempAstNode>, BlockParseError> {
+        match token {
+            SemanticToken::Annotation {
+                label,
+                content,
+                span,
+                ..
+            } => {
+                // Extract label text
+                let label_text = match label.as_ref() {
+                    SemanticToken::Label { text, .. } => text.clone(),
+                    _ => "unknown".to_string(),
+                };
+
+                // Extract content text if present
+                let content_text = match content {
+                    Some(content_token) => match content_token.as_ref() {
+                        SemanticToken::TextSpan { content, .. } => Some(content.clone()),
+                        SemanticToken::PlainTextLine { content, .. } => match content.as_ref() {
+                            SemanticToken::TextSpan { content, .. } => Some(content.clone()),
+                            _ => None,
+                        },
+                        _ => None,
+                    },
+                    None => None,
+                };
+
+                Ok(Some(TempAstNode::Annotation {
+                    label: label_text,
+                    content: content_text,
+                    span: span.clone(),
+                }))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    /// Try to parse a verbatim block semantic token
+    ///
+    /// # Arguments
+    /// * `token` - The current semantic token
+    ///
+    /// # Returns
+    /// * `Result<Option<TempAstNode>, BlockParseError>` - Verbatim block node if matched
+    fn try_parse_verbatim_block(
+        &self,
+        token: &SemanticToken,
+    ) -> Result<Option<TempAstNode>, BlockParseError> {
+        match token {
+            SemanticToken::VerbatimBlock {
+                title, label, span, ..
+            } => {
+                // Extract title text
+                let title_text = match title.as_ref() {
+                    SemanticToken::TextSpan { content, .. } => content.clone(),
+                    _ => "unknown".to_string(),
+                };
+
+                // Extract label text
+                let label_text = match label.as_ref() {
+                    SemanticToken::Label { text, .. } => text.clone(),
+                    _ => "unknown".to_string(),
+                };
+
+                Ok(Some(TempAstNode::VerbatimBlock {
+                    title: title_text,
+                    label: label_text,
+                    span: span.clone(),
+                }))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    /// Try to parse a definition semantic token
+    ///
+    /// # Arguments
+    /// * `token` - The current semantic token
+    ///
+    /// # Returns
+    /// * `Result<Option<TempAstNode>, BlockParseError>` - Definition node if matched
+    fn try_parse_definition(
+        &self,
+        token: &SemanticToken,
+    ) -> Result<Option<TempAstNode>, BlockParseError> {
+        match token {
+            SemanticToken::Definition {
+                term,
+                parameters,
+                span,
+                ..
+            } => {
+                // Extract term text
+                let term_text = match term.as_ref() {
+                    SemanticToken::TextSpan { content, .. } => content.clone(),
+                    _ => "unknown".to_string(),
+                };
+
+                // Extract parameters text if present
+                let params_text = match parameters {
+                    Some(params_token) => {
+                        match params_token.as_ref() {
+                            SemanticToken::Parameters { params, .. } => {
+                                // Convert parameters to string representation
+                                let param_strings: Vec<String> =
+                                    params.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
+                                Some(param_strings.join(","))
+                            }
+                            _ => None,
+                        }
+                    }
+                    None => None,
+                };
+
+                Ok(Some(TempAstNode::Definition {
+                    term: term_text,
+                    parameters: params_text,
+                    span: span.clone(),
+                }))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    /// Try to parse a session semantic token
+    ///
+    /// # Arguments
+    /// * `token` - The current semantic token
+    ///
+    /// # Returns
+    /// * `Result<Option<TempAstNode>, BlockParseError>` - Session node if matched
+    fn try_parse_session(
+        &self,
+        _token: &SemanticToken,
+    ) -> Result<Option<TempAstNode>, BlockParseError> {
+        // TODO: Implement session parsing
+        // Sessions are not simple semantic tokens, they need complex pattern recognition
+        Ok(None)
+    }
+
+    /// Try to parse a list semantic token
+    ///
+    /// # Arguments
+    /// * `token` - The current semantic token
+    ///
+    /// # Returns
+    /// * `Result<Option<TempAstNode>, BlockParseError>` - List node if matched
+    fn try_parse_list(
+        &self,
+        _token: &SemanticToken,
+    ) -> Result<Option<TempAstNode>, BlockParseError> {
+        // TODO: Implement list parsing
+        // Lists are not simple semantic tokens, they need complex pattern recognition
+        Ok(None)
+    }
+
+    /// Try to parse a paragraph semantic token
+    ///
+    /// # Arguments
+    /// * `token` - The current semantic token
+    ///
+    /// # Returns
+    /// * `Result<Option<TempAstNode>, BlockParseError>` - Paragraph node if matched
+    fn try_parse_paragraph(
+        &self,
+        token: &SemanticToken,
+    ) -> Result<Option<TempAstNode>, BlockParseError> {
+        match token {
+            SemanticToken::PlainTextLine { content, span, .. } => {
+                // Extract content text
+                let content_text = match content.as_ref() {
+                    SemanticToken::TextSpan { content, .. } => content.clone(),
+                    _ => "unknown".to_string(),
+                };
+
+                Ok(Some(TempAstNode::Paragraph {
+                    content: content_text,
+                    span: span.clone(),
+                }))
+            }
+            _ => Ok(None),
+        }
     }
 }
 
@@ -251,5 +476,59 @@ mod tests {
         assert!(result.unwrap().is_empty());
         // Parser should end with indentation level back to 0
         assert_eq!(parser.indentation_level, 0);
+    }
+
+    /// Test that the parser can parse annotation semantic tokens
+    #[test]
+    fn test_parse_annotation() {
+        let mut parser = AstConstructor::new();
+
+        let span = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 20 },
+        };
+
+        let label_span = SourceSpan {
+            start: Position { row: 1, column: 3 },
+            end: Position { row: 1, column: 7 },
+        };
+
+        let content_span = SourceSpan {
+            start: Position { row: 1, column: 11 },
+            end: Position { row: 1, column: 20 },
+        };
+
+        // Create an annotation semantic token
+        let annotation_token = SemanticTokenBuilder::annotation(
+            SemanticTokenBuilder::label("note".to_string(), label_span),
+            None, // No parameters
+            Some(SemanticTokenBuilder::text_span(
+                "This is a note".to_string(),
+                content_span,
+            )),
+            span,
+        );
+
+        let tokens = vec![annotation_token];
+        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let result = parser.parse(&semantic_tokens);
+
+        assert!(result.is_ok());
+        let ast_nodes = result.unwrap();
+        assert_eq!(ast_nodes.len(), 1);
+
+        match &ast_nodes[0] {
+            TempAstNode::Annotation {
+                label,
+                content,
+                span: node_span,
+            } => {
+                assert_eq!(label, "note");
+                assert_eq!(content, &Some("This is a note".to_string()));
+                assert_eq!(node_span.start.row, 1);
+                assert_eq!(node_span.start.column, 0);
+            }
+            _ => panic!("Expected Annotation node, got {:?}", ast_nodes[0]),
+        }
     }
 }

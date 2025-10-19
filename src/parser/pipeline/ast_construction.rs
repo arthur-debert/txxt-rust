@@ -531,4 +531,91 @@ mod tests {
             _ => panic!("Expected Annotation node, got {:?}", ast_nodes[0]),
         }
     }
+
+    /// Test that the parser can parse definition semantic tokens
+    #[test]
+    fn test_parse_definition() {
+        let mut parser = AstConstructor::new();
+
+        let span = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 15 },
+        };
+
+        let term_span = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 12 },
+        };
+
+        // Create a definition semantic token
+        let definition_token = SemanticTokenBuilder::definition(
+            SemanticTokenBuilder::text_span("Term".to_string(), term_span),
+            None, // No parameters
+            span,
+        );
+
+        let tokens = vec![definition_token];
+        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let result = parser.parse(&semantic_tokens);
+
+        assert!(result.is_ok());
+        let ast_nodes = result.unwrap();
+        assert_eq!(ast_nodes.len(), 1);
+
+        match &ast_nodes[0] {
+            TempAstNode::Definition {
+                term,
+                parameters,
+                span: node_span,
+            } => {
+                assert_eq!(term, "Term");
+                assert_eq!(parameters, &None);
+                assert_eq!(node_span.start.row, 1);
+                assert_eq!(node_span.start.column, 0);
+            }
+            _ => panic!("Expected Definition node, got {:?}", ast_nodes[0]),
+        }
+    }
+
+    /// Test that the parser can parse paragraph semantic tokens
+    #[test]
+    fn test_parse_paragraph() {
+        let mut parser = AstConstructor::new();
+
+        let span = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 12 },
+        };
+
+        let content_span = SourceSpan {
+            start: Position { row: 1, column: 0 },
+            end: Position { row: 1, column: 12 },
+        };
+
+        // Create a paragraph semantic token
+        let paragraph_token = SemanticTokenBuilder::plain_text_line(
+            SemanticTokenBuilder::text_span("Hello world".to_string(), content_span),
+            span,
+        );
+
+        let tokens = vec![paragraph_token];
+        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let result = parser.parse(&semantic_tokens);
+
+        assert!(result.is_ok());
+        let ast_nodes = result.unwrap();
+        assert_eq!(ast_nodes.len(), 1);
+
+        match &ast_nodes[0] {
+            TempAstNode::Paragraph {
+                content,
+                span: node_span,
+            } => {
+                assert_eq!(content, "Hello world");
+                assert_eq!(node_span.start.row, 1);
+                assert_eq!(node_span.start.column, 0);
+            }
+            _ => panic!("Expected Paragraph node, got {:?}", ast_nodes[0]),
+        }
+    }
 }

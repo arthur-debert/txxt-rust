@@ -476,6 +476,8 @@ impl SemanticAnalyzer {
     /// token transformation. Core block elements are paragraphs, sessions, and lists
     /// that should be processed as complete lines.
     ///
+    /// Uses proper local pattern matching instead of flawed global heuristics.
+    ///
     /// # Arguments
     /// * `scanner_tokens` - The full scanner token vector
     /// * `start_index` - The index to start checking from
@@ -490,37 +492,19 @@ impl SemanticAnalyzer {
         let token = &scanner_tokens[start_index];
 
         match token {
-            // If we see a TxxtMarker, this is likely an annotation or definition - use individual processing
-            ScannerToken::TxxtMarker { .. } => false,
-
-            // For SequenceMarker tokens, use line-level processing for lists
+            // SequenceMarker tokens should be processed as line-level elements for lists/sessions
             ScannerToken::SequenceMarker { .. } => {
-                // Check if this is a test scenario with isolated sequence markers
-                // (no accompanying text or structural tokens)
-                let has_text_tokens = scanner_tokens
-                    .iter()
-                    .any(|token| matches!(token, ScannerToken::Text { .. }));
+                // Look ahead to see if this line has content after the marker
+                let (line_tokens, _) = match self.extract_line_tokens(scanner_tokens, start_index) {
+                    Ok(result) => result,
+                    Err(_) => return false,
+                };
 
-                let _has_structural_tokens = scanner_tokens.iter().any(|token| {
-                    matches!(
-                        token,
-                        ScannerToken::Indent { .. }
-                            | ScannerToken::Dedent { .. }
-                            | ScannerToken::BlankLine { .. }
-                    )
-                });
-
-                // If this has no text tokens, it's likely a test scenario
-                // Use individual processing for isolated sequence markers
-                if !has_text_tokens {
-                    return false;
-                }
-
-                // Otherwise, use line-level processing for sequence markers
-                true
+                // If the line has content after the sequence marker, it's a list/session item
+                line_tokens.len() > 1
             }
 
-            // For Text tokens, be more sophisticated about detection
+            // Text tokens should be processed as line-level elements for paragraphs
             ScannerToken::Text { .. } => {
                 // Look ahead to see if this line contains any special markers
                 let (line_tokens, _) = match self.extract_line_tokens(scanner_tokens, start_index) {
@@ -528,7 +512,7 @@ impl SemanticAnalyzer {
                     Err(_) => return false,
                 };
 
-                // If the line contains TxxtMarkers, use individual processing
+                // If the line contains TxxtMarkers, it's not a simple paragraph - use individual processing
                 let has_txxt_markers = line_tokens
                     .iter()
                     .any(|token| matches!(token, ScannerToken::TxxtMarker { .. }));
@@ -537,68 +521,20 @@ impl SemanticAnalyzer {
                     return false;
                 }
 
-                // Check if this is a structured document (has structural tokens like Indent, Dedent, BlankLine)
-                let has_structural_tokens = scanner_tokens.iter().any(|token| {
-                    matches!(
-                        token,
-                        ScannerToken::Indent { .. }
-                            | ScannerToken::Dedent { .. }
-                            | ScannerToken::BlankLine { .. }
-                    )
-                });
-
-                // If this is a structured document, check if it's a real document or a test scenario
-                if has_structural_tokens {
-                    // Check if this looks like a test scenario (single text token with structural tokens)
-                    let text_token_count = scanner_tokens
-                        .iter()
-                        .filter(|token| matches!(token, ScannerToken::Text { .. }))
-                        .count();
-
-                    // If there's only one text token, it's likely a test scenario
-                    if text_token_count == 1 {
-                        return false;
-                    }
-
-                    // Otherwise, use line-level processing for structured documents
-                    return true;
-                }
-
-                // Check if this looks like a test scenario vs a real paragraph
-                // Test scenarios typically have very simple patterns or multiple separate tokens
-                let has_multiple_text_lines = scanner_tokens
+                // If the line contains sequence markers, it's not a simple paragraph
+                let has_sequence_markers = line_tokens
                     .iter()
-                    .filter(|token| matches!(token, ScannerToken::Text { .. }))
-                    .map(|token| token.span().start.row)
-                    .collect::<std::collections::HashSet<_>>()
-                    .len()
-                    > 1;
+                    .any(|token| matches!(token, ScannerToken::SequenceMarker { .. }));
 
-                // If this has multiple text lines, it's likely a test scenario
-                if has_multiple_text_lines {
+                if has_sequence_markers {
                     return false;
                 }
 
-                // Check if this looks like a real paragraph (longer text content)
-                let total_text_length: usize = scanner_tokens
-                    .iter()
-                    .filter(|token| matches!(token, ScannerToken::Text { .. }))
-                    .map(|token| match token {
-                        ScannerToken::Text { content, .. } => content.len(),
-                        _ => 0,
-                    })
-                    .sum();
-
-                // If this is a substantial paragraph (more than 20 characters), use line-level processing
-                if total_text_length > 20 {
-                    return true;
-                }
-
-                // Otherwise, use individual processing
-                false
+                // Otherwise, this looks like a paragraph - use line-level processing
+                true
             }
 
-            // For other tokens, use individual processing
+            // All other tokens should use individual processing
             _ => false,
         }
     }

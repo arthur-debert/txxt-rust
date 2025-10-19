@@ -251,11 +251,18 @@ fn test_sequence_marker_in_semantic_analysis() {
                 end: Position { row: 1, column: 2 },
             },
         },
+        ScannerToken::BlankLine {
+            whitespace: "".to_string(),
+            span: SourceSpan {
+                start: Position { row: 2, column: 0 },
+                end: Position { row: 2, column: 0 },
+            },
+        },
         ScannerToken::SequenceMarker {
             marker_type: SequenceMarkerType::Plain("-".to_string()),
             span: SourceSpan {
-                start: Position { row: 2, column: 0 },
-                end: Position { row: 2, column: 1 },
+                start: Position { row: 3, column: 0 },
+                end: Position { row: 3, column: 1 },
             },
         },
     ];
@@ -264,7 +271,7 @@ fn test_sequence_marker_in_semantic_analysis() {
     assert!(result.is_ok());
 
     let semantic_tokens = result.unwrap();
-    assert_eq!(semantic_tokens.len(), 2);
+    assert_eq!(semantic_tokens.len(), 3);
 
     // Check first sequence marker
     match &semantic_tokens.tokens[0] {
@@ -288,8 +295,22 @@ fn test_sequence_marker_in_semantic_analysis() {
         ),
     }
 
-    // Check second sequence marker
+    // Check blank line
     match &semantic_tokens.tokens[1] {
+        SemanticToken::BlankLine { span } => {
+            assert_eq!(span.start.row, 2);
+            assert_eq!(span.start.column, 0);
+            assert_eq!(span.end.row, 2);
+            assert_eq!(span.end.column, 0);
+        }
+        _ => panic!(
+            "Expected BlankLine semantic token, got {:?}",
+            semantic_tokens.tokens[1]
+        ),
+    }
+
+    // Check second sequence marker
+    match &semantic_tokens.tokens[2] {
         SemanticToken::SequenceMarker {
             style,
             form,
@@ -299,14 +320,14 @@ fn test_sequence_marker_in_semantic_analysis() {
             assert_eq!(*style, SemanticNumberingStyle::Plain);
             assert_eq!(*form, SemanticNumberingForm::Regular);
             assert_eq!(marker, "-");
-            assert_eq!(span.start.row, 2);
+            assert_eq!(span.start.row, 3);
             assert_eq!(span.start.column, 0);
-            assert_eq!(span.end.row, 2);
+            assert_eq!(span.end.row, 3);
             assert_eq!(span.end.column, 1);
         }
         _ => panic!(
             "Expected SequenceMarker semantic token, got {:?}",
-            semantic_tokens.tokens[1]
+            semantic_tokens.tokens[2]
         ),
     }
 }

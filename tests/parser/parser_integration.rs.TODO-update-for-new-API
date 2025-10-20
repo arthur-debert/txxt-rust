@@ -19,7 +19,7 @@
 //! ```rust
 //! let corpus = TxxtCorpora::load_with_processing(
 //!     "txxt.core.spec.paragraph.valid.simple",
-//!     ProcessingStage::Tokens
+//!     ProcessingStage::ScannerTokens
 //! )?;
 //! let tokens = corpus.tokens().unwrap();
 //! // Test your tokenizer against expected tokens
@@ -117,12 +117,12 @@ fn test_corpus_not_found() {
 fn test_paragraph_simple_with_tokenization() {
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.paragraph.valid.simple",
-        ProcessingStage::Tokens,
+        ProcessingStage::ScannerTokens,
     )
     .expect("Failed to load simple paragraph corpus with tokenization");
 
     assert_eq!(corpus.name, "txxt.core.spec.paragraph.valid.simple");
-    assert_eq!(corpus.processing_stage, ProcessingStage::Tokens);
+    assert_eq!(corpus.processing_stage, ProcessingStage::ScannerTokens);
 
     // Verify tokenized data is available
     let tokens = corpus.tokens().expect("Tokens should be available");
@@ -137,11 +137,11 @@ fn test_paragraph_simple_with_tokenization() {
 fn test_paragraph_with_ast_processing() {
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.paragraph.valid.simple",
-        ProcessingStage::ParsedAst,
+        ProcessingStage::AstFull,
     )
     .expect("Failed to load simple paragraph corpus with AST processing");
 
-    assert_eq!(corpus.processing_stage, ProcessingStage::ParsedAst);
+    assert_eq!(corpus.processing_stage, ProcessingStage::AstFull);
 
     // Verify AST data is available (placeholder for now)
     let ast = corpus.ast().expect("AST should be available");
@@ -153,13 +153,13 @@ fn test_processing_stage_comparison() {
     // Test that we can load the same corpus with different processing stages
     let raw_corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.paragraph.valid.simple",
-        ProcessingStage::Raw,
+        ProcessingStage::ScannerTokens,
     )
     .expect("Failed to load raw corpus");
 
     let token_corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.paragraph.valid.simple",
-        ProcessingStage::Tokens,
+        ProcessingStage::ScannerTokens,
     )
     .expect("Failed to load tokenized corpus");
 
@@ -168,8 +168,8 @@ fn test_processing_stage_comparison() {
     assert_eq!(raw_corpus.source_text, token_corpus.source_text);
 
     // Different processing stages
-    assert_eq!(raw_corpus.processing_stage, ProcessingStage::Raw);
-    assert_eq!(token_corpus.processing_stage, ProcessingStage::Tokens);
+    assert_eq!(raw_corpus.processing_stage, ProcessingStage::ScannerTokens);
+    assert_eq!(token_corpus.processing_stage, ProcessingStage::ScannerTokens);
 
     // Raw corpus has no tokens, tokenized corpus has tokens
     assert!(raw_corpus.tokens().is_none());

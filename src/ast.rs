@@ -126,9 +126,9 @@
 //!
 //! let corpus = TxxtCorpora::load_with_processing(
 //!     "txxt.core.spec.paragraph.valid.simple",
-//!     ProcessingStage::ParsedAst
+//!     ProcessingStage::AstFull
 //! )?;
-//! let ast_node = corpus.ast().unwrap();
+//! let output = corpus.output().unwrap();
 //! ```
 
 // ============================================================================

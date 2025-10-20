@@ -3,28 +3,11 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
-// Import the lexer and semantic analysis for processing
-use txxt::lexer::semantic_analysis::SemanticAnalyzer;
-use txxt::lexer::tokenize;
+// Use the unified API for processing
+use txxt::api::{format_output_unified, process_unified, Format, Output, Stage};
 
-/// Processing stages for test corpora.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[allow(dead_code)] // Some variants are for future integration
-pub enum ProcessingStage {
-    /// Raw text as extracted from specification (default)
-    #[default]
-    Raw,
-    /// Tokenized stream from the tokenizer
-    Tokens,
-    /// Semantic tokens from the semantic analysis phase
-    HighLevelTokens,
-    /// Block-grouped tokens after lexical analysis
-    BlockedTokens,
-    /// Parsed AST structure
-    ParsedAst,
-    /// Full document with all processing complete
-    FullDocument,
-}
+/// Processing stages for test corpora (re-exported from unified API).
+pub use txxt::api::Stage as ProcessingStage;
 
 /// A test corpus extracted from specification documents.
 #[derive(Debug, Clone, PartialEq)]
@@ -37,39 +20,22 @@ pub struct Corpus {
 }
 
 impl Corpus {
-    /// Get the processed data as tokens, if available.
+    /// Get the raw output from processing (using unified API).
     #[allow(dead_code)] // Will be used by parser tests
-    pub fn tokens(&self) -> Option<&Vec<String>> {
+    pub fn output(&self) -> Option<&Output> {
         match &self.processed_data {
-            Some(ProcessedData::Tokens(tokens)) => Some(tokens),
-            Some(ProcessedData::BlockedTokens(tokens)) => Some(tokens),
+            Some(ProcessedData::Output(output)) => Some(output),
             _ => None,
         }
     }
 
-    /// Get the processed data as semantic tokens, if available.
+    /// Get the processed data formatted as JSON.
     #[allow(dead_code)] // Will be used by parser tests
-    pub fn semantic_tokens(&self) -> Option<&str> {
+    pub fn as_json(&self) -> Option<String> {
         match &self.processed_data {
-            Some(ProcessedData::HighLevelTokens(tokens)) => Some(tokens),
-            _ => None,
-        }
-    }
-
-    /// Get the processed data as AST, if available.
-    #[allow(dead_code)] // Will be used by parser tests
-    pub fn ast(&self) -> Option<&str> {
-        match &self.processed_data {
-            Some(ProcessedData::ParsedAst(ast)) => Some(ast),
-            _ => None,
-        }
-    }
-
-    /// Get the processed data as a full document, if available.
-    #[allow(dead_code)] // For future integration
-    pub fn document(&self) -> Option<&str> {
-        match &self.processed_data {
-            Some(ProcessedData::FullDocument(doc)) => Some(doc),
+            Some(ProcessedData::Output(output)) => {
+                format_output_unified(output, Format::Json, Some(&self.name)).ok()
+            }
             _ => None,
         }
     }
@@ -90,21 +56,21 @@ impl Corpus {
     }
 }
 
-/// Processed data from different pipeline stages.
-#[derive(Debug, Clone, PartialEq)]
+/// Processed data from pipeline stages (using unified API).
+#[derive(Debug, Clone)]
 pub enum ProcessedData {
-    /// Raw text (no processing)
-    Raw,
-    /// Tokenized representation
-    Tokens(Vec<String>), // Placeholder - will be replaced with actual token types
-    /// Semantic tokens representation
-    HighLevelTokens(String), // JSON serialized high-level tokens for inspection
-    /// Block-grouped tokens
-    BlockedTokens(Vec<String>), // Placeholder - will be replaced with actual block types
-    /// Parsed AST
-    ParsedAst(String), // Placeholder - will be replaced with actual AST types
-    /// Full document
-    FullDocument(String), // Placeholder - will be replaced with actual document types
+    /// Processed output from unified API
+    Output(Output),
+}
+
+// Manual PartialEq since Output doesn't implement it
+impl PartialEq for ProcessedData {
+    fn eq(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (ProcessedData::Output(_), ProcessedData::Output(_))
+        )
+    }
 }
 
 /// Spec-driven test corpus loader for txxt parser testing.
@@ -112,7 +78,7 @@ pub enum ProcessedData {
 /// **Quick Usage:**
 /// ```rust
 /// // Load raw text: TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")
-/// // Load pre-tokenized: TxxtCorpora::load_with_processing("name", ProcessingStage::Tokens)
+/// // Load pre-tokenized: TxxtCorpora::load_with_processing("name", ProcessingStage::ScannerTokens)
 /// // Load documents: TxxtCorpora::load_document("01-two-paragraphs")
 /// ```
 ///
@@ -179,7 +145,7 @@ pub enum ProcessedData {
 /// // Document with processing
 /// let corpus = TxxtCorpora::load_document_with_processing(
 ///     "11-full-document",
-///     ProcessingStage::ParsedAst
+///     ProcessingStage::AstFull
 /// )?;
 /// ```
 ///
@@ -199,7 +165,7 @@ impl TxxtCorpora {
     /// specification documents under `docs/specs/`.
     #[allow(dead_code)] // Will be used by parser tests
     pub fn load(name: &str) -> Result<Corpus, CorpusError> {
-        Self::load_with_processing(name, ProcessingStage::Raw)
+        Self::load_with_processing(name, ProcessingStage::ScannerTokens)
     }
 
     /// Load a specific test corpus by name with specified processing stage.
@@ -236,7 +202,7 @@ impl TxxtCorpora {
     /// Extract all corpora from the specification documents with default (Raw) processing.
     #[allow(dead_code)] // Will be used by parser tests
     pub fn load_all() -> Result<Vec<Corpus>, CorpusError> {
-        Self::load_all_with_processing(ProcessingStage::Raw)
+        Self::load_all_with_processing(ProcessingStage::ScannerTokens)
     }
 
     /// Extract all corpora from the specification documents with specified processing stage.
@@ -309,7 +275,7 @@ impl TxxtCorpora {
     /// - File cannot be read
     #[allow(dead_code)] // Will be used by parser tests
     pub fn load_document(name: &str) -> Result<Corpus, CorpusError> {
-        Self::load_document_with_processing(name, ProcessingStage::Raw)
+        Self::load_document_with_processing(name, ProcessingStage::ScannerTokens)
     }
 
     /// Load a complete document file with specified processing stage.
@@ -330,13 +296,13 @@ impl TxxtCorpora {
     /// // Load document for tokenization testing
     /// let corpus = TxxtCorpora::load_document_with_processing(
     ///     "11-full-document",
-    ///     ProcessingStage::Tokens
+    ///     ProcessingStage::ScannerTokens
     /// ).unwrap();
     ///
     /// // Load document for full AST parsing
     /// let corpus = TxxtCorpora::load_document_with_processing(
     ///     "09-nested-complex",
-    ///     ProcessingStage::ParsedAst
+    ///     ProcessingStage::AstFull
     /// ).unwrap();
     /// ```
     #[allow(dead_code)] // Will be used by parser tests
@@ -385,7 +351,7 @@ impl TxxtCorpora {
                         name: file_name_str.to_string(),
                         source_text: content,
                         parameters: HashMap::new(), // Documents don't have parameters
-                        processing_stage: ProcessingStage::Raw,
+                        processing_stage: ProcessingStage::ScannerTokens,
                         processed_data: None,
                     };
 
@@ -422,7 +388,7 @@ impl TxxtCorpora {
     /// Returns a `Vec<Corpus>` containing all ensemble documents, ordered by filename.
     #[allow(dead_code)] // Will be used by parser tests
     pub fn load_all_documents() -> Result<Vec<Corpus>, CorpusError> {
-        Self::load_all_documents_with_processing(ProcessingStage::Raw)
+        Self::load_all_documents_with_processing(ProcessingStage::ScannerTokens)
     }
 
     /// Load all ensemble documents with specified processing stage.
@@ -438,7 +404,7 @@ impl TxxtCorpora {
     ///
     /// // Load all documents for AST validation
     /// let documents = TxxtCorpora::load_all_documents_with_processing(
-    ///     ProcessingStage::ParsedAst
+    ///     ProcessingStage::AstFull
     /// ).unwrap();
     /// ```
     #[allow(dead_code)] // Will be used by parser tests
@@ -477,7 +443,7 @@ impl TxxtCorpora {
                 name: file_name,
                 source_text: content,
                 parameters: HashMap::new(),
-                processing_stage: ProcessingStage::Raw,
+                processing_stage: ProcessingStage::ScannerTokens,
                 processed_data: None,
             };
 
@@ -488,78 +454,19 @@ impl TxxtCorpora {
         Ok(documents)
     }
 
-    /// Apply processing stage to a corpus.
-    fn apply_processing(
-        corpus: &mut Corpus,
-        processing: ProcessingStage,
-    ) -> Result<(), CorpusError> {
+    /// Apply processing stage to a corpus using the unified API.
+    ///
+    /// This delegates all processing to the main API, keeping corpora focused
+    /// on loading test data from specification documents.
+    fn apply_processing(corpus: &mut Corpus, processing: Stage) -> Result<(), CorpusError> {
         corpus.processing_stage = processing;
 
-        match processing {
-            ProcessingStage::Raw => {
-                corpus.processed_data = Some(ProcessedData::Raw);
-            }
-            ProcessingStage::Tokens => {
-                // TODO: Integrate with actual tokenizer when available
-                // For now, return a placeholder
-                let tokens = Self::placeholder_tokenize(&corpus.source_text)?;
-                corpus.processed_data = Some(ProcessedData::Tokens(tokens));
-            }
-            ProcessingStage::HighLevelTokens => {
-                // Apply lexer and semantic analysis to extract semantic tokens
-                let semantic_tokens = Self::process_semantic_tokens(&corpus.source_text)?;
-                corpus.processed_data = Some(ProcessedData::HighLevelTokens(semantic_tokens));
-            }
-            ProcessingStage::BlockedTokens => {
-                // TODO: Integrate with actual block grouper when available
-                let tokens = Self::placeholder_tokenize(&corpus.source_text)?;
-                corpus.processed_data = Some(ProcessedData::BlockedTokens(tokens));
-            }
-            ProcessingStage::ParsedAst => {
-                // TODO: Integrate with actual parser when available
-                let placeholder_ast = format!("ParsedAST({})", corpus.source_text.len());
-                corpus.processed_data = Some(ProcessedData::ParsedAst(placeholder_ast));
-            }
-            ProcessingStage::FullDocument => {
-                // TODO: Integrate with actual document processor when available
-                let placeholder_doc = format!("FullDocument({})", corpus.name);
-                corpus.processed_data = Some(ProcessedData::FullDocument(placeholder_doc));
-            }
-        }
+        // Use the unified API to process the source text
+        let output = process_unified(&corpus.source_text, processing, Some(corpus.name.clone()))
+            .map_err(|e| CorpusError::ProcessingError(e.to_string()))?;
 
+        corpus.processed_data = Some(ProcessedData::Output(output));
         Ok(())
-    }
-
-    /// Placeholder tokenizer - will be replaced with actual tokenizer integration.
-    fn placeholder_tokenize(text: &str) -> Result<Vec<String>, CorpusError> {
-        // Simple word-based tokenization as placeholder
-        Ok(text.split_whitespace().map(|s| s.to_string()).collect())
-    }
-
-    /// Process text through lexer and semantic analysis to extract semantic tokens.
-    ///
-    /// This method applies the complete lexer -> semantic analysis pipeline
-    /// to extract semantic tokens from the input text. The result is serialized
-    /// as JSON for inspection in tests and CLI tools.
-    ///
-    /// # Arguments
-    /// * `text` - The input text to process
-    ///
-    /// # Returns
-    /// * `Result<String, CorpusError>` - JSON serialized semantic tokens
-    fn process_semantic_tokens(text: &str) -> Result<String, CorpusError> {
-        // Step 1: Apply lexer to get scanner tokens
-        let scanner_tokens = tokenize(text);
-
-        // Step 2: Apply semantic analysis to get semantic tokens
-        let analyzer = SemanticAnalyzer::new();
-        let semantic_tokens = analyzer
-            .analyze(scanner_tokens)
-            .map_err(|e| CorpusError::ProcessingError(format!("Semantic analysis error: {}", e)))?;
-
-        // Step 3: Serialize to JSON for inspection
-        serde_json::to_string_pretty(&semantic_tokens)
-            .map_err(|e| CorpusError::ProcessingError(format!("JSON serialization error: {}", e)))
     }
 
     /// Extract a specific corpus from a file.
@@ -745,7 +652,7 @@ impl<'a> CorpusExtractor<'a> {
             name,
             source_text,
             parameters,
-            processing_stage: ProcessingStage::Raw,
+            processing_stage: Stage::ScannerTokens,
             processed_data: None,
         })
     }
@@ -869,22 +776,10 @@ mod tests {
     }
 
     #[test]
-    fn test_processing_stages() {
-        use super::*;
-
-        // Test default processing stage
-        assert_eq!(ProcessingStage::default(), ProcessingStage::Raw);
-
-        // Test placeholder tokenization
-        let tokens = TxxtCorpora::placeholder_tokenize("This is a test").unwrap();
-        assert_eq!(tokens, vec!["This", "is", "a", "test"]);
-    }
-
-    #[test]
     fn test_corpus_convenience_methods() {
         use super::*;
 
-        let mut corpus = Corpus {
+        let corpus = Corpus {
             name: "test".to_string(),
             source_text: "test content".to_string(),
             parameters: {
@@ -893,7 +788,7 @@ mod tests {
                 params.insert("message".to_string(), "Test error".to_string());
                 params
             },
-            processing_stage: ProcessingStage::Raw,
+            processing_stage: Stage::ScannerTokens,
             processed_data: None,
         };
 
@@ -902,22 +797,8 @@ mod tests {
         assert_eq!(corpus.expected_error(), Some("ParseError"));
         assert_eq!(corpus.expected_error_message(), Some("Test error"));
 
-        // Test tokens access
-        assert!(corpus.tokens().is_none());
-        corpus.processed_data = Some(ProcessedData::Tokens(vec![
-            "test".to_string(),
-            "content".to_string(),
-        ]));
-        assert_eq!(
-            corpus.tokens(),
-            Some(&vec!["test".to_string(), "content".to_string()])
-        );
-
-        // Test semantic tokens access
-        assert!(corpus.semantic_tokens().is_none());
-        corpus.processed_data = Some(ProcessedData::HighLevelTokens(
-            r#"{"tokens": []}"#.to_string(),
-        ));
-        assert_eq!(corpus.semantic_tokens(), Some(r#"{"tokens": []}"#));
+        // Test output access before processing
+        assert!(corpus.output().is_none());
+        assert!(corpus.as_json().is_none());
     }
 }

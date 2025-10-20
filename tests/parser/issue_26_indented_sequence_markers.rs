@@ -4,7 +4,7 @@
 //! recognized as a SequenceMarker token. Instead, it becomes part of the Text token.
 //! This breaks nested list parsing and round-trip detokenization.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]

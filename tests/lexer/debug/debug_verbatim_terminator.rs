@@ -3,7 +3,7 @@
 //! This test verifies that the tokenizer correctly captures VerbatimLabel tokens
 //! with label and parameter information instead of skipping the terminator line.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]
@@ -42,7 +42,7 @@ mod tests {
                 }
                 ScannerToken::IgnoreTextSpan { content, span } => {
                     println!(
-                        "  {}: IgnoreTextSpan {{ content: {:?}, span: {:?} }}",
+                        "  {}: IgnoreText {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }

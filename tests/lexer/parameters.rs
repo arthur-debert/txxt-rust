@@ -8,7 +8,7 @@
 
 use proptest::prelude::*;
 use std::collections::HashMap;
-use txxt::ast::scanner_tokens::{Position, ScannerToken};
+use txxt::cst::{Position, ScannerToken};
 use txxt::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 
 /// Mock lexer for testing parameter parsing

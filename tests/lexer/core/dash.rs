@@ -4,7 +4,7 @@
 //! Dash tokens are single '-' characters that are not part of sequence markers.
 
 use rstest::rstest;
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================

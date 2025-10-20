@@ -15,13 +15,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::cst::ScannerTokenSequence;
-    blocks::Block, components::parameters::Parameters, ScannerTokenSequence,
-    session::SessionContainer,
 use crate::ast::elements::{
-    blocks::Block, components::parameters::Parameters, ScannerTokenSequence,
-    session::SessionContainer,
+    blocks::Block, components::parameters::Parameters, session::SessionContainer,
 };
+use crate::cst::ScannerTokenSequence;
 
 /// Top-level document structure
 ///

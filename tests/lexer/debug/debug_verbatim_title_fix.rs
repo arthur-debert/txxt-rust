@@ -3,7 +3,7 @@
 //! This test verifies that VerbatimTitle tokens contain only the title content
 //! without the trailing colon structural marker.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]
@@ -41,7 +41,7 @@ mod tests {
                 }
                 ScannerToken::IgnoreTextSpan { content, span } => {
                     println!(
-                        "  {}: IgnoreTextSpan {{ content: {:?}, span: {:?} }}",
+                        "  {}: IgnoreText {{ content: {:?}, span: {:?} }}",
                         i, content, span
                     );
                 }

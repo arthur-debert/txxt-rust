@@ -7,7 +7,7 @@
 use txxt::ast::elements::components::parameters::Parameters;
 use txxt::ast::elements::core::ElementNode;
 use txxt::ast::elements::session::session_container::SessionContainer;
-use txxt::ast::scanner_tokens::ScannerTokenSequence;
+use txxt::cst::ScannerTokenSequence;
 use txxt::tools::treeviz::*;
 
 #[cfg(test)]
@@ -321,7 +321,7 @@ mod tests {
     #[test]
     fn test_basic_inline_elements() {
         // Test simple inline elements that can be easily created
-        use txxt::ast::elements::inlines::TextSpan;
+        use txxt::ast::elements::inlines::Text;
 
         let simple_test_cases = vec![
             (
@@ -371,8 +371,7 @@ mod tests {
         });
         assert_eq!(get_node_type_name(&blank_line), "BlankLine");
 
-        let text_span =
-            ElementNode::TextSpan(txxt::ast::elements::inlines::TextSpan::simple("test"));
+        let text_span = ElementNode::TextSpan(txxt::ast::elements::inlines::Text::simple("test"));
         assert_eq!(get_node_type_name(&text_span), "TextSpan");
     }
 
@@ -658,9 +657,8 @@ mod tests {
         // Test the complete pipeline from synthetic AST to visualization
 
         // Create a synthetic AST using simple constructors
-        let text_span = ElementNode::TextSpan(txxt::ast::elements::inlines::TextSpan::simple(
-            "Hello World",
-        ));
+        let text_span =
+            ElementNode::TextSpan(txxt::ast::elements::inlines::Text::simple("Hello World"));
 
         // Test the three-function API exactly as specified in the GitHub issue
 

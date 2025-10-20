@@ -4,18 +4,14 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::cst::ScannerTokenSequence;
-    annotation::annotation_content::Annotation, components::parameters::Parameters,
-    ScannerTokenSequence,
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
 };
+use crate::cst::ScannerTokenSequence;
 
-    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
-    inlines::TextTransform,
 use super::super::{
     core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
-    inlines::TextTransform,
+    formatting::inlines::TextTransform,
 };
 
 use super::ignore_container::IgnoreContainer;

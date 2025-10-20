@@ -4,18 +4,13 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::cst::ScannerTokenSequence;
-    annotation::annotation_content::Annotation,
-    components::parameters::Parameters,
-    references::reference_types::{CitationEntry, ReferenceTarget},
-    ScannerTokenSequence,
 use crate::ast::elements::{
-    annotation::annotation_content::Annotation,
-    components::parameters::Parameters,
-    references::reference_types::{CitationEntry, ReferenceTarget},
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
 };
+use crate::cst::ScannerTokenSequence;
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
+use super::reference_types::{CitationEntry, ReferenceTarget};
 
 /// Citation span for academic references
 ///

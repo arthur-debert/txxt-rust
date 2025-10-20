@@ -11,9 +11,7 @@ use crate::ast::elements::{
     list::block::ListBlock, paragraph::block::ParagraphBlock, session::block::SessionBlock,
     verbatim::block::VerbatimBlock,
 };
-use crate::cst::{
-    HighLevelToken, HighLevelTokenList, Position, ScannerTokenSequence, SourceSpan,
-};
+use crate::cst::{HighLevelToken, HighLevelTokenList, Position, ScannerTokenSequence, SourceSpan};
 use crate::parser::BlockParseError;
 
 /// AST Construction parser for converting semantic tokens to AST nodes
@@ -671,9 +669,8 @@ impl<'a> AstConstructor<'a> {
                 };
 
                 // Create a simple TextTransform::Identity for the plain text content
-                let text_span = crate::ast::elements::inlines::TextSpan::simple(&content_text);
-                let text_transform =
-                    crate::ast::elements::inlines::TextTransform::Identity(text_span);
+                let text = crate::ast::elements::inlines::Text::simple(&content_text);
+                let text_transform = crate::ast::elements::inlines::TextTransform::Identity(text);
 
                 Ok(Some(AstNode::Paragraph(ParagraphBlock {
                     content: vec![text_transform],
@@ -772,10 +769,10 @@ impl AstConstructor<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cst::{Position, SourceSpan};
     use crate::cst::high_level_tokens::{
         HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelTokenBuilder, HighLevelTokenList,
     };
+    use crate::cst::{Position, SourceSpan};
 
     /// Test that the parser machinery initializes correctly
     #[test]

@@ -133,9 +133,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("[^]");
 /// let footnote = parse_footnote_ref(&tokens)?;
 /// ```
-pub fn parse_footnote_ref(
-    tokens: &[crate::cst::ScannerToken],
-) -> Result<Inline, InlineParseError> {
+pub fn parse_footnote_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement footnote reference parsing logic
     // For now, return a placeholder
 

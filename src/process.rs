@@ -27,8 +27,8 @@
 //! ```
 
 use crate::assembler::{AnnotationAttacher, DocumentAssembler};
-use crate::cst::ScannerToken;
 use crate::ast::Document;
+use crate::cst::ScannerToken;
 use crate::lexer::tokenize;
 use crate::lexer::SemanticAnalyzer;
 use crate::parser::{AstConstructor, InlineParser};

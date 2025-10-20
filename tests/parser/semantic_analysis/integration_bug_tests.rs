@@ -6,8 +6,8 @@
 //! 2. Flawed heuristics in is_core_block_element  
 //! 3. Incorrect fallback for syntactic tokens
 
-use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::tokens::high_level::HighLevelToken;
+use txxt::cst::high_level_tokens::HighLevelToken;
+use txxt::cst::{Position, ScannerToken, SourceSpan};
 use txxt::lexer::semantic_analysis::SemanticAnalyzer;
 
 /// Test that captures Defect 1: Main analysis loop doesn't compose complex tokens

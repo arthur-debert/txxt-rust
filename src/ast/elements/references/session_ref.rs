@@ -4,18 +4,13 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::cst::ScannerTokenSequence;
-    annotation::annotation_content::Annotation,
-    components::parameters::Parameters,
-    references::reference_types::{ReferenceTarget, SectionIdentifier},
-    ScannerTokenSequence,
 use crate::ast::elements::{
-    annotation::annotation_content::Annotation,
-    components::parameters::Parameters,
-    references::reference_types::{ReferenceTarget, SectionIdentifier},
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
 };
+use crate::cst::ScannerTokenSequence;
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
+use super::reference_types::{ReferenceTarget, SectionIdentifier};
 
 /// Session reference span for cross-references to sessions
 ///

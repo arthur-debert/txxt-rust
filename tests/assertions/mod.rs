@@ -1364,7 +1364,7 @@ pub fn assert_inline_content(
     content: &[txxt::ast::elements::inlines::TextTransform],
     expected: InlineContentExpected,
 ) {
-    use txxt::ast::elements::inlines::TextTransform;
+    use txxt::ast::elements::inlines::{Text, TextTransform};
 
     // Transform count validation
     if let Some(expected_count) = expected.transform_count {

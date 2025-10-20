@@ -4,7 +4,7 @@
 //! the resulting Parameter tokens have zero-width spans at incorrect positions,
 //! making it impossible to track where they came from in the source.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::Lexer;
 
 #[test]

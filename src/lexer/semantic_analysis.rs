@@ -6,11 +6,11 @@
 //!
 //! src/lexer/mod.rs has the full architecture overview.
 
-use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenList,
 };
+use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
 /// High-level token analyzer for converting scanner tokens to high-level tokens
 ///

@@ -5,7 +5,7 @@
 //! 2. Properly separate labels from parameters
 //! 3. Handle various parameter formats
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]

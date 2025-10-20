@@ -4,7 +4,7 @@
 //! - Clean VerbatimLabel tokens (without parameters)
 //! - Individual Parameter tokens for each key=value pair
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]

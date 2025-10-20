@@ -15,21 +15,16 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::cst::ScannerTokenSequence;
-    annotation::annotation_content::Annotation,
-    components::parameters::Parameters,
-    references::reference_types::ReferenceTarget,
-    scanner_tokens::{ScannerToken, ScannerTokenSequence},
 use crate::ast::elements::{
-    annotation::annotation_content::Annotation,
-    components::parameters::Parameters,
-    references::reference_types::ReferenceTarget,
-    {ScannerToken, ScannerTokenSequence},
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
 };
+use crate::cst::{ScannerToken, ScannerTokenSequence};
 
 use super::core::{ElementType, SpanElement, TxxtElement};
+use super::references::reference_types::ReferenceTarget;
 
 // Re-export inline types from new functional modules
+pub use super::formatting::inlines::{Text, TextTransform};
 pub use super::formatting::{BoldSpan, CodeSpan, ItalicSpan, MathSpan};
 pub use super::references::{
     CitationSpan, FootnoteReferenceSpan, PageReferenceSpan, ReferenceSpan, SessionReferenceSpan,
@@ -67,45 +62,6 @@ pub struct TextLine {
 
     /// Raw tokens for precise source reconstruction
     pub tokens: ScannerTokenSequence,
-}
-
-/// Text transform layer - uniform processing for all text content
-///
-/// This is the key architectural innovation from the existing AST.
-/// Every piece of text goes through this transform layer for:
-/// - Uniform processing across all text contexts
-/// - Extensibility for new transform types
-/// - Composability for nested formatting
-/// - Performance optimization during rendering
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum TextTransform {
-    /// Identity transform (plain text) - no formatting applied
-    Identity(TextSpan),
-
-    /// Emphasis transform - typically renders as italic
-    Emphasis(Vec<TextTransform>),
-
-    /// Strong emphasis transform - typically renders as bold
-    Strong(Vec<TextTransform>),
-
-    /// Inline code transform - monospace formatting
-    Code(TextSpan),
-
-    /// Math transform - mathematical expressions
-    Math(TextSpan),
-
-    /// Composed transform - for complex nested cases
-    Composed(Vec<TextTransform>),
-
-    /// Custom transform for extensibility
-    Custom {
-        /// Transform type name
-        name: String,
-        /// Transform parameters
-        parameters: HashMap<String, String>,
-        /// Nested transforms (if applicable)
-        content: Vec<TextTransform>,
-    },
 }
 
 /// Link element for external references
@@ -219,44 +175,6 @@ impl TextSpan {
             annotations: Vec::new(),
             parameters: Parameters::new(),
         }
-    }
-}
-
-impl TextTransform {
-    /// Extract the text content from this transform recursively
-    /// (Migrated from existing TextTransform logic)
-    pub fn text_content(&self) -> String {
-        match self {
-            TextTransform::Identity(text) => text.content(),
-            TextTransform::Emphasis(transforms) => transforms
-                .iter()
-                .map(|t| t.text_content())
-                .collect::<Vec<_>>()
-                .join(""),
-            TextTransform::Strong(transforms) => transforms
-                .iter()
-                .map(|t| t.text_content())
-                .collect::<Vec<_>>()
-                .join(""),
-            TextTransform::Code(text) => text.content(),
-            TextTransform::Math(text) => text.content(),
-            TextTransform::Composed(transforms) => transforms
-                .iter()
-                .map(|t| t.text_content())
-                .collect::<Vec<_>>()
-                .join(""),
-            TextTransform::Custom { content, .. } => content
-                .iter()
-                .map(|t| t.text_content())
-                .collect::<Vec<_>>()
-                .join(""),
-        }
-    }
-
-    /// Check if this transform is an identity (no formatting applied)
-    /// (Migrated from existing TextTransform logic)
-    pub fn is_identity(&self) -> bool {
-        matches!(self, TextTransform::Identity(_))
     }
 }
 

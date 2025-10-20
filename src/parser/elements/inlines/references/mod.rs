@@ -185,8 +185,10 @@ fn extract_reference_content(
     let first_token = &tokens[0];
     let last_token = &tokens[tokens.len() - 1];
 
-    let starts_with_bracket = matches!(first_token, crate::cst::ScannerToken::Text { content, .. } if content == "[");
-    let ends_with_bracket = matches!(last_token, crate::cst::ScannerToken::Text { content, .. } if content == "]");
+    let starts_with_bracket =
+        matches!(first_token, crate::cst::ScannerToken::Text { content, .. } if content == "[");
+    let ends_with_bracket =
+        matches!(last_token, crate::cst::ScannerToken::Text { content, .. } if content == "]");
 
     if !starts_with_bracket || !ends_with_bracket {
         return Err(InlineParseError::InvalidStructure(

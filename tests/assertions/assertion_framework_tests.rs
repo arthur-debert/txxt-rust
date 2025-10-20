@@ -11,6 +11,7 @@ mod framework_tests {
         InlineContentExpected, ParagraphExpected, SessionContainerExpected,
     };
     use txxt::ast::{
+        cst::{Position, ScannerToken, ScannerTokenSequence, SourceSpan},
         elements::components::parameters::Parameters,
         elements::{
             annotation::{AnnotationBlock, AnnotationContent},
@@ -20,12 +21,11 @@ mod framework_tests {
             paragraph::ParagraphBlock,
             session::{session_container::SessionContainerElement, SessionContainer},
         },
-        scanner_tokens::{Position, ScannerToken, ScannerTokenSequence, SourceSpan},
     };
 
     /// Helper to create a simple paragraph for testing
     fn make_test_paragraph(text: &str) -> SessionContainerElement {
-        let text_transform = TextTransform::Identity(txxt::ast::elements::inlines::TextSpan {
+        let text_transform = TextTransform::Identity(txxt::ast::elements::inlines::Text {
             tokens: ScannerTokenSequence {
                 tokens: vec![ScannerToken::Text {
                     content: text.to_string(),
@@ -38,15 +38,13 @@ mod framework_tests {
                     },
                 }],
             },
-            annotations: vec![],
-            parameters: Parameters::new(),
         });
 
         SessionContainerElement::Paragraph(ParagraphBlock {
             content: vec![text_transform],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
+            annotations: Vec::new(),
+            parameters: Parameters::new(),
         })
     }
 
@@ -215,7 +213,7 @@ mod framework_tests {
 
     /// Helper to create a test annotation
     fn make_test_annotation(label: &str, content: &str) -> SessionContainerElement {
-        let text_transform = TextTransform::Identity(TextSpan {
+        let text_transform = TextTransform::Identity(Text {
             tokens: ScannerTokenSequence {
                 tokens: vec![ScannerToken::Text {
                     content: content.to_string(),
@@ -228,15 +226,11 @@ mod framework_tests {
                     },
                 }],
             },
-            annotations: vec![],
-            parameters: Parameters::new(),
         });
 
         SessionContainerElement::Annotation(AnnotationBlock {
             label: label.to_string(),
             content: AnnotationContent::Inline(vec![text_transform]),
-            parameters: Parameters::new(),
-            annotations: vec![],
             tokens: ScannerTokenSequence::new(),
             namespace: None,
         })
@@ -297,15 +291,11 @@ mod framework_tests {
     fn test_assert_content_container_element_count() {
         let para1 = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let para2 = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -314,8 +304,6 @@ mod framework_tests {
                 ContentContainerElement::Paragraph(para1),
                 ContentContainerElement::Paragraph(para2),
             ],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -333,8 +321,6 @@ mod framework_tests {
     fn test_assert_content_container_element_count_fails() {
         let container = ContentContainer {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -359,19 +345,13 @@ mod framework_tests {
             },
             content: SessionContainer {
                 content: vec![],
-                annotations: vec![],
-                parameters: Parameters::new(),
                 tokens: ScannerTokenSequence::new(),
             },
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let container = SessionContainer {
             content: vec![SessionContainerElement::Session(session)],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -389,15 +369,11 @@ mod framework_tests {
     fn test_assert_session_container_no_sessions() {
         let para = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let container = SessionContainer {
             content: vec![SessionContainerElement::Paragraph(para)],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -418,10 +394,8 @@ mod framework_tests {
 
     #[test]
     fn test_assert_inline_content_transform_count() {
-        let text_span = TextSpan {
+        let text_span = Text {
             tokens: ScannerTokenSequence::new(),
-            annotations: vec![],
-            parameters: Parameters::new(),
         };
 
         let transforms = vec![
@@ -440,10 +414,8 @@ mod framework_tests {
 
     #[test]
     fn test_assert_inline_content_has_bold() {
-        let text_span = TextSpan {
+        let text_span = Text {
             tokens: ScannerTokenSequence::new(),
-            annotations: vec![],
-            parameters: Parameters::new(),
         };
 
         let transforms = vec![TextTransform::Strong(vec![TextTransform::Identity(
@@ -461,10 +433,8 @@ mod framework_tests {
 
     #[test]
     fn test_assert_inline_content_no_formatting() {
-        let text_span = TextSpan {
+        let text_span = Text {
             tokens: ScannerTokenSequence::new(),
-            annotations: vec![],
-            parameters: Parameters::new(),
         };
 
         let transforms = vec![TextTransform::Identity(text_span)];
@@ -483,10 +453,8 @@ mod framework_tests {
 
     #[test]
     fn test_assert_inline_content_has_italic() {
-        let text_span = TextSpan {
+        let text_span = Text {
             tokens: ScannerTokenSequence::new(),
-            annotations: vec![],
-            parameters: Parameters::new(),
         };
 
         let transforms = vec![TextTransform::Emphasis(vec![TextTransform::Identity(
@@ -504,10 +472,8 @@ mod framework_tests {
 
     #[test]
     fn test_assert_inline_content_has_code() {
-        let text_span = TextSpan {
+        let text_span = Text {
             tokens: ScannerTokenSequence::new(),
-            annotations: vec![],
-            parameters: Parameters::new(),
         };
 
         let transforms = vec![TextTransform::Code(text_span)];
@@ -523,10 +489,8 @@ mod framework_tests {
 
     #[test]
     fn test_assert_inline_content_has_math() {
-        let text_span = TextSpan {
+        let text_span = Text {
             tokens: ScannerTokenSequence::new(),
-            annotations: vec![],
-            parameters: Parameters::new(),
         };
 
         let transforms = vec![TextTransform::Math(text_span)];
@@ -553,16 +517,12 @@ mod framework_tests {
 
         let para = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let list = ListBlock {
             decoration_type: ListDecorationType::default(),
             items: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -571,8 +531,6 @@ mod framework_tests {
                 ContentContainerElement::Paragraph(para),
                 ContentContainerElement::List(list),
             ],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -589,15 +547,11 @@ mod framework_tests {
     fn test_assert_content_container_has_element_type() {
         let para = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let container = ContentContainer {
             content: vec![ContentContainerElement::Paragraph(para)],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -616,15 +570,11 @@ mod framework_tests {
 
         let para1 = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let para2 = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -633,8 +583,6 @@ mod framework_tests {
                 ContentContainerElement::Paragraph(para1),
                 ContentContainerElement::Paragraph(para2),
             ],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -653,15 +601,11 @@ mod framework_tests {
 
         let para = ParagraphBlock {
             content: vec![],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let container = SessionContainer {
             content: vec![SessionContainerElement::Paragraph(para)],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -678,7 +622,7 @@ mod framework_tests {
     fn test_assert_annotation_block_content_contains() {
         // Create annotation with block content
         let para = ParagraphBlock {
-            content: vec![TextTransform::Identity(TextSpan {
+            content: vec![TextTransform::Identity(Text {
                 tokens: ScannerTokenSequence {
                     tokens: vec![ScannerToken::Text {
                         content: "Block content text".to_string(),
@@ -688,26 +632,18 @@ mod framework_tests {
                         },
                     }],
                 },
-                annotations: vec![],
-                parameters: Parameters::new(),
             })],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let block_content = ContentContainer {
             content: vec![ContentContainerElement::Paragraph(para)],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
         let element = SessionContainerElement::Annotation(AnnotationBlock {
             label: "note".to_string(),
             content: AnnotationContent::Block(block_content),
-            parameters: Parameters::new(),
-            annotations: vec![],
             tokens: ScannerTokenSequence::new(),
             namespace: None,
         });

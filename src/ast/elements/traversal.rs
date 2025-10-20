@@ -668,8 +668,7 @@ impl TxxtElement for DocumentElementOwned {
     fn tokens(&self) -> &crate::cst::ScannerTokenSequence {
         // Document doesn't have tokens directly, return empty sequence
         use std::sync::OnceLock;
-        static EMPTY_TOKENS: OnceLock<crate::cst::ScannerTokenSequence> =
-            OnceLock::new();
+        static EMPTY_TOKENS: OnceLock<crate::cst::ScannerTokenSequence> = OnceLock::new();
         EMPTY_TOKENS.get_or_init(crate::cst::ScannerTokenSequence::new)
     }
 

@@ -137,9 +137,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let tokens = tokenize("[@smith2023, p. 123]");
 /// let citation = parse_citation(&tokens)?;
 /// ```
-pub fn parse_citation(
-    tokens: &[crate::cst::ScannerToken],
-) -> Result<Inline, InlineParseError> {
+pub fn parse_citation(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement citation parsing logic
     // For now, return a placeholder
 

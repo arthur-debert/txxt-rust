@@ -4,7 +4,7 @@
 //! verbatim blocks are correctly identified and tokenized.
 
 use rstest::rstest;
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 // =============================================================================

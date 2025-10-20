@@ -6,8 +6,8 @@
 use std::collections::HashMap;
 
 use txxt::ast::{
-    elements::annotation::annotation_content::Annotation,
-    elements::components::parameters::Parameters, scanner_tokens::ScannerTokenSequence,
+    cst::ScannerTokenSequence, elements::annotation::annotation_content::Annotation,
+    elements::components::parameters::Parameters,
 };
 
 use super::elements::components::component_assertions::*;
@@ -151,7 +151,6 @@ fn make_test_annotation(label: &str) -> Annotation {
     Annotation {
         label: label.to_string(),
         namespace: None,
-        parameters: Parameters::new(),
         content: AnnotationContent::Empty,
         tokens: ScannerTokenSequence { tokens: vec![] },
     }

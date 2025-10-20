@@ -170,10 +170,7 @@ mod tests {
 
     fn create_sequence_token(content: &str) -> ScannerToken {
         ScannerToken::SequenceMarker {
-            marker_type: crate::cst::SequenceMarkerType::Numerical(
-                1,
-                content.to_string(),
-            ),
+            marker_type: crate::cst::SequenceMarkerType::Numerical(1, content.to_string()),
             span: create_test_span(),
         }
     }

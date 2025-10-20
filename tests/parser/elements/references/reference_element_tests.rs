@@ -4,7 +4,7 @@
 //! (citations, footnotes, sessions, files, URLs) using the TxxtCorpora framework.
 
 use txxt::ast::elements::references::reference_types::*;
-use txxt::ast::elements::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use txxt::cst::{Position, ScannerToken, SourceSpan};
 use txxt::parser::elements::inlines::references::*;
 
 /// Helper function to create a test source span

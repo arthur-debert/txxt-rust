@@ -3,7 +3,7 @@
 //! These tests show that sequence markers calculate spans incorrectly
 //! by adding string length to column position, which fails for multi-byte characters.
 
-use txxt::ast::scanner_tokens::{ScannerToken, SequenceMarkerType};
+use txxt::cst::{ScannerToken, SequenceMarkerType};
 use txxt::lexer::Lexer;
 
 #[test]

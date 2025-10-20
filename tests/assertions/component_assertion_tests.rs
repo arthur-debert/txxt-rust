@@ -5,8 +5,9 @@
 
 use std::collections::HashMap;
 
+use txxt::cst::ScannerTokenSequence;
 use txxt::ast::{
-    cst::ScannerTokenSequence, elements::annotation::annotation_content::Annotation,
+    elements::annotation::annotation_content::Annotation,
     elements::components::parameters::Parameters,
 };
 

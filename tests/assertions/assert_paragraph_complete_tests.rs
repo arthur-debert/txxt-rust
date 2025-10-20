@@ -9,12 +9,12 @@
 //! 3. parameters: Parameters
 //! 4. tokens: ScannerTokenSequence
 
+use txxt::cst::ScannerTokenSequence;
 use txxt::ast::{
-    cst::ScannerTokenSequence,
     elements::annotation::annotation_content::{Annotation, AnnotationContent},
     elements::components::parameters::Parameters,
     elements::{
-        inlines::{TextSpan, TextTransform},
+        inlines::{Text, TextTransform},
         paragraph::ParagraphBlock,
         session::session_container::SessionContainerElement,
     },

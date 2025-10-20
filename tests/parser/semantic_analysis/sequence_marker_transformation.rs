@@ -4,7 +4,7 @@
 //! SequenceMarker semantic tokens as specified in Issue #84.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
-use txxt::ast::semantic_tokens::{
+use txxt::ast::tokens::semantic::{
     SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
     SemanticTokenSpan,
 };

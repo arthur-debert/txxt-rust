@@ -4,7 +4,7 @@
 //! Definition semantic tokens as specified in Issue #88.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
+use txxt::ast::tokens::semantic::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
 use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]

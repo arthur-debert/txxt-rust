@@ -7,7 +7,7 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
-use crate::ast::semantic_tokens::{
+use crate::ast::tokens::semantic::{
     SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
     SemanticTokenList,
 };

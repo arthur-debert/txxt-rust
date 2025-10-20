@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan, WallType};
-use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
+use txxt::ast::tokens::semantic::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
 use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]

@@ -7,7 +7,7 @@
 //! 3. Incorrect fallback for syntactic tokens
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::SemanticToken;
+use txxt::ast::tokens::semantic::SemanticToken;
 use txxt::parser::semantic_analysis::SemanticAnalyzer;
 
 /// Test that captures Defect 1: Main analysis loop doesn't compose complex tokens

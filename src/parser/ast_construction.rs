@@ -13,7 +13,7 @@ use crate::ast::elements::{
 };
 use crate::ast::{
     scanner_tokens::{Position, ScannerTokenSequence, SourceSpan},
-    semantic_tokens::{SemanticToken, SemanticTokenList},
+    tokens::semantic::{SemanticToken, SemanticTokenList},
 };
 use crate::parser::BlockParseError;
 
@@ -774,7 +774,7 @@ impl AstConstructor<'_> {
 mod tests {
     use super::*;
     use crate::ast::scanner_tokens::{Position, SourceSpan};
-    use crate::ast::semantic_tokens::{
+    use crate::ast::tokens::semantic::{
         SemanticNumberingForm, SemanticNumberingStyle, SemanticTokenBuilder, SemanticTokenList,
     };
 

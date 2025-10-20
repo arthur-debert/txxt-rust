@@ -4,7 +4,7 @@
 //! into SequenceTextLine semantic tokens as specified in Issue #86.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::{
+use txxt::ast::tokens::semantic::{
     SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
     SemanticTokenSpan,
 };

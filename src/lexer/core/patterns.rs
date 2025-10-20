@@ -3,7 +3,7 @@
 //! This module provides utilities for extracting raw content from source spans
 //! and common pattern matching functionality used across different tokenizers.
 
-use crate::ast::scanner_tokens::SourceSpan;
+use crate::cst::SourceSpan;
 
 /// Pattern for valid text content (used in property tests)
 /// Note: Text cannot start with formatting delimiters like _ * ` # -

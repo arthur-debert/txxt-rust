@@ -5,14 +5,15 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
-    annotation::annotation_content::Annotation, components::parameters::Parameters,
-    scanner_tokens::ScannerTokenSequence,
+    annotation::annotation_content::Annotation,
+    components::parameters::Parameters,
+    list::{NumberingForm, NumberingStyle},
 };
+use crate::cst::ScannerTokenSequence;
 
 use super::super::{
     core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
-    inlines::TextTransform,
-    list::{NumberingForm, NumberingStyle},
+    formatting::inlines::TextTransform,
 };
 
 use super::session_container::SessionContainer;

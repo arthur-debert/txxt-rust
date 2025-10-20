@@ -5,8 +5,8 @@
 
 #![allow(unused_variables)]
 
-use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan, WallType};
-use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::cst::high_level_tokens::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::cst::{Position, ScannerToken, SourceSpan, WallType};
 use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]

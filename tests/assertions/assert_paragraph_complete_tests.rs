@@ -13,12 +13,12 @@ use txxt::ast::{
     elements::annotation::annotation_content::{Annotation, AnnotationContent},
     elements::components::parameters::Parameters,
     elements::{
-        inlines::{TextSpan, TextTransform},
+        inlines::{Text, TextTransform},
         paragraph::ParagraphBlock,
         session::session_container::SessionContainerElement,
     },
-    scanner_tokens::ScannerTokenSequence,
 };
+use txxt::cst::ScannerTokenSequence;
 
 use crate::assertions::{assert_paragraph, ParagraphExpected};
 
@@ -31,7 +31,7 @@ fn make_paragraph(
     params: Vec<(&str, &str)>,
     annotations: Vec<&str>,
 ) -> ParagraphBlock {
-    use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+    use txxt::cst::{Position, ScannerToken, SourceSpan};
 
     // Field 1: content (Vec<TextTransform>)
     // Create a Text token with the actual text
@@ -46,12 +46,10 @@ fn make_paragraph(
         },
     };
 
-    let text_transform = TextTransform::Identity(TextSpan {
+    let text_transform = TextTransform::Identity(Text {
         tokens: ScannerTokenSequence {
             tokens: vec![text_token.clone()],
         },
-        annotations: vec![],
-        parameters: Parameters::new(),
     });
 
     // Field 2: annotations (Vec<Annotation>)
@@ -60,9 +58,9 @@ fn make_paragraph(
         .map(|label| Annotation {
             label: label.to_string(),
             namespace: None,
-            parameters: Parameters::new(),
             content: AnnotationContent::Empty,
             tokens: ScannerTokenSequence { tokens: vec![] },
+            parameters: Parameters::new(),
         })
         .collect();
 

@@ -6,7 +6,7 @@
 //! Labels provide identification and metadata for elements.
 //! They follow consistent identifier rules and support namespacing.
 
-use crate::ast::scanner_tokens::{Position, SourceSpan, ScannerToken};
+use crate::cst::{Position, SourceSpan, ScannerToken};
 
 /// Represents a parsed label with namespace support
 #[derive(Debug, Clone, PartialEq)]

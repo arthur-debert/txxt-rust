@@ -91,7 +91,7 @@ impl DocumentAssembler {
                 all_elements,
                 vec![], // Empty annotations for now
                 crate::ast::elements::components::parameters::Parameters::default(),
-                crate::ast::elements::scanner_tokens::ScannerTokenSequence::new(),
+                crate::cst::ScannerTokenSequence::new(),
             ),
             assembly_info,
         };
@@ -109,7 +109,7 @@ pub enum DocumentAssemblyError {
     MissingComponents(String),
     /// Assembly error at specific position
     AssemblyError {
-        position: crate::ast::scanner_tokens::Position,
+        position: crate::cst::Position,
         message: String,
     },
 }

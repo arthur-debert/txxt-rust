@@ -21,7 +21,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::scanner_tokens::ScannerTokenSequence;
+use crate::cst::ScannerTokenSequence;
 
 /// Comprehensive reference target system for TXXT documents
 ///

@@ -3,7 +3,7 @@
 //! The bug: The tokenizer skips spaces and tabs without creating tokens,
 //! making it impossible to reconstruct the original text with proper spacing.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::Lexer;
 
 #[test]

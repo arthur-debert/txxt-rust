@@ -13,7 +13,7 @@
 //! and punctuation that wasn't tokenized, but re-tokenizing will produce
 //! identical tokens.
 
-use crate::ast::scanner_tokens::ScannerToken;
+use crate::cst::ScannerToken;
 use crate::lexer::core::indentation::INDENT_SIZE;
 use crate::lexer::ScannerTokenTree;
 
@@ -36,7 +36,7 @@ impl Detokenizer {
     ) -> Result<String, DetokenizeError> {
         let mut result = String::new();
         let mut prev_token: Option<&ScannerToken> = None;
-        let mut current_wall_info: Option<(usize, crate::ast::scanner_tokens::WallType)> = None;
+        let mut current_wall_info: Option<(usize, crate::cst::WallType)> = None;
 
         for (i, token) in tokens.iter().enumerate() {
             // Skip Indent/Dedent tokens as they're structural markers, not content
@@ -101,12 +101,12 @@ impl Detokenizer {
                 // Use the wall information to determine correct indentation
                 if let Some((_, wall_type)) = &current_wall_info {
                     match wall_type {
-                        crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                        crate::cst::WallType::InFlow(base_indent) => {
                             // For in-flow verbatim, title should have base_indent spaces
                             let indent_ws = " ".repeat(*base_indent);
                             result.push_str(&indent_ws);
                         }
-                        crate::ast::scanner_tokens::WallType::Stretched => {
+                        crate::cst::WallType::Stretched => {
                             // For stretched verbatim, title starts at column 1 (to disambiguate from regular TXXT content)
                             result.push(' ');
                         }
@@ -129,12 +129,12 @@ impl Detokenizer {
                 // Use the wall information to determine correct indentation
                 if let Some((_, wall_type)) = &current_wall_info {
                     match wall_type {
-                        crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                        crate::cst::WallType::InFlow(base_indent) => {
                             // For in-flow verbatim, label should have base_indent spaces
                             let indent_ws = " ".repeat(*base_indent);
                             result.push_str(&indent_ws);
                         }
-                        crate::ast::scanner_tokens::WallType::Stretched => {
+                        crate::cst::WallType::Stretched => {
                             // For stretched verbatim, label starts at column 1 (to disambiguate from regular TXXT content)
                             result.push(' ');
                         }
@@ -174,12 +174,12 @@ impl Detokenizer {
 
                         if !line.is_empty() {
                             match wall_type {
-                                crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                                crate::cst::WallType::InFlow(base_indent) => {
                                     // For in-flow verbatim, add base indent + wall offset
                                     result.push_str(&" ".repeat(base_indent + INDENT_SIZE));
                                     result.push_str(line);
                                 }
-                                crate::ast::scanner_tokens::WallType::Stretched => {
+                                crate::cst::WallType::Stretched => {
                                     // For stretched verbatim, content starts at column 0
                                     result.push_str(line);
                                 }
@@ -226,7 +226,7 @@ impl Detokenizer {
         // Track whether we're at the start of a line
         let mut at_line_start = result.is_empty() || result.ends_with('\n');
         let mut prev_token: Option<&ScannerToken> = None;
-        let mut current_wall_info: Option<(usize, crate::ast::scanner_tokens::WallType)> = None;
+        let mut current_wall_info: Option<(usize, crate::cst::WallType)> = None;
 
         // Process all tokens at this level
         for token in &token_tree.tokens {
@@ -301,12 +301,12 @@ impl Detokenizer {
 
                         if !line.is_empty() {
                             match wall_type {
-                                crate::ast::scanner_tokens::WallType::InFlow(base_indent) => {
+                                crate::cst::WallType::InFlow(base_indent) => {
                                     // For in-flow verbatim, add base indent + wall offset
                                     result.push_str(&" ".repeat(base_indent + INDENT_SIZE));
                                     result.push_str(line);
                                 }
-                                crate::ast::scanner_tokens::WallType::Stretched => {
+                                crate::cst::WallType::Stretched => {
                                     // For stretched verbatim, content starts at column 0
                                     result.push_str(line);
                                 }

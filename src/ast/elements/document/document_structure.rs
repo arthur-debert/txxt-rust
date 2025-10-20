@@ -16,9 +16,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::ast::elements::{
-    blocks::Block, components::parameters::Parameters, scanner_tokens::ScannerTokenSequence,
-    session::SessionContainer,
+    blocks::Block, components::parameters::Parameters, session::SessionContainer,
 };
+use crate::cst::ScannerTokenSequence;
 
 /// Top-level document structure
 ///

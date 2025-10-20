@@ -47,7 +47,7 @@
 //! - **Tokenizer**: [`src/lexer/elements/formatting/delimiters.rs`]
 
 use crate::ast::elements::formatting::inlines::{Text, TextTransform};
-use crate::ast::scanner_tokens::ScannerToken;
+use crate::cst::ScannerToken;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Parse a math formatting element from tokens

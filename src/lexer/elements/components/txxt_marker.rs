@@ -5,7 +5,7 @@
 //! - Definition: term :: or term:params ::
 //! - Standalone: isolated :: tokens
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::patterns::{
     extract_raw_content_before_span, extract_raw_content_between_spans, get_current_line,
 };

@@ -665,12 +665,11 @@ impl TxxtElement for DocumentElementOwned {
         ElementType::Container
     }
 
-    fn tokens(&self) -> &crate::ast::scanner_tokens::ScannerTokenSequence {
+    fn tokens(&self) -> &crate::cst::ScannerTokenSequence {
         // Document doesn't have tokens directly, return empty sequence
         use std::sync::OnceLock;
-        static EMPTY_TOKENS: OnceLock<crate::ast::scanner_tokens::ScannerTokenSequence> =
-            OnceLock::new();
-        EMPTY_TOKENS.get_or_init(crate::ast::scanner_tokens::ScannerTokenSequence::new)
+        static EMPTY_TOKENS: OnceLock<crate::cst::ScannerTokenSequence> = OnceLock::new();
+        EMPTY_TOKENS.get_or_init(crate::cst::ScannerTokenSequence::new)
     }
 
     fn annotations(&self) -> &[crate::ast::elements::annotation::annotation_content::Annotation] {
@@ -759,7 +758,7 @@ impl TxxtElement for ElementAdapter {
         }
     }
 
-    fn tokens(&self) -> &crate::ast::scanner_tokens::ScannerTokenSequence {
+    fn tokens(&self) -> &crate::cst::ScannerTokenSequence {
         match self {
             Self::Paragraph(p) => p.tokens(),
             Self::List(l) => l.tokens(),
@@ -1438,7 +1437,7 @@ mod tests {
                 content: vec![], // Empty for now
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1474,7 +1473,7 @@ mod tests {
                 content: vec![],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1504,7 +1503,7 @@ mod tests {
             content: vec![], // Empty TextTransform content for test
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let verbatim = VerbatimBlock {
@@ -1514,17 +1513,17 @@ mod tests {
                 blank_lines: vec![],  // Empty blank lines for test
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             label: "test".to_string(), // Mandatory label
             verbatim_type: VerbatimType::InFlow,
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let blank_line = BlankLine {
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let document = Document {
@@ -1542,7 +1541,7 @@ mod tests {
                 ],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1602,7 +1601,7 @@ mod tests {
             content: vec![], // Empty TextTransform content for test
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let document = Document {
@@ -1614,7 +1613,7 @@ mod tests {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1684,7 +1683,7 @@ mod tests {
             content: vec![], // Empty TextTransform content for test
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let document = Document {
@@ -1696,7 +1695,7 @@ mod tests {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1747,7 +1746,7 @@ mod tests {
             content: vec![],
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let document = Document {
@@ -1759,7 +1758,7 @@ mod tests {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1830,7 +1829,7 @@ mod tests {
             content: vec![],
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let document = Document {
@@ -1839,7 +1838,7 @@ mod tests {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),
@@ -1869,7 +1868,7 @@ mod tests {
             content: vec![],
             annotations: vec![],
             parameters: crate::ast::elements::components::parameters::Parameters::default(),
-            tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+            tokens: crate::cst::ScannerTokenSequence::new(),
         };
 
         let document = Document {
@@ -1878,7 +1877,7 @@ mod tests {
                 content: vec![SessionContainerElement::Paragraph(paragraph)],
                 annotations: vec![],
                 parameters: crate::ast::elements::components::parameters::Parameters::default(),
-                tokens: crate::ast::scanner_tokens::ScannerTokenSequence::new(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             },
             assembly_info: AssemblyInfo {
                 parser_version: "test".to_string(),

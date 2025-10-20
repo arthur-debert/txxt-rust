@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    scanner_tokens::ScannerTokenSequence,
 };
+use crate::cst::ScannerTokenSequence;
 
 /// Element type classification according to specification terminology
 ///

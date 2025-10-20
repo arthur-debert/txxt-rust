@@ -37,7 +37,6 @@ pub mod core;
 
 // Core AST files
 pub mod blocks;
-pub mod scanner_tokens;
 pub mod traversal;
 
 // Container elements (hold child elements)

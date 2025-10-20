@@ -1,14 +1,14 @@
-//! Scanner token-level AST nodes for character-precise language server support
+//! Scanner Tokens - Low-level character-precise tokens
 //!
 //! This module defines the lowest-level scanner tokens that maintain exact source
 //! positions for every character. These are distinct from semantic tokens which
 //! represent higher-level syntactic structures. Scanner tokens enable precise
 //! language server features like hover, autocomplete, go-to-definition, and
 //! syntax highlighting.
-//!
-//! src/parser/mod.rs has the full architecture overview.
 
 use serde::{Deserialize, Serialize};
+
+use super::primitives::SourceSpan;
 
 /// Type of indentation wall for verbatim blocks
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -26,7 +26,7 @@ pub enum SequenceMarkerType {
     Plain(String),
     /// Numerical markers like "1.", "42)" with parsed number and original string
     Numerical(u64, String),
-    /// Alphabetical markers like "a.", "Z)" with parsed letter and original string  
+    /// Alphabetical markers like "a.", "Z)" with parsed letter and original string
     Alphabetical(char, String),
     /// Roman numeral markers like "i.", "IV)" with parsed value and original string
     Roman(u64, String),
@@ -63,28 +63,6 @@ impl SequenceMarkerType {
     }
 }
 
-/// Precise source position for character-level language server support
-///
-/// Unlike traditional AST source spans, we need both start and end positions
-/// because inline elements don't necessarily start at column 0, and we need
-/// precise boundaries for language server operations.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct Position {
-    /// Line number (0-indexed)
-    pub row: usize,
-    /// Column number (0-indexed, UTF-8 byte offset)
-    pub column: usize,
-}
-
-/// Source span covering a range of characters
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SourceSpan {
-    /// Start position (inclusive)
-    pub start: Position,
-    /// End position (exclusive)  
-    pub end: Position,
-}
-
 /// Individual scanner token with precise source location
 ///
 /// Type-safe scanner token variants based on TXXT reference implementation.
@@ -113,7 +91,7 @@ pub enum ScannerToken {
     /// Indentation increase
     Indent { span: SourceSpan },
 
-    /// Indentation decrease  
+    /// Indentation decrease
     Dedent { span: SourceSpan },
 
     /// List/sequence markers (1., -, a), etc.) with rich semantic information
@@ -320,55 +298,5 @@ impl ScannerToken {
             ScannerToken::FootnoteRef { footnote_type, .. } => Some(footnote_type),
             _ => None,
         }
-    }
-}
-
-/// Collection of scanner tokens that forms a logical text unit
-///
-/// This bridges the gap between character-level precision (scanner tokens) and
-/// semantic structure (blocks/inlines). Most semantic operations work
-/// with ScannerTokenSequence, while language server operations drill down to
-/// individual scanner tokens.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ScannerTokenSequence {
-    pub tokens: Vec<ScannerToken>,
-}
-
-impl Default for ScannerTokenSequence {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ScannerTokenSequence {
-    /// Create a new empty scanner token sequence
-    pub fn new() -> Self {
-        Self { tokens: Vec::new() }
-    }
-
-    /// Get the overall source span covering all scanner tokens
-    pub fn span(&self) -> Option<SourceSpan> {
-        if self.tokens.is_empty() {
-            return None;
-        }
-
-        let start = self.tokens[0].span().start;
-        let end = self.tokens.last().unwrap().span().end;
-
-        Some(SourceSpan { start, end })
-    }
-
-    /// Get the text content by concatenating all scanner token content
-    pub fn text(&self) -> String {
-        self.tokens
-            .iter()
-            .map(|token| token.content())
-            .collect::<Vec<_>>()
-            .join("")
-    }
-
-    /// Create a scanner token sequence from a vector of scanner tokens
-    pub fn from_tokens(tokens: Vec<ScannerToken>) -> Self {
-        Self { tokens }
     }
 }

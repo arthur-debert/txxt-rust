@@ -41,7 +41,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use super::primitives::{Position, SourceSpan};
+use super::scanner_tokens::ScannerToken;
 
 /// High-level token representing higher-level syntactic constructs
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

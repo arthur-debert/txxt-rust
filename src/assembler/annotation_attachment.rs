@@ -49,7 +49,7 @@ pub enum AnnotationAttachmentError {
     TargetNotFound(String),
     /// Attachment error at specific position
     AttachmentError {
-        position: crate::ast::scanner_tokens::Position,
+        position: crate::cst::Position,
         message: String,
     },
     /// Circular annotation reference detected
@@ -103,7 +103,7 @@ mod tests {
                 vec![],
                 vec![],
                 crate::ast::elements::components::parameters::Parameters::default(),
-                crate::ast::elements::scanner_tokens::ScannerTokenSequence::new(),
+                crate::cst::ScannerTokenSequence::new(),
             ),
             assembly_info: crate::ast::elements::document::document_structure::AssemblyInfo {
                 parser_version: "test".to_string(),

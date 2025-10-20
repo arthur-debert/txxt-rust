@@ -3,11 +3,11 @@
 //! This module tests the transformation of SequenceMarker scanner tokens into
 //! SequenceMarker semantic tokens as specified in Issue #84.
 
-use txxt::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
-use txxt::ast::tokens::high_level::{
+use txxt::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenSpan,
 };
+use txxt::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use txxt::lexer::semantic_analysis::SemanticAnalyzer;
 
 #[test]

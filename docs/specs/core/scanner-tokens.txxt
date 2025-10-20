@@ -144,10 +144,11 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
 
     Tokens are organized in the codebase following a clear structure:
 
-    4.1. Core Token Definitions
+    4.1. Core Token Definitions (CST - Concrete Syntax Tree)
 
-        - `src/ast/elements/scanner_tokens.rs`: Main token enum and types
-        - `src/ast/tokens/`: Individual token type definitions
+        - `src/cst/scanner_tokens.rs`: Main ScannerToken enum and types
+        - `src/cst/primitives.rs`: Position, SourceSpan, ScannerTokenSequence
+        - `src/cst/high_level_tokens.rs`: HighLevelToken (semantic tokens)
         - `src/lexer/elements/`: Token-specific lexer implementations
 
     4.2. Token Processing
@@ -155,6 +156,12 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
         - `src/lexer/core/`: Core lexer infrastructure
         - `src/lexer/pipeline/`: Token processing pipeline
         - `src/tools/detokenizer/`: Token-to-text reconstruction
+
+    4.3. AST vs CST Separation
+
+        Scanner tokens and high-level tokens live in the CST (Concrete Syntax Tree) module,
+        while AST nodes (semantic elements like ParagraphBlock, SessionBlock) live in the AST module.
+        This separation ensures clear boundaries between token-level representation and semantic structure.
 
 5. Examples
 

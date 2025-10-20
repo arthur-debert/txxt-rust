@@ -1,6 +1,6 @@
 //! Integration tests for math delimiter tokenization with main lexer
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[test]

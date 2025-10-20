@@ -7,7 +7,7 @@
 use txxt::ast::elements::components::parameters::Parameters;
 use txxt::ast::elements::core::ElementNode;
 use txxt::ast::elements::session::session_container::SessionContainer;
-use txxt::ast::scanner_tokens::ScannerTokenSequence;
+use txxt::cst::ScannerTokenSequence;
 use txxt::tools::treeviz::*;
 
 #[cfg(test)]
@@ -321,11 +321,17 @@ mod tests {
     #[test]
     fn test_basic_inline_elements() {
         // Test simple inline elements that can be easily created
-        use txxt::ast::elements::inlines::TextSpan;
+        use txxt::ast::elements::components::parameters::Parameters;
+        use txxt::ast::elements::inlines::{Text, TextSpan};
+        use txxt::cst::ScannerTokenSequence;
 
         let simple_test_cases = vec![
             (
-                ElementNode::TextSpan(TextSpan::simple("sample text")),
+                ElementNode::TextSpan(TextSpan {
+                    tokens: Text::simple("sample text").tokens,
+                    annotations: Vec::new(),
+                    parameters: Parameters::new(),
+                }),
                 "TextSpan",
                 "◦",
             ),
@@ -354,6 +360,8 @@ mod tests {
 
     #[test]
     fn test_all_node_type_names() {
+        use txxt::ast::elements::inlines::{Text, TextSpan};
+
         // Test that all ElementNode variants have correct type names
         // This uses the existing functions without complex constructors
 
@@ -371,8 +379,11 @@ mod tests {
         });
         assert_eq!(get_node_type_name(&blank_line), "BlankLine");
 
-        let text_span =
-            ElementNode::TextSpan(txxt::ast::elements::inlines::TextSpan::simple("test"));
+        let text_span = ElementNode::TextSpan(TextSpan {
+            tokens: Text::simple("test").tokens,
+            annotations: Vec::new(),
+            parameters: Parameters::new(),
+        });
         assert_eq!(get_node_type_name(&text_span), "TextSpan");
     }
 
@@ -655,12 +666,16 @@ mod tests {
 
     #[test]
     fn test_full_pipeline_with_synthetic_ast() {
+        use txxt::ast::elements::inlines::{Text, TextSpan};
+
         // Test the complete pipeline from synthetic AST to visualization
 
         // Create a synthetic AST using simple constructors
-        let text_span = ElementNode::TextSpan(txxt::ast::elements::inlines::TextSpan::simple(
-            "Hello World",
-        ));
+        let text_span = ElementNode::TextSpan(TextSpan {
+            tokens: Text::simple("Hello World").tokens,
+            annotations: Vec::new(),
+            parameters: Parameters::new(),
+        });
 
         // Test the three-function API exactly as specified in the GitHub issue
 

@@ -1,7 +1,7 @@
 //! Integration tests for footnote reference tokenization
 
 use rstest::rstest;
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::inline::references::footnote_ref::FootnoteType;
 use txxt::lexer::tokenize;
 

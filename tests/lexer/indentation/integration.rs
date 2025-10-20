@@ -4,7 +4,7 @@
 //! Indent and Dedent tokens are properly generated for TXXT text.
 
 use rstest::rstest;
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 /// Test basic indentation tokenization

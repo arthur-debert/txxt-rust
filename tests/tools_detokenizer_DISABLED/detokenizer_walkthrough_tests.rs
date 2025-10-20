@@ -3,7 +3,7 @@
 //! These tests verify the detokenizer can handle complex, realistic txxt documents
 //! using examples from the walkthrough documentation.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 use txxt::tools::detokenizer::Detokenizer;
 
@@ -68,7 +68,7 @@ fn tokens_equal(t1: &ScannerToken, t2: &ScannerToken) -> bool {
                 ..
             },
         ) => l1 == l2 && wt1 == wt2,
-        (IgnoreTextSpan { content: c1, .. }, IgnoreTextSpan { content: c2, .. }) => c1 == c2,
+        (IgnoreText { content: c1, .. }, IgnoreText { content: c2, .. }) => c1 == c2,
         (VerbatimLabel { content: c1, .. }, VerbatimLabel { content: c2, .. }) => c1 == c2,
         (
             Parameter {

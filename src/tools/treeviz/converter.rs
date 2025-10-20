@@ -168,7 +168,7 @@ pub fn create_synthetic_ast() -> ElementNode {
     // Create a simple session block as the root
     use crate::ast::elements::components::parameters::Parameters;
     use crate::ast::elements::session::SessionContainer;
-    use crate::ast::scanner_tokens::ScannerTokenSequence;
+    use crate::cst::ScannerTokenSequence;
 
     // Since we can't easily construct the complex nested structures without
     // the full parser infrastructure, we'll create a minimal synthetic node

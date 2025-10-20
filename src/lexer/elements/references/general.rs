@@ -4,7 +4,7 @@
 //! Reference markers are inline elements that link to other content.
 
 use crate::ast::elements::references::reference_types::ReferenceClassifier;
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 
 /// Trait for reference marker lexing
 pub trait ReferenceLexer {

@@ -3,7 +3,7 @@
 //! These tests ensure that Unicode characters (including emoji) are properly
 //! tokenized and that column positions are calculated correctly.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::Lexer;
 
 #[test]

@@ -6,7 +6,7 @@
 use crate::ast::{
     elements::{
         containers::{content::ContentContainerElement, ContentContainer},
-        inlines::TextTransform,
+        formatting::inlines::TextTransform,
         session::{session_container::SessionContainerElement, SessionContainer},
     },
     Document,

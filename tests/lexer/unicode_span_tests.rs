@@ -4,7 +4,7 @@
 //! characters when calculating spans. This is critical for language server
 //! functionality and any position-based features.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::Lexer;
 
 /// Test that all tokenizers handle emoji (4-byte characters) correctly
@@ -653,7 +653,7 @@ fn test_mixed_unicode_content() {
 
 // Helper functions
 
-fn get_token_span(token: &ScannerToken) -> &txxt::ast::scanner_tokens::SourceSpan {
+fn get_token_span(token: &ScannerToken) -> &txxt::cst::SourceSpan {
     match token {
         ScannerToken::Text { span, .. }
         | ScannerToken::Identifier { span, .. }

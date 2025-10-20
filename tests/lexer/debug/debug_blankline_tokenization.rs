@@ -34,12 +34,7 @@ mod tests {
         // Count BlankLine tokens
         let blankline_count = tokens
             .iter()
-            .filter(|token| {
-                matches!(
-                    token,
-                    txxt::ast::scanner_tokens::ScannerToken::BlankLine { .. }
-                )
-            })
+            .filter(|token| matches!(token, txxt::cst::ScannerToken::BlankLine { .. }))
             .count();
         println!("BlankLine count: {}", blankline_count);
 

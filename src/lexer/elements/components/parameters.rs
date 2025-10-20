@@ -5,7 +5,7 @@
 //! - Boolean shorthand (key without value)
 //! - Namespaced keys (org.example.metadata)
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::lexer::tokenization::Lexer;
 
 /// Trait for parameter parsing

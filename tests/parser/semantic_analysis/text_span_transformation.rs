@@ -3,8 +3,8 @@
 //! This module tests the transformation of Text scanner tokens into TextSpan
 //! semantic tokens as specified in Issue #85.
 
-use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::cst::high_level_tokens::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::cst::{Position, ScannerToken, SourceSpan};
 use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]

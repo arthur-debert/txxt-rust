@@ -6,7 +6,7 @@
 //! Paragraphs are the fundamental text blocks containing inline content.
 //! They serve as the default element type when no other structure is detected.
 
-use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
+use crate::cst::{ScannerToken, SourceSpan};
 
 /// Represents a paragraph with its constituent text lines
 #[derive(Debug, Clone, PartialEq)]
@@ -221,7 +221,7 @@ pub fn should_terminate_paragraph(tokens: &[ScannerToken]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::scanner_tokens::Position;
+    use crate::cst::Position;
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -239,7 +239,7 @@ mod tests {
 
     fn create_sequence_token(content: &str) -> ScannerToken {
         ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Plain(content.to_string()),
+            marker_type: crate::cst::SequenceMarkerType::Plain(content.to_string()),
             span: create_test_span(),
         }
     }

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::{
     annotations::Annotation, parameters::Parameters, reference_types::ReferenceTarget,
-    scanner_tokens::ScannerTokenSequence,
+    ScannerTokenSequence,
 };
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};

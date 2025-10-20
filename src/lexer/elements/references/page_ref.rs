@@ -4,7 +4,7 @@
 //! according to the TXXT specification. Page references are used to reference
 //! specific pages or page ranges in documents.
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 
 /// Trait for lexer state that can parse page references
 pub trait PageRefLexer {

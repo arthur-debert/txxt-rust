@@ -4,7 +4,7 @@
 //! (strong, emphasis, code, math) using the TxxtCorpora framework.
 
 use txxt::ast::elements::formatting::inlines::TextTransform;
-use txxt::ast::elements::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use txxt::cst::{Position, ScannerToken, SourceSpan};
 use txxt::parser::elements::formatting::*;
 
 /// Helper function to create a test source span

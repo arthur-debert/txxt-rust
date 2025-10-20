@@ -15,7 +15,7 @@ mod assertion_tests {
         elements::{
             containers::session::SessionContainerElement,
             core::ElementType,
-            inlines::TextTransform,
+            inlines::{Text, TextTransform},
             paragraph::ParagraphBlock,
         },
         parameters::Parameters,
@@ -25,7 +25,7 @@ mod assertion_tests {
     /// Helper to create a simple paragraph for testing
     fn make_test_paragraph(text: &str) -> SessionContainerElement {
         let text_transform = TextTransform::Identity(
-            txxt::ast::elements::inlines::TextSpan {
+            txxt::ast::elements::inlines::Text {
                 tokens: ScannerTokenSequence {
                     tokens: vec![ScannerToken::Text {
                         content: text.to_string(),
@@ -38,15 +38,11 @@ mod assertion_tests {
                         },
                     }],
                 },
-                annotations: vec![],
-                parameters: Parameters::new(),
             }
         );
 
         SessionContainerElement::Paragraph(ParagraphBlock {
             content: vec![text_transform],
-            annotations: vec![],
-            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         })
     }

@@ -54,7 +54,7 @@ pub use math::*;
 pub use strong::*;
 
 use crate::ast::elements::formatting::inlines::{Inline, TextTransform};
-use crate::ast::scanner_tokens::ScannerToken;
+use crate::cst::ScannerToken;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Parse all formatting elements from a sequence of tokens

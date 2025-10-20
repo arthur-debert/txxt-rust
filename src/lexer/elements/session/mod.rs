@@ -12,7 +12,7 @@ pub mod session_tokenizer;
 
 // Re-export main interfaces
 
-use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
+use crate::cst::{ScannerToken, SourceSpan};
 
 /// Represents a session title with optional numbering
 #[derive(Debug, Clone, PartialEq)]
@@ -152,7 +152,7 @@ pub fn format_session_numbering(numbering: &[u32]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::scanner_tokens::Position;
+    use crate::cst::Position;
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -170,10 +170,7 @@ mod tests {
 
     fn create_sequence_token(content: &str) -> ScannerToken {
         ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
-                1,
-                content.to_string(),
-            ),
+            marker_type: crate::cst::SequenceMarkerType::Numerical(1, content.to_string()),
             span: create_test_span(),
         }
     }

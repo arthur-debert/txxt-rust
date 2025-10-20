@@ -21,8 +21,8 @@ pub use session_ref::SessionReferenceSpan;
 use crate::ast::elements::formatting::inlines::TextTransform;
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    scanner_tokens::ScannerTokenSequence,
 };
+use crate::cst::ScannerTokenSequence;
 use serde::{Deserialize, Serialize};
 
 /// General reference span for links and cross-references

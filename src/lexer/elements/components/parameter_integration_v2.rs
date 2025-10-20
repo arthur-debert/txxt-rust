@@ -3,7 +3,7 @@
 //! This module handles parameter detection and parsing while preserving
 //! all tokens (including whitespace) and maintaining correct source positions.
 
-use crate::ast::scanner_tokens::{ScannerToken, SourceSpan};
+use crate::cst::{ScannerToken, SourceSpan};
 
 /// Integrate parameters in annotation contexts while preserving all tokens
 pub fn integrate_annotation_parameters_v2(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {

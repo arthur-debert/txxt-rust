@@ -3,7 +3,7 @@
 //! This test verifies that the lexer correctly uses centralized regex patterns
 //! from patterns.rs instead of manual string manipulation.
 
-use txxt::ast::scanner_tokens::ScannerToken;
+use txxt::cst::ScannerToken;
 use txxt::lexer::tokenize;
 
 #[cfg(test)]

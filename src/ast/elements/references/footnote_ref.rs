@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    references::reference_types::ReferenceTarget, scanner_tokens::ScannerTokenSequence,
+    references::reference_types::ReferenceTarget,
 };
+use crate::cst::ScannerTokenSequence;
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};
 

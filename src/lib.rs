@@ -29,14 +29,14 @@
 //!
 //! - Stage: CLI and test concept for where to stop processing
 //!     · Used for inspection, debugging, and intermediate output
-//!     · Examples: scanner-tokens, semantic-tokens, ast-block, ast-full
+//!     · Examples: scanner-tokens, high-level-tokens, ast-block, ast-full
 //!     · Stages map to specific steps within phases
 //!
 //!
 //! DATA FLOW
 //!
 //! The processing pipeline transforms data through these representations:
-//! Lexxer: source text -> scanner-tokens -> semantic-tokens
+//! Lexer: source text -> scanner-tokens -> high-level-tokens
 //! Parser: -> ast-block -> ast-inlines
 //! Assembler:  ast-document -> ast-full
 //!
@@ -47,17 +47,17 @@
 //!     1.b: scanner-tokens
 //!          Convert text to low-level flat token stream
 //!         (Source text with verbatim markers -> Vec<ScannerToken>)
-//! 2. Parser: Semantic Analysis: Converts tokens into Abstract Syntax Tree nodes.
-//!     2.a: semantic-tokens
-//!          Convert from low-level tokens to semantic tokens
-//!          Vec<ScannerToken> -> Vec<SemanticToken>
-//!    2.b:  ast-block
-//!           Build AST tree with block elements from semantic tokens
-//!           Purpose: Build AST tree from semantic tokens
-//!           Input: SemanticTokenList
+//!     1.c: high-level-tokens
+//!          Convert from low-level tokens to high-level tokens
+//!          Vec<ScannerToken> -> Vec<HighLevelToken>
+//!2. Parser: Semantic Analysis: Converts tokens into Abstract Syntax Tree nodes.
+//!    2.a:  ast-block
+//!           Build AST tree with block elements from high-level tokens
+//!           Purpose: Build AST tree from high-level tokens
+//!           Input: HighLevelTokenList
 //!           Output: Vec<ElementNode>
 //!           Produces: Block-level AST structure
-//!     2.c:  ast-inlines
+//!     2.b:  ast-inlines
 //!           Inline parsing:  Complement tree with inline elements.
 //!           Vec<ElementNode> (no inlines) -> Vec<ElementNode> (with  inlines)
 //! 3. Assembly: Converts AST nodes into final document structure.

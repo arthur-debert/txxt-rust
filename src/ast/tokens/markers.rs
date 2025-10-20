@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::elements::scanner_tokens::{Position, SequenceMarkerType, SourceSpan};
+use crate::ast::elements::scanner_tokens::{SequenceMarkerType, SourceSpan};
 
 /// TXXT marker (::) - fundamental structural element
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

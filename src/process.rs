@@ -27,8 +27,9 @@
 //! ```
 
 use crate::assembler::{AnnotationAttacher, DocumentAssembler};
+use crate::ast::scanner_tokens::ScannerToken;
 use crate::ast::Document;
-use crate::lexer::{tokenize, ScannerTokenTree, ScannerTokenTreeBuilder};
+use crate::lexer::tokenize;
 use crate::parser::{AstConstructor, InlineParser, SemanticAnalyzer};
 
 /// Processing error type that encompasses all phase errors
@@ -66,25 +67,19 @@ impl From<std::io::Error> for ProcessError {
 /// Execute Phase 1: Lexer
 ///
 /// Converts source text through the lexer steps:
-/// Step 1.a: Verbatim Scanning → Step 1.b: Tokenization → Step 1.c: Token Tree Building
+/// Step 1.a: Verbatim Scanning → Step 1.b: Tokenization
 ///
 /// # Arguments
 /// * `source_text` - The TXXT source text to process
 ///
 /// # Returns
-/// * `Result<ScannerTokenTree, ProcessError>` - The hierarchical token tree
-pub fn process_lexer(source_text: &str) -> Result<ScannerTokenTree, ProcessError> {
+/// * `Result<Vec<ScannerToken>, ProcessError>` - The flat scanner token stream
+pub fn process_lexer(source_text: &str) -> Result<Vec<ScannerToken>, ProcessError> {
     // Step 1.a: Verbatim Scanning (handled internally by tokenize)
     // Step 1.b: Tokenization
     let tokens = tokenize(source_text);
 
-    // Step 1.c: Token Tree Building
-    let token_tree_builder = ScannerTokenTreeBuilder::new();
-    let token_tree = token_tree_builder
-        .build_tree(tokens)
-        .map_err(|err| ProcessError::Lexer(err.to_string()))?;
-
-    Ok(token_tree)
+    Ok(tokens)
 }
 
 /// Execute Phase 2: Parser
@@ -93,16 +88,13 @@ pub fn process_lexer(source_text: &str) -> Result<ScannerTokenTree, ProcessError
 /// Step 2.a: Semantic Analysis → Step 2.b: AST Construction → Step 2.c: Inline Parsing
 ///
 /// # Arguments
-/// * `token_tree` - Scanner token tree from Phase 1
+/// * `tokens` - Scanner tokens from Phase 1
 ///
 /// # Returns
 /// * `Result<Vec<ElementNode>, ProcessError>` - The AST element nodes
 pub fn process_parser(
-    token_tree: ScannerTokenTree,
+    tokens: Vec<ScannerToken>,
 ) -> Result<Vec<crate::ast::ElementNode>, ProcessError> {
-    // Extract tokens from the tree for semantic analysis
-    let tokens = token_tree.tokens;
-
     // Step 2.a: Semantic Analysis
     let semantic_analyzer = SemanticAnalyzer::new();
     let semantic_tokens = semantic_analyzer
@@ -155,7 +147,7 @@ pub fn process_assembler(
 /// Execute Full Processing: All Three Phases
 ///
 /// Processes source text through the complete three-phase pipeline:
-/// String → ScannerTokenTree → AST Elements → Document
+/// String → Vec<ScannerToken> → Vec<SemanticToken> → Vec<ElementNode> → Document
 ///
 /// # Arguments
 /// * `source_text` - The TXXT source text to process
@@ -167,11 +159,11 @@ pub fn process_full(
     source_text: &str,
     source_path: Option<String>,
 ) -> Result<Document, ProcessError> {
-    // Phase 1: Lexer (String → ScannerTokenTree)
-    let token_tree = process_lexer(source_text)?;
+    // Phase 1: Lexer (String → Vec<ScannerToken>)
+    let tokens = process_lexer(source_text)?;
 
-    // Phase 2: Parser (ScannerTokenTree → AST Elements)
-    let elements = process_parser(token_tree)?;
+    // Phase 2: Parser (Vec<ScannerToken> → Vec<ElementNode>)
+    let elements = process_parser(tokens)?;
 
     // Phase 3: Assembler (AST Elements → Document)
     let document = process_assembler(elements, source_path)?;
@@ -204,18 +196,15 @@ mod tests {
         let result = process_lexer(source);
         assert!(result.is_ok());
 
-        let token_tree = result.unwrap();
-        assert!(!token_tree.tokens.is_empty());
+        let tokens = result.unwrap();
+        assert!(!tokens.is_empty());
     }
 
     #[test]
     fn test_process_parser_placeholder() {
-        let token_tree = ScannerTokenTree {
-            tokens: vec![],
-            children: vec![],
-        };
+        let tokens = vec![];
 
-        let result = process_parser(token_tree);
+        let result = process_parser(tokens);
         assert!(result.is_ok());
 
         let elements = result.unwrap();

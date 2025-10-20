@@ -44,12 +44,10 @@
 //! 1. Lexer: Syntax Analysis: Convert source text into token vectors.
 //!     1.a: Step:  Verbatim scanning: Identify and mark verbatim regions
 //!         (Raw source text -> Text with verbatim boundaries marked)
-//!         
 //!     1.b: scanner-tokens
 //!          Convert text to low-level flat token stream
 //!         (Source text with verbatim markers -> Vec<ScannerToken>)
-//!         
-//! 2. Parser: Semantic Analysis: Converts tokens into Abstract Syntax Tree nodes.
+//!         //! 2. Parser: Semantic Analysis: Converts tokens into Abstract Syntax Tree nodes.
 //!     2.a: semantic-tokens
 //!          Convert from low-level tokens to semantic tokens
 //!          Vec<ScannerToken> -> Vec<SemanticToken>

@@ -6,11 +6,11 @@
 //! - Standalone: isolated :: tokens
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use crate::lexer::core::lexer::{Lexer, LexerState};
 use crate::lexer::core::patterns::{
     extract_raw_content_before_span, extract_raw_content_between_spans, get_current_line,
 };
 use crate::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
+use crate::lexer::tokenization::{Lexer, LexerState};
 use regex::Regex;
 
 /// Pattern type for :: tokens on the current line

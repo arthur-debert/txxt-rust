@@ -8,7 +8,7 @@
 //! - Math delimiters: #
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use crate::lexer::core::lexer::Lexer;
+use crate::lexer::tokenization::Lexer;
 
 /// Trait for lexer state that can parse inline delimiters
 pub trait InlineDelimiterLexer {

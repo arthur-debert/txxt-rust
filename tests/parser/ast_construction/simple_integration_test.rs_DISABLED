@@ -22,7 +22,7 @@
 use txxt::assembler::DocumentAssembler;
 use txxt::ast::traversal::TraversableDocument;
 use txxt::lexer::tokenize;
-use txxt::lexer::ScannerTokenTreeBuilder;
+
 use txxt::process::process_parser;
 
 /// Test that AST construction works with a simple paragraph

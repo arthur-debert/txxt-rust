@@ -209,13 +209,13 @@ fn process_ast_full_treeviz(content: &str, source_path: &str) -> Result<String, 
 // Phase 2 processing functions
 fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Use lexer pipeline
-    let token_tree = crate::process::process_lexer(content)
+    let tokens = crate::process::process_lexer(content)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
     // Phase 2.a: Semantic Analysis only
     let semantic_analyzer = crate::parser::SemanticAnalyzer::new();
     let semantic_tokens = semantic_analyzer
-        .analyze(token_tree.tokens)
+        .analyze(tokens)
         .map_err(|err| ProcessError::ParseError(err.to_string()))?;
 
     // Phase 2.b: AST Construction only (no inline parsing)
@@ -234,13 +234,13 @@ fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String
 
 fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<String, ProcessError> {
     // Use lexer pipeline
-    let token_tree = crate::process::process_lexer(content)
+    let tokens = crate::process::process_lexer(content)
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
     // Phase 2.a: Semantic Analysis only
     let semantic_analyzer = crate::parser::SemanticAnalyzer::new();
     let semantic_tokens = semantic_analyzer
-        .analyze(token_tree.tokens)
+        .analyze(tokens)
         .map_err(|err| ProcessError::ParseError(err.to_string()))?;
 
     // Phase 2.b: AST Construction only (no inline parsing)

@@ -1,61 +1,37 @@
 //! Phase 1: Lexer - Tokenization
 //!
-//! This module implements the lexer phase that converts source text into tokens.
+//! This module implements the lexer phase that converts source text into scanner tokens.
+//!
+//! See src/lib.rs for the full architecture overview.
 //!
 //! ## Lexer Steps
 //!
-//! Step 1.a: Verbatim scanning (handled internally by tokenize)
-//! Step 1.b: Tokenization - converts text to flat token stream
-//! Step 1.c: Token tree building - organizes tokens hierarchically
+//! - [`verbatim_scanning`] - Step 1.a: Verbatim region identification
+//!   - Identifies and marks verbatim regions before tokenization
+//!   - Input: Raw source text
+//!   - Output: Text with verbatim boundaries marked
 //!
-//! ## Core Modules
+//! - [`tokenization`] - Step 1.b: Character-precise tokenization
+//!   - Converts text to flat scanner token stream with source positions
+//!   - Input: Source text with verbatim markers
+//!   - Output: Vec<ScannerToken>
 //!
-//! - [`core`] - Fundamental tokenization components
-//!   - [`core::lexer`] - Main tokenization engine
-//!   - [`core::indentation`] - Indentation tracking and container boundaries
-//!   - [`core::patterns`] - Core pattern matching utilities
+//! ## Supporting Modules
 //!
-//! ## Element Modules (Organized by Specification)
-//!
-//! - [`elements`] - All element tokenization organized by type
-//!   - [`elements::annotation`] - Annotation elements
-//!   - [`elements::containers`] - Container elements
-//!   - [`elements::definition`] - Definition elements
-//!   - [`elements::document`] - Document-level elements
-//!   - [`elements::formatting`] - Text formatting elements
-//!   - [`elements::list`] - List-related elements
-//!   - [`elements::paragraph`] - Paragraph elements
-//!   - [`elements::references`] - Reference and link elements
-//!   - [`elements::session`] - Session-related elements
-//!   - [`elements::verbatim`] - Verbatim elements
-//!   - [`elements::components`] - Shared component elements
-//!
-//! ## Processing Steps
-//!
-//! - [`token_tree_builder`] - Step 1.c: Transform flat tokens into hierarchical token tree
-//!
-//! ## Architecture
-//!
-//! This design achieves consistent organization across domains (AST/parser/tokenizer)
-//! while maintaining clear separation between core logic, element implementations,
-//! and supporting infrastructure.
+//! - [`core`] - Fundamental tokenization components (indentation tracking, patterns)
+//! - [`elements`] - Element-specific tokenization logic organized by specification
 
-// Core tokenization logic
+// Processing steps
+pub mod tokenization;
+pub mod verbatim_scanning;
+
+// Supporting modules
 pub mod core;
-
-// Element modules organized by specification structure
 pub mod elements;
 
-// Processing step: Token tree builder
-pub mod token_tree_builder;
-
-// Infrastructure and utilities
-// pub mod infrastructure; // TODO: Add infrastructure modules when needed
-
 // Re-export main interfaces
-pub use core::Lexer;
-pub use elements::verbatim::{VerbatimBlock, VerbatimScanner, VerbatimType};
-pub use token_tree_builder::{ScannerTokenTree, ScannerTokenTreeBuilder};
+pub use tokenization::Lexer;
+pub use verbatim_scanning::{VerbatimBlock, VerbatimScanner, VerbatimType};
 
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};

@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::elements::scanner_tokens::{Position, SourceSpan};
+use crate::ast::elements::scanner_tokens::SourceSpan;
 
 /// Regular text content (words, sentences, paragraphs)
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

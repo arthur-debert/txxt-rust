@@ -1,6 +1,6 @@
 //! Debug multiple blocks
 
-use txxt::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
+use txxt::lexer::verbatim_scanning::VerbatimScanner;
 
 #[test]
 fn debug_multiple_blocks() {

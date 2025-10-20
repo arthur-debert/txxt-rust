@@ -1,6 +1,6 @@
 //! Debug the verbatim scanner to understand what it's finding
 
-use txxt::lexer::elements::verbatim::verbatim_scanner::VerbatimScanner;
+use txxt::lexer::verbatim_scanning::VerbatimScanner;
 
 #[test]
 fn debug_simple_verbatim() {

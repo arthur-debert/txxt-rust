@@ -60,6 +60,7 @@ fn make_paragraph(
             namespace: None,
             content: AnnotationContent::Empty,
             tokens: ScannerTokenSequence { tokens: vec![] },
+            parameters: Parameters::new(),
         })
         .collect();
 

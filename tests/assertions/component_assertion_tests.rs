@@ -154,6 +154,7 @@ fn make_test_annotation(label: &str) -> Annotation {
         namespace: None,
         content: AnnotationContent::Empty,
         tokens: ScannerTokenSequence { tokens: vec![] },
+        parameters: Parameters::new(),
     }
 }
 

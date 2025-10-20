@@ -30,12 +30,12 @@ mod framework_tests {
                 tokens: vec![ScannerToken::Text {
                     content: text.to_string(),
                     span: SourceSpan {
-                        start: Position { row: 0, column: 0 }
+                        start: Position { row: 0, column: 0 },
                         end: Position {
                             row: 0,
                             column: text.len(),
-                        }
-                    }
+                        },
+                    },
                 }],
             }
         });
@@ -218,14 +218,14 @@ mod framework_tests {
                 tokens: vec![ScannerToken::Text {
                     content: content.to_string(),
                     span: SourceSpan {
-                        start: Position { row: 0, column: 0 }
+                        start: Position { row: 0, column: 0 },
                         end: Position {
                             row: 0,
                             column: content.len(),
-                        }
-                    }
+                        },
+                    },
                 }],
-            }
+            },
         });
 
         SessionContainerElement::Annotation(AnnotationBlock {
@@ -347,13 +347,15 @@ mod framework_tests {
                 content: vec![],
                 numbering: None,
                 tokens: ScannerTokenSequence::new(),
-            }
+            },
             content: SessionContainer {
                 content: vec![],
                 tokens: ScannerTokenSequence::new(),
-            ,
+                annotations: Vec::new(),
+                parameters: Parameters::new(),
+            },
             annotations: Vec::new(),
-            parameters: Parameters::new()}
+            parameters: Parameters::new(),
             tokens: ScannerTokenSequence::new(),
         };
 
@@ -647,13 +649,15 @@ mod framework_tests {
                     tokens: vec![ScannerToken::Text {
                         content: "Block content text".to_string(),
                         span: SourceSpan {
-                            start: Position { row: 0, column: 0 }
-                            end: Position { row: 0, column: 18 }
-                        }
+                            start: Position { row: 0, column: 0 },
+                            end: Position { row: 0, column: 18 },
+                        },
                     }],
-                }
+                },
             })],
             tokens: ScannerTokenSequence::new(),
+            annotations: Vec::new(),
+            parameters: Parameters::new(),
         };
 
         let block_content = ContentContainer {

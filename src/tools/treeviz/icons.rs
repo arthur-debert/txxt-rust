@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::ast::elements::core::ElementNode;
+use crate::ast::elements::core::{ElementNode, HeaderedBlock};
 
 /// Configuration for icon mappings and content extraction
 ///
@@ -317,18 +317,37 @@ fn extract_content_by_type(node: &ElementNode, extractor: &ContentExtractor) -> 
             }
         }
         ElementNode::ListBlock(_) => "list".to_string(),
-        ElementNode::DefinitionBlock(_) => "definition term".to_string(),
-        ElementNode::VerbatimBlock(_) => "verbatim content".to_string(),
-        ElementNode::SessionBlock(session) => {
-            // Extract session title content
-            let title_text = session.title.text_content();
-            if title_text.is_empty() {
-                "untitled session".to_string()
+        ElementNode::DefinitionBlock(def) => {
+            // Use HeaderedBlock trait for uniform access
+            let term = def.header_text();
+            if term.is_empty() {
+                "empty definition".to_string()
             } else {
-                title_text
+                term
             }
         }
-        ElementNode::AnnotationBlock(_) => "annotation".to_string(),
+        ElementNode::VerbatimBlock(verb) => {
+            // Use HeaderedBlock trait for uniform access
+            let title = verb.header_text();
+            if title.is_empty() {
+                format!("verbatim ({})", verb.label)
+            } else {
+                title
+            }
+        }
+        ElementNode::SessionBlock(session) => {
+            // Use HeaderedBlock trait for uniform access
+            let title = session.header_text();
+            if title.is_empty() {
+                "untitled session".to_string()
+            } else {
+                title
+            }
+        }
+        ElementNode::AnnotationBlock(ann) => {
+            // Use HeaderedBlock trait for uniform access
+            ann.header_text()
+        }
         ElementNode::ContentContainer(_) => "content container".to_string(),
         ElementNode::SessionContainer(container) => container.len().to_string(),
         ElementNode::IgnoreContainer(_) => "ignore container".to_string(),

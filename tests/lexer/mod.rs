@@ -15,7 +15,7 @@ mod core;
 mod debug;
 mod escape_sequences;
 mod inline;
-mod pipeline;
+mod token_tree_builder_tests;
 mod verbatim;
 
 // Bug reproduction tests

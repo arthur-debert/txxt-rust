@@ -14,7 +14,7 @@ fn test_paragraph_semantic_tokens() {
     // Load a simple paragraph example from the spec
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.paragraph.valid.simple",
-        ProcessingStage::SemanticTokens,
+        ProcessingStage::HighLevelTokens,
     )
     .expect("Failed to load paragraph corpus");
 
@@ -35,7 +35,7 @@ fn test_session_semantic_tokens() {
     // Load a simple session example from the spec
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.session.valid.unnumbered-basic",
-        ProcessingStage::SemanticTokens,
+        ProcessingStage::HighLevelTokens,
     )
     .expect("Failed to load session corpus");
 
@@ -56,7 +56,7 @@ fn test_list_semantic_tokens() {
     // Load a simple list example from the spec
     let corpus = TxxtCorpora::load_with_processing(
         "txxt.core.spec.list.valid.plain-flat",
-        ProcessingStage::SemanticTokens,
+        ProcessingStage::HighLevelTokens,
     )
     .expect("Failed to load list corpus");
 

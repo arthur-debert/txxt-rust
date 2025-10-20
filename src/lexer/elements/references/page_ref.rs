@@ -133,7 +133,7 @@ fn is_valid_page_content(content: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::core::lexer::Lexer;
+    use crate::lexer::tokenization::Lexer;
 
     #[test]
     fn test_simple_page_ref() {

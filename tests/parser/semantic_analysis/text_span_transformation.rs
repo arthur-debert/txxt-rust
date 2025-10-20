@@ -4,8 +4,8 @@
 //! semantic tokens as specified in Issue #85.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
-use txxt::parser::pipeline::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_text_span_basic_transformation() {
@@ -21,7 +21,7 @@ fn test_text_span_basic_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::TextSpan {
+        HighLevelToken::TextSpan {
             content,
             span: token_span,
         } => {
@@ -58,7 +58,7 @@ fn test_text_span_different_content() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::TextSpan {
+            HighLevelToken::TextSpan {
                 content,
                 span: token_span,
             } => {
@@ -120,7 +120,7 @@ fn test_text_span_different_positions() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::TextSpan {
+            HighLevelToken::TextSpan {
                 span: token_span, ..
             } => {
                 assert_eq!(token_span, span);
@@ -168,10 +168,10 @@ fn test_text_span_in_semantic_analysis() {
 
     // Check first plain text line
     match &semantic_tokens.tokens[0] {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             // The content should be a TextSpan containing "Hello world" (with newline for line-level processing)
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     ..
                 } => {
@@ -195,10 +195,10 @@ fn test_text_span_in_semantic_analysis() {
 
     // Check second plain text line
     match &semantic_tokens.tokens[1] {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             // The content should be a TextSpan containing "Another line"
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     ..
                 } => {
@@ -228,10 +228,10 @@ fn test_text_span_builder() {
         end: Position { row: 1, column: 5 },
     };
 
-    let semantic_token = SemanticTokenBuilder::text_span("Hello".to_string(), span.clone());
+    let semantic_token = HighLevelTokenBuilder::text_span("Hello".to_string(), span.clone());
 
     match semantic_token {
-        SemanticToken::TextSpan {
+        HighLevelToken::TextSpan {
             content,
             span: token_span,
         } => {
@@ -249,7 +249,7 @@ fn test_text_span_span_trait() {
         end: Position { row: 1, column: 5 },
     };
 
-    let semantic_token = SemanticTokenBuilder::text_span("Hello".to_string(), span.clone());
+    let semantic_token = HighLevelTokenBuilder::text_span("Hello".to_string(), span.clone());
     let token_span = semantic_token.span();
 
     assert_eq!(token_span, &span);
@@ -289,7 +289,7 @@ fn test_text_span_with_structural_tokens() {
 
     // Check that structural tokens are preserved
     match &semantic_tokens.tokens[0] {
-        SemanticToken::Indent { .. } => {} // OK
+        HighLevelToken::Indent { .. } => {} // OK
         _ => panic!(
             "Expected Indent semantic token, got {:?}",
             semantic_tokens.tokens[0]
@@ -298,10 +298,10 @@ fn test_text_span_with_structural_tokens() {
 
     // Check that text is processed as a line-level element
     match &semantic_tokens.tokens[1] {
-        SemanticToken::PlainTextLine { content, .. } => {
+        HighLevelToken::PlainTextLine { content, .. } => {
             // The content should be a TextSpan containing "Indented text"
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     ..
                 } => {
@@ -321,7 +321,7 @@ fn test_text_span_with_structural_tokens() {
 
     // Check that dedent is preserved
     match &semantic_tokens.tokens[2] {
-        SemanticToken::Dedent { .. } => {} // OK
+        HighLevelToken::Dedent { .. } => {} // OK
         _ => panic!(
             "Expected Dedent semantic token, got {:?}",
             semantic_tokens.tokens[2]
@@ -367,10 +367,10 @@ fn test_text_span_multiple_text_tokens() {
 
     // Check that all text tokens are combined into a single line-level element
     match &semantic_tokens.tokens[0] {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             // The content should be a TextSpan containing the combined text "FirstSecondThird"
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     ..
                 } => {

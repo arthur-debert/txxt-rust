@@ -138,7 +138,7 @@
 // NEW: Spec-aligned element structure (replaces nodes/)
 pub mod debug;
 pub mod elements;
-pub mod semantic_tokens;
+pub mod tokens;
 
 // REMOVED: Legacy nodes/ structure - replaced by spec-aligned elements/
 
@@ -164,9 +164,9 @@ pub use elements::{
 pub use elements::{scanner_tokens, traversal};
 
 // Semantic tokens infrastructure
-pub use semantic_tokens::{
-    FromScannerToken, SemanticNumberingForm, SemanticNumberingStyle, SemanticToken,
-    SemanticTokenBuilder, SemanticTokenList, SemanticTokenSpan, ToScannerToken,
+pub use tokens::high_level::{
+    FromScannerToken, HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken,
+    HighLevelTokenBuilder, HighLevelTokenList, HighLevelTokenSpan, ToScannerToken,
 };
 
 // Note: Tree traversal and querying is provided by elements::traversal

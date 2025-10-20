@@ -1,62 +1,44 @@
-//! TXXT Tokenizer - Organized by core/elements/infrastructure structure
+//! Phase 1: Lexer - Tokenization
 //!
-//! The tokenizer is organized to mirror the AST/parser structure with clear
-//! separation between core tokenization logic, element-specific implementations,
-//! and supporting infrastructure. This provides consistent organization across
-//! all domains in the codebase.
+//! This module implements the lexer phase that converts source text into scanner tokens.
 //!
-//! ## Core Modules
+//! See src/lib.rs for the full architecture overview.
 //!
-//! - [`core`] - Fundamental tokenization components
-//!   - [`core::lexer`] - Main tokenization engine
-//!   - [`core::indentation`] - Indentation tracking and container boundaries
-//!   - [`core::patterns`] - Core pattern matching utilities
+//! ## Lexer Steps
 //!
-//! - [`pipeline`] - Token processing pipeline stages
-//!   - [`pipeline::token_tree_builder`] - Transform flat tokens into hierarchical token tree
+//! - [`verbatim_scanning`] - Step 1.a: Verbatim region identification
+//!   - Identifies and marks verbatim regions before tokenization
+//!   - Input: Raw source text
+//!   - Output: Text with verbatim boundaries marked
 //!
-//! ## Element Modules (Organized by Specification)
+//! - [`tokenization`] - Step 1.b: Character-precise tokenization
+//!   - Converts text to flat scanner token stream with source positions
+//!   - Input: Source text with verbatim markers
+//!   - Output: Vec<ScannerToken>
 //!
-//! - [`elements`] - All element tokenization organized by type
-//!   - [`elements::annotation`] - Annotation elements
-//!   - [`elements::containers`] - Container elements  
-//!   - [`elements::definition`] - Definition elements
-//!   - [`elements::document`] - Document-level elements
-//!   - [`elements::formatting`] - Text formatting elements
-//!   - [`elements::list`] - List-related elements
-//!   - [`elements::paragraph`] - Paragraph elements
-//!   - [`elements::references`] - Reference and link elements
-//!   - [`elements::session`] - Session-related elements
-//!   - [`elements::verbatim`] - Verbatim elements
-//!   - [`elements::components`] - Shared component elements
+//! - [`semantic_analysis`] - Step 1.c: High-level token analysis
+//!   - Converts scanner tokens to high-level tokens
+//!   - Input: Vec<ScannerToken>
+//!   - Output: HighLevelTokenList
 //!
-//! ## Infrastructure Modules
+//! ## Supporting Modules
 //!
-//! - [`infrastructure`] - Marker detection and supporting utilities
-//! - [`verbatim_scanner`] - Pre-parsing verbatim detection
-//!
-//! ## Architecture
-//!
-//! This design achieves consistent organization across domains (AST/parser/tokenizer)
-//! while maintaining clear separation between core logic, element implementations,
-//! and supporting infrastructure.
+//! - [`core`] - Fundamental tokenization components (indentation tracking, patterns)
+//! - [`elements`] - Element-specific tokenization logic organized by specification
 
-// Core tokenization logic
+// Processing steps
+pub mod semantic_analysis;
+pub mod tokenization;
+pub mod verbatim_scanning;
+
+// Supporting modules
 pub mod core;
-
-// Token processing pipeline
-pub mod pipeline;
-
-// Element modules organized by specification structure
 pub mod elements;
 
-// Infrastructure and utilities
-// pub mod infrastructure; // TODO: Add infrastructure modules when needed
-
 // Re-export main interfaces
-pub use core::Lexer;
-pub use elements::verbatim::{VerbatimBlock, VerbatimScanner, VerbatimType};
-pub use pipeline::{ScannerTokenTree, ScannerTokenTreeBuilder};
+pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+pub use tokenization::Lexer;
+pub use verbatim_scanning::{VerbatimBlock, VerbatimScanner, VerbatimType};
 
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};

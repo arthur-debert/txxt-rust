@@ -16,7 +16,7 @@ use crate::lexer::elements::references::{
     citations::read_citation_ref, footnote_ref::read_footnote_ref, page_ref::read_page_ref,
     session_ref::read_session_ref,
 };
-use crate::lexer::elements::verbatim::verbatim_scanner::{VerbatimLexer, VerbatimScanner};
+use crate::lexer::verbatim_scanning::{VerbatimLexer, VerbatimScanner};
 
 /// Check if a character is a special delimiter that should terminate text tokens
 fn is_special_delimiter(ch: char) -> bool {

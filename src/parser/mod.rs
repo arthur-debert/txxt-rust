@@ -1,27 +1,52 @@
-//! TXXT Parser Module
+//! Phase 2: Parser - AST Construction
 //!
-//! This module provides the parsing infrastructure for converting TXXT tokens
-//! into Abstract Syntax Trees (AST). The parser follows a three-phase pipeline design.
+//! This module implements the parser phase that converts scanner tokens into AST element nodes.
+//! See src/lib.rs for the full architecture overview.
 //!
-//!  Architecture Overview
+//! - [`ast_construction`] - Step 2.a: AST tree construction
+//!   - Builds AST tree from high-level tokens
+//!   - Input: HighLevelTokenList
+//!   - Output: Vec<ElementNode>
 //!
-// 1. Lexer (txxt str -> ScannerTokenList)
-//     a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
-//     b. Token List: creates the token stream at low level tokens -> scanner token list
-// 2. Parser (ScannerTokenList -> AST tree node)
-//     a. Semantic Token Analysis (ScannerTokenList → SemanticTokenList)
-//     b. AST Construction : With the ast nodes + dedent construct the final ast tree (SemanticTokenList -> AST tree node) - Buggy
-//     c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node) -- Stubbed
-// 3. Assembly (AST tree node -> AST document node)
-//     a. Document Wrapping: wraps the parsed AST in a Document node
-//     b. Annotations Attachments: from the content tree to node's annotation's field
-//
+//! - [`inline_parsing`] - Step 2.b: Inline element parsing
+//!   - Parses inline formatting within text content
+//!   - Input: Vec<ElementNode> with unparsed inline text
+//!   - Output: Vec<ElementNode> with parsed inline elements
+//!
+//! ## Element Modules (Organized by Specification)
+//!
+//! - [`elements`] - All element parsing organized by type
+//!   - [`elements::formatting`] - Text formatting elements (bold, italic, code, math)
+//!   - [`elements::inlines`] - Inline element parsing with text transform layer
+//!     - [`elements::inlines::references`] - Reference and citation elements
+//!     - Citation parsing, footnote parsing, page references, session references
+//!
 
-// Pipeline modules
-pub mod pipeline;
+// Processing steps
+pub mod ast_construction;
+pub mod inline_parsing;
 
 // Element parsers
 pub mod elements;
 
 // Re-export main interfaces
-pub use pipeline::{InlineParseError, InlineParser, SemanticAnalysisError, SemanticAnalyzer};
+pub use ast_construction::{AstConstructor, AstNode};
+pub use inline_parsing::{InlineParseError, InlineParser};
+
+/// Error type for block element parsing
+#[derive(Debug)]
+pub enum BlockParseError {
+    InvalidStructure(String),
+}
+
+impl std::fmt::Display for BlockParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BlockParseError::InvalidStructure(msg) => {
+                write!(f, "Invalid block structure: {}", msg)
+            }
+        }
+    }
+}
+
+impl std::error::Error for BlockParseError {}

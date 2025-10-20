@@ -13,9 +13,9 @@ use crate::ast::elements::{
 };
 use crate::ast::{
     scanner_tokens::{Position, ScannerTokenSequence, SourceSpan},
-    semantic_tokens::{SemanticToken, SemanticTokenList},
+    tokens::high_level::{HighLevelToken, HighLevelTokenList},
 };
-use crate::parser::pipeline::BlockParseError;
+use crate::parser::BlockParseError;
 
 /// AST Construction parser for converting semantic tokens to AST nodes
 ///
@@ -23,7 +23,7 @@ use crate::parser::pipeline::BlockParseError;
 /// using precedence-based pattern matching.
 pub struct AstConstructor<'a> {
     /// The semantic token stream being parsed
-    tokens: &'a [SemanticToken],
+    tokens: &'a [HighLevelToken],
     /// Current parsing position in the token stream
     position: usize,
     /// Current indentation level for nested parsing
@@ -41,7 +41,7 @@ impl<'a> AstConstructor<'a> {
     }
 
     /// Create a new AST constructor instance with token stream
-    pub fn with_tokens(tokens: &'a [SemanticToken]) -> Self {
+    pub fn with_tokens(tokens: &'a [HighLevelToken]) -> Self {
         Self {
             tokens,
             position: 0,
@@ -61,7 +61,7 @@ impl<'a> AstConstructor<'a> {
     /// * `Result<Vec<AstNode>, BlockParseError>` - Parsed AST nodes
     pub fn parse(
         &mut self,
-        semantic_tokens: &'a SemanticTokenList,
+        semantic_tokens: &'a HighLevelTokenList,
     ) -> Result<Vec<AstNode>, BlockParseError> {
         // Update the token stream
         self.tokens = &semantic_tokens.tokens;
@@ -86,12 +86,12 @@ impl<'a> AstConstructor<'a> {
 
             // Handle structural tokens that don't contribute to content
             match token {
-                SemanticToken::Indent { .. } => {
+                HighLevelToken::Indent { .. } => {
                     self.indentation_level += 1;
                     self.position += 1;
                     continue;
                 }
-                SemanticToken::Dedent { .. } => {
+                HighLevelToken::Dedent { .. } => {
                     if self.indentation_level > 0 {
                         self.indentation_level -= 1;
                     }
@@ -152,7 +152,7 @@ impl<'a> AstConstructor<'a> {
         }
 
         // 4. Session pattern (check for BlankLine and trigger lookahead)
-        if matches!(current_token, SemanticToken::BlankLine { .. }) {
+        if matches!(current_token, HighLevelToken::BlankLine { .. }) {
             if let Some((node, tokens_consumed)) = self.try_parse_session()? {
                 return Ok(Some((node, tokens_consumed)));
             }
@@ -183,13 +183,13 @@ impl<'a> AstConstructor<'a> {
 
     /// Get current token without advancing position
     #[allow(dead_code)] // Will be used in next steps
-    fn peek(&self) -> Option<&SemanticToken> {
+    fn peek(&self) -> Option<&HighLevelToken> {
         self.tokens.get(self.position)
     }
 
     /// Get current token and advance position
     #[allow(dead_code)] // Will be used in next steps
-    fn consume(&mut self) -> Option<&SemanticToken> {
+    fn consume(&mut self) -> Option<&HighLevelToken> {
         if self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
             self.position += 1;
@@ -213,22 +213,22 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            SemanticToken::Annotation { label, content, .. } => {
+            HighLevelToken::Annotation { label, content, .. } => {
                 // Consume the token
                 self.position += 1;
 
                 // Extract label text
                 let label_text = match label.as_ref() {
-                    SemanticToken::Label { text, .. } => text.clone(),
+                    HighLevelToken::Label { text, .. } => text.clone(),
                     _ => "unknown".to_string(),
                 };
 
                 // Extract content text if present
                 let _content_text = match content {
                     Some(content_token) => match content_token.as_ref() {
-                        SemanticToken::TextSpan { content, .. } => Some(content.clone()),
-                        SemanticToken::PlainTextLine { content, .. } => match content.as_ref() {
-                            SemanticToken::TextSpan { content, .. } => Some(content.clone()),
+                        HighLevelToken::TextSpan { content, .. } => Some(content.clone()),
+                        HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
+                            HighLevelToken::TextSpan { content, .. } => Some(content.clone()),
                             _ => None,
                         },
                         _ => None,
@@ -263,19 +263,19 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            SemanticToken::VerbatimBlock { title, label, .. } => {
+            HighLevelToken::VerbatimBlock { title, label, .. } => {
                 // Consume the token
                 self.position += 1;
 
                 // Extract title text
                 let _title_text = match title.as_ref() {
-                    SemanticToken::TextSpan { content, .. } => content.clone(),
+                    HighLevelToken::TextSpan { content, .. } => content.clone(),
                     _ => "unknown".to_string(),
                 };
 
                 // Extract label text
                 let label_text = match label.as_ref() {
-                    SemanticToken::Label { text, .. } => text.clone(),
+                    HighLevelToken::Label { text, .. } => text.clone(),
                     _ => "unknown".to_string(),
                 };
 
@@ -313,7 +313,7 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            SemanticToken::Definition {
+            HighLevelToken::Definition {
                 term, parameters, ..
             } => {
                 // Consume the token
@@ -321,7 +321,7 @@ impl<'a> AstConstructor<'a> {
 
                 // Extract term text
                 let _term_text = match term.as_ref() {
-                    SemanticToken::TextSpan { content, .. } => content.clone(),
+                    HighLevelToken::TextSpan { content, .. } => content.clone(),
                     _ => "unknown".to_string(),
                 };
 
@@ -329,7 +329,7 @@ impl<'a> AstConstructor<'a> {
                 let _params_text = match parameters {
                     Some(params_token) => {
                         match params_token.as_ref() {
-                            SemanticToken::Parameters { params, .. } => {
+                            HighLevelToken::Parameters { params, .. } => {
                                 // Convert parameters to string representation
                                 let param_strings: Vec<String> =
                                     params.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
@@ -388,7 +388,7 @@ impl<'a> AstConstructor<'a> {
         }
         let first_token = &self.tokens[self.position];
         match first_token {
-            SemanticToken::BlankLine { .. } => {
+            HighLevelToken::BlankLine { .. } => {
                 self.position += 1; // Consume the blank line
             }
             _ => return Ok(None),
@@ -400,16 +400,16 @@ impl<'a> AstConstructor<'a> {
         }
         let title_token = &self.tokens[self.position];
         let _title_text = match title_token {
-            SemanticToken::PlainTextLine { content, .. } => match content.as_ref() {
-                SemanticToken::TextSpan { content, .. } => content.clone(),
+            HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
             },
-            SemanticToken::SequenceTextLine { content, .. } => match content.as_ref() {
-                SemanticToken::TextSpan { content, .. } => content.clone(),
+            HighLevelToken::SequenceTextLine { content, .. } => match content.as_ref() {
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
             },
-            SemanticToken::Definition { term, .. } => match term.as_ref() {
-                SemanticToken::TextSpan { content, .. } => content.clone(),
+            HighLevelToken::Definition { term, .. } => match term.as_ref() {
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
             },
             _ => return Ok(None), // Not a valid title
@@ -422,7 +422,7 @@ impl<'a> AstConstructor<'a> {
         }
         let second_blank_token = &self.tokens[self.position];
         match second_blank_token {
-            SemanticToken::BlankLine { .. } => {
+            HighLevelToken::BlankLine { .. } => {
                 self.position += 1; // Consume the blank line
             }
             _ => return Ok(None),
@@ -434,7 +434,7 @@ impl<'a> AstConstructor<'a> {
         }
         let indent_token = &self.tokens[self.position];
         match indent_token {
-            SemanticToken::Indent { .. } => {
+            HighLevelToken::Indent { .. } => {
                 self.position += 1; // Consume the indent token
                 self.indentation_level += 1; // Track indentation level
             }
@@ -449,12 +449,12 @@ impl<'a> AstConstructor<'a> {
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
             match token {
-                SemanticToken::Dedent { .. } => {
+                HighLevelToken::Dedent { .. } => {
                     self.position += 1; // Consume the dedent token
                     self.indentation_level -= 1; // Track indentation level
                     break;
                 }
-                SemanticToken::BlankLine { .. } => {
+                HighLevelToken::BlankLine { .. } => {
                     self.position += 1; // Consume blank lines
                     continue;
                 }
@@ -531,14 +531,14 @@ impl<'a> AstConstructor<'a> {
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
             match token {
-                SemanticToken::SequenceTextLine { .. } => {
+                HighLevelToken::SequenceTextLine { .. } => {
                     item_count += 1;
                     self.position += 1; // Consume the sequence text line
 
                     // Parse any indented content that follows this list item
                     self.parse_list_item_content()?;
                 }
-                SemanticToken::BlankLine { .. } => {
+                HighLevelToken::BlankLine { .. } => {
                     // Check if this blank line is between list items
                     if item_count > 0 {
                         // Look ahead to see if there's another sequence marker
@@ -546,11 +546,11 @@ impl<'a> AstConstructor<'a> {
                         while next_pos < self.tokens.len() {
                             let next_token = &self.tokens[next_pos];
                             match next_token {
-                                SemanticToken::BlankLine { .. } => {
+                                HighLevelToken::BlankLine { .. } => {
                                     next_pos += 1;
                                     continue;
                                 }
-                                SemanticToken::SequenceTextLine { .. } => {
+                                HighLevelToken::SequenceTextLine { .. } => {
                                     has_blank_lines = true;
                                     break;
                                 }
@@ -610,7 +610,7 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            SemanticToken::Indent { .. } => {
+            HighLevelToken::Indent { .. } => {
                 self.position += 1; // Consume the indent token
                 self.indentation_level += 1; // Track indentation level
 
@@ -618,12 +618,12 @@ impl<'a> AstConstructor<'a> {
                 while self.position < self.tokens.len() {
                     let token = &self.tokens[self.position];
                     match token {
-                        SemanticToken::Dedent { .. } => {
+                        HighLevelToken::Dedent { .. } => {
                             self.position += 1; // Consume the dedent token
                             self.indentation_level -= 1; // Track indentation level
                             break;
                         }
-                        SemanticToken::BlankLine { .. } => {
+                        HighLevelToken::BlankLine { .. } => {
                             self.position += 1; // Consume blank lines
                             continue;
                         }
@@ -661,13 +661,13 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            SemanticToken::PlainTextLine { content, .. } => {
+            HighLevelToken::PlainTextLine { content, .. } => {
                 // Consume the token
                 self.position += 1;
 
                 // Extract content text
                 let content_text = match content.as_ref() {
-                    SemanticToken::TextSpan { content, .. } => content.clone(),
+                    HighLevelToken::TextSpan { content, .. } => content.clone(),
                     _ => "unknown".to_string(),
                 };
 
@@ -759,7 +759,7 @@ impl AstConstructor<'_> {
     /// # Returns
     /// * `Result<Vec<ElementNode>, BlockParseError>` - Vector of ElementNodes
     pub fn parse_to_element_nodes(
-        semantic_tokens: &SemanticTokenList,
+        semantic_tokens: &HighLevelTokenList,
     ) -> Result<Vec<crate::ast::elements::core::ElementNode>, BlockParseError> {
         let mut constructor = AstConstructor::new();
         let ast_nodes = constructor.parse(semantic_tokens)?;
@@ -774,8 +774,8 @@ impl AstConstructor<'_> {
 mod tests {
     use super::*;
     use crate::ast::scanner_tokens::{Position, SourceSpan};
-    use crate::ast::semantic_tokens::{
-        SemanticNumberingForm, SemanticNumberingStyle, SemanticTokenBuilder, SemanticTokenList,
+    use crate::ast::tokens::high_level::{
+        HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelTokenBuilder, HighLevelTokenList,
     };
 
     /// Test that the parser machinery initializes correctly
@@ -790,7 +790,7 @@ mod tests {
     #[test]
     fn test_parse_empty_tokens() {
         let mut parser = AstConstructor::new();
-        let empty_tokens = SemanticTokenList::with_tokens(vec![]);
+        let empty_tokens = HighLevelTokenList::with_tokens(vec![]);
 
         let result = parser.parse(&empty_tokens);
         assert!(result.is_ok());
@@ -808,12 +808,12 @@ mod tests {
         };
 
         let tokens = vec![
-            SemanticTokenBuilder::indent(span.clone()),
-            SemanticTokenBuilder::blank_line(span.clone()),
-            SemanticTokenBuilder::dedent(span.clone()),
+            HighLevelTokenBuilder::indent(span.clone()),
+            HighLevelTokenBuilder::blank_line(span.clone()),
+            HighLevelTokenBuilder::dedent(span.clone()),
         ];
 
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -831,13 +831,13 @@ mod tests {
         };
 
         let tokens = vec![
-            SemanticTokenBuilder::indent(span.clone()),
-            SemanticTokenBuilder::indent(span.clone()),
-            SemanticTokenBuilder::dedent(span.clone()),
-            SemanticTokenBuilder::dedent(span.clone()),
+            HighLevelTokenBuilder::indent(span.clone()),
+            HighLevelTokenBuilder::indent(span.clone()),
+            HighLevelTokenBuilder::dedent(span.clone()),
+            HighLevelTokenBuilder::dedent(span.clone()),
         ];
 
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -867,10 +867,10 @@ mod tests {
         };
 
         // Create an annotation semantic token
-        let annotation_token = SemanticTokenBuilder::annotation(
-            SemanticTokenBuilder::label("note".to_string(), label_span),
+        let annotation_token = HighLevelTokenBuilder::annotation(
+            HighLevelTokenBuilder::label("note".to_string(), label_span),
             None, // No parameters
-            Some(SemanticTokenBuilder::text_span(
+            Some(HighLevelTokenBuilder::text_span(
                 "This is a note".to_string(),
                 content_span,
             )),
@@ -878,7 +878,7 @@ mod tests {
         );
 
         let tokens = vec![annotation_token];
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -910,14 +910,14 @@ mod tests {
         };
 
         // Create a definition semantic token
-        let definition_token = SemanticTokenBuilder::definition(
-            SemanticTokenBuilder::text_span("Term".to_string(), term_span),
+        let definition_token = HighLevelTokenBuilder::definition(
+            HighLevelTokenBuilder::text_span("Term".to_string(), term_span),
             None, // No parameters
             span,
         );
 
         let tokens = vec![definition_token];
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -949,13 +949,13 @@ mod tests {
         };
 
         // Create a paragraph semantic token
-        let paragraph_token = SemanticTokenBuilder::plain_text_line(
-            SemanticTokenBuilder::text_span("Hello world".to_string(), content_span),
+        let paragraph_token = HighLevelTokenBuilder::plain_text_line(
+            HighLevelTokenBuilder::text_span("Hello world".to_string(), content_span),
             span,
         );
 
         let tokens = vec![paragraph_token];
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -1002,20 +1002,20 @@ mod tests {
 
         // Create a session pattern: blank line + title + blank line + indent + content
         let tokens = vec![
-            SemanticTokenBuilder::blank_line(span1),
-            SemanticTokenBuilder::plain_text_line(
-                SemanticTokenBuilder::text_span("Session Title".to_string(), span2.clone()),
+            HighLevelTokenBuilder::blank_line(span1),
+            HighLevelTokenBuilder::plain_text_line(
+                HighLevelTokenBuilder::text_span("Session Title".to_string(), span2.clone()),
                 span2,
             ),
-            SemanticTokenBuilder::blank_line(span3),
-            SemanticTokenBuilder::indent(span4),
-            SemanticTokenBuilder::plain_text_line(
-                SemanticTokenBuilder::text_span("Session content".to_string(), span5.clone()),
+            HighLevelTokenBuilder::blank_line(span3),
+            HighLevelTokenBuilder::indent(span4),
+            HighLevelTokenBuilder::plain_text_line(
+                HighLevelTokenBuilder::text_span("Session content".to_string(), span5.clone()),
                 span5,
             ),
         ];
 
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -1048,29 +1048,29 @@ mod tests {
 
         // Create a list pattern: two sequence text lines
         let tokens = vec![
-            SemanticTokenBuilder::sequence_text_line(
-                SemanticTokenBuilder::sequence_marker(
-                    SemanticNumberingStyle::Plain,
-                    SemanticNumberingForm::Regular,
+            HighLevelTokenBuilder::sequence_text_line(
+                HighLevelTokenBuilder::sequence_marker(
+                    HighLevelNumberingStyle::Plain,
+                    HighLevelNumberingForm::Regular,
                     "-".to_string(),
                     span1.clone(),
                 ),
-                SemanticTokenBuilder::text_span("First item".to_string(), span1.clone()),
+                HighLevelTokenBuilder::text_span("First item".to_string(), span1.clone()),
                 span1,
             ),
-            SemanticTokenBuilder::sequence_text_line(
-                SemanticTokenBuilder::sequence_marker(
-                    SemanticNumberingStyle::Plain,
-                    SemanticNumberingForm::Regular,
+            HighLevelTokenBuilder::sequence_text_line(
+                HighLevelTokenBuilder::sequence_marker(
+                    HighLevelNumberingStyle::Plain,
+                    HighLevelNumberingForm::Regular,
                     "-".to_string(),
                     span2.clone(),
                 ),
-                SemanticTokenBuilder::text_span("Second item".to_string(), span2.clone()),
+                HighLevelTokenBuilder::text_span("Second item".to_string(), span2.clone()),
                 span2,
             ),
         ];
 
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());
@@ -1144,29 +1144,29 @@ mod tests {
         // Blank line + "Outer Session" + blank line + indent +
         //   blank line + "Inner Session" + blank line + indent + "Content" + dedent + dedent
         let tokens = vec![
-            SemanticTokenBuilder::blank_line(span1),
-            SemanticTokenBuilder::plain_text_line(
-                SemanticTokenBuilder::text_span("Outer Session".to_string(), span2.clone()),
+            HighLevelTokenBuilder::blank_line(span1),
+            HighLevelTokenBuilder::plain_text_line(
+                HighLevelTokenBuilder::text_span("Outer Session".to_string(), span2.clone()),
                 span2,
             ),
-            SemanticTokenBuilder::blank_line(span3),
-            SemanticTokenBuilder::indent(span4),
-            SemanticTokenBuilder::blank_line(span6.clone()), // Add blank line before inner session
-            SemanticTokenBuilder::plain_text_line(
-                SemanticTokenBuilder::text_span("Inner Session".to_string(), span5.clone()),
+            HighLevelTokenBuilder::blank_line(span3),
+            HighLevelTokenBuilder::indent(span4),
+            HighLevelTokenBuilder::blank_line(span6.clone()), // Add blank line before inner session
+            HighLevelTokenBuilder::plain_text_line(
+                HighLevelTokenBuilder::text_span("Inner Session".to_string(), span5.clone()),
                 span5,
             ),
-            SemanticTokenBuilder::blank_line(span6),
-            SemanticTokenBuilder::indent(span7),
-            SemanticTokenBuilder::plain_text_line(
-                SemanticTokenBuilder::text_span("Nested content".to_string(), span9.clone()),
+            HighLevelTokenBuilder::blank_line(span6),
+            HighLevelTokenBuilder::indent(span7),
+            HighLevelTokenBuilder::plain_text_line(
+                HighLevelTokenBuilder::text_span("Nested content".to_string(), span9.clone()),
                 span9,
             ),
-            SemanticTokenBuilder::dedent(span10.clone()),
-            SemanticTokenBuilder::dedent(span10),
+            HighLevelTokenBuilder::dedent(span10.clone()),
+            HighLevelTokenBuilder::dedent(span10),
         ];
 
-        let semantic_tokens = SemanticTokenList::with_tokens(tokens);
+        let semantic_tokens = HighLevelTokenList::with_tokens(tokens);
         let result = parser.parse(&semantic_tokens);
 
         assert!(result.is_ok());

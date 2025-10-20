@@ -6,8 +6,8 @@
 //! label content according to the specification.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
-use txxt::parser::pipeline::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 /// Test basic Label transformation
 #[test]
@@ -31,7 +31,7 @@ fn test_label_basic_transformation() {
     let semantic_token = result.unwrap();
 
     match semantic_token {
-        SemanticToken::Label { text, span } => {
+        HighLevelToken::Label { text, span } => {
             assert_eq!(text, "python");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
@@ -68,7 +68,7 @@ fn test_label_namespaced_transformation() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::Label {
+            HighLevelToken::Label {
                 text,
                 span: token_span,
             } => {
@@ -109,7 +109,7 @@ fn test_label_valid_characters() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::Label { text, .. } => {
+            HighLevelToken::Label { text, .. } => {
                 assert_eq!(text, label_text);
             }
             _ => panic!("Expected Label semantic token for {}", label_text),
@@ -227,7 +227,7 @@ fn test_label_in_semantic_analysis() {
     // Verify the Identifier was transformed to Label
     let label_token = &semantic_tokens.tokens[1];
     match label_token {
-        SemanticToken::Label { text, span } => {
+        HighLevelToken::Label { text, span } => {
             assert_eq!(text, "python");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 6);
@@ -249,10 +249,10 @@ fn test_label_builder() {
         end: Position { row: 1, column: 6 },
     };
 
-    let label = SemanticTokenBuilder::label("python".to_string(), span.clone());
+    let label = HighLevelTokenBuilder::label("python".to_string(), span.clone());
 
     match label {
-        SemanticToken::Label {
+        HighLevelToken::Label {
             text,
             span: label_span,
         } => {
@@ -271,7 +271,7 @@ fn test_label_span_trait() {
         end: Position { row: 1, column: 6 },
     };
 
-    let label = SemanticTokenBuilder::label("python".to_string(), span.clone());
+    let label = HighLevelTokenBuilder::label("python".to_string(), span.clone());
     let retrieved_span = label.span();
 
     assert_eq!(retrieved_span, &span);
@@ -318,7 +318,7 @@ fn test_multiple_labels() {
     let expected_labels = ["python", "org.example", "custom-label"];
     for (i, token) in semantic_tokens.tokens.iter().enumerate() {
         match token {
-            SemanticToken::Label { text, span } => {
+            HighLevelToken::Label { text, span } => {
                 assert_eq!(text, expected_labels[i]);
                 // Verify each label has correct position
                 match i {
@@ -385,7 +385,7 @@ fn test_label_with_structural_tokens() {
 
     // Verify structural tokens are passed through unchanged
     match &semantic_tokens.tokens[0] {
-        SemanticToken::Indent { span } => {
+        HighLevelToken::Indent { span } => {
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 4);
@@ -395,7 +395,7 @@ fn test_label_with_structural_tokens() {
 
     // Verify Identifier is transformed to Label
     match &semantic_tokens.tokens[1] {
-        SemanticToken::Label { text, span } => {
+        HighLevelToken::Label { text, span } => {
             assert_eq!(text, "python");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 4);
@@ -406,7 +406,7 @@ fn test_label_with_structural_tokens() {
 
     // Verify structural tokens are passed through unchanged
     match &semantic_tokens.tokens[2] {
-        SemanticToken::Dedent { span } => {
+        HighLevelToken::Dedent { span } => {
             assert_eq!(span.start.row, 2);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 0);

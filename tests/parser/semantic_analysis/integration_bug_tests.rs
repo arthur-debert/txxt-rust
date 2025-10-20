@@ -7,8 +7,8 @@
 //! 3. Incorrect fallback for syntactic tokens
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::SemanticToken;
-use txxt::parser::pipeline::semantic_analysis::SemanticAnalyzer;
+use txxt::ast::tokens::high_level::HighLevelToken;
+use txxt::lexer::semantic_analysis::SemanticAnalyzer;
 
 /// Test that captures Defect 1: Main analysis loop doesn't compose complex tokens
 ///
@@ -59,7 +59,7 @@ fn test_defect_1_definition_not_composed() {
     // After fix, it should PASS
     let has_definition = semantic_tokens
         .iter()
-        .any(|token| matches!(token, SemanticToken::Definition { .. }));
+        .any(|token| matches!(token, HighLevelToken::Definition { .. }));
 
     // This test should FAIL initially, demonstrating the bug
     assert!(
@@ -148,7 +148,7 @@ fn test_defect_1_annotation_not_composed() {
     // After fix, it should PASS
     let has_annotation = semantic_tokens
         .iter()
-        .any(|token| matches!(token, SemanticToken::Annotation { .. }));
+        .any(|token| matches!(token, HighLevelToken::Annotation { .. }));
 
     // This test should FAIL initially, demonstrating the bug
     assert!(
@@ -193,7 +193,7 @@ fn test_defect_2_flawed_heuristics() {
     // But the flawed heuristics might cause it to be processed incorrectly
     let has_plain_text_line = semantic_tokens
         .iter()
-        .any(|token| matches!(token, SemanticToken::PlainTextLine { .. }));
+        .any(|token| matches!(token, HighLevelToken::PlainTextLine { .. }));
 
     // This test might FAIL initially due to flawed heuristics
     assert!(has_plain_text_line,
@@ -248,7 +248,7 @@ fn test_defect_3_syntactic_tokens_lost() {
     // The colon should be preserved as a proper Colon semantic token
     let has_colon_preserved = semantic_tokens
         .iter()
-        .any(|token| matches!(token, SemanticToken::Colon { .. }));
+        .any(|token| matches!(token, HighLevelToken::Colon { .. }));
 
     // This test should PASS with the improved implementation
     assert!(has_colon_preserved,
@@ -359,20 +359,20 @@ fn test_expected_behavior_after_fixes() {
     // Check for Definition token
     let has_definition = tokens
         .iter()
-        .any(|token| matches!(token, SemanticToken::Definition { .. }));
+        .any(|token| matches!(token, HighLevelToken::Definition { .. }));
     assert!(has_definition, "Expected Definition token after fixes");
 
     // Check for Annotation token
     let has_annotation = tokens
         .iter()
-        .any(|token| matches!(token, SemanticToken::Annotation { .. }));
+        .any(|token| matches!(token, HighLevelToken::Annotation { .. }));
     assert!(has_annotation, "Expected Annotation token after fixes");
 
     // Verify that we don't have individual TxxtMarker tokens floating around
     // (they should be consumed by the complex token transformations)
     let individual_txxt_markers = tokens
         .iter()
-        .filter(|token| matches!(token, SemanticToken::TxxtMarker { .. }))
+        .filter(|token| matches!(token, HighLevelToken::TxxtMarker { .. }))
         .count();
 
     // There should be no individual TxxtMarker tokens left - they should all

@@ -4,8 +4,8 @@
 //! Annotation semantic tokens as specified in Issue #88.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
-use txxt::parser::pipeline::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
+use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_annotation_basic_transformation() {
@@ -57,7 +57,7 @@ fn test_annotation_basic_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Annotation {
+        HighLevelToken::Annotation {
             label,
             parameters,
             content,
@@ -69,7 +69,7 @@ fn test_annotation_basic_transformation() {
 
             // Check that the label is a TextSpan
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -149,7 +149,7 @@ fn test_annotation_with_content() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Annotation {
+        HighLevelToken::Annotation {
             label,
             parameters,
             content,
@@ -161,7 +161,7 @@ fn test_annotation_with_content() {
 
             // Check that the label is correct
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -172,7 +172,7 @@ fn test_annotation_with_content() {
 
             // Check that the content is correct
             match content.as_ref().unwrap().as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {
@@ -251,7 +251,7 @@ fn test_annotation_with_parameters() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Annotation {
+        HighLevelToken::Annotation {
             label,
             parameters,
             content,
@@ -263,7 +263,7 @@ fn test_annotation_with_parameters() {
 
             // Check that the label is correct
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -274,7 +274,7 @@ fn test_annotation_with_parameters() {
 
             // Check that the parameters are correct
             match parameters.as_ref().unwrap().as_ref() {
-                SemanticToken::Parameters { params, .. } => {
+                HighLevelToken::Parameters { params, .. } => {
                     assert!(params.contains_key("raw"));
                     assert_eq!(params.get("raw").unwrap(), "version=2.0");
                 }
@@ -441,7 +441,7 @@ fn test_annotation_no_closing_marker() {
 
 #[test]
 fn test_annotation_builder() {
-    let label_token = SemanticTokenBuilder::text_span(
+    let label_token = HighLevelTokenBuilder::text_span(
         "note".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 3 },
@@ -449,7 +449,7 @@ fn test_annotation_builder() {
         },
     );
 
-    let content_token = SemanticTokenBuilder::text_span(
+    let content_token = HighLevelTokenBuilder::text_span(
         "This is important".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 14 },
@@ -463,10 +463,10 @@ fn test_annotation_builder() {
     };
 
     let semantic_token =
-        SemanticTokenBuilder::annotation(label_token, None, Some(content_token), span.clone());
+        HighLevelTokenBuilder::annotation(label_token, None, Some(content_token), span.clone());
 
     match semantic_token {
-        SemanticToken::Annotation {
+        HighLevelToken::Annotation {
             label,
             parameters,
             content,
@@ -477,7 +477,7 @@ fn test_annotation_builder() {
             assert!(content.is_some());
 
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -487,7 +487,7 @@ fn test_annotation_builder() {
             }
 
             match content.as_ref().unwrap().as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {
@@ -505,7 +505,7 @@ fn test_annotation_builder() {
 
 #[test]
 fn test_annotation_span_trait() {
-    let label_token = SemanticTokenBuilder::text_span(
+    let label_token = HighLevelTokenBuilder::text_span(
         "note".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 3 },
@@ -518,7 +518,7 @@ fn test_annotation_span_trait() {
         end: Position { row: 1, column: 10 },
     };
 
-    let semantic_token = SemanticTokenBuilder::annotation(label_token, None, None, span.clone());
+    let semantic_token = HighLevelTokenBuilder::annotation(label_token, None, None, span.clone());
     let token_span = semantic_token.span();
 
     assert_eq!(token_span, &span);
@@ -595,7 +595,7 @@ fn test_annotation_different_labels() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::Annotation {
+            HighLevelToken::Annotation {
                 label,
                 parameters,
                 content,
@@ -606,7 +606,7 @@ fn test_annotation_different_labels() {
                 assert!(content.is_none());
 
                 match label.as_ref() {
-                    SemanticToken::TextSpan {
+                    HighLevelToken::TextSpan {
                         content: actual_label,
                         ..
                     } => {
@@ -715,7 +715,7 @@ fn test_annotation_complex_content() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Annotation {
+        HighLevelToken::Annotation {
             label,
             parameters,
             content,
@@ -726,7 +726,7 @@ fn test_annotation_complex_content() {
             assert!(content.is_some());
 
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -736,7 +736,7 @@ fn test_annotation_complex_content() {
             }
 
             match content.as_ref().unwrap().as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {

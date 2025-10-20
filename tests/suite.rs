@@ -57,7 +57,7 @@ mod assertions;
 mod ast_query;
 mod lexer;
 mod parser;
-mod tools_detokenizer;
+// mod tools_detokenizer; // DISABLED: Needs rewrite for Vec<ScannerToken>
 mod tools_treeviz;
 mod verbatim_scanner;
 

@@ -7,4 +7,5 @@
 pub mod treeviz;
 
 // Detokenizer for round-trip verification
-pub mod detokenizer;
+// TODO: Update to work with Vec<ScannerToken> instead of removed ScannerTokenTree
+// pub mod detokenizer;

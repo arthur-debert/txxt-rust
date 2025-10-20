@@ -10,7 +10,7 @@
 
 use std::fs;
 use std::path::Path;
-use txxt::lexer::elements::verbatim::{VerbatimScanner, VerbatimType};
+use txxt::lexer::verbatim_scanning::{VerbatimScanner, VerbatimType};
 
 /// Test expectation parsed from test file directive
 #[derive(Debug, Clone, PartialEq)]

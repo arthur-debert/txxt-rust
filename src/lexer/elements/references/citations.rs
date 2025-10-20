@@ -100,7 +100,7 @@ pub fn read_citation_ref<L: CitationRefLexer>(lexer: &mut L) -> Option<ScannerTo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lexer::core::lexer::Lexer;
+    use crate::lexer::tokenization::Lexer;
 
     #[test]
     fn test_simple_citation_ref() {

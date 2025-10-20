@@ -1,13 +1,13 @@
-//! Semantic Tokens for TXXT parsing pipeline
+//! High-Level Tokens for TXXT parsing pipeline
 //!
-//! This module defines the semantic token types that bridge the gap between
-//! low-level scanner tokens and AST elements. Semantic tokens provide a
+//! This module defines the high-level token types that bridge the gap between
+//! low-level scanner tokens and AST elements. High-level tokens provide a
 //! higher-level representation of the syntactic structure of individual lines,
 //! making subsequent block parsing simpler and more direct.
 //!
 //! # Overview
 //!
-//! Semantic tokens describe the *syntactic shape* of content, not its final
+//! High-level tokens describe the *syntactic shape* of content, not its final
 //! semantic role (e.g., a paragraph vs. a definition term). They group
 //! scanner tokens into meaningful language constructs while preserving
 //! structural information like indentation.
@@ -15,17 +15,17 @@
 //! # Design Principles
 //!
 //! 1. **Line-based grouping**: Scanner tokens are grouped by lines into
-//!    semantic tokens that represent the syntactic structure of each line.
+//!    high-level tokens that represent the syntactic structure of each line.
 //! 2. **Structural preservation**: Indent, Dedent, and BlankLine tokens
 //!    are passed through unchanged to maintain tree structure.
-//! 3. **Composability**: Semantic tokens are designed to be reusable
+//! 3. **Composability**: High-level tokens are designed to be reusable
 //!    components that can be combined in different ways.
-//! 4. **Source span tracking**: All semantic tokens preserve source
+//! 4. **Source span tracking**: All high-level tokens preserve source
 //!    location information for error reporting and debugging.
 //!
 //! # Token Types
 //!
-//! Based on the semantic tokens specification in `docs/specs/core/semantic-tokens.txxt`:
+//! Based on the high-level tokens specification in `docs/specs/core/high-level-tokens.txxt`:
 //!
 //! - `Label`: Structured identifier component (supports namespacing)
 //! - `Parameters`: Key-value metadata component
@@ -43,9 +43,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 
-/// Semantic token representing higher-level syntactic constructs
+/// High-level token representing higher-level syntactic constructs
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum SemanticToken {
+pub enum HighLevelToken {
     /// Structured identifier component for annotations and verbatim blocks
     /// Supports namespaced identifiers like "python", "org.example.custom"
     Label {
@@ -83,9 +83,9 @@ pub enum SemanticToken {
     /// in both regular (2.) and extended (1.3.b) forms
     SequenceMarker {
         /// The numbering style (numeric, alphabetic, roman, plain)
-        style: SemanticNumberingStyle,
+        style: HighLevelNumberingStyle,
         /// The numbering form (regular, extended)
-        form: SemanticNumberingForm,
+        form: HighLevelNumberingForm,
         /// The actual marker text
         marker: String,
         /// Source span of the marker
@@ -105,9 +105,9 @@ pub enum SemanticToken {
     /// Combines Sequence Marker and Text Span components
     SequenceTextLine {
         /// The sequence marker
-        marker: Box<SemanticToken>,
+        marker: Box<HighLevelToken>,
         /// The text content following the marker
-        content: Box<SemanticToken>,
+        content: Box<HighLevelToken>,
         /// Source span of the entire line
         span: SourceSpan,
     },
@@ -116,7 +116,7 @@ pub enum SemanticToken {
     /// Contains single Text Span component
     PlainTextLine {
         /// The text content
-        content: Box<SemanticToken>,
+        content: Box<HighLevelToken>,
         /// Source span of the entire line
         span: SourceSpan,
     },
@@ -154,11 +154,11 @@ pub enum SemanticToken {
     /// Used for metadata elements that attach structured information to other elements
     Annotation {
         /// The annotation label/type
-        label: Box<SemanticToken>,
+        label: Box<HighLevelToken>,
         /// Optional parameters in key=value format
-        parameters: Option<Box<SemanticToken>>,
+        parameters: Option<Box<HighLevelToken>>,
         /// Optional annotation content
-        content: Option<Box<SemanticToken>>,
+        content: Option<Box<HighLevelToken>>,
         /// Source span of the entire annotation
         span: SourceSpan,
     },
@@ -168,9 +168,9 @@ pub enum SemanticToken {
     /// Used for structured elements that define terms, concepts, and entities
     Definition {
         /// The definition term/label
-        term: Box<SemanticToken>,
+        term: Box<HighLevelToken>,
         /// Optional parameters in key=value format
-        parameters: Option<Box<SemanticToken>>,
+        parameters: Option<Box<HighLevelToken>>,
         /// Source span of the entire definition
         span: SourceSpan,
     },
@@ -180,15 +180,15 @@ pub enum SemanticToken {
     /// Used for content that preserves exact formatting and spacing
     VerbatimBlock {
         /// The verbatim title
-        title: Box<SemanticToken>,
+        title: Box<HighLevelToken>,
         /// The indentation wall marker
-        wall: Box<SemanticToken>,
+        wall: Box<HighLevelToken>,
         /// The verbatim content (preserved exactly)
-        content: Box<SemanticToken>,
+        content: Box<HighLevelToken>,
         /// The verbatim label
-        label: Box<SemanticToken>,
+        label: Box<HighLevelToken>,
         /// Optional parameters in key=value format
-        parameters: Option<Box<SemanticToken>>,
+        parameters: Option<Box<HighLevelToken>>,
         /// Source span of the entire verbatim block
         span: SourceSpan,
     },
@@ -196,7 +196,7 @@ pub enum SemanticToken {
 
 /// Numbering style for sequence markers
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum SemanticNumberingStyle {
+pub enum HighLevelNumberingStyle {
     /// Numeric numbering (1., 2., 3.)
     Numeric,
     /// Alphabetic numbering (a., b., c.)
@@ -209,7 +209,7 @@ pub enum SemanticNumberingStyle {
 
 /// Numbering form for sequence markers
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum SemanticNumberingForm {
+pub enum HighLevelNumberingForm {
     /// Regular form (1., a., i.)
     Regular,
     /// Extended hierarchical form (1.3.b)
@@ -219,14 +219,14 @@ pub enum SemanticNumberingForm {
 /// List structure containing semantic tokens with flat list children
 /// Mirrors TokenList structure but with higher-level semantic meaning
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct SemanticTokenList {
+pub struct HighLevelTokenList {
     /// The semantic tokens in order
-    pub tokens: Vec<SemanticToken>,
+    pub tokens: Vec<HighLevelToken>,
     /// Source span covering the entire list
     pub source_span: SourceSpan,
 }
 
-impl SemanticTokenList {
+impl HighLevelTokenList {
     /// Create a new empty semantic token list
     pub fn new() -> Self {
         Self {
@@ -239,7 +239,7 @@ impl SemanticTokenList {
     }
 
     /// Create a semantic token list with the given tokens
-    pub fn with_tokens(tokens: Vec<SemanticToken>) -> Self {
+    pub fn with_tokens(tokens: Vec<HighLevelToken>) -> Self {
         let source_span = if tokens.is_empty() {
             SourceSpan {
                 start: Position { row: 0, column: 0 },
@@ -258,7 +258,7 @@ impl SemanticTokenList {
     }
 
     /// Add a semantic token to the list
-    pub fn push(&mut self, token: SemanticToken) {
+    pub fn push(&mut self, token: HighLevelToken) {
         self.tokens.push(token);
         // Update source span to include the new token
         if self.tokens.len() == 1 {
@@ -281,41 +281,41 @@ impl SemanticTokenList {
     }
 
     /// Get an iterator over the tokens
-    pub fn iter(&self) -> std::slice::Iter<'_, SemanticToken> {
+    pub fn iter(&self) -> std::slice::Iter<'_, HighLevelToken> {
         self.tokens.iter()
     }
 }
 
-impl Default for SemanticTokenList {
+impl Default for HighLevelTokenList {
     fn default() -> Self {
         Self::new()
     }
 }
 
 /// Trait for getting source span information from semantic tokens
-pub trait SemanticTokenSpan {
+pub trait HighLevelTokenSpan {
     /// Get the source span of this semantic token
     fn span(&self) -> &SourceSpan;
 }
 
-impl SemanticTokenSpan for SemanticToken {
+impl HighLevelTokenSpan for HighLevelToken {
     fn span(&self) -> &SourceSpan {
         match self {
-            SemanticToken::Label { span, .. }
-            | SemanticToken::TxxtMarker { span }
-            | SemanticToken::Colon { span }
-            | SemanticToken::Parameters { span, .. }
-            | SemanticToken::SequenceMarker { span, .. }
-            | SemanticToken::TextSpan { span, .. }
-            | SemanticToken::SequenceTextLine { span, .. }
-            | SemanticToken::PlainTextLine { span, .. }
-            | SemanticToken::IgnoreLine { span, .. }
-            | SemanticToken::BlankLine { span }
-            | SemanticToken::Indent { span }
-            | SemanticToken::Dedent { span }
-            | SemanticToken::Annotation { span, .. }
-            | SemanticToken::Definition { span, .. }
-            | SemanticToken::VerbatimBlock { span, .. } => span,
+            HighLevelToken::Label { span, .. }
+            | HighLevelToken::TxxtMarker { span }
+            | HighLevelToken::Colon { span }
+            | HighLevelToken::Parameters { span, .. }
+            | HighLevelToken::SequenceMarker { span, .. }
+            | HighLevelToken::TextSpan { span, .. }
+            | HighLevelToken::SequenceTextLine { span, .. }
+            | HighLevelToken::PlainTextLine { span, .. }
+            | HighLevelToken::IgnoreLine { span, .. }
+            | HighLevelToken::BlankLine { span }
+            | HighLevelToken::Indent { span }
+            | HighLevelToken::Dedent { span }
+            | HighLevelToken::Annotation { span, .. }
+            | HighLevelToken::Definition { span, .. }
+            | HighLevelToken::VerbatimBlock { span, .. } => span,
         }
     }
 }
@@ -334,29 +334,29 @@ pub trait ToScannerToken {
     fn to_scanner_tokens(&self) -> Vec<ScannerToken>;
 }
 
-impl FromScannerToken for SemanticToken {
+impl FromScannerToken for HighLevelToken {
     fn from_scanner_token(token: &ScannerToken) -> Option<Self> {
         match token {
             ScannerToken::BlankLine { span, .. } => {
-                Some(SemanticToken::BlankLine { span: span.clone() })
+                Some(HighLevelToken::BlankLine { span: span.clone() })
             }
-            ScannerToken::Indent { span } => Some(SemanticToken::Indent { span: span.clone() }),
-            ScannerToken::Dedent { span } => Some(SemanticToken::Dedent { span: span.clone() }),
+            ScannerToken::Indent { span } => Some(HighLevelToken::Indent { span: span.clone() }),
+            ScannerToken::Dedent { span } => Some(HighLevelToken::Dedent { span: span.clone() }),
             // For now, we'll handle simple cases and expand in later phases
             _ => None,
         }
     }
 }
 
-impl ToScannerToken for SemanticToken {
+impl ToScannerToken for HighLevelToken {
     fn to_scanner_tokens(&self) -> Vec<ScannerToken> {
         match self {
-            SemanticToken::BlankLine { span } => vec![ScannerToken::BlankLine {
+            HighLevelToken::BlankLine { span } => vec![ScannerToken::BlankLine {
                 whitespace: "".to_string(),
                 span: span.clone(),
             }],
-            SemanticToken::Indent { span } => vec![ScannerToken::Indent { span: span.clone() }],
-            SemanticToken::Dedent { span } => vec![ScannerToken::Dedent { span: span.clone() }],
+            HighLevelToken::Indent { span } => vec![ScannerToken::Indent { span: span.clone() }],
+            HighLevelToken::Dedent { span } => vec![ScannerToken::Dedent { span: span.clone() }],
             // For now, we'll handle simple cases and expand in later phases
             _ => vec![],
         }
@@ -364,37 +364,37 @@ impl ToScannerToken for SemanticToken {
 }
 
 /// Builder for creating semantic tokens with proper validation
-pub struct SemanticTokenBuilder;
+pub struct HighLevelTokenBuilder;
 
-impl SemanticTokenBuilder {
+impl HighLevelTokenBuilder {
     /// Create a label semantic token
-    pub fn label(text: String, span: SourceSpan) -> SemanticToken {
-        SemanticToken::Label { text, span }
+    pub fn label(text: String, span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::Label { text, span }
     }
 
     /// Create a txxt marker semantic token
-    pub fn txxt_marker(span: SourceSpan) -> SemanticToken {
-        SemanticToken::TxxtMarker { span }
+    pub fn txxt_marker(span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::TxxtMarker { span }
     }
 
     /// Create a colon semantic token
-    pub fn colon(span: SourceSpan) -> SemanticToken {
-        SemanticToken::Colon { span }
+    pub fn colon(span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::Colon { span }
     }
 
     /// Create a parameters semantic token
-    pub fn parameters(params: HashMap<String, String>, span: SourceSpan) -> SemanticToken {
-        SemanticToken::Parameters { params, span }
+    pub fn parameters(params: HashMap<String, String>, span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::Parameters { params, span }
     }
 
     /// Create a sequence marker semantic token
     pub fn sequence_marker(
-        style: SemanticNumberingStyle,
-        form: SemanticNumberingForm,
+        style: HighLevelNumberingStyle,
+        form: HighLevelNumberingForm,
         marker: String,
         span: SourceSpan,
-    ) -> SemanticToken {
-        SemanticToken::SequenceMarker {
+    ) -> HighLevelToken {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
@@ -403,13 +403,13 @@ impl SemanticTokenBuilder {
     }
 
     /// Create a text span semantic token
-    pub fn text_span(content: String, span: SourceSpan) -> SemanticToken {
-        SemanticToken::TextSpan { content, span }
+    pub fn text_span(content: String, span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::TextSpan { content, span }
     }
 
     /// Create a plain text line semantic token
-    pub fn plain_text_line(content: SemanticToken, span: SourceSpan) -> SemanticToken {
-        SemanticToken::PlainTextLine {
+    pub fn plain_text_line(content: HighLevelToken, span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::PlainTextLine {
             content: Box::new(content),
             span,
         }
@@ -417,11 +417,11 @@ impl SemanticTokenBuilder {
 
     /// Create a sequence text line semantic token
     pub fn sequence_text_line(
-        marker: SemanticToken,
-        content: SemanticToken,
+        marker: HighLevelToken,
+        content: HighLevelToken,
         span: SourceSpan,
-    ) -> SemanticToken {
-        SemanticToken::SequenceTextLine {
+    ) -> HighLevelToken {
+        HighLevelToken::SequenceTextLine {
             marker: Box::new(marker),
             content: Box::new(content),
             span,
@@ -429,33 +429,33 @@ impl SemanticTokenBuilder {
     }
 
     /// Create an ignore line semantic token
-    pub fn ignore_line(content: String, span: SourceSpan) -> SemanticToken {
-        SemanticToken::IgnoreLine { content, span }
+    pub fn ignore_line(content: String, span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::IgnoreLine { content, span }
     }
 
     /// Create a blank line semantic token
-    pub fn blank_line(span: SourceSpan) -> SemanticToken {
-        SemanticToken::BlankLine { span }
+    pub fn blank_line(span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::BlankLine { span }
     }
 
     /// Create an indent semantic token
-    pub fn indent(span: SourceSpan) -> SemanticToken {
-        SemanticToken::Indent { span }
+    pub fn indent(span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::Indent { span }
     }
 
     /// Create a dedent semantic token
-    pub fn dedent(span: SourceSpan) -> SemanticToken {
-        SemanticToken::Dedent { span }
+    pub fn dedent(span: SourceSpan) -> HighLevelToken {
+        HighLevelToken::Dedent { span }
     }
 
     /// Create an annotation semantic token
     pub fn annotation(
-        label: SemanticToken,
-        parameters: Option<SemanticToken>,
-        content: Option<SemanticToken>,
+        label: HighLevelToken,
+        parameters: Option<HighLevelToken>,
+        content: Option<HighLevelToken>,
         span: SourceSpan,
-    ) -> SemanticToken {
-        SemanticToken::Annotation {
+    ) -> HighLevelToken {
+        HighLevelToken::Annotation {
             label: Box::new(label),
             parameters: parameters.map(Box::new),
             content: content.map(Box::new),
@@ -465,11 +465,11 @@ impl SemanticTokenBuilder {
 
     /// Create a definition semantic token
     pub fn definition(
-        term: SemanticToken,
-        parameters: Option<SemanticToken>,
+        term: HighLevelToken,
+        parameters: Option<HighLevelToken>,
         span: SourceSpan,
-    ) -> SemanticToken {
-        SemanticToken::Definition {
+    ) -> HighLevelToken {
+        HighLevelToken::Definition {
             term: Box::new(term),
             parameters: parameters.map(Box::new),
             span,
@@ -478,14 +478,14 @@ impl SemanticTokenBuilder {
 
     /// Create a verbatim block semantic token
     pub fn verbatim_block(
-        title: SemanticToken,
-        wall: SemanticToken,
-        content: SemanticToken,
-        label: SemanticToken,
-        parameters: Option<SemanticToken>,
+        title: HighLevelToken,
+        wall: HighLevelToken,
+        content: HighLevelToken,
+        label: HighLevelToken,
+        parameters: Option<HighLevelToken>,
         span: SourceSpan,
-    ) -> SemanticToken {
-        SemanticToken::VerbatimBlock {
+    ) -> HighLevelToken {
+        HighLevelToken::VerbatimBlock {
             title: Box::new(title),
             wall: Box::new(wall),
             content: Box::new(content),

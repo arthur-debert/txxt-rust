@@ -1,8 +1,9 @@
 //! Organized token modules for TXXT parsing pipeline
 //!
 //! This module provides organized access to different categories of scanner tokens
-//! for better code organization and maintainability.
+//! and semantic tokens for better code organization and maintainability.
 
+// Scanner token types
 pub mod content;
 pub mod formatting;
 pub mod ignore;
@@ -11,9 +12,13 @@ pub mod punctuation;
 pub mod references;
 pub mod structural;
 
+// High-level token types
+pub mod high_level;
+
 // Re-export commonly used types for convenience
 pub use content::*;
 pub use formatting::*;
+pub use high_level::*;
 pub use ignore::*;
 pub use markers::*;
 pub use punctuation::*;

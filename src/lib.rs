@@ -1,25 +1,80 @@
 #![allow(rustdoc::bare_urls)]
 #![allow(rustdoc::broken_intra_doc_links)]
 #![allow(rustdoc::invalid_html_tags)]
+#![allow(clippy::doc_overindented_list_items)]
 
 //! TXXT Parser and Processor
 //!
-//! # For Parser Developers
+//! ============================================================================
+//! ARCHITECTURE OVERVIEW
+//! ============================================================================
 //!
-//! When writing tests for parser components, use the `TxxtCorpora` utility for
-//! specification-driven testing. This ensures your implementation matches the
-//! authoritative specification.
+//! TXXT processing transforms plain text documents into structured representations
+//! through a three-phase pipeline. Each phase has distinct responsibilities and
+//! produces well-defined intermediate representations.
 //!
-//! ```rust,ignore
-//! // In your test files:
-//! use tests::corpora::{TxxtCorpora, ProcessingStage};
 //!
-//! let corpus = TxxtCorpora::load("txxt.core.spec.paragraph.valid.simple")?;
-//! let ast = your_parser::parse(&corpus.source_text)?;
-//! insta::assert_yaml_snapshot!(ast);
-//! ```
+//! TERMINOLOGY
 //!
-//! See `tests/README.md` for complete documentation and `CLAUDE.md` for requirements.
+//! Understanding the processing model requires clear terminology:
+//!
+//! - Phase: One of three high-level processing stages
+//!     · Phase 1: Lexer
+//!     · Phase 2: Parser
+//!     · Phase 3: Assembler
+//!
+//! - Step: Sub-operations within a phase
+//!     · Example: Semantic analysis, AST construction, inline parsing
+//!     · Each step transforms data and passes it to the next step
+//!
+//! - Stage: CLI and test concept for where to stop processing
+//!     · Used for inspection, debugging, and intermediate output
+//!     · Examples: scanner-tokens, high-level-tokens, ast-block, ast-full
+//!     · Stages map to specific steps within phases
+//!
+//!
+//! DATA FLOW
+//!
+//! The processing pipeline transforms data through these representations:
+//! Lexer: source text -> scanner-tokens -> high-level-tokens
+//! Parser: -> ast-block -> ast-inlines
+//! Assembler:  ast-document -> ast-full
+//!
+//! PHASE 1: LEXER Converts source text into hierarchical token structures.
+//! 1. Lexer: Syntax Analysis: Convert source text into token vectors.
+//!     1.a: Step:  Verbatim scanning: Identify and mark verbatim regions
+//!         (Raw source text -> Text with verbatim boundaries marked)
+//!     1.b: scanner-tokens
+//!          Convert text to low-level flat token stream
+//!         (Source text with verbatim markers -> Vec<ScannerToken>)
+//!     1.c: high-level-tokens
+//!          Convert from low-level tokens to high-level tokens
+//!          Vec<ScannerToken> -> Vec<HighLevelToken>
+//!2. Parser: Semantic Analysis: Converts tokens into Abstract Syntax Tree nodes.
+//!    2.a:  ast-block
+//!           Build AST tree with block elements from high-level tokens
+//!           Purpose: Build AST tree from high-level tokens
+//!           Input: HighLevelTokenList
+//!           Output: Vec<ElementNode>
+//!           Produces: Block-level AST structure
+//!     2.b:  ast-inlines
+//!           Inline parsing:  Complement tree with inline elements.
+//!           Vec<ElementNode> (no inlines) -> Vec<ElementNode> (with  inlines)
+//! 3. Assembly: Converts AST nodes into final document structure.
+//!     3.a: ast-document
+//!          Document assembly: Wrap AST elements in document structure
+//!          Vec<ElementNode> -> Document nod, with annotations as core nodes
+//!     3.b: ast-full
+//!          Annotation attachment : Moves annotations from content to annotation filed.
+//!          Document with in content annotations -> Document with annotations in annotation fields
+//!
+//! DESIGN PRINCIPLES
+//! - No backwards compatibility burden (unreleased software)
+//! - Specification-driven testing via TxxtCorpora
+//! - Clear separation between phases and steps
+//! - Pure functions in API layer (no I/O or side effects)
+//!
+//! ============================================================================
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -29,7 +84,7 @@ pub mod assembler;
 pub mod ast;
 pub mod lexer;
 pub mod parser;
-pub mod pipeline;
+pub mod process;
 pub mod processing_stages;
 pub mod tools;
 

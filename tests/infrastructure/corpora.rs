@@ -4,8 +4,8 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 // Import the lexer and semantic analysis for processing
+use txxt::lexer::semantic_analysis::SemanticAnalyzer;
 use txxt::lexer::tokenize;
-use txxt::parser::pipeline::semantic_analysis::SemanticAnalyzer;
 
 /// Processing stages for test corpora.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -17,7 +17,7 @@ pub enum ProcessingStage {
     /// Tokenized stream from the tokenizer
     Tokens,
     /// Semantic tokens from the semantic analysis phase
-    SemanticTokens,
+    HighLevelTokens,
     /// Block-grouped tokens after lexical analysis
     BlockedTokens,
     /// Parsed AST structure
@@ -51,7 +51,7 @@ impl Corpus {
     #[allow(dead_code)] // Will be used by parser tests
     pub fn semantic_tokens(&self) -> Option<&str> {
         match &self.processed_data {
-            Some(ProcessedData::SemanticTokens(tokens)) => Some(tokens),
+            Some(ProcessedData::HighLevelTokens(tokens)) => Some(tokens),
             _ => None,
         }
     }
@@ -98,7 +98,7 @@ pub enum ProcessedData {
     /// Tokenized representation
     Tokens(Vec<String>), // Placeholder - will be replaced with actual token types
     /// Semantic tokens representation
-    SemanticTokens(String), // JSON serialized semantic tokens for inspection
+    HighLevelTokens(String), // JSON serialized high-level tokens for inspection
     /// Block-grouped tokens
     BlockedTokens(Vec<String>), // Placeholder - will be replaced with actual block types
     /// Parsed AST
@@ -164,7 +164,7 @@ pub enum ProcessedData {
 ///
 /// # Processing Stages
 ///
-/// Both modes support pipeline stages: `Raw` (default), `Tokens`, `SemanticTokens`, `BlockedTokens`,
+/// Both modes support pipeline stages: `Raw` (default), `Tokens`, `HighLevelTokens`, `BlockedTokens`,
 /// `ParsedAst`, `FullDocument`.
 ///
 /// ```rust
@@ -173,7 +173,7 @@ pub enum ProcessedData {
 /// // Fragment with processing
 /// let corpus = TxxtCorpora::load_with_processing(
 ///     "txxt.core.spec.list.valid.plain-flat",
-///     ProcessingStage::SemanticTokens
+///     ProcessingStage::HighLevelTokens
 /// )?;
 ///
 /// // Document with processing
@@ -505,10 +505,10 @@ impl TxxtCorpora {
                 let tokens = Self::placeholder_tokenize(&corpus.source_text)?;
                 corpus.processed_data = Some(ProcessedData::Tokens(tokens));
             }
-            ProcessingStage::SemanticTokens => {
+            ProcessingStage::HighLevelTokens => {
                 // Apply lexer and semantic analysis to extract semantic tokens
                 let semantic_tokens = Self::process_semantic_tokens(&corpus.source_text)?;
-                corpus.processed_data = Some(ProcessedData::SemanticTokens(semantic_tokens));
+                corpus.processed_data = Some(ProcessedData::HighLevelTokens(semantic_tokens));
             }
             ProcessingStage::BlockedTokens => {
                 // TODO: Integrate with actual block grouper when available
@@ -915,7 +915,7 @@ mod tests {
 
         // Test semantic tokens access
         assert!(corpus.semantic_tokens().is_none());
-        corpus.processed_data = Some(ProcessedData::SemanticTokens(
+        corpus.processed_data = Some(ProcessedData::HighLevelTokens(
             r#"{"tokens": []}"#.to_string(),
         ));
         assert_eq!(corpus.semantic_tokens(), Some(r#"{"tokens": []}"#));

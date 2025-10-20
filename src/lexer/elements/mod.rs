@@ -16,4 +16,3 @@ pub mod list;
 pub mod paragraph;
 pub mod references;
 pub mod session;
-pub mod verbatim;

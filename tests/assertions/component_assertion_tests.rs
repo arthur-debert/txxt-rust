@@ -5,11 +5,11 @@
 
 use std::collections::HashMap;
 
-use txxt::cst::ScannerTokenSequence;
 use txxt::ast::{
     elements::annotation::annotation_content::Annotation,
     elements::components::parameters::Parameters,
 };
+use txxt::cst::ScannerTokenSequence;
 
 use super::elements::components::component_assertions::*;
 

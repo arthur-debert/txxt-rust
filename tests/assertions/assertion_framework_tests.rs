@@ -10,7 +10,6 @@ mod framework_tests {
         assert_session_container, AnnotationExpected, ContentContainerExpected,
         InlineContentExpected, ParagraphExpected, SessionContainerExpected,
     };
-    use txxt::cst::{Position, ScannerToken, ScannerTokenSequence, SourceSpan};
     use txxt::ast::{
         elements::components::parameters::Parameters,
         elements::{
@@ -22,6 +21,7 @@ mod framework_tests {
             session::{session_container::SessionContainerElement, SessionContainer},
         },
     };
+    use txxt::cst::{Position, ScannerToken, ScannerTokenSequence, SourceSpan};
 
     /// Helper to create a simple paragraph for testing
     fn make_test_paragraph(text: &str) -> SessionContainerElement {
@@ -37,7 +37,7 @@ mod framework_tests {
                         },
                     },
                 }],
-            }
+            },
         });
 
         SessionContainerElement::Paragraph(ParagraphBlock {
@@ -83,7 +83,7 @@ mod framework_tests {
             ParagraphExpected {
                 text_contains: Some("test paragraph"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -98,7 +98,7 @@ mod framework_tests {
             ParagraphExpected {
                 text_contains: Some("missing text"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -115,7 +115,7 @@ mod framework_tests {
             ParagraphExpected {
                 text_contains: Some("Any"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -129,7 +129,7 @@ mod framework_tests {
             ParagraphExpected {
                 annotation_count: Some(0),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -144,7 +144,7 @@ mod framework_tests {
             ParagraphExpected {
                 annotation_count: Some(1),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -158,7 +158,7 @@ mod framework_tests {
             ParagraphExpected {
                 has_formatting: Some(false),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -172,7 +172,7 @@ mod framework_tests {
             ParagraphExpected {
                 text: Some("Exact text match"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -187,7 +187,7 @@ mod framework_tests {
             ParagraphExpected {
                 text: Some("Different text"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -203,7 +203,7 @@ mod framework_tests {
                 has_formatting: Some(false),
                 annotation_count: Some(0),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -234,7 +234,8 @@ mod framework_tests {
             tokens: ScannerTokenSequence::new(),
             namespace: None,
             annotations: Vec::new(),
-            parameters: Parameters::new()})
+            parameters: Parameters::new(),
+        })
     }
 
     #[test]
@@ -246,7 +247,7 @@ mod framework_tests {
             AnnotationExpected {
                 label: Some("note"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -267,7 +268,7 @@ mod framework_tests {
             AnnotationExpected {
                 has_content: Some(true),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -280,7 +281,7 @@ mod framework_tests {
             AnnotationExpected {
                 content_text: Some("Exact content"),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -294,13 +295,15 @@ mod framework_tests {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let para2 = ParagraphBlock {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let container = ContentContainer {
             content: vec![
@@ -309,14 +312,15 @@ mod framework_tests {
             ],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_content_container(
             &container,
             ContentContainerExpected {
                 element_count: Some(2),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -327,14 +331,15 @@ mod framework_tests {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_content_container(
             &container,
             ContentContainerExpected {
                 element_count: Some(5),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -363,7 +368,8 @@ mod framework_tests {
             content: vec![SessionContainerElement::Session(session)],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_session_container(
             &container,
@@ -371,7 +377,7 @@ mod framework_tests {
                 has_session: Some(true),
                 session_count: Some(1),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -381,13 +387,15 @@ mod framework_tests {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let container = SessionContainer {
             content: vec![SessionContainerElement::Paragraph(para)],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_session_container(
             &container,
@@ -396,7 +404,7 @@ mod framework_tests {
                 session_count: Some(0),
                 element_count: Some(1),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -420,7 +428,7 @@ mod framework_tests {
             InlineContentExpected {
                 transform_count: Some(2),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -439,7 +447,7 @@ mod framework_tests {
             InlineContentExpected {
                 has_bold: Some(true),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -459,7 +467,7 @@ mod framework_tests {
                 has_code: Some(false),
                 has_math: Some(false),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -478,7 +486,7 @@ mod framework_tests {
             InlineContentExpected {
                 has_italic: Some(true),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -495,7 +503,7 @@ mod framework_tests {
             InlineContentExpected {
                 has_code: Some(true),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -512,7 +520,7 @@ mod framework_tests {
             InlineContentExpected {
                 has_math: Some(true),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -524,21 +532,23 @@ mod framework_tests {
     fn test_assert_content_container_element_types() {
         use txxt::ast::elements::{
             core::ElementType,
-            list::{ListBlock, ListDecorationType}
+            list::{ListBlock, ListDecorationType},
         };
 
         let para = ParagraphBlock {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let list = ListBlock {
             decoration_type: ListDecorationType::default(),
             items: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let container = ContentContainer {
             content: vec![
@@ -547,14 +557,15 @@ mod framework_tests {
             ],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_content_container(
             &container,
             ContentContainerExpected {
                 element_types: Some(vec![ElementType::Block, ElementType::Block]),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -564,20 +575,22 @@ mod framework_tests {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let container = ContentContainer {
             content: vec![ContentContainerElement::Paragraph(para)],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_content_container(
             &container,
             ContentContainerExpected {
                 has_element_type: Some(ElementType::Block),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -589,13 +602,15 @@ mod framework_tests {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let para2 = ParagraphBlock {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let container = ContentContainer {
             content: vec![
@@ -604,14 +619,15 @@ mod framework_tests {
             ],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_content_container(
             &container,
             ContentContainerExpected {
                 all_same_type: Some(ElementType::Block),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -623,20 +639,22 @@ mod framework_tests {
             content: vec![],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let container = SessionContainer {
             content: vec![SessionContainerElement::Paragraph(para)],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         assert_session_container(
             &container,
             SessionContainerExpected {
                 element_types: Some(vec![ElementType::Block]),
                 ..Default::default()
-            }
+            },
         );
     }
 
@@ -664,7 +682,8 @@ mod framework_tests {
             content: vec![ContentContainerElement::Paragraph(para)],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
-            parameters: Parameters::new()};
+            parameters: Parameters::new(),
+        };
 
         let element = SessionContainerElement::Annotation(AnnotationBlock {
             label: "note".to_string(),
@@ -672,14 +691,15 @@ mod framework_tests {
             tokens: ScannerTokenSequence::new(),
             namespace: None,
             annotations: Vec::new(),
-            parameters: Parameters::new()});
+            parameters: Parameters::new(),
+        });
 
         assert_annotation(
             &element,
             AnnotationExpected {
                 content_contains: Some("Block content"),
                 ..Default::default()
-            }
+            },
         );
     }
 }

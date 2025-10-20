@@ -9,7 +9,6 @@
 //! 3. parameters: Parameters
 //! 4. tokens: ScannerTokenSequence
 
-use txxt::cst::ScannerTokenSequence;
 use txxt::ast::{
     elements::annotation::annotation_content::{Annotation, AnnotationContent},
     elements::components::parameters::Parameters,
@@ -19,6 +18,7 @@ use txxt::ast::{
         session::session_container::SessionContainerElement,
     },
 };
+use txxt::cst::ScannerTokenSequence;
 
 use crate::assertions::{assert_paragraph, ParagraphExpected};
 

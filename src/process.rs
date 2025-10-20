@@ -30,7 +30,8 @@ use crate::assembler::{AnnotationAttacher, DocumentAssembler};
 use crate::ast::scanner_tokens::ScannerToken;
 use crate::ast::Document;
 use crate::lexer::tokenize;
-use crate::parser::{AstConstructor, InlineParser, SemanticAnalyzer};
+use crate::lexer::SemanticAnalyzer;
+use crate::parser::{AstConstructor, InlineParser};
 
 /// Processing error type that encompasses all phase errors
 #[derive(Debug)]

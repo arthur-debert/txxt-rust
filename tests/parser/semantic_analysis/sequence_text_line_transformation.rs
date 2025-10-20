@@ -8,7 +8,7 @@ use txxt::ast::tokens::high_level::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenSpan,
 };
-use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_sequence_text_line_single_text_token() {

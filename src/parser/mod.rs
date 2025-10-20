@@ -3,17 +3,12 @@
 //! This module implements the parser phase that converts scanner tokens into AST element nodes.
 //! See src/lib.rs for the full architecture overview.
 //!
-//! - [`semantic_analysis`] - Step 2.a: Semantic token analysis
-//!   - Analyzes scanner tokens and produces semantic tokens with meaning attached
-//!   - Input: Vec<ScannerToken>
-//!   - Output: SemanticTokenList
-//!
-//! - [`ast_construction`] - Step 2.b: AST tree construction
-//!   - Builds AST tree from semantic tokens
-//!   - Input: SemanticTokenList
+//! - [`ast_construction`] - Step 2.a: AST tree construction
+//!   - Builds AST tree from high-level tokens
+//!   - Input: HighLevelTokenList
 //!   - Output: Vec<ElementNode>
 //!
-//! - [`inline_parsing`] - Step 2.c: Inline element parsing
+//! - [`inline_parsing`] - Step 2.b: Inline element parsing
 //!   - Parses inline formatting within text content
 //!   - Input: Vec<ElementNode> with unparsed inline text
 //!   - Output: Vec<ElementNode> with parsed inline elements
@@ -30,7 +25,6 @@
 // Processing steps
 pub mod ast_construction;
 pub mod inline_parsing;
-pub mod semantic_analysis;
 
 // Element parsers
 pub mod elements;
@@ -38,7 +32,6 @@ pub mod elements;
 // Re-export main interfaces
 pub use ast_construction::{AstConstructor, AstNode};
 pub use inline_parsing::{InlineParseError, InlineParser};
-pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 /// Error type for block element parsing
 #[derive(Debug)]

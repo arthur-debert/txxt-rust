@@ -6,7 +6,7 @@
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
-use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 /// Test basic TxxtMarker transformation
 #[test]

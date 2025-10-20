@@ -16,12 +16,18 @@
 //!   - Input: Source text with verbatim markers
 //!   - Output: Vec<ScannerToken>
 //!
+//! - [`semantic_analysis`] - Step 1.c: High-level token analysis
+//!   - Converts scanner tokens to high-level tokens
+//!   - Input: Vec<ScannerToken>
+//!   - Output: HighLevelTokenList
+//!
 //! ## Supporting Modules
 //!
 //! - [`core`] - Fundamental tokenization components (indentation tracking, patterns)
 //! - [`elements`] - Element-specific tokenization logic organized by specification
 
 // Processing steps
+pub mod semantic_analysis;
 pub mod tokenization;
 pub mod verbatim_scanning;
 
@@ -30,6 +36,7 @@ pub mod core;
 pub mod elements;
 
 // Re-export main interfaces
+pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 pub use tokenization::Lexer;
 pub use verbatim_scanning::{VerbatimBlock, VerbatimScanner, VerbatimType};
 

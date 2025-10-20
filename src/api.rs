@@ -11,7 +11,7 @@ use std::error::Error;
 use std::fmt;
 
 use crate::lexer::tokenize;
-use crate::parser::SemanticAnalyzer;
+use crate::lexer::SemanticAnalyzer;
 
 #[derive(Debug, Clone)]
 pub struct ProcessArgs {
@@ -213,7 +213,7 @@ fn process_ast_no_inline_json(content: &str, source_path: &str) -> Result<String
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
     // Phase 2.a: Semantic Analysis only
-    let semantic_analyzer = crate::parser::SemanticAnalyzer::new();
+    let semantic_analyzer = SemanticAnalyzer::new();
     let semantic_tokens = semantic_analyzer
         .analyze(tokens)
         .map_err(|err| ProcessError::ParseError(err.to_string()))?;
@@ -238,7 +238,7 @@ fn process_ast_no_inline_treeviz(content: &str, source_path: &str) -> Result<Str
         .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
 
     // Phase 2.a: Semantic Analysis only
-    let semantic_analyzer = crate::parser::SemanticAnalyzer::new();
+    let semantic_analyzer = SemanticAnalyzer::new();
     let semantic_tokens = semantic_analyzer
         .analyze(tokens)
         .map_err(|err| ProcessError::ParseError(err.to_string()))?;

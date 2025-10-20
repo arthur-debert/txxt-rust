@@ -8,7 +8,7 @@ use txxt::ast::tokens::high_level::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenSpan,
 };
-use txxt::parser::semantic_analysis::SemanticAnalyzer;
+use txxt::lexer::semantic_analysis::SemanticAnalyzer;
 
 #[test]
 fn test_sequence_marker_plain_transformation() {

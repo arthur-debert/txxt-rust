@@ -1,10 +1,10 @@
-//! Phase 2a: Semantic Analysis
+//! Phase 1c: High-Level Token Analysis
 //!
-//! Converts scanner tokens into semantic tokens. This is the first step
-//! of Phase 2 parsing, where we elevate the low-level scanner token stream
+//! Converts scanner tokens into high-level tokens. This is the third step
+//! of Phase 1 lexing, where we elevate the low-level scanner token stream
 //! into a higher-level stream of semantic nodes.
 //!
-//! src/parser/mod.rs has the full architecture overview.
+//! src/lexer/mod.rs has the full architecture overview.
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 use crate::ast::tokens::high_level::{
@@ -12,10 +12,10 @@ use crate::ast::tokens::high_level::{
     HighLevelTokenList,
 };
 
-/// Semantic analysis parser for converting scanner tokens to semantic tokens
+/// High-level token analyzer for converting scanner tokens to high-level tokens
 ///
-/// This parser takes a flat stream of scanner tokens and transforms them
-/// into higher-level semantic tokens that represent syntactic constructs.
+/// This analyzer takes a flat stream of scanner tokens and transforms them
+/// into higher-level tokens that represent syntactic constructs.
 pub struct SemanticAnalyzer;
 
 impl Default for SemanticAnalyzer {
@@ -25,27 +25,27 @@ impl Default for SemanticAnalyzer {
 }
 
 impl SemanticAnalyzer {
-    /// Create a new semantic analyzer instance
+    /// Create a new high-level token analyzer instance
     pub fn new() -> Self {
         Self
     }
 
-    /// Analyze scanner tokens and convert them to semantic tokens
+    /// Analyze scanner tokens and convert them to high-level tokens
     ///
     /// Takes a flat stream of scanner tokens and transforms them into
-    /// semantic tokens that represent higher-level syntactic constructs.
+    /// high-level tokens that represent higher-level syntactic constructs.
     /// Structural tokens are passed through unchanged.
     ///
     /// # Arguments
     /// * `scanner_tokens` - The scanner token vector from Phase 1b
     ///
     /// # Returns
-    /// * `Result<HighLevelTokenList, SemanticAnalysisError>` - The semantic token list
+    /// * `Result<HighLevelTokenList, SemanticAnalysisError>` - The high-level token list
     pub fn analyze(
         &self,
         scanner_tokens: Vec<ScannerToken>,
     ) -> Result<HighLevelTokenList, SemanticAnalysisError> {
-        let mut semantic_tokens = Vec::new();
+        let mut high_level_tokens = Vec::new();
         let mut i = 0;
 
         while i < scanner_tokens.len() {
@@ -54,15 +54,15 @@ impl SemanticAnalyzer {
             match token {
                 // Structural tokens - pass through unchanged
                 ScannerToken::BlankLine { span, .. } => {
-                    semantic_tokens.push(HighLevelToken::BlankLine { span: span.clone() });
+                    high_level_tokens.push(HighLevelToken::BlankLine { span: span.clone() });
                     i += 1;
                 }
                 ScannerToken::Indent { span } => {
-                    semantic_tokens.push(HighLevelToken::Indent { span: span.clone() });
+                    high_level_tokens.push(HighLevelToken::Indent { span: span.clone() });
                     i += 1;
                 }
                 ScannerToken::Dedent { span } => {
-                    semantic_tokens.push(HighLevelToken::Dedent { span: span.clone() });
+                    high_level_tokens.push(HighLevelToken::Dedent { span: span.clone() });
                     i += 1;
                 }
 
@@ -74,7 +74,7 @@ impl SemanticAnalyzer {
                     {
                         let pattern_semantic_token =
                             self.transform_complex_pattern(pattern_tokens)?;
-                        semantic_tokens.push(pattern_semantic_token);
+                        high_level_tokens.push(pattern_semantic_token);
                         i += consumed;
                     }
                     // Then check if this looks like a core block element (paragraph, session, list)
@@ -82,7 +82,7 @@ impl SemanticAnalyzer {
                         let (line_tokens, consumed) =
                             self.extract_line_tokens(&scanner_tokens, i)?;
                         let line_semantic_token = self.process_line_tokens(line_tokens)?;
-                        semantic_tokens.push(line_semantic_token);
+                        high_level_tokens.push(line_semantic_token);
                         i += consumed;
                     } else {
                         // Process individual tokens for specific elements (annotations, definitions, etc.)
@@ -90,24 +90,24 @@ impl SemanticAnalyzer {
                         match token {
                             // TxxtMarker transformation - Issue #81
                             ScannerToken::TxxtMarker { .. } => {
-                                semantic_tokens.push(self.transform_txxt_marker(token)?);
+                                high_level_tokens.push(self.transform_txxt_marker(token)?);
                             }
 
                             // Label transformation - Issue #82
                             ScannerToken::Identifier { content, span } => {
-                                semantic_tokens
+                                high_level_tokens
                                     .push(self.transform_label(content.clone(), span.clone())?);
                             }
 
                             // Text Span transformation - Issue #85
                             ScannerToken::Text { content, span } => {
-                                semantic_tokens
+                                high_level_tokens
                                     .push(self.transform_text_span(content.clone(), span.clone())?);
                             }
 
                             // Sequence Marker transformation - Issue #84
                             ScannerToken::SequenceMarker { marker_type, span } => {
-                                semantic_tokens.push(self.transform_sequence_marker(
+                                high_level_tokens.push(self.transform_sequence_marker(
                                     marker_type.clone(),
                                     span.clone(),
                                 )?);
@@ -116,7 +116,7 @@ impl SemanticAnalyzer {
                             // Preserve syntactic markers instead of converting to text spans
                             ScannerToken::Colon { span } => {
                                 // Preserve colon as a syntactic marker for parameter parsing
-                                semantic_tokens.push(HighLevelTokenBuilder::colon(span.clone()));
+                                high_level_tokens.push(HighLevelTokenBuilder::colon(span.clone()));
                             }
 
                             // Handle other tokens as text spans for now
@@ -124,7 +124,7 @@ impl SemanticAnalyzer {
                                 // Convert other tokens to text spans as fallback
                                 // This will be refined in subsequent transformation issues
                                 let content = self.token_to_text_content(token);
-                                semantic_tokens.push(HighLevelTokenBuilder::text_span(
+                                high_level_tokens.push(HighLevelTokenBuilder::text_span(
                                     content,
                                     token.span().clone(),
                                 ));
@@ -136,7 +136,7 @@ impl SemanticAnalyzer {
             }
         }
 
-        Ok(HighLevelTokenList::with_tokens(semantic_tokens))
+        Ok(HighLevelTokenList::with_tokens(high_level_tokens))
     }
 
     /// Recognize complex patterns like definitions, annotations, and verbatim blocks

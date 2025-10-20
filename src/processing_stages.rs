@@ -142,9 +142,9 @@ pub fn initialize_registries() {
         data_structure: "token-scanner",
     });
     stage_registry.register(Stage {
-        name: "semantic-tokens",
-        description: "Semantically analyzed tokens",
-        data_structure: "token-semantic",
+        name: "high-level-tokens",
+        description: "High-level analyzed tokens",
+        data_structure: "token-high-level",
     });
     stage_registry.register(Stage {
         name: "ast-block",
@@ -179,7 +179,7 @@ pub fn initialize_registries() {
 
     // Register Conversions
     conversion_factory.register("token-scanner", vec!["json"]);
-    conversion_factory.register("token-semantic", vec!["json"]);
+    conversion_factory.register("token-high-level", vec!["json"]);
     conversion_factory.register("ast-block", vec!["json", "treeviz"]);
     conversion_factory.register("ast-inlines", vec!["json", "treeviz"]);
     conversion_factory.register("ast-document", vec!["json", "treeviz"]);

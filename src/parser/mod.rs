@@ -2,19 +2,21 @@
 //!
 //! This module implements the parser phase that converts scanner tokens into AST element nodes.
 //!
-//! ## Parser Steps
+//! See the crate-level documentation for the complete architecture overview.
 //!
-//! Step 2.a: Semantic analysis - analyzes scanner tokens and produces semantic tokens
-//! Step 2.b: AST construction - builds AST tree from semantic tokens
-//! Step 2.c: Inline parsing - parses inline formatting within text content
+//! Parser Steps:
 //!
-//! ## Processing Steps
+//! - Step 2.a: Semantic analysis - analyzes scanner tokens and produces semantic tokens
+//! - Step 2.b: AST construction - builds AST tree from semantic tokens
+//! - Step 2.c: Inline parsing - parses inline formatting within text content
+//!
+//! Processing Steps:
 //!
 //! - [`semantic_analysis`] - Step 2.a: Semantic token analysis
 //! - [`ast_construction`] - Step 2.b: AST tree construction
 //! - [`inline_parsing`] - Step 2.c: Inline element parsing
 //!
-//! ## Element Parsers
+//! Element Parsers:
 //!
 //! - [`elements`] - Element-specific parsing logic
 

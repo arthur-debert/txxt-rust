@@ -1,79 +1,45 @@
-//! # TXXT Command Line Interface
+//! TXXT Command Line Interface
 //!
-//! A thin CLI wrapper around the TXXT processing API that provides a clean interface
-//! for processing TXXT documents through various stages of the parsing pipeline.
+//! A thin CLI wrapper around the TXXT processing API.
 //!
-//! ## Design Philosophy
+//! See the crate-level documentation for the complete architecture overview
+//! including phase definitions, step details, and data flow.
 //!
-//! This binary follows a strict separation of concerns:
+//! CLI Architecture:
 //!
-//! - **CLI Layer**: Handles argument parsing, validation, and I/O operations
-//! - **API Layer**: Contains pure processing functions with no side effects
-//! - **Registry System**: Provides dynamic discovery of available stages and formats
+//! - CLI Layer: Argument parsing, validation, I/O operations
+//! - API Layer: Pure processing functions with no side effects
+//! - Registry System: Dynamic discovery of available stages and formats
 //!
-//! This architecture ensures that the core processing logic remains testable and
-//! reusable while providing a user-friendly command-line interface.
+//! CLI Operation:
 //!
-//! ## Architecture Overview
+//! 1. Initialization: Set up global registries for stages and formats
+//! 2. Validation: Validate user inputs against available options
+//! 3. Processing: Delegate to pure API functions in txxt::api::process
 //!
-//! The CLI operates in three phases:
+//! Registry-Driven Help:
 //!
-//! 1. **Initialization**: Sets up the global registries for stages, formats, and conversions
-//! 2. **Validation**: Validates user inputs against available options in registries
-//! 3. **Processing**: Delegates to the pure API functions in `txxt::api::process`
-//!
-//! ## Pipeline Stages
-//!
-//! The TXXT processing pipeline consists of multiple stages, each producing different
-//! intermediate representations:
-//!
-//! - **scanner-tokens**: Raw lexical tokens from the scanner
-//! - **semantic-tokens**: Tokens with semantic analysis applied
-//! - **ast-block**: Block-level Abstract Syntax Tree (no inline processing)
-//! - **ast-inlines**: AST with inline elements parsed
-//! - **ast-document**: Document-level AST with assembly metadata
-//! - **ast-full**: Complete AST with all annotations and metadata
-//!
-//! ## Output Formats
-//!
-//! Each stage can be output in different formats:
-//!
-//! - **json**: Machine-readable JSON representation
-//! - **treeviz**: Human-readable tree visualization
-//!
-//! ## Registry-Driven Help System
-//!
-//! The `--help-stages` flag dynamically queries the registries to show:
+//! The --help-stages flag dynamically queries the registries to show:
 //! - Available processing stages with descriptions
-//! - Available output formats with descriptions  
+//! - Available output formats with descriptions
 //! - Valid stage-format combinations
 //!
-//! This ensures the help text always reflects the actual implementation capabilities
+//! This ensures the help text always reflects actual implementation capabilities
 //! without requiring manual synchronization.
 //!
-//! ## Error Handling
+//! Usage Examples:
 //!
-//! The CLI provides specific error messages for different failure modes:
-//! - Invalid stage or format selection
-//! - Unsupported stage-format combinations
-//! - Missing or inaccessible input files
-//! - Processing errors (tokenization, parsing, serialization)
+//!     Show available options
+//!     txxt --help-stages
 //!
-//! ## Usage Examples
+//!     Process with defaults (ast-full + json)
+//!     txxt document.txxt
 //!
-//! ```bash
-//! # Show available options
-//! txxt --help-stages
+//!     Get raw scanner tokens in JSON
+//!     txxt --stage scanner-tokens --format json document.txxt
 //!
-//! # Process a file with default settings (ast-full + json)
-//! txxt document.txxt
-//!
-//! # Get raw scanner tokens in JSON
-//! txxt --stage scanner-tokens --format json document.txxt
-//!
-//! # Visualize the AST structure
-//! txxt --stage ast-full --format treeviz document.txxt
-//! ```
+//!     Visualize the AST structure
+//!     txxt --stage ast-full --format treeviz document.txxt
 
 use clap::Parser;
 use std::fs;

@@ -3,18 +3,27 @@
 //! This module orchestrates the three main phases of TXXT processing:
 //! Phase 1 (Lexer), Phase 2 (Parser), and Phase 3 (Assembler).
 //!
-//! ## Terminology
+//! See the crate-level documentation for the complete architecture overview
+//! including detailed phase breakdowns, step definitions, and data flow.
 //!
-//! - **Phase**: One of three high-level stages (Lexer, Parser, Assembler)
-//! - **Step**: Sub-operations within a phase (e.g., semantic analysis, AST construction)
-//! - **Stage**: CLI/test concept for where to stop processing for inspection
+//! Entry Points:
 //!
-//! ## Usage
+//! - process_lexer: Execute Phase 1 (Lexer)
+//! - process_parser: Execute Phase 2 (Parser)
+//! - process_assembler: Execute Phase 3 (Assembler)
+//! - process_full: Execute all three phases
+//! - process_from_file: Convenience function for file input
 //!
-//! ```rust,ignore
+//! Usage:
+//!
+//! ```
 //! use txxt::process::process_full;
 //!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # let source_text = "This is a TXXT document.";
 //! let document = process_full(source_text, Some("file.txxt".to_string()))?;
+//! # Ok(())
+//! # }
 //! ```
 
 use crate::assembler::{AnnotationAttacher, DocumentAssembler};

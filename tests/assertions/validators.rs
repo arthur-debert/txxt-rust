@@ -7,8 +7,7 @@ use std::collections::HashMap;
 
 use txxt::ast::{
     elements::annotation::annotation_content::Annotation,
-    elements::components::parameters::Parameters,
-    elements::core::HeaderedBlock,
+    elements::components::parameters::Parameters, elements::core::HeaderedBlock,
     elements::inlines::TextTransform,
 };
 

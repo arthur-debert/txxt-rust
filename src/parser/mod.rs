@@ -1,24 +1,31 @@
 //! Phase 2: Parser - AST Construction
 //!
 //! This module implements the parser phase that converts scanner tokens into AST element nodes.
-//!
-//! See the crate-level documentation for the complete architecture overview.
-//!
-//! Parser Steps:
-//!
-//! - Step 2.a: Semantic analysis - analyzes scanner tokens and produces semantic tokens
-//! - Step 2.b: AST construction - builds AST tree from semantic tokens
-//! - Step 2.c: Inline parsing - parses inline formatting within text content
-//!
-//! Processing Steps:
+//! See src/lib.rs for the full architecture overview.
 //!
 //! - [`semantic_analysis`] - Step 2.a: Semantic token analysis
+//!   - Analyzes scanner tokens and produces semantic tokens with meaning attached
+//!   - Input: Vec<ScannerToken>
+//!   - Output: SemanticTokenList
+//!
 //! - [`ast_construction`] - Step 2.b: AST tree construction
+//!   - Builds AST tree from semantic tokens
+//!   - Input: SemanticTokenList
+//!   - Output: Vec<ElementNode>
+//!
 //! - [`inline_parsing`] - Step 2.c: Inline element parsing
+//!   - Parses inline formatting within text content
+//!   - Input: Vec<ElementNode> with unparsed inline text
+//!   - Output: Vec<ElementNode> with parsed inline elements
 //!
-//! Element Parsers:
+//! ## Element Modules (Organized by Specification)
 //!
-//! - [`elements`] - Element-specific parsing logic
+//! - [`elements`] - All element parsing organized by type
+//!   - [`elements::formatting`] - Text formatting elements (bold, italic, code, math)
+//!   - [`elements::inlines`] - Inline element parsing with text transform layer
+//!     - [`elements::inlines::references`] - Reference and citation elements
+//!     - Citation parsing, footnote parsing, page references, session references
+//!
 
 // Processing steps
 pub mod ast_construction;

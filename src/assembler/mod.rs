@@ -3,16 +3,19 @@
 //! This module implements the assembler phase that converts AST element nodes
 //! into final document structures.
 //!
-//! ## Assembler Steps
-//!
-//! Step 3.a: Document assembly - wraps AST elements in document structure
-//! Step 3.b: Annotation attachment - attaches annotations to their target elements
-//!
-//! ## Processing Steps
+//! See src/lib.rs for the full architecture overview.
 //!
 //! - [`document_assembly`] - Step 3.a: Document structure creation
+//!   - Wraps AST elements in Session container and Document node
+//!   - Input: Vec<ElementNode>
+//!   - Output: Document with metadata and assembly info
+//!   - Creates proper document hierarchy with Session containers
+//!
 //! - [`annotation_attachment`] - Step 3.b: Annotation proximity-based attachment
-
+//!   - Attaches annotations to their target elements using proximity rules
+//!   - Input: Document with unattached annotations
+//!   - Output: Document with annotations properly attached
+//!   - Handles document-level and content-level annotation processing
 use crate::ast::{
     elements::{
         annotation::annotation_content::Annotation,
@@ -35,8 +38,7 @@ pub use document_assembly::{DocumentAssembler, DocumentAssemblyError};
 
 /// Phase 3 Assembler
 ///
-/// Handles document assembly, annotation processing, and
-/// cross-reference resolution to produce the final document structure.
+/// Handles document assembly and annotation processing to produce the final document structure.
 pub struct Assembler;
 
 impl Assembler {

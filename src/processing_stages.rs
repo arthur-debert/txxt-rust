@@ -1,15 +1,15 @@
-//! # Processing Stages and Format Registries
+//!  Processing Stages and Format Registries
 //!
 //! This module defines the core data structures and registries for managing
 //! the different stages of the TXXT parsing pipeline and the available output formats.
 //!
-//! ## Key Components:
+//! Key Components:
 //!
-//! * **`Stage`**: Represents a specific point in the parsing pipeline, like "token-scanner" or "ast-full".
-//! * **`Format`**: Represents an output format, such as "json" or "treeviz".
-//! * **`StageRegistry`**: A singleton that holds all registered `Stage`s.
-//! * **`FormatRegistry`**: A singleton that holds all registered `Format`s.
-//! * **`ConversionFactory`**: A singleton that links `Stage`s to their supported `Format`s.
+//! - Stage : Represents a specific point in the parsing pipeline, like "token-scanner" or "ast-full".
+//! - Format`: Represents an output format, such as "json" or "treeviz".
+//! - StageRegistry: A singleton that holds all registered Stages.
+//! - FormatRegistry: A singleton that holds all registered Format's.
+//! - ConversionFactory: A singleton that links Stages to their supported Formats.
 //!
 //! This setup allows for a flexible and extensible CLI, where new stages and formats
 //! can be added without modifying the core logic of the binary.

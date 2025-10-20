@@ -7,7 +7,7 @@
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan, WallType};
 use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
-use txxt::parser::pipeline::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_verbatim_block_basic_transformation() {

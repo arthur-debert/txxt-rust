@@ -1,27 +1,50 @@
-//! TXXT Parser Module
+//! Phase 2: Parser - AST Construction
 //!
-//! This module provides the parsing infrastructure for converting TXXT tokens
-//! into Abstract Syntax Trees (AST). The parser follows a three-phase pipeline design.
+//! This module implements the parser phase that converts scanner tokens into AST element nodes.
 //!
-//!  Architecture Overview
+//! ## Parser Steps
 //!
-// 1. Lexer (txxt str -> ScannerTokenList)
-//     a. Verbatim Scanner: marks verbatim lines that are off-limits for processing as txxt
-//     b. Token List: creates the token stream at low level tokens -> scanner token list
-// 2. Parser (ScannerTokenList -> AST tree node)
-//     a. Semantic Token Analysis (ScannerTokenList → SemanticTokenList)
-//     b. AST Construction : With the ast nodes + dedent construct the final ast tree (SemanticTokenList -> AST tree node) - Buggy
-//     c. Inline Parsing: Handle inlines within blocks (ScannerToken -> AST node) -- Stubbed
-// 3. Assembly (AST tree node -> AST document node)
-//     a. Document Wrapping: wraps the parsed AST in a Document node
-//     b. Annotations Attachments: from the content tree to node's annotation's field
-//
+//! Step 2.a: Semantic analysis - analyzes scanner tokens and produces semantic tokens
+//! Step 2.b: AST construction - builds AST tree from semantic tokens
+//! Step 2.c: Inline parsing - parses inline formatting within text content
+//!
+//! ## Processing Steps
+//!
+//! - [`semantic_analysis`] - Step 2.a: Semantic token analysis
+//! - [`ast_construction`] - Step 2.b: AST tree construction
+//! - [`inline_parsing`] - Step 2.c: Inline element parsing
+//!
+//! ## Element Parsers
+//!
+//! - [`elements`] - Element-specific parsing logic
 
-// Pipeline modules
-pub mod pipeline;
+// Processing steps
+pub mod ast_construction;
+pub mod inline_parsing;
+pub mod semantic_analysis;
 
 // Element parsers
 pub mod elements;
 
 // Re-export main interfaces
-pub use pipeline::{InlineParseError, InlineParser, SemanticAnalysisError, SemanticAnalyzer};
+pub use ast_construction::{AstConstructor, AstNode};
+pub use inline_parsing::{InlineParseError, InlineParser};
+pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+
+/// Error type for block element parsing
+#[derive(Debug)]
+pub enum BlockParseError {
+    InvalidStructure(String),
+}
+
+impl std::fmt::Display for BlockParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BlockParseError::InvalidStructure(msg) => {
+                write!(f, "Invalid block structure: {}", msg)
+            }
+        }
+    }
+}
+
+impl std::error::Error for BlockParseError {}

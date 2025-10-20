@@ -5,7 +5,7 @@
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
 use txxt::ast::semantic_tokens::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
-use txxt::parser::pipeline::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_plain_text_line_single_text_token() {

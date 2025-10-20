@@ -8,7 +8,7 @@ use txxt::ast::semantic_tokens::{
     SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
     SemanticTokenSpan,
 };
-use txxt::parser::pipeline::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_sequence_text_line_single_text_token() {

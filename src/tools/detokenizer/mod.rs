@@ -15,7 +15,7 @@
 
 use crate::ast::scanner_tokens::ScannerToken;
 use crate::lexer::core::indentation::INDENT_SIZE;
-use crate::lexer::pipeline::ScannerTokenTree;
+use crate::lexer::ScannerTokenTree;
 
 /// Detokenizer for round-trip verification
 pub struct Detokenizer;

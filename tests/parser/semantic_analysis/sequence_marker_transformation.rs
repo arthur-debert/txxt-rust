@@ -8,7 +8,7 @@ use txxt::ast::semantic_tokens::{
     SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
     SemanticTokenSpan,
 };
-use txxt::parser::pipeline::semantic_analysis::SemanticAnalyzer;
+use txxt::parser::semantic_analysis::SemanticAnalyzer;
 
 #[test]
 fn test_sequence_marker_plain_transformation() {

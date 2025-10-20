@@ -6,8 +6,8 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::lexer::pipeline::{ScannerTokenTree, ScannerTokenTreeBuilder};
 use txxt::lexer::tokenize;
+use txxt::lexer::{ScannerTokenTree, ScannerTokenTreeBuilder};
 
 /// Test simple flat content (no indentation)
 #[test]

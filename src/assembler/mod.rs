@@ -1,9 +1,17 @@
-//! Phase 3: Assembly
+//! Phase 3: Assembler - Document Assembly
 //!
-//! This module implements the assembly phase that handles document
-//! assembly, annotation attachment, and cross-reference resolution.
+//! This module implements the assembler phase that converts AST element nodes
+//! into final document structures.
 //!
-//! src/parser/mod.rs has the full architecture overview.
+//! ## Assembler Steps
+//!
+//! Step 3.a: Document assembly - wraps AST elements in document structure
+//! Step 3.b: Annotation attachment - attaches annotations to their target elements
+//!
+//! ## Processing Steps
+//!
+//! - [`document_assembly`] - Step 3.a: Document structure creation
+//! - [`annotation_attachment`] - Step 3.b: Annotation proximity-based attachment
 
 use crate::ast::{
     elements::{
@@ -15,15 +23,15 @@ use crate::ast::{
     },
     Document,
 };
-use crate::lexer::pipeline::ScannerTokenTree;
+use crate::lexer::ScannerTokenTree;
 
-// Pipeline modules
-pub mod pipeline;
+// Processing steps
+pub mod annotation_attachment;
+pub mod document_assembly;
 
 // Re-export main interfaces
-pub use pipeline::{
-    AnnotationAttacher, AnnotationAttachmentError, DocumentAssembler, DocumentAssemblyError,
-};
+pub use annotation_attachment::{AnnotationAttacher, AnnotationAttachmentError};
+pub use document_assembly::{DocumentAssembler, DocumentAssemblyError};
 
 /// Phase 3 Assembler
 ///

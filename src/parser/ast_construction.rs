@@ -15,7 +15,7 @@ use crate::ast::{
     scanner_tokens::{Position, ScannerTokenSequence, SourceSpan},
     semantic_tokens::{SemanticToken, SemanticTokenList},
 };
-use crate::parser::pipeline::BlockParseError;
+use crate::parser::BlockParseError;
 
 /// AST Construction parser for converting semantic tokens to AST nodes
 ///

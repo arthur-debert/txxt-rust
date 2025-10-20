@@ -19,11 +19,11 @@
 //! - Cleaner test code
 //! - Less brittleness (no manual indexing)
 
-use txxt::assembler::pipeline::DocumentAssembler;
+use txxt::assembler::DocumentAssembler;
 use txxt::ast::traversal::TraversableDocument;
-use txxt::lexer::pipeline::ScannerTokenTreeBuilder;
 use txxt::lexer::tokenize;
-use txxt::pipeline::parser_pipeline;
+use txxt::lexer::ScannerTokenTreeBuilder;
+use txxt::process::process_parser;
 
 /// Test that AST construction works with a simple paragraph
 #[test]
@@ -38,7 +38,7 @@ fn test_simple_ast_construction_integration() {
         .expect("Failed to build token tree");
 
     // Phase 2: Parser pipeline (including AST construction)
-    let ast_elements = parser_pipeline(token_tree).expect("Failed to parse to AST elements");
+    let ast_elements = process_parser(token_tree).expect("Failed to parse to AST elements");
 
     // Verify that we got AST elements
     assert!(
@@ -96,7 +96,7 @@ fn test_traversal_xpath_queries() {
     let token_tree = ScannerTokenTreeBuilder::new()
         .build_tree(tokens)
         .expect("Failed to build token tree");
-    let ast_elements = parser_pipeline(token_tree).expect("Failed to parse");
+    let ast_elements = process_parser(token_tree).expect("Failed to parse");
 
     let assembler = DocumentAssembler::new();
     let document = assembler

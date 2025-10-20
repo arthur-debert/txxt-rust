@@ -5,7 +5,7 @@ use walkdir::WalkDir;
 
 // Import the lexer and semantic analysis for processing
 use txxt::lexer::tokenize;
-use txxt::parser::pipeline::semantic_analysis::SemanticAnalyzer;
+use txxt::parser::semantic_analysis::SemanticAnalyzer;
 
 /// Processing stages for test corpora.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

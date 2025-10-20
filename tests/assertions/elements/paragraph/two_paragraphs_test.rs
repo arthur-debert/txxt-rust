@@ -6,7 +6,7 @@ mod corpora {
 
 use corpora::TxxtCorpora;
 use txxt::ast::elements::session::session_container::SessionContainerElement;
-use txxt::pipeline::full_pipeline;
+use txxt::process::process_full;
 
 /// Test that demonstrates the missing second paragraph issue
 #[test]
@@ -21,7 +21,7 @@ fn test_two_paragraphs_missing_second() {
     println!("==================");
 
     // Parse through the full pipeline
-    let document = full_pipeline(
+    let document = process_full(
         &corpus.source_text,
         Some("01-two-paragraphs.txxt".to_string()),
     )
@@ -124,7 +124,7 @@ fn test_current_behavior_one_paragraph() {
     let corpus = TxxtCorpora::load_document("01-two-paragraphs").expect("Failed to load document");
 
     let document =
-        full_pipeline(&corpus.source_text, Some("test".to_string())).expect("Failed to parse");
+        process_full(&corpus.source_text, Some("test".to_string())).expect("Failed to parse");
 
     // This currently passes but shouldn't - it demonstrates the bug
     let paragraph_count = document

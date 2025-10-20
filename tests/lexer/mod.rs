@@ -15,7 +15,6 @@ mod core;
 mod debug;
 mod escape_sequences;
 mod inline;
-// mod token_tree_builder_tests; // DISABLED: ScannerTokenTree removed from pipeline
 mod verbatim;
 
 // Bug reproduction tests

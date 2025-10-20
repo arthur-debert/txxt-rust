@@ -71,9 +71,18 @@ impl<'a> AstConstructor<'a> {
         self.position = 0;
         self.indentation_level = 0;
 
+        eprintln!("AST: Total tokens to process: {}", self.tokens.len());
+        for (i, token) in self.tokens.iter().enumerate() {
+            eprintln!("AST: Token {}: {:?}", i, token);
+        }
+
         // Main parsing loop
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
+            eprintln!(
+                "AST: Processing token at position {}: {:?}",
+                self.position, token
+            );
 
             // Handle structural tokens that don't contribute to content
             match token {
@@ -91,9 +100,20 @@ impl<'a> AstConstructor<'a> {
                 }
                 _ => {
                     // Process all content tokens through the dispatcher
+                    eprintln!(
+                        "AST: Calling dispatch_parsing at position {}",
+                        self.position
+                    );
                     if let Some((node, _tokens_consumed)) = self.dispatch_parsing()? {
+                        eprintln!("AST: Got node, adding to ast_nodes");
                         ast_nodes.push(node);
+                    } else {
+                        eprintln!("AST: dispatch_parsing returned None");
                     }
+                    eprintln!(
+                        "AST: After dispatch_parsing, position is now {}",
+                        self.position
+                    );
                 }
             }
         }
@@ -136,9 +156,9 @@ impl<'a> AstConstructor<'a> {
             if let Some((node, tokens_consumed)) = self.try_parse_session()? {
                 return Ok(Some((node, tokens_consumed)));
             }
-            // If not a session, skip the blank line
+            // If not a session, skip the blank line and continue
             self.consume(); // Consume the blank line
-            return Ok(None); // Blank line consumed but no node created
+            return Ok(None); // Return None to continue main parsing loop
         }
 
         // 5. List pattern

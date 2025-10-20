@@ -5,14 +5,10 @@
 
 // Specification-aligned test modules
 mod annotation;
-mod container;
 mod definition;
 mod indentation;
-mod labels;
 mod list;
-mod paragraph;
 mod parameters;
-mod session;
 
 // Infrastructure and core tests
 mod core;

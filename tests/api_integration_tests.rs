@@ -30,7 +30,7 @@ fn test_semantic_tokens_format() {
     let args = ProcessArgs {
         content: ":: note :: Some content".to_string(),
         source_path: "test.txxt".to_string(),
-        stage: "semantic-tokens".to_string(),
+        stage: "high-level-tokens".to_string(),
         format: "json".to_string(),
     };
 

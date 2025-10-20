@@ -48,7 +48,7 @@ impl Error for ProcessError {}
 pub fn process(args: ProcessArgs) -> Result<String, ProcessError> {
     match (args.stage.as_str(), args.format.as_str()) {
         ("scanner-tokens", "json") => process_token_stream(&args.content, &args.source_path),
-        ("semantic-tokens", "json") => process_semantic_tokens(&args.content, &args.source_path),
+        ("high-level-tokens", "json") => process_semantic_tokens(&args.content, &args.source_path),
         ("ast-block", "json") => process_ast_no_inline_json(&args.content, &args.source_path),
         ("ast-block", "treeviz") => process_ast_no_inline_treeviz(&args.content, &args.source_path),
         ("ast-inlines", "json") => process_ast_json(&args.content, &args.source_path),

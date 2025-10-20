@@ -160,13 +160,8 @@ pub use elements::{
     verbatim::{VerbatimBlock, VerbatimType},
 };
 
-// Core AST infrastructure (moved to elements/)
-pub use elements::{
-    blocks,
-    document as base, // base.rs moved to elements/document/document.rs
-    scanner_tokens,
-    traversal,
-};
+// Core AST infrastructure
+pub use elements::{scanner_tokens, traversal};
 
 // Semantic tokens infrastructure
 pub use semantic_tokens::{

@@ -229,7 +229,7 @@ impl<'ast> NodeQuery<'ast> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::base::Document;
+    use crate::ast::Document;
 
     #[test]
     fn test_query_builder_construction() {

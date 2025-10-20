@@ -6,7 +6,7 @@
 //!
 //! src/parser/mod.rs has the full architecture overview.
 
-use crate::ast::base::Document;
+use crate::ast::Document;
 
 /// Annotation attacher for applying proximity rules
 ///

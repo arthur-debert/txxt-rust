@@ -6,7 +6,7 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use crate::assembler::pipeline::{AnnotationAttacher, DocumentAssembler};
-use crate::ast::base::Document;
+use crate::ast::Document;
 use crate::lexer::pipeline::ScannerTokenTreeBuilder;
 use crate::lexer::tokenize;
 use crate::parser::pipeline::{AstConstructor, InlineParser, SemanticAnalyzer};

@@ -4,7 +4,7 @@
 //! into PlainTextLine semantic tokens as specified in Issue #87.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::tokens::semantic::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
@@ -29,12 +29,12 @@ fn test_plain_text_line_single_text_token() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             assert_eq!(span, line_span);
 
             // Check that the content is a TextSpan
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     span: text_span,
                 } => {
@@ -89,12 +89,12 @@ fn test_plain_text_line_multiple_text_tokens() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             assert_eq!(span, line_span);
 
             // Check that the content is a combined TextSpan
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     span: text_span,
                 } => {
@@ -215,11 +215,11 @@ fn test_plain_text_line_different_content_types() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::PlainTextLine { content, span } => {
+            HighLevelToken::PlainTextLine { content, span } => {
                 assert_eq!(span, line_span);
 
                 match content.as_ref() {
-                    SemanticToken::TextSpan {
+                    HighLevelToken::TextSpan {
                         content: text_content,
                         ..
                     } => {
@@ -238,7 +238,7 @@ fn test_plain_text_line_different_content_types() {
 
 #[test]
 fn test_plain_text_line_builder() {
-    let text_span = SemanticTokenBuilder::text_span(
+    let text_span = HighLevelTokenBuilder::text_span(
         "Hello world".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 0 },
@@ -251,14 +251,14 @@ fn test_plain_text_line_builder() {
         end: Position { row: 1, column: 11 },
     };
 
-    let semantic_token = SemanticTokenBuilder::plain_text_line(text_span, line_span.clone());
+    let semantic_token = HighLevelTokenBuilder::plain_text_line(text_span, line_span.clone());
 
     match semantic_token {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             assert_eq!(span, line_span);
 
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     ..
                 } => {
@@ -276,7 +276,7 @@ fn test_plain_text_line_builder() {
 
 #[test]
 fn test_plain_text_line_span_trait() {
-    let text_span = SemanticTokenBuilder::text_span(
+    let text_span = HighLevelTokenBuilder::text_span(
         "Hello world".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 0 },
@@ -289,7 +289,7 @@ fn test_plain_text_line_span_trait() {
         end: Position { row: 1, column: 11 },
     };
 
-    let semantic_token = SemanticTokenBuilder::plain_text_line(text_span, line_span.clone());
+    let semantic_token = HighLevelTokenBuilder::plain_text_line(text_span, line_span.clone());
     let token_span = semantic_token.span();
 
     assert_eq!(token_span, &line_span);
@@ -333,7 +333,7 @@ fn test_plain_text_line_different_positions() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::PlainTextLine { span, .. } => {
+            HighLevelToken::PlainTextLine { span, .. } => {
                 assert_eq!(span, line_span);
             }
             _ => panic!(
@@ -390,11 +390,11 @@ fn test_plain_text_line_complex_content() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine { content, span } => {
             assert_eq!(span, line_span);
 
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: text_content,
                     ..
                 } => {

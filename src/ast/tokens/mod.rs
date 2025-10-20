@@ -12,15 +12,15 @@ pub mod punctuation;
 pub mod references;
 pub mod structural;
 
-// Semantic token types
-pub mod semantic;
+// High-level token types
+pub mod high_level;
 
 // Re-export commonly used types for convenience
 pub use content::*;
 pub use formatting::*;
+pub use high_level::*;
 pub use ignore::*;
 pub use markers::*;
 pub use punctuation::*;
 pub use references::*;
-pub use semantic::*;
 pub use structural::*;

@@ -7,9 +7,9 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
-use crate::ast::tokens::semantic::{
-    SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
-    SemanticTokenList,
+use crate::ast::tokens::high_level::{
+    HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
+    HighLevelTokenList,
 };
 
 /// Semantic analysis parser for converting scanner tokens to semantic tokens
@@ -40,11 +40,11 @@ impl SemanticAnalyzer {
     /// * `scanner_tokens` - The scanner token vector from Phase 1b
     ///
     /// # Returns
-    /// * `Result<SemanticTokenList, SemanticAnalysisError>` - The semantic token list
+    /// * `Result<HighLevelTokenList, SemanticAnalysisError>` - The semantic token list
     pub fn analyze(
         &self,
         scanner_tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticTokenList, SemanticAnalysisError> {
+    ) -> Result<HighLevelTokenList, SemanticAnalysisError> {
         let mut semantic_tokens = Vec::new();
         let mut i = 0;
 
@@ -54,15 +54,15 @@ impl SemanticAnalyzer {
             match token {
                 // Structural tokens - pass through unchanged
                 ScannerToken::BlankLine { span, .. } => {
-                    semantic_tokens.push(SemanticToken::BlankLine { span: span.clone() });
+                    semantic_tokens.push(HighLevelToken::BlankLine { span: span.clone() });
                     i += 1;
                 }
                 ScannerToken::Indent { span } => {
-                    semantic_tokens.push(SemanticToken::Indent { span: span.clone() });
+                    semantic_tokens.push(HighLevelToken::Indent { span: span.clone() });
                     i += 1;
                 }
                 ScannerToken::Dedent { span } => {
-                    semantic_tokens.push(SemanticToken::Dedent { span: span.clone() });
+                    semantic_tokens.push(HighLevelToken::Dedent { span: span.clone() });
                     i += 1;
                 }
 
@@ -116,7 +116,7 @@ impl SemanticAnalyzer {
                             // Preserve syntactic markers instead of converting to text spans
                             ScannerToken::Colon { span } => {
                                 // Preserve colon as a syntactic marker for parameter parsing
-                                semantic_tokens.push(SemanticTokenBuilder::colon(span.clone()));
+                                semantic_tokens.push(HighLevelTokenBuilder::colon(span.clone()));
                             }
 
                             // Handle other tokens as text spans for now
@@ -124,7 +124,7 @@ impl SemanticAnalyzer {
                                 // Convert other tokens to text spans as fallback
                                 // This will be refined in subsequent transformation issues
                                 let content = self.token_to_text_content(token);
-                                semantic_tokens.push(SemanticTokenBuilder::text_span(
+                                semantic_tokens.push(HighLevelTokenBuilder::text_span(
                                     content,
                                     token.span().clone(),
                                 ));
@@ -136,7 +136,7 @@ impl SemanticAnalyzer {
             }
         }
 
-        Ok(SemanticTokenList::with_tokens(semantic_tokens))
+        Ok(HighLevelTokenList::with_tokens(semantic_tokens))
     }
 
     /// Recognize complex patterns like definitions, annotations, and verbatim blocks
@@ -396,11 +396,11 @@ impl SemanticAnalyzer {
     /// * `pattern_tokens` - The tokens that form a complex pattern
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The transformed semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The transformed semantic token
     fn transform_complex_pattern(
         &self,
         pattern_tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if pattern_tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
                 "Cannot transform empty pattern".to_string(),
@@ -602,11 +602,11 @@ impl SemanticAnalyzer {
     /// * `line_tokens` - The scanner tokens for a single line
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The line-level semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The line-level semantic token
     fn process_line_tokens(
         &self,
         line_tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if line_tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
                 "Cannot process empty line tokens".to_string(),
@@ -628,7 +628,7 @@ impl SemanticAnalyzer {
     fn create_sequence_text_line(
         &self,
         line_tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if line_tokens.len() < 2 {
             return Err(SemanticAnalysisError::AnalysisError(
                 "SequenceTextLine requires at least a marker and some content".to_string(),
@@ -661,7 +661,7 @@ impl SemanticAnalyzer {
             end: end_span.end,
         };
 
-        Ok(SemanticTokenBuilder::sequence_text_line(
+        Ok(HighLevelTokenBuilder::sequence_text_line(
             marker_semantic,
             content_semantic,
             line_span,
@@ -672,7 +672,7 @@ impl SemanticAnalyzer {
     fn create_plain_text_line(
         &self,
         line_tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Transform all tokens into a single text span
         let content_semantic = self.tokens_to_text_span_line_level(line_tokens.clone())?;
 
@@ -684,7 +684,7 @@ impl SemanticAnalyzer {
             end: end_span.end,
         };
 
-        Ok(SemanticTokenBuilder::plain_text_line(
+        Ok(HighLevelTokenBuilder::plain_text_line(
             content_semantic,
             line_span,
         ))
@@ -694,7 +694,7 @@ impl SemanticAnalyzer {
     fn tokens_to_text_span_line_level(
         &self,
         tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         let mut content = String::new();
         let mut start_span = None;
         let mut end_span = None;
@@ -715,14 +715,14 @@ impl SemanticAnalyzer {
             end: end_span.unwrap_or(Position { row: 0, column: 0 }),
         };
 
-        Ok(SemanticTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span(content, span))
     }
 
     /// Convert a list of scanner tokens into a single TextSpan semantic token (for individual processing)
     fn tokens_to_text_span(
         &self,
         tokens: Vec<ScannerToken>,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         let mut content = String::new();
         let mut start_span = None;
         let mut end_span = None;
@@ -751,7 +751,7 @@ impl SemanticAnalyzer {
             end: end_span.unwrap_or(Position { row: 0, column: 0 }),
         };
 
-        Ok(SemanticTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span(content, span))
     }
 
     /// Transform TxxtMarker scanner token to semantic token
@@ -764,17 +764,17 @@ impl SemanticAnalyzer {
     /// * `token` - The TxxtMarker scanner token
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_txxt_marker(
         &self,
         token: &ScannerToken,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         match token {
             ScannerToken::TxxtMarker { span } => {
                 // Transform TxxtMarker scanner token to TxxtMarker semantic token
                 // This preserves the fundamental :: marker information for use
                 // in subsequent parsing phases
-                Ok(SemanticTokenBuilder::txxt_marker(span.clone()))
+                Ok(HighLevelTokenBuilder::txxt_marker(span.clone()))
             }
             _ => Err(SemanticAnalysisError::InvalidTokenType {
                 expected: "TxxtMarker".to_string(),
@@ -795,12 +795,12 @@ impl SemanticAnalyzer {
     /// * `span` - The source span of the identifier
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_label(
         &self,
         content: String,
         span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate that the content is a valid label
         if content.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -829,7 +829,7 @@ impl SemanticAnalyzer {
         }
 
         // Transform Identifier scanner token to Label semantic token
-        Ok(SemanticTokenBuilder::label(content, span))
+        Ok(HighLevelTokenBuilder::label(content, span))
     }
 
     /// Check if a character is valid at the start of a label
@@ -853,12 +853,12 @@ impl SemanticAnalyzer {
     /// * `span` - The source span of the text
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_text_span(
         &self,
         content: String,
         span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate that the content is not empty
         if content.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -868,7 +868,7 @@ impl SemanticAnalyzer {
 
         // Transform Text scanner token to TextSpan semantic token
         // This preserves the basic text content for use in subsequent parsing phases
-        Ok(SemanticTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span(content, span))
     }
 
     /// Transform SequenceMarker scanner token to SequenceMarker semantic token
@@ -883,17 +883,17 @@ impl SemanticAnalyzer {
     /// * `span` - The source span of the marker
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_sequence_marker(
         &self,
         marker_type: SequenceMarkerType,
         span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         let (style, form) = self.classify_sequence_marker(&marker_type);
         let marker_text = marker_type.content().to_string();
 
         // Transform SequenceMarker scanner token to SequenceMarker semantic token
-        Ok(SemanticTokenBuilder::sequence_marker(
+        Ok(HighLevelTokenBuilder::sequence_marker(
             style,
             form,
             marker_text,
@@ -910,27 +910,27 @@ impl SemanticAnalyzer {
     /// * `marker_type` - The sequence marker type to classify
     ///
     /// # Returns
-    /// * `(SemanticNumberingStyle, SemanticNumberingForm)` - The classified style and form
+    /// * `(HighLevelNumberingStyle, HighLevelNumberingForm)` - The classified style and form
     pub fn classify_sequence_marker(
         &self,
         marker_type: &SequenceMarkerType,
-    ) -> (SemanticNumberingStyle, SemanticNumberingForm) {
+    ) -> (HighLevelNumberingStyle, HighLevelNumberingForm) {
         match marker_type {
             SequenceMarkerType::Plain(_) => (
-                SemanticNumberingStyle::Plain,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Plain,
+                HighLevelNumberingForm::Regular,
             ),
             SequenceMarkerType::Numerical(_, _) => (
-                SemanticNumberingStyle::Numeric,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Numeric,
+                HighLevelNumberingForm::Regular,
             ),
             SequenceMarkerType::Alphabetical(_, _) => (
-                SemanticNumberingStyle::Alphabetic,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Alphabetic,
+                HighLevelNumberingForm::Regular,
             ),
             SequenceMarkerType::Roman(_, _) => (
-                SemanticNumberingStyle::Roman,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Roman,
+                HighLevelNumberingForm::Regular,
             ),
         }
     }
@@ -944,12 +944,12 @@ impl SemanticAnalyzer {
     /// * `line_span` - The source span covering the entire line
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_plain_text_line(
         &self,
         text_tokens: Vec<ScannerToken>,
         line_span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate that we have at least one text token
         if text_tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -981,10 +981,10 @@ impl SemanticAnalyzer {
             .join("");
 
         // Create a single TextSpan for the combined content
-        let text_span = SemanticTokenBuilder::text_span(combined_content, line_span.clone());
+        let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
 
         // Transform to PlainTextLine semantic token
-        Ok(SemanticTokenBuilder::plain_text_line(text_span, line_span))
+        Ok(HighLevelTokenBuilder::plain_text_line(text_span, line_span))
     }
 
     /// Transform a sequence marker followed by text content into a SequenceTextLine semantic token
@@ -999,13 +999,13 @@ impl SemanticAnalyzer {
     /// * `line_span` - The source span covering the entire line
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_sequence_text_line(
         &self,
-        marker_token: SemanticToken,
+        marker_token: HighLevelToken,
         text_tokens: Vec<ScannerToken>,
         line_span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate that we have at least one text token
         if text_tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -1024,7 +1024,7 @@ impl SemanticAnalyzer {
         }
 
         // Validate that the marker token is a SequenceMarker
-        if !matches!(marker_token, SemanticToken::SequenceMarker { .. }) {
+        if !matches!(marker_token, HighLevelToken::SequenceMarker { .. }) {
             return Err(SemanticAnalysisError::AnalysisError(format!(
                 "Sequence text line marker must be a SequenceMarker token, got {:?}",
                 marker_token
@@ -1045,10 +1045,10 @@ impl SemanticAnalyzer {
             .join("");
 
         // Create a single TextSpan for the combined content
-        let text_span = SemanticTokenBuilder::text_span(combined_content, line_span.clone());
+        let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
 
         // Transform to SequenceTextLine semantic token
-        Ok(SemanticTokenBuilder::sequence_text_line(
+        Ok(HighLevelTokenBuilder::sequence_text_line(
             marker_token,
             text_span,
             line_span,
@@ -1067,12 +1067,12 @@ impl SemanticAnalyzer {
     /// * `span` - The source span covering the entire annotation
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_annotation(
         &self,
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate minimum annotation structure: :: label ::
         if tokens.len() < 5 {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -1108,7 +1108,7 @@ impl SemanticAnalyzer {
         };
 
         // Transform to Annotation semantic token
-        Ok(SemanticTokenBuilder::annotation(
+        Ok(HighLevelTokenBuilder::annotation(
             label_token,
             parameters,
             content,
@@ -1128,12 +1128,12 @@ impl SemanticAnalyzer {
     /// * `span` - The source span covering the entire definition
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_definition(
         &self,
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate minimum definition structure: term ::
         if tokens.len() < 3 {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -1154,7 +1154,7 @@ impl SemanticAnalyzer {
         let (term_token, parameters) = self.parse_definition_term_with_parameters(term_tokens)?;
 
         // Transform to Definition semantic token
-        Ok(SemanticTokenBuilder::definition(
+        Ok(HighLevelTokenBuilder::definition(
             term_token, parameters, span,
         ))
     }
@@ -1171,12 +1171,12 @@ impl SemanticAnalyzer {
     /// * `span` - The source span covering the entire verbatim block
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
     pub fn transform_verbatim_block(
         &self,
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate minimum verbatim block structure: VerbatimTitle + IndentationWall + VerbatimLabel (empty blocks allowed)
         if tokens.len() < 3 {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -1189,7 +1189,7 @@ impl SemanticAnalyzer {
 
         // 1. VerbatimTitle
         let title_token = if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
-            SemanticTokenBuilder::text_span(
+            HighLevelTokenBuilder::text_span(
                 tokens[i].content().to_string(),
                 tokens[i].span().clone(),
             )
@@ -1203,7 +1203,7 @@ impl SemanticAnalyzer {
         // 2. IndentationWall
         let wall_token = if let ScannerToken::IndentationWall { .. } = &tokens[i] {
             // Create a simple semantic token for the wall (structural token)
-            SemanticTokenBuilder::text_span(
+            HighLevelTokenBuilder::text_span(
                 "".to_string(), // Wall is structural, no content
                 tokens[i].span().clone(),
             )
@@ -1224,7 +1224,7 @@ impl SemanticAnalyzer {
         // Create content token (empty verbatim blocks are allowed per specification)
         let content_token = if content_tokens.is_empty() {
             // Create empty content token for empty verbatim blocks
-            SemanticTokenBuilder::text_span(
+            HighLevelTokenBuilder::text_span(
                 "".to_string(),
                 SourceSpan {
                     start: tokens[i - 1].span().end, // Start after the wall
@@ -1248,7 +1248,7 @@ impl SemanticAnalyzer {
                         let label_text = parts[0];
                         let param_text = parts[1];
 
-                        let label_semantic_token = SemanticTokenBuilder::text_span(
+                        let label_semantic_token = HighLevelTokenBuilder::text_span(
                             label_text.to_string(),
                             tokens[i].span().clone(),
                         );
@@ -1259,7 +1259,7 @@ impl SemanticAnalyzer {
                             // Create parameters from the parameter text
                             let mut params = std::collections::HashMap::new();
                             params.insert("raw".to_string(), param_text.to_string());
-                            Some(SemanticTokenBuilder::parameters(
+                            Some(HighLevelTokenBuilder::parameters(
                                 params,
                                 tokens[i].span().clone(),
                             ))
@@ -1269,7 +1269,7 @@ impl SemanticAnalyzer {
                     } else {
                         // No colon found, treat as simple label
                         (
-                            SemanticTokenBuilder::text_span(
+                            HighLevelTokenBuilder::text_span(
                                 label_content.to_string(),
                                 tokens[i].span().clone(),
                             ),
@@ -1279,7 +1279,7 @@ impl SemanticAnalyzer {
                 } else {
                     // No colon found, treat as simple label
                     (
-                        SemanticTokenBuilder::text_span(
+                        HighLevelTokenBuilder::text_span(
                             label_content.to_string(),
                             tokens[i].span().clone(),
                         ),
@@ -1298,7 +1298,7 @@ impl SemanticAnalyzer {
         };
 
         // Transform to VerbatimBlock semantic token
-        Ok(SemanticTokenBuilder::verbatim_block(
+        Ok(HighLevelTokenBuilder::verbatim_block(
             title_token,
             wall_token,
             content_token,
@@ -1345,11 +1345,11 @@ impl SemanticAnalyzer {
     /// * `tokens` - The tokens representing the label (may include parameters)
     ///
     /// # Returns
-    /// * `Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError>` - (label, parameters)
+    /// * `Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError>` - (label, parameters)
     fn parse_label_with_parameters(
         &self,
         tokens: &[ScannerToken],
-    ) -> Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError> {
+    ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
         // Look for colon separator to identify parameters
         let colon_pos = tokens
             .iter()
@@ -1392,11 +1392,11 @@ impl SemanticAnalyzer {
     /// * `tokens` - The tokens representing the definition term (may include parameters)
     ///
     /// # Returns
-    /// * `Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError>` - (term, parameters)
+    /// * `Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError>` - (term, parameters)
     fn parse_definition_term_with_parameters(
         &self,
         tokens: &[ScannerToken],
-    ) -> Result<(SemanticToken, Option<SemanticToken>), SemanticAnalysisError> {
+    ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
         // Look for colon separator to identify parameters
         let colon_pos = tokens
             .iter()
@@ -1438,11 +1438,11 @@ impl SemanticAnalyzer {
     /// * `tokens` - The tokens representing parameters
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The parameters semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The parameters semantic token
     fn parse_parameters(
         &self,
         tokens: &[ScannerToken],
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // For now, create a simple parameters token with the raw content
         // This will be enhanced in future iterations to properly parse key=value pairs
         // Filter out whitespace for parameters to create clean key=value pairs
@@ -1470,7 +1470,7 @@ impl SemanticAnalyzer {
             }
         };
 
-        Ok(SemanticTokenBuilder::parameters(params, span))
+        Ok(HighLevelTokenBuilder::parameters(params, span))
     }
 
     /// Parse annotation content tokens into a semantic token
@@ -1482,11 +1482,11 @@ impl SemanticAnalyzer {
     /// * `tokens` - The tokens representing the annotation content
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The content semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The content semantic token
     fn parse_annotation_content(
         &self,
         tokens: &[ScannerToken],
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
                 "Annotation content cannot be empty".to_string(),
@@ -1507,11 +1507,11 @@ impl SemanticAnalyzer {
     /// * `tokens` - The tokens to combine
     ///
     /// # Returns
-    /// * `Result<SemanticToken, SemanticAnalysisError>` - The text span semantic token
+    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The text span semantic token
     fn tokens_to_text_span_preserve_whitespace(
         &self,
         tokens: &[ScannerToken],
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
                 "Cannot create text span from empty tokens".to_string(),
@@ -1532,7 +1532,7 @@ impl SemanticAnalyzer {
             end: tokens[tokens.len() - 1].span().end,
         };
 
-        Ok(SemanticTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span(content, span))
     }
 
     /// Convert a sequence of tokens to a TextSpan semantic token preserving exact whitespace
@@ -1540,7 +1540,7 @@ impl SemanticAnalyzer {
     fn tokens_to_text_span_exact(
         &self,
         tokens: &[ScannerToken],
-    ) -> Result<SemanticToken, SemanticAnalysisError> {
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
                 "Cannot create text span from empty tokens".to_string(),
@@ -1559,7 +1559,7 @@ impl SemanticAnalyzer {
             end: tokens[tokens.len() - 1].span().end,
         };
 
-        Ok(SemanticTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span(content, span))
     }
 
     /// This is a utility method to convert any scanner token to text content

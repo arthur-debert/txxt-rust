@@ -164,9 +164,9 @@ pub use elements::{
 pub use elements::{scanner_tokens, traversal};
 
 // Semantic tokens infrastructure
-pub use tokens::semantic::{
-    FromScannerToken, SemanticNumberingForm, SemanticNumberingStyle, SemanticToken,
-    SemanticTokenBuilder, SemanticTokenList, SemanticTokenSpan, ToScannerToken,
+pub use tokens::high_level::{
+    FromScannerToken, HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken,
+    HighLevelTokenBuilder, HighLevelTokenList, HighLevelTokenSpan, ToScannerToken,
 };
 
 // Note: Tree traversal and querying is provided by elements::traversal

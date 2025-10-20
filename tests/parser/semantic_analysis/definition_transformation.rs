@@ -4,7 +4,7 @@
 //! Definition semantic tokens as specified in Issue #88.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::tokens::semantic::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
@@ -44,7 +44,7 @@ fn test_definition_basic_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Definition {
+        HighLevelToken::Definition {
             term,
             parameters,
             span: token_span,
@@ -54,7 +54,7 @@ fn test_definition_basic_transformation() {
 
             // Check that the term is a TextSpan
             match term.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {
@@ -120,7 +120,7 @@ fn test_definition_with_parameters() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Definition {
+        HighLevelToken::Definition {
             term,
             parameters,
             span: token_span,
@@ -130,7 +130,7 @@ fn test_definition_with_parameters() {
 
             // Check that the term is correct
             match term.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {
@@ -141,7 +141,7 @@ fn test_definition_with_parameters() {
 
             // Check that the parameters are correct
             match parameters.as_ref().unwrap().as_ref() {
-                SemanticToken::Parameters { params, .. } => {
+                HighLevelToken::Parameters { params, .. } => {
                     assert!(params.contains_key("raw"));
                     assert_eq!(params.get("raw").unwrap(), "ref=important");
                 }
@@ -206,7 +206,7 @@ fn test_definition_complex_term() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Definition {
+        HighLevelToken::Definition {
             term,
             parameters,
             span: token_span,
@@ -216,7 +216,7 @@ fn test_definition_complex_term() {
 
             // Check that the term combines multiple text tokens
             match term.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {
@@ -307,7 +307,7 @@ fn test_definition_no_closing_marker() {
 
 #[test]
 fn test_definition_builder() {
-    let term_token = SemanticTokenBuilder::text_span(
+    let term_token = HighLevelTokenBuilder::text_span(
         "Term".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 0 },
@@ -315,7 +315,7 @@ fn test_definition_builder() {
         },
     );
 
-    let parameters_token = SemanticTokenBuilder::parameters(
+    let parameters_token = HighLevelTokenBuilder::parameters(
         std::collections::HashMap::from([("ref".to_string(), "important".to_string())]),
         SourceSpan {
             start: Position { row: 1, column: 5 },
@@ -329,10 +329,10 @@ fn test_definition_builder() {
     };
 
     let semantic_token =
-        SemanticTokenBuilder::definition(term_token, Some(parameters_token), span.clone());
+        HighLevelTokenBuilder::definition(term_token, Some(parameters_token), span.clone());
 
     match semantic_token {
-        SemanticToken::Definition {
+        HighLevelToken::Definition {
             term,
             parameters,
             span: token_span,
@@ -341,7 +341,7 @@ fn test_definition_builder() {
             assert!(parameters.is_some());
 
             match term.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {
@@ -351,7 +351,7 @@ fn test_definition_builder() {
             }
 
             match parameters.as_ref().unwrap().as_ref() {
-                SemanticToken::Parameters { params, .. } => {
+                HighLevelToken::Parameters { params, .. } => {
                     assert!(params.contains_key("ref"));
                     assert_eq!(params.get("ref").unwrap(), "important");
                 }
@@ -367,7 +367,7 @@ fn test_definition_builder() {
 
 #[test]
 fn test_definition_span_trait() {
-    let term_token = SemanticTokenBuilder::text_span(
+    let term_token = HighLevelTokenBuilder::text_span(
         "Term".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 0 },
@@ -380,7 +380,7 @@ fn test_definition_span_trait() {
         end: Position { row: 1, column: 7 },
     };
 
-    let semantic_token = SemanticTokenBuilder::definition(term_token, None, span.clone());
+    let semantic_token = HighLevelTokenBuilder::definition(term_token, None, span.clone());
     let token_span = semantic_token.span();
 
     assert_eq!(token_span, &span);
@@ -444,7 +444,7 @@ fn test_definition_different_terms() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::Definition {
+            HighLevelToken::Definition {
                 term,
                 parameters,
                 span: token_span,
@@ -453,7 +453,7 @@ fn test_definition_different_terms() {
                 assert!(parameters.is_none());
 
                 match term.as_ref() {
-                    SemanticToken::TextSpan {
+                    HighLevelToken::TextSpan {
                         content: actual_term,
                         ..
                     } => {
@@ -533,7 +533,7 @@ fn test_definition_with_multiple_parameters() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Definition {
+        HighLevelToken::Definition {
             term,
             parameters,
             span: token_span,
@@ -542,7 +542,7 @@ fn test_definition_with_multiple_parameters() {
             assert!(parameters.is_some());
 
             match term.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {
@@ -552,7 +552,7 @@ fn test_definition_with_multiple_parameters() {
             }
 
             match parameters.as_ref().unwrap().as_ref() {
-                SemanticToken::Parameters { params, .. } => {
+                HighLevelToken::Parameters { params, .. } => {
                     assert!(params.contains_key("raw"));
                     assert_eq!(
                         params.get("raw").unwrap(),
@@ -612,7 +612,7 @@ fn test_definition_empty_parameters() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::Definition {
+        HighLevelToken::Definition {
             term,
             parameters,
             span: token_span,
@@ -621,7 +621,7 @@ fn test_definition_empty_parameters() {
             assert!(parameters.is_none()); // Empty parameters should result in None
 
             match term.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {

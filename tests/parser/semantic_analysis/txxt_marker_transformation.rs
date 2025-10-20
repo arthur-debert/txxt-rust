@@ -5,7 +5,7 @@
 //! TxxtMarker semantic tokens while preserving source span information.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
-use txxt::ast::tokens::semantic::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 /// Test basic TxxtMarker transformation
@@ -29,7 +29,7 @@ fn test_txxt_marker_basic_transformation() {
     let semantic_token = result.unwrap();
 
     match semantic_token {
-        SemanticToken::TxxtMarker { span } => {
+        HighLevelToken::TxxtMarker { span } => {
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 1);
@@ -79,7 +79,7 @@ fn test_txxt_marker_different_positions() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::TxxtMarker { span } => {
+            HighLevelToken::TxxtMarker { span } => {
                 assert_eq!(span.start, start);
                 assert_eq!(span.end, end);
             }
@@ -161,7 +161,7 @@ fn test_txxt_marker_in_semantic_analysis() {
     // Verify the TxxtMarker was transformed correctly
     let txxt_marker_token = &semantic_tokens.tokens[1];
     match txxt_marker_token {
-        SemanticToken::TxxtMarker { span } => {
+        HighLevelToken::TxxtMarker { span } => {
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 6);
             assert_eq!(span.end.row, 1);
@@ -182,10 +182,10 @@ fn test_txxt_marker_builder() {
         end: Position { row: 1, column: 2 },
     };
 
-    let txxt_marker = SemanticTokenBuilder::txxt_marker(span.clone());
+    let txxt_marker = HighLevelTokenBuilder::txxt_marker(span.clone());
 
     match txxt_marker {
-        SemanticToken::TxxtMarker { span: marker_span } => {
+        HighLevelToken::TxxtMarker { span: marker_span } => {
             assert_eq!(marker_span, span);
         }
         _ => panic!("Expected TxxtMarker semantic token"),
@@ -200,7 +200,7 @@ fn test_txxt_marker_span_trait() {
         end: Position { row: 1, column: 2 },
     };
 
-    let txxt_marker = SemanticTokenBuilder::txxt_marker(span.clone());
+    let txxt_marker = HighLevelTokenBuilder::txxt_marker(span.clone());
     let retrieved_span = txxt_marker.span();
 
     assert_eq!(retrieved_span, &span);
@@ -243,7 +243,7 @@ fn test_multiple_txxt_markers() {
     // Verify all tokens are TxxtMarkers
     for (i, token) in semantic_tokens.tokens.iter().enumerate() {
         match token {
-            SemanticToken::TxxtMarker { span } => {
+            HighLevelToken::TxxtMarker { span } => {
                 // Verify each marker has correct position
                 match i {
                     0 => {
@@ -308,7 +308,7 @@ fn test_txxt_marker_with_structural_tokens() {
 
     // Verify structural tokens are passed through unchanged
     match &semantic_tokens.tokens[0] {
-        SemanticToken::Indent { span } => {
+        HighLevelToken::Indent { span } => {
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 4);
@@ -318,7 +318,7 @@ fn test_txxt_marker_with_structural_tokens() {
 
     // Verify TxxtMarker is transformed
     match &semantic_tokens.tokens[1] {
-        SemanticToken::TxxtMarker { span } => {
+        HighLevelToken::TxxtMarker { span } => {
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 4);
             assert_eq!(span.end.column, 6);
@@ -328,7 +328,7 @@ fn test_txxt_marker_with_structural_tokens() {
 
     // Verify structural tokens are passed through unchanged
     match &semantic_tokens.tokens[2] {
-        SemanticToken::Dedent { span } => {
+        HighLevelToken::Dedent { span } => {
             assert_eq!(span.start.row, 2);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 0);

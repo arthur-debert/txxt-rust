@@ -6,7 +6,7 @@
 #![allow(unused_variables)]
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SourceSpan, WallType};
-use txxt::ast::tokens::semantic::{SemanticToken, SemanticTokenBuilder, SemanticTokenSpan};
+use txxt::ast::tokens::high_level::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::parser::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
@@ -55,7 +55,7 @@ fn test_verbatim_block_basic_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::VerbatimBlock {
+        HighLevelToken::VerbatimBlock {
             title,
             wall,
             content,
@@ -68,7 +68,7 @@ fn test_verbatim_block_basic_transformation() {
 
             // Check that the title is correct
             match title.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: title_content,
                     ..
                 } => {
@@ -79,7 +79,7 @@ fn test_verbatim_block_basic_transformation() {
 
             // Check that the wall is correct (structural token)
             match wall.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: wall_content,
                     ..
                 } => {
@@ -90,7 +90,7 @@ fn test_verbatim_block_basic_transformation() {
 
             // Check that the content is correct
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {
@@ -101,7 +101,7 @@ fn test_verbatim_block_basic_transformation() {
 
             // Check that the label is correct
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -163,7 +163,7 @@ fn test_verbatim_block_with_parameters() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::VerbatimBlock {
+        HighLevelToken::VerbatimBlock {
             title,
             wall,
             content,
@@ -176,7 +176,7 @@ fn test_verbatim_block_with_parameters() {
 
             // Check that the title is correct
             match title.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: title_content,
                     ..
                 } => {
@@ -187,7 +187,7 @@ fn test_verbatim_block_with_parameters() {
 
             // Check that the label is correct (should be just "javascript")
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -198,7 +198,7 @@ fn test_verbatim_block_with_parameters() {
 
             // Check that the parameters are correct
             match parameters.as_ref().unwrap().as_ref() {
-                SemanticToken::Parameters { params, .. } => {
+                HighLevelToken::Parameters { params, .. } => {
                     assert!(params.contains_key("raw"));
                     assert_eq!(params.get("raw").unwrap(), "version=ES6");
                 }
@@ -272,7 +272,7 @@ fn test_verbatim_block_multiple_content_tokens() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::VerbatimBlock {
+        HighLevelToken::VerbatimBlock {
             title,
             wall,
             content,
@@ -285,7 +285,7 @@ fn test_verbatim_block_multiple_content_tokens() {
 
             // Check that the content combines multiple tokens
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {
@@ -488,7 +488,7 @@ fn test_verbatim_block_empty_content() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::VerbatimBlock {
+        HighLevelToken::VerbatimBlock {
             title,
             wall,
             content,
@@ -501,7 +501,7 @@ fn test_verbatim_block_empty_content() {
 
             // Check that empty content is handled correctly
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {
@@ -571,7 +571,7 @@ fn test_verbatim_block_no_label() {
 
 #[test]
 fn test_verbatim_block_builder() {
-    let title_token = SemanticTokenBuilder::text_span(
+    let title_token = HighLevelTokenBuilder::text_span(
         "Hello World".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 0 },
@@ -579,7 +579,7 @@ fn test_verbatim_block_builder() {
         },
     );
 
-    let wall_token = SemanticTokenBuilder::text_span(
+    let wall_token = HighLevelTokenBuilder::text_span(
         "".to_string(),
         SourceSpan {
             start: Position { row: 2, column: 0 },
@@ -587,7 +587,7 @@ fn test_verbatim_block_builder() {
         },
     );
 
-    let content_token = SemanticTokenBuilder::text_span(
+    let content_token = HighLevelTokenBuilder::text_span(
         "    def hello():\n        print(\"Hello\")\n".to_string(),
         SourceSpan {
             start: Position { row: 2, column: 4 },
@@ -595,7 +595,7 @@ fn test_verbatim_block_builder() {
         },
     );
 
-    let label_token = SemanticTokenBuilder::text_span(
+    let label_token = HighLevelTokenBuilder::text_span(
         "python".to_string(),
         SourceSpan {
             start: Position { row: 5, column: 0 },
@@ -608,7 +608,7 @@ fn test_verbatim_block_builder() {
         end: Position { row: 5, column: 8 },
     };
 
-    let semantic_token = SemanticTokenBuilder::verbatim_block(
+    let semantic_token = HighLevelTokenBuilder::verbatim_block(
         title_token,
         wall_token,
         content_token,
@@ -618,7 +618,7 @@ fn test_verbatim_block_builder() {
     );
 
     match semantic_token {
-        SemanticToken::VerbatimBlock {
+        HighLevelToken::VerbatimBlock {
             title,
             wall,
             content,
@@ -630,7 +630,7 @@ fn test_verbatim_block_builder() {
             assert!(parameters.is_none());
 
             match title.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: title_content,
                     ..
                 } => {
@@ -640,7 +640,7 @@ fn test_verbatim_block_builder() {
             }
 
             match wall.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: wall_content,
                     ..
                 } => {
@@ -650,7 +650,7 @@ fn test_verbatim_block_builder() {
             }
 
             match content.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: content_text,
                     ..
                 } => {
@@ -660,7 +660,7 @@ fn test_verbatim_block_builder() {
             }
 
             match label.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: label_content,
                     ..
                 } => {
@@ -678,7 +678,7 @@ fn test_verbatim_block_builder() {
 
 #[test]
 fn test_verbatim_block_span_trait() {
-    let title_token = SemanticTokenBuilder::text_span(
+    let title_token = HighLevelTokenBuilder::text_span(
         "Title".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 0 },
@@ -686,7 +686,7 @@ fn test_verbatim_block_span_trait() {
         },
     );
 
-    let wall_token = SemanticTokenBuilder::text_span(
+    let wall_token = HighLevelTokenBuilder::text_span(
         "".to_string(),
         SourceSpan {
             start: Position { row: 2, column: 0 },
@@ -694,7 +694,7 @@ fn test_verbatim_block_span_trait() {
         },
     );
 
-    let content_token = SemanticTokenBuilder::text_span(
+    let content_token = HighLevelTokenBuilder::text_span(
         "    content".to_string(),
         SourceSpan {
             start: Position { row: 2, column: 4 },
@@ -702,7 +702,7 @@ fn test_verbatim_block_span_trait() {
         },
     );
 
-    let label_token = SemanticTokenBuilder::text_span(
+    let label_token = HighLevelTokenBuilder::text_span(
         "label".to_string(),
         SourceSpan {
             start: Position { row: 3, column: 0 },
@@ -715,7 +715,7 @@ fn test_verbatim_block_span_trait() {
         end: Position { row: 3, column: 7 },
     };
 
-    let semantic_token = SemanticTokenBuilder::verbatim_block(
+    let semantic_token = HighLevelTokenBuilder::verbatim_block(
         title_token,
         wall_token,
         content_token,
@@ -781,7 +781,7 @@ fn test_verbatim_block_different_wall_types() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::VerbatimBlock {
+            HighLevelToken::VerbatimBlock {
                 title,
                 wall,
                 content,
@@ -793,10 +793,10 @@ fn test_verbatim_block_different_wall_types() {
                 assert!(parameters.is_none());
 
                 // All components should be present
-                assert!(matches!(title.as_ref(), SemanticToken::TextSpan { .. }));
-                assert!(matches!(wall.as_ref(), SemanticToken::TextSpan { .. }));
-                assert!(matches!(content.as_ref(), SemanticToken::TextSpan { .. }));
-                assert!(matches!(label.as_ref(), SemanticToken::TextSpan { .. }));
+                assert!(matches!(title.as_ref(), HighLevelToken::TextSpan { .. }));
+                assert!(matches!(wall.as_ref(), HighLevelToken::TextSpan { .. }));
+                assert!(matches!(content.as_ref(), HighLevelToken::TextSpan { .. }));
+                assert!(matches!(label.as_ref(), HighLevelToken::TextSpan { .. }));
             }
             _ => panic!(
                 "Expected VerbatimBlock semantic token, got {:?}",
@@ -852,7 +852,7 @@ fn test_verbatim_block_empty_title() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::VerbatimBlock {
+        HighLevelToken::VerbatimBlock {
             title,
             wall,
             content,
@@ -865,7 +865,7 @@ fn test_verbatim_block_empty_title() {
 
             // Check that empty title is handled correctly
             match title.as_ref() {
-                SemanticToken::TextSpan {
+                HighLevelToken::TextSpan {
                     content: title_content,
                     ..
                 } => {

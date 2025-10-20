@@ -4,9 +4,9 @@
 //! SequenceMarker semantic tokens as specified in Issue #84.
 
 use txxt::ast::scanner_tokens::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
-use txxt::ast::tokens::semantic::{
-    SemanticNumberingForm, SemanticNumberingStyle, SemanticToken, SemanticTokenBuilder,
-    SemanticTokenSpan,
+use txxt::ast::tokens::high_level::{
+    HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
+    HighLevelTokenSpan,
 };
 use txxt::parser::semantic_analysis::SemanticAnalyzer;
 
@@ -25,14 +25,14 @@ fn test_sequence_marker_plain_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span: token_span,
         } => {
-            assert_eq!(style, SemanticNumberingStyle::Plain);
-            assert_eq!(form, SemanticNumberingForm::Regular);
+            assert_eq!(style, HighLevelNumberingStyle::Plain);
+            assert_eq!(form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "-");
             assert_eq!(token_span, span);
         }
@@ -58,14 +58,14 @@ fn test_sequence_marker_numerical_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span: token_span,
         } => {
-            assert_eq!(style, SemanticNumberingStyle::Numeric);
-            assert_eq!(form, SemanticNumberingForm::Regular);
+            assert_eq!(style, HighLevelNumberingStyle::Numeric);
+            assert_eq!(form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "1.");
             assert_eq!(token_span, span);
         }
@@ -91,14 +91,14 @@ fn test_sequence_marker_alphabetical_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span: token_span,
         } => {
-            assert_eq!(style, SemanticNumberingStyle::Alphabetic);
-            assert_eq!(form, SemanticNumberingForm::Regular);
+            assert_eq!(style, HighLevelNumberingStyle::Alphabetic);
+            assert_eq!(form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "a.");
             assert_eq!(token_span, span);
         }
@@ -124,14 +124,14 @@ fn test_sequence_marker_roman_transformation() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span: token_span,
         } => {
-            assert_eq!(style, SemanticNumberingStyle::Roman);
-            assert_eq!(form, SemanticNumberingForm::Regular);
+            assert_eq!(style, HighLevelNumberingStyle::Roman);
+            assert_eq!(form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "i.");
             assert_eq!(token_span, span);
         }
@@ -149,19 +149,19 @@ fn test_sequence_marker_different_markers() {
     let test_cases = [
         (
             SequenceMarkerType::Plain("*".to_string()),
-            SemanticNumberingStyle::Plain,
+            HighLevelNumberingStyle::Plain,
         ),
         (
             SequenceMarkerType::Numerical(42, "42)".to_string()),
-            SemanticNumberingStyle::Numeric,
+            HighLevelNumberingStyle::Numeric,
         ),
         (
             SequenceMarkerType::Alphabetical('Z', "Z)".to_string()),
-            SemanticNumberingStyle::Alphabetic,
+            HighLevelNumberingStyle::Alphabetic,
         ),
         (
             SequenceMarkerType::Roman(5, "v)".to_string()),
-            SemanticNumberingStyle::Roman,
+            HighLevelNumberingStyle::Roman,
         ),
     ];
 
@@ -176,14 +176,14 @@ fn test_sequence_marker_different_markers() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::SequenceMarker {
+            HighLevelToken::SequenceMarker {
                 style,
                 form,
                 marker,
                 span: token_span,
             } => {
                 assert_eq!(style, *expected_style);
-                assert_eq!(form, SemanticNumberingForm::Regular);
+                assert_eq!(form, HighLevelNumberingForm::Regular);
                 assert_eq!(marker, marker_type.content());
                 assert_eq!(token_span, span);
             }
@@ -226,7 +226,7 @@ fn test_sequence_marker_different_positions() {
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            SemanticToken::SequenceMarker {
+            HighLevelToken::SequenceMarker {
                 span: token_span, ..
             } => {
                 assert_eq!(token_span, span);
@@ -275,14 +275,14 @@ fn test_sequence_marker_in_semantic_analysis() {
 
     // Check first sequence marker
     match &semantic_tokens.tokens[0] {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span,
         } => {
-            assert_eq!(*style, SemanticNumberingStyle::Numeric);
-            assert_eq!(*form, SemanticNumberingForm::Regular);
+            assert_eq!(*style, HighLevelNumberingStyle::Numeric);
+            assert_eq!(*form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "1.");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
@@ -297,7 +297,7 @@ fn test_sequence_marker_in_semantic_analysis() {
 
     // Check blank line
     match &semantic_tokens.tokens[1] {
-        SemanticToken::BlankLine { span } => {
+        HighLevelToken::BlankLine { span } => {
             assert_eq!(span.start.row, 2);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2);
@@ -311,14 +311,14 @@ fn test_sequence_marker_in_semantic_analysis() {
 
     // Check second sequence marker
     match &semantic_tokens.tokens[2] {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span,
         } => {
-            assert_eq!(*style, SemanticNumberingStyle::Plain);
-            assert_eq!(*form, SemanticNumberingForm::Regular);
+            assert_eq!(*style, HighLevelNumberingStyle::Plain);
+            assert_eq!(*form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "-");
             assert_eq!(span.start.row, 3);
             assert_eq!(span.start.column, 0);
@@ -339,22 +339,22 @@ fn test_sequence_marker_builder() {
         end: Position { row: 1, column: 2 },
     };
 
-    let semantic_token = SemanticTokenBuilder::sequence_marker(
-        SemanticNumberingStyle::Numeric,
-        SemanticNumberingForm::Regular,
+    let semantic_token = HighLevelTokenBuilder::sequence_marker(
+        HighLevelNumberingStyle::Numeric,
+        HighLevelNumberingForm::Regular,
         "1.".to_string(),
         span.clone(),
     );
 
     match semantic_token {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span: token_span,
         } => {
-            assert_eq!(style, SemanticNumberingStyle::Numeric);
-            assert_eq!(form, SemanticNumberingForm::Regular);
+            assert_eq!(style, HighLevelNumberingStyle::Numeric);
+            assert_eq!(form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "1.");
             assert_eq!(token_span, span);
         }
@@ -372,9 +372,9 @@ fn test_sequence_marker_span_trait() {
         end: Position { row: 1, column: 2 },
     };
 
-    let semantic_token = SemanticTokenBuilder::sequence_marker(
-        SemanticNumberingStyle::Numeric,
-        SemanticNumberingForm::Regular,
+    let semantic_token = HighLevelTokenBuilder::sequence_marker(
+        HighLevelNumberingStyle::Numeric,
+        HighLevelNumberingForm::Regular,
         "1.".to_string(),
         span.clone(),
     );
@@ -420,7 +420,7 @@ fn test_sequence_marker_with_structural_tokens() {
 
     // Check that structural tokens are preserved
     match &semantic_tokens.tokens[0] {
-        SemanticToken::Indent { .. } => {} // OK
+        HighLevelToken::Indent { .. } => {} // OK
         _ => panic!(
             "Expected Indent semantic token, got {:?}",
             semantic_tokens.tokens[0]
@@ -429,14 +429,14 @@ fn test_sequence_marker_with_structural_tokens() {
 
     // Check that sequence marker is created
     match &semantic_tokens.tokens[1] {
-        SemanticToken::SequenceMarker {
+        HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             ..
         } => {
-            assert_eq!(*style, SemanticNumberingStyle::Numeric);
-            assert_eq!(*form, SemanticNumberingForm::Regular);
+            assert_eq!(*style, HighLevelNumberingStyle::Numeric);
+            assert_eq!(*form, HighLevelNumberingForm::Regular);
             assert_eq!(marker, "1.");
         }
         _ => panic!(
@@ -447,7 +447,7 @@ fn test_sequence_marker_with_structural_tokens() {
 
     // Check that dedent is preserved
     match &semantic_tokens.tokens[2] {
-        SemanticToken::Dedent { .. } => {} // OK
+        HighLevelToken::Dedent { .. } => {} // OK
         _ => panic!(
             "Expected Dedent semantic token, got {:?}",
             semantic_tokens.tokens[2]
@@ -463,29 +463,29 @@ fn test_sequence_marker_classification_helper() {
         (
             SequenceMarkerType::Plain("-".to_string()),
             (
-                SemanticNumberingStyle::Plain,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Plain,
+                HighLevelNumberingForm::Regular,
             ),
         ),
         (
             SequenceMarkerType::Numerical(1, "1.".to_string()),
             (
-                SemanticNumberingStyle::Numeric,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Numeric,
+                HighLevelNumberingForm::Regular,
             ),
         ),
         (
             SequenceMarkerType::Alphabetical('a', "a.".to_string()),
             (
-                SemanticNumberingStyle::Alphabetic,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Alphabetic,
+                HighLevelNumberingForm::Regular,
             ),
         ),
         (
             SequenceMarkerType::Roman(1, "i.".to_string()),
             (
-                SemanticNumberingStyle::Roman,
-                SemanticNumberingForm::Regular,
+                HighLevelNumberingStyle::Roman,
+                HighLevelNumberingForm::Regular,
             ),
         ),
     ];

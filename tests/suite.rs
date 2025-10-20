@@ -54,7 +54,6 @@
 // Test directories - organized to mirror the src/ structure
 mod assembler;
 mod assertions;
-mod ast_elements;
 mod ast_query;
 mod lexer;
 mod parser;

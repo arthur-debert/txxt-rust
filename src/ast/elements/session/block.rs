@@ -4,11 +4,16 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::cst::ScannerTokenSequence;
+    annotation::annotation_content::Annotation, components::parameters::Parameters,
+    ScannerTokenSequence,
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    scanner_tokens::ScannerTokenSequence,
 };
 
+    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
+    inlines::TextTransform,
+    list::{NumberingForm, NumberingStyle},
 use super::super::{
     core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,

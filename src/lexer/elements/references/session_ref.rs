@@ -10,7 +10,7 @@
 //! within documents and better language server support compared to generic
 //! reference markers.
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 
 /// Lexer trait for session reference parsing
 pub trait SessionRefLexer {
@@ -113,7 +113,7 @@ fn is_valid_session_content(content: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::scanner_tokens::Position;
+    use crate::cst::Position;
 
     struct MockLexer {
         input: Vec<char>,

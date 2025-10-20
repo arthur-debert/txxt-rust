@@ -8,7 +8,7 @@ use crate::ast::{
     annotations::Annotation,
     parameters::Parameters,
     reference_types::{ReferenceTarget, SectionIdentifier},
-    scanner_tokens::ScannerTokenSequence,
+    ScannerTokenSequence,
 };
 
 use super::super::super::core::{ElementType, SpanElement, TxxtElement};

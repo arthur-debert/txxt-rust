@@ -134,7 +134,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// let footnote = parse_footnote_ref(&tokens)?;
 /// ```
 pub fn parse_footnote_ref(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<Inline, InlineParseError> {
     // TODO: Implement footnote reference parsing logic
     // For now, return a placeholder
@@ -149,7 +149,7 @@ pub fn parse_footnote_ref(
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
-            crate::ast::scanner_tokens::ScannerToken::Text { content, .. } => Some(content.clone()),
+            crate::cst::ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()

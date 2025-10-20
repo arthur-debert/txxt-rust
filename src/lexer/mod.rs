@@ -50,7 +50,7 @@ pub use elements::references::{
 };
 
 // Re-export new AST scanner token types
-pub use crate::ast::scanner_tokens::{Position, ScannerToken, ScannerTokenSequence, SourceSpan};
+pub use crate::cst::{Position, ScannerToken, ScannerTokenSequence, SourceSpan};
 
 /// Main tokenization entry point
 ///

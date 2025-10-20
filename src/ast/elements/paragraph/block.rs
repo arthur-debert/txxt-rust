@@ -5,9 +5,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::cst::ScannerTokenSequence;
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
-    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::{

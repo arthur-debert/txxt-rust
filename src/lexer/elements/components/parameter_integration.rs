@@ -3,7 +3,7 @@
 //! This module provides corrected versions of annotation and definition parameter
 //! integration that maintain whitespace tokens and accurate source positions.
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::lexer::elements::components::parameters::ParameterLexer;
 
 /// Process annotation tokens to integrate parameters while preserving whitespace

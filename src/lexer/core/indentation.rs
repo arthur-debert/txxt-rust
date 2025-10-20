@@ -11,7 +11,7 @@
 //! - **Verbatim awareness**: Skips indentation processing for verbatim content
 //! - **Multiple dedent support**: Generates multiple Dedent tokens for multi-level decreases
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 use std::collections::VecDeque;
 
 /// Standard indentation size (4 spaces) - matches verbatim_scanner.rs

@@ -7,7 +7,7 @@
 //! Container detection is primarily handled through indentation tokens
 //! (Indent/Dedent) that are produced by the lexer infrastructure.
 
-use crate::ast::scanner_tokens::ScannerToken;
+use crate::cst::ScannerToken;
 
 /// Determines container type based on parsing context
 #[derive(Debug, Clone, PartialEq)]
@@ -144,7 +144,7 @@ fn is_session_marker(marker: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::scanner_tokens::{Position, SourceSpan};
+    use crate::cst::{Position, SourceSpan};
 
     fn create_test_span() -> SourceSpan {
         SourceSpan {
@@ -231,7 +231,7 @@ mod tests {
             span: span.clone(),
         };
         let list_marker = ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Plain("-".to_string()),
+            marker_type: crate::cst::SequenceMarkerType::Plain("-".to_string()),
             span: span.clone(),
         };
         let content_tokens = vec![text_token, list_marker];
@@ -240,7 +240,7 @@ mod tests {
 
         // Content container with disallowed session marker
         let session_marker = ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+            marker_type: crate::cst::SequenceMarkerType::Numerical(
                 1,
                 "1.".to_string(),
             ),
@@ -252,7 +252,7 @@ mod tests {
 
         // Session container allows everything
         let session_marker = ScannerToken::SequenceMarker {
-            marker_type: crate::ast::scanner_tokens::SequenceMarkerType::Numerical(
+            marker_type: crate::cst::SequenceMarkerType::Numerical(
                 1,
                 "1.".to_string(),
             ),

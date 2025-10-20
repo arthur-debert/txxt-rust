@@ -4,11 +4,15 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::cst::ScannerTokenSequence;
+    annotation::annotation_content::Annotation,
+    components::parameters::Parameters,
+    references::reference_types::{ReferenceTarget, SectionIdentifier},
+    ScannerTokenSequence,
 use crate::ast::elements::{
     annotation::annotation_content::Annotation,
     components::parameters::Parameters,
     references::reference_types::{ReferenceTarget, SectionIdentifier},
-    scanner_tokens::ScannerTokenSequence,
 };
 
 use super::super::core::{ElementType, SpanElement, TxxtElement};

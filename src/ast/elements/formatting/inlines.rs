@@ -33,7 +33,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::super::scanner_tokens::{ScannerToken, ScannerTokenSequence};
+use crate::cst::{Position, ScannerToken, ScannerTokenSequence, SourceSpan};
 
 /// Inline elements with text-transform layer
 ///
@@ -174,9 +174,9 @@ impl Text {
             tokens: ScannerTokenSequence {
                 tokens: vec![ScannerToken::Text {
                     content: content.to_string(),
-                    span: super::super::scanner_tokens::SourceSpan {
-                        start: super::super::scanner_tokens::Position { row: 0, column: 0 },
-                        end: super::super::scanner_tokens::Position {
+                    span: SourceSpan {
+                        start: Position { row: 0, column: 0 },
+                        end: Position {
                             row: 0,
                             column: content.len(),
                         },

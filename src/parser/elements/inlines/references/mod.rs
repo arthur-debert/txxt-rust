@@ -158,7 +158,7 @@ pub use session_ref::*;
 // Import necessary types
 use crate::ast::elements::formatting::inlines::Inline;
 use crate::ast::elements::references::reference_types::*;
-use crate::ast::elements::scanner_tokens::ScannerTokenSequence;
+use crate::cst::ScannerTokenSequence;
 use crate::parser::elements::inlines::InlineParseError;
 
 /// Extract reference content from bracketed tokens
@@ -172,7 +172,7 @@ use crate::parser::elements::inlines::InlineParseError;
 /// # Returns
 /// * `Result<String, InlineParseError>` - Content between brackets
 fn extract_reference_content(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<String, InlineParseError> {
     if tokens.len() < 3 {
         return Err(InlineParseError::InvalidStructure(
@@ -185,8 +185,8 @@ fn extract_reference_content(
     let first_token = &tokens[0];
     let last_token = &tokens[tokens.len() - 1];
 
-    let starts_with_bracket = matches!(first_token, crate::ast::scanner_tokens::ScannerToken::Text { content, .. } if content == "[");
-    let ends_with_bracket = matches!(last_token, crate::ast::scanner_tokens::ScannerToken::Text { content, .. } if content == "]");
+    let starts_with_bracket = matches!(first_token, crate::cst::ScannerToken::Text { content, .. } if content == "[");
+    let ends_with_bracket = matches!(last_token, crate::cst::ScannerToken::Text { content, .. } if content == "]");
 
     if !starts_with_bracket || !ends_with_bracket {
         return Err(InlineParseError::InvalidStructure(
@@ -207,7 +207,7 @@ fn extract_reference_content(
     let content = content_tokens
         .iter()
         .filter_map(|token| match token {
-            crate::ast::scanner_tokens::ScannerToken::Text { content, .. } => Some(content.clone()),
+            crate::cst::ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -385,7 +385,7 @@ fn parse_numeric_levels(content: &str) -> Result<Vec<u32>, InlineParseError> {
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 pub fn parse_reference(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
@@ -425,7 +425,7 @@ pub fn parse_reference(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_url_reference(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
 
@@ -464,7 +464,7 @@ fn parse_url_reference(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_file_reference(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
 
@@ -503,7 +503,7 @@ fn parse_file_reference(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_tk_reference(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
 
@@ -534,7 +534,7 @@ fn parse_tk_reference(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 fn parse_not_sure_reference(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError> {
     let content = extract_reference_content(tokens)?;
 
@@ -578,13 +578,13 @@ fn parse_not_sure_reference(
 /// parse_citation(&tokens_for("[@smith2023, p. 123]"))?;
 /// ```
 pub fn parse_citation(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
     use crate::ast::elements::references::reference_types::*;
-    use crate::ast::elements::scanner_tokens::ScannerTokenSequence;
+    use crate::cst::ScannerTokenSequence;
 
     if tokens.is_empty() {
         return Err(
@@ -648,13 +648,13 @@ pub fn parse_citation(
 /// parse_footnote_ref(&tokens_for("[^]"))?;
 /// ```
 pub fn parse_footnote_ref(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
     use crate::ast::elements::references::reference_types::*;
-    use crate::ast::elements::scanner_tokens::ScannerTokenSequence;
+    use crate::cst::ScannerTokenSequence;
 
     if tokens.is_empty() {
         return Err(
@@ -729,7 +729,7 @@ pub fn parse_footnote_ref(
 /// parse_page_ref(&tokens_for("[chapter:5]"))?;
 /// ```
 pub fn parse_page_ref(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
@@ -787,13 +787,13 @@ pub fn parse_page_ref(
 /// parse_session_ref(&tokens_for("[local-section]"))?;
 /// ```
 pub fn parse_session_ref(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<
     crate::ast::elements::formatting::inlines::Inline,
     crate::parser::elements::inlines::InlineParseError,
 > {
     use crate::ast::elements::references::reference_types::*;
-    use crate::ast::elements::scanner_tokens::ScannerTokenSequence;
+    use crate::cst::ScannerTokenSequence;
 
     if tokens.is_empty() {
         return Err(

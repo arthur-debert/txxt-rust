@@ -190,7 +190,7 @@ pub use references::*;
 /// // Returns: [Strong(vec![Text("bold")]), Identity(Text(" and ")), Emphasis(vec![Text("italic")]), Identity(Text(" text"))]
 /// ```
 pub fn parse_inlines(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::Inline>, InlineParseError> {
     // TODO: Implement inline parsing logic
     // For now, return a placeholder that treats all tokens as plain text
@@ -203,7 +203,7 @@ pub fn parse_inlines(
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
-            crate::ast::scanner_tokens::ScannerToken::Text { content, .. } => Some(content.clone()),
+            crate::cst::ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -240,7 +240,7 @@ pub fn parse_inlines(
 /// * **Code**: `` `content` `` - Single backtick tokens
 /// * **Math**: `#content#` - Single hash tokens
 pub fn parse_formatting(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::TextTransform>, InlineParseError> {
     // Delegate to the formatting module
     crate::parser::elements::formatting::parse_formatting_elements(tokens)
@@ -264,7 +264,7 @@ pub fn parse_formatting(
 /// * **Session References**: `[#3]`, `[#2.1]`, `[local-section]`
 /// * **General References**: `[filename.txxt]`, `[https://example.com]`
 pub fn parse_references(
-    tokens: &[crate::ast::scanner_tokens::ScannerToken],
+    tokens: &[crate::cst::ScannerToken],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::Inline>, InlineParseError> {
     // TODO: Implement reference parsing logic
     // For now, return a placeholder
@@ -277,7 +277,7 @@ pub fn parse_references(
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
-            crate::ast::scanner_tokens::ScannerToken::Text { content, .. } => Some(content.clone()),
+            crate::cst::ScannerToken::Text { content, .. } => Some(content.clone()),
             _ => None,
         })
         .collect::<Vec<_>>()

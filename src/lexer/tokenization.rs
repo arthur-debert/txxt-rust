@@ -3,7 +3,7 @@
 //! Converts TXXT source text into Token enum variants with precise SourceSpan
 //! positioning for language server support.
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::lexer::core::indentation::IndentationTracker;
 use crate::lexer::elements::components::{
     parameter_integration_v2::{
@@ -979,8 +979,8 @@ impl PageRefLexer for Lexer {
 }
 
 impl crate::lexer::elements::references::session_ref::SessionRefLexer for Lexer {
-    fn current_position(&self) -> crate::ast::scanner_tokens::Position {
-        crate::ast::scanner_tokens::Position {
+    fn current_position(&self) -> crate::cst::Position {
+        crate::cst::Position {
             row: self.row,
             column: self.column,
         }
@@ -1080,8 +1080,8 @@ impl crate::lexer::elements::references::ReferenceLexer for Lexer {
 }
 
 impl crate::lexer::elements::references::footnote_ref::FootnoteRefLexer for Lexer {
-    fn current_position(&self) -> crate::ast::scanner_tokens::Position {
-        crate::ast::scanner_tokens::Position {
+    fn current_position(&self) -> crate::cst::Position {
+        crate::cst::Position {
             row: self.row,
             column: self.column,
         }

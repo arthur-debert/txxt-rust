@@ -11,9 +11,8 @@ use crate::ast::elements::{
     list::block::ListBlock, paragraph::block::ParagraphBlock, session::block::SessionBlock,
     verbatim::block::VerbatimBlock,
 };
-use crate::ast::{
-    scanner_tokens::{Position, ScannerTokenSequence, SourceSpan},
-    tokens::high_level::{HighLevelToken, HighLevelTokenList},
+use crate::cst::{
+    HighLevelToken, HighLevelTokenList, Position, ScannerTokenSequence, SourceSpan,
 };
 use crate::parser::BlockParseError;
 
@@ -773,8 +772,8 @@ impl AstConstructor<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::scanner_tokens::{Position, SourceSpan};
-    use crate::ast::tokens::high_level::{
+    use crate::cst::{Position, SourceSpan};
+    use crate::cst::high_level_tokens::{
         HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelTokenBuilder, HighLevelTokenList,
     };
 

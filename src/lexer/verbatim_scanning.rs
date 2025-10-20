@@ -102,7 +102,7 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::ast::scanner_tokens::{Position, ScannerToken, SourceSpan, WallType};
+use crate::cst::{Position, ScannerToken, SourceSpan, WallType};
 use crate::lexer::elements::components::parameters::{parse_parameters, ParameterLexer};
 use regex::Regex;
 

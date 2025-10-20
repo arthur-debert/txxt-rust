@@ -39,19 +39,6 @@ pub mod core;
 pub mod blocks;
 pub mod traversal;
 
-// Re-export scanner tokens from CST for backward compatibility
-// TODO: Update all imports to use crate::cst directly
-pub use crate::cst::{
-    Position, ScannerToken, ScannerTokenSequence, SequenceMarkerType, SourceSpan, WallType,
-};
-pub mod scanner_tokens {
-    //! Backward compatibility re-exports
-    //! DEPRECATED: Use crate::cst instead
-    pub use crate::cst::{
-        Position, ScannerToken, ScannerTokenSequence, SequenceMarkerType, SourceSpan, WallType,
-    };
-}
-
 // Container elements (hold child elements)
 pub mod containers;
 

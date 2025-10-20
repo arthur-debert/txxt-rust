@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::ast::{annotations::Annotation, parameters::Parameters, scanner_tokens::ScannerTokenSequence};
+use crate::ast::{annotations::Annotation, parameters::Parameters, ScannerTokenSequence};
 
 use super::super::{
     core::{BlockElement, ElementType, TxxtElement},

@@ -15,11 +15,16 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::ast::elements::{
+use crate::cst::ScannerTokenSequence;
     annotation::annotation_content::Annotation,
     components::parameters::Parameters,
     references::reference_types::ReferenceTarget,
     scanner_tokens::{ScannerToken, ScannerTokenSequence},
+use crate::ast::elements::{
+    annotation::annotation_content::Annotation,
+    components::parameters::Parameters,
+    references::reference_types::ReferenceTarget,
+    {ScannerToken, ScannerTokenSequence},
 };
 
 use super::core::{ElementType, SpanElement, TxxtElement};
@@ -202,9 +207,9 @@ impl TextSpan {
             tokens: ScannerTokenSequence {
                 tokens: vec![ScannerToken::Text {
                     content: content.to_string(),
-                    span: crate::ast::scanner_tokens::SourceSpan {
-                        start: crate::ast::scanner_tokens::Position { row: 0, column: 0 },
-                        end: crate::ast::scanner_tokens::Position {
+                    span: crate::cst::SourceSpan {
+                        start: crate::cst::Position { row: 0, column: 0 },
+                        end: crate::cst::Position {
                             row: 0,
                             column: content.len(),
                         },

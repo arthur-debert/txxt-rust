@@ -138,7 +138,6 @@
 // NEW: Spec-aligned element structure (replaces nodes/)
 pub mod debug;
 pub mod elements;
-pub mod tokens;
 
 // REMOVED: Legacy nodes/ structure - replaced by spec-aligned elements/
 
@@ -161,13 +160,7 @@ pub use elements::{
 };
 
 // Core AST infrastructure
-pub use elements::{scanner_tokens, traversal};
-
-// Semantic tokens infrastructure (re-exported from CST)
-pub use crate::cst::{
-    FromScannerToken, HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken,
-    HighLevelTokenBuilder, HighLevelTokenList, HighLevelTokenSpan, ToScannerToken,
-};
+pub use elements::traversal;
 
 // Note: Tree traversal and querying is provided by elements::traversal
 // using the ego-tree crate for efficient parent/sibling navigation.

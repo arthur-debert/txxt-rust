@@ -8,9 +8,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::cst::ScannerTokenSequence;
+    blocks::Block, components::parameters::Parameters, formatting::inlines::Inline,
+    ScannerTokenSequence,
 use super::super::{
     blocks::Block, components::parameters::Parameters, formatting::inlines::Inline,
-    scanner_tokens::ScannerTokenSequence,
 };
 
 /// Annotation - metadata that attaches to document elements

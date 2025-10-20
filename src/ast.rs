@@ -163,8 +163,8 @@ pub use elements::{
 // Core AST infrastructure
 pub use elements::{scanner_tokens, traversal};
 
-// Semantic tokens infrastructure
-pub use tokens::high_level::{
+// Semantic tokens infrastructure (re-exported from CST)
+pub use crate::cst::{
     FromScannerToken, HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken,
     HighLevelTokenBuilder, HighLevelTokenList, HighLevelTokenSpan, ToScannerToken,
 };

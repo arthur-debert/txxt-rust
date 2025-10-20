@@ -82,6 +82,7 @@ pub mod annotation_parser;
 pub mod api;
 pub mod assembler;
 pub mod ast;
+pub mod cst;
 pub mod lexer;
 pub mod parser;
 pub mod process;

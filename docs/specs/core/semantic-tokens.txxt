@@ -145,4 +145,25 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
     - Easier testing and debugging
     - More maintainable code
 
+5. File Organization
+
+    Semantic tokens (high-level tokens) are organized in the CST module:
+
+    5.1. High-Level Token Definitions
+
+        - `src/cst/high_level_tokens.rs`: HighLevelToken enum and types
+        - `src/cst/primitives.rs`: Shared Position and SourceSpan types
+        - `src/lexer/pipeline/`: High-level token processing
+
+    5.2. CST vs AST Architecture
+
+        The Concrete Syntax Tree (CST) contains all token types:
+        - Scanner tokens (low-level, character-precise)
+        - High-level tokens (semantic tokens, line-level)
+
+        The Abstract Syntax Tree (AST) contains semantic elements:
+        - Block elements (ParagraphBlock, ListBlock, SessionBlock)
+        - Inline elements (TextSpan, BoldSpan, CitationSpan)
+        - Container elements (ContentContainer, SessionContainer)
+
 :: note :: This semantic tokens reference defines the intermediate representation used in txxt parsing. For complete block grammar, see @grammar.txxt.

@@ -3,18 +3,18 @@
 //! These tests replace the shell-based tests with proper unit tests that call the API directly.
 //! Tests the public API without I/O operations or subprocess calls.
 
-use txxt::api::{process, ProcessArgs};
+use txxt::api::{format_output_unified, process_unified, Format, Stage};
 
 #[test]
 fn test_scanner_tokens_format() {
-    let args = ProcessArgs {
-        content: "Some content".to_string(),
-        source_path: "test.txxt".to_string(),
-        stage: "scanner-tokens".to_string(),
-        format: "json".to_string(),
-    };
+    let output = process_unified(
+        "Some content",
+        Stage::ScannerTokens,
+        Some("test.txxt".to_string()),
+    )
+    .unwrap();
 
-    let result = process(args).unwrap();
+    let result = format_output_unified(&output, Format::Json, Some("test.txxt")).unwrap();
 
     // Verify JSON structure
     assert!(result.contains("\"tokens\""));
@@ -27,34 +27,31 @@ fn test_scanner_tokens_format() {
 
 #[test]
 fn test_semantic_tokens_format() {
-    let args = ProcessArgs {
-        content: ":: note :: Some content".to_string(),
-        source_path: "test.txxt".to_string(),
-        stage: "high-level-tokens".to_string(),
-        format: "json".to_string(),
-    };
+    let output = process_unified(
+        ":: note :: Some content",
+        Stage::HighLevelTokens,
+        Some("test.txxt".to_string()),
+    )
+    .unwrap();
 
-    let result = process(args).unwrap();
+    let result = format_output_unified(&output, Format::Json, Some("test.txxt")).unwrap();
 
     // Verify JSON structure
-    assert!(result.contains("\"semantic_tokens\""));
+    assert!(result.contains("\"tokens\""));
     assert!(result.contains("\"source\": \"test.txxt\""));
+    assert!(result.contains("\"stage\": \"high-level-tokens\""));
 
     // Parse as JSON to verify it's valid
     let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    assert!(json["semantic_tokens"].is_array());
+    assert!(json["tokens"].is_array());
 }
 
 #[test]
 fn test_ast_full_json_format() {
-    let args = ProcessArgs {
-        content: "Hello world".to_string(),
-        source_path: "test.txxt".to_string(),
-        stage: "ast-full".to_string(),
-        format: "json".to_string(),
-    };
+    let output =
+        process_unified("Hello world", Stage::AstFull, Some("test.txxt".to_string())).unwrap();
 
-    let result = process(args).unwrap();
+    let result = format_output_unified(&output, Format::Json, Some("test.txxt")).unwrap();
 
     // Verify JSON structure
     assert!(result.contains("\"document\""));
@@ -68,14 +65,10 @@ fn test_ast_full_json_format() {
 #[test]
 #[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
 fn test_ast_full_treeviz_format() {
-    let args = ProcessArgs {
-        content: "Hello world".to_string(),
-        source_path: "test.txxt".to_string(),
-        stage: "ast-full".to_string(),
-        format: "treeviz".to_string(),
-    };
+    let output =
+        process_unified("Hello world", Stage::AstFull, Some("test.txxt".to_string())).unwrap();
 
-    let result = process(args).unwrap();
+    let result = format_output_unified(&output, Format::TreeViz, Some("test.txxt")).unwrap();
 
     // Verify treeviz structure
     assert!(result.contains("⧉ Document: test.txxt"));
@@ -85,21 +78,16 @@ fn test_ast_full_treeviz_format() {
 #[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
 fn test_phase_2_formats_implemented() {
     let test_cases = vec![
-        ("ast-block", "json"),
-        ("ast-block", "treeviz"),
-        ("ast-inlines", "json"),
-        ("ast-inlines", "treeviz"),
+        (Stage::AstBlock, Format::Json),
+        (Stage::AstBlock, Format::TreeViz),
+        (Stage::AstInlines, Format::Json),
+        (Stage::AstInlines, Format::TreeViz),
     ];
 
     for (stage, format) in test_cases {
-        let args = ProcessArgs {
-            content: "test".to_string(),
-            source_path: "test.txxt".to_string(),
-            stage: stage.to_string(),
-            format: format.to_string(),
-        };
+        let output = process_unified("test", stage, Some("test.txxt".to_string())).unwrap();
 
-        let result = process(args);
+        let result = format_output_unified(&output, format, Some("test.txxt"));
         assert!(
             result.is_ok(),
             "Combination {:?} should be implemented",
@@ -110,14 +98,9 @@ fn test_phase_2_formats_implemented() {
 
 #[test]
 fn test_empty_content() {
-    let args = ProcessArgs {
-        content: "".to_string(),
-        source_path: "empty.txxt".to_string(),
-        stage: "scanner-tokens".to_string(),
-        format: "json".to_string(),
-    };
+    let output = process_unified("", Stage::ScannerTokens, Some("empty.txxt".to_string())).unwrap();
 
-    let result = process(args).unwrap();
+    let result = format_output_unified(&output, Format::Json, Some("empty.txxt")).unwrap();
 
     // Should handle empty content gracefully
     let json: serde_json::Value = serde_json::from_str(&result).unwrap();
@@ -128,14 +111,14 @@ fn test_empty_content() {
 fn test_multiline_content() {
     let content = "Line 1\nLine 2\nLine 3\n";
 
-    let args = ProcessArgs {
-        content: content.to_string(),
-        source_path: "multiline.txxt".to_string(),
-        stage: "scanner-tokens".to_string(),
-        format: "json".to_string(),
-    };
+    let output = process_unified(
+        content,
+        Stage::ScannerTokens,
+        Some("multiline.txxt".to_string()),
+    )
+    .unwrap();
 
-    let result = process(args).unwrap();
+    let result = format_output_unified(&output, Format::Json, Some("multiline.txxt")).unwrap();
 
     // Parse and verify tokens include newlines
     let json: serde_json::Value = serde_json::from_str(&result).unwrap();
@@ -155,14 +138,10 @@ fn test_source_path_preservation() {
     ];
 
     for path in test_paths {
-        let args = ProcessArgs {
-            content: "test content".to_string(),
-            source_path: path.to_string(),
-            stage: "scanner-tokens".to_string(),
-            format: "json".to_string(),
-        };
+        let output =
+            process_unified("test content", Stage::ScannerTokens, Some(path.to_string())).unwrap();
 
-        let result = process(args).unwrap();
+        let result = format_output_unified(&output, Format::Json, Some(path)).unwrap();
 
         // Verify the source path is preserved in output
         assert!(result.contains(&format!("\"source\": \"{}\"", path)));
@@ -180,15 +159,8 @@ fn test_error_handling() {
     ];
 
     for content in problematic_contents {
-        let args = ProcessArgs {
-            content: content.to_string(),
-            source_path: "test.txxt".to_string(),
-            stage: "scanner-tokens".to_string(),
-            format: "json".to_string(),
-        };
-
         // Should not panic or error on unusual content
-        let result = process(args);
+        let result = process_unified(content, Stage::ScannerTokens, Some("test.txxt".to_string()));
         assert!(result.is_ok(), "Failed to process content: {:?}", content);
     }
 }

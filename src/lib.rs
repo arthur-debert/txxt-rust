@@ -86,7 +86,6 @@ pub mod cst;
 pub mod lexer;
 pub mod parser;
 pub mod process;
-pub mod processing_stages;
 pub mod tools;
 
 #[derive(Debug, Clone, PartialEq)]

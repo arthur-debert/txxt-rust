@@ -65,7 +65,7 @@ fn test_load_simplest_document() {
 
     // Verify corpus metadata
     assert_eq!(corpus.name, "01-two-paragraphs");
-    assert_eq!(corpus.processing_stage, ProcessingStage::Raw);
+    assert_eq!(corpus.processing_stage, ProcessingStage::ScannerTokens);
     assert!(
         corpus.parameters.is_empty(),
         "Documents don't have parameters"
@@ -363,19 +363,19 @@ fn test_load_all_documents() {
 ///
 /// ## Use Cases
 ///
-/// - Tokenizer testing: use `ProcessingStage::Tokens`
-/// - Parser testing: use `ProcessingStage::ParsedAst`
+/// - Tokenizer testing: use `ProcessingStage::ScannerTokens`
+/// - Parser testing: use `ProcessingStage::AstFull`
 /// - End-to-end testing: use `ProcessingStage::FullDocument`
 #[test]
 fn test_document_with_processing_stages() {
     // Load for tokenization testing
     let corpus = TxxtCorpora::load_document_with_processing(
         "03-session-multiple-paragraphs",
-        ProcessingStage::Tokens,
+        ProcessingStage::ScannerTokens,
     )
     .expect("Should load with Tokens stage");
 
-    assert_eq!(corpus.processing_stage, ProcessingStage::Tokens);
+    assert_eq!(corpus.processing_stage, ProcessingStage::ScannerTokens);
 
     // Note: actual tokenization is a placeholder until parser integration
     // This demonstrates the API for when real processing is implemented

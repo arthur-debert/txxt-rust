@@ -8,7 +8,7 @@ use crate::ast::{annotations::Annotation, parameters::Parameters, scanner_tokens
 
 use super::super::{
     containers::ContentContainer,
-    core::{BlockElement, ElementType, TxxtElement},
+    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
 };
 
@@ -64,6 +64,16 @@ impl TxxtElement for DefinitionBlock {
 impl BlockElement for DefinitionBlock {
     fn content_summary(&self) -> String {
         format!("Definition: {}", self.term.text_content())
+    }
+}
+
+impl HeaderedBlock for DefinitionBlock {
+    fn header_text(&self) -> String {
+        self.term.text_content()
+    }
+
+    fn tail_container(&self) -> Option<&dyn ContainerElement> {
+        Some(&self.content)
     }
 }
 

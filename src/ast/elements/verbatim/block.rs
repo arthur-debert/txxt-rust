@@ -10,7 +10,7 @@ use crate::ast::elements::{
 };
 
 use super::super::{
-    core::{BlockElement, ElementType, TxxtElement},
+    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
 };
 
@@ -74,6 +74,16 @@ impl TxxtElement for VerbatimBlock {
 impl BlockElement for VerbatimBlock {
     fn content_summary(&self) -> String {
         format!("Verbatim block ({})", self.label)
+    }
+}
+
+impl HeaderedBlock for VerbatimBlock {
+    fn header_text(&self) -> String {
+        self.title_text()
+    }
+
+    fn tail_container(&self) -> Option<&dyn ContainerElement> {
+        Some(&self.content)
     }
 }
 

@@ -148,7 +148,7 @@ pub fn process_assembler(
 /// Execute Full Processing: All Three Phases
 ///
 /// Processes source text through the complete three-phase pipeline:
-/// String → Vec<ScannerToken> → Vec<SemanticToken> → Vec<ElementNode> → Document
+/// String → Vec<ScannerToken> → Vec<HighLevelToken> → Vec<ElementNode> → Document
 ///
 /// # Arguments
 /// * `source_text` - The TXXT source text to process

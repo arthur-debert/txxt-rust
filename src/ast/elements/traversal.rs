@@ -37,12 +37,12 @@ use ego_tree::{NodeRef, Tree};
 use regex::Regex;
 
 use crate::ast::{
-    base::Document,
     elements::{
         containers::content::{ContentContainer, ContentContainerElement},
         core::{ElementType, TxxtElement},
         session::{session_container::SessionContainerElement, SessionContainer},
     },
+    Document,
 };
 
 /// Wrapper around a TXXT document that provides efficient tree traversal
@@ -648,7 +648,7 @@ impl DocumentElementOwned {
         // Extract string from MetaValue if present
         let title = document.meta.title.as_ref().and_then(|meta_value| {
             match meta_value {
-                crate::ast::base::MetaValue::String(s) => Some(s.clone()),
+                crate::ast::MetaValue::String(s) => Some(s.clone()),
                 _ => None, // For complex metadata, we'd need more sophisticated extraction
             }
         });
@@ -1405,8 +1405,8 @@ impl TraversableDocument {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast::base::{AssemblyInfo, Document, Meta};
     use crate::ast::elements::session::SessionContainer;
+    use crate::ast::{AssemblyInfo, Document, Meta};
 
     #[test]
     fn test_ego_tree_basic_functionality() {
@@ -1431,9 +1431,7 @@ mod tests {
         // Create a minimal document for testing
         let document = Document {
             meta: Meta {
-                title: Some(crate::ast::base::MetaValue::String(
-                    "Test Document".to_string(),
-                )),
+                title: Some(crate::ast::MetaValue::String("Test Document".to_string())),
                 ..Meta::default()
             },
             content: SessionContainer {
@@ -1446,7 +1444,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1469,9 +1467,7 @@ mod tests {
         // Test the DocumentElementOwned wrapper
         let document = Document {
             meta: Meta {
-                title: Some(crate::ast::base::MetaValue::String(
-                    "Test Title".to_string(),
-                )),
+                title: Some(crate::ast::MetaValue::String("Test Title".to_string())),
                 ..Meta::default()
             },
             content: SessionContainer {
@@ -1484,7 +1480,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1533,7 +1529,7 @@ mod tests {
 
         let document = Document {
             meta: Meta {
-                title: Some(crate::ast::base::MetaValue::String(
+                title: Some(crate::ast::MetaValue::String(
                     "Test Document with Content".to_string(),
                 )),
                 ..Meta::default()
@@ -1552,7 +1548,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1611,9 +1607,7 @@ mod tests {
 
         let document = Document {
             meta: Meta {
-                title: Some(crate::ast::base::MetaValue::String(
-                    "Test Document".to_string(),
-                )),
+                title: Some(crate::ast::MetaValue::String("Test Document".to_string())),
                 ..Meta::default()
             },
             content: SessionContainer {
@@ -1626,7 +1620,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1695,9 +1689,7 @@ mod tests {
 
         let document = Document {
             meta: Meta {
-                title: Some(crate::ast::base::MetaValue::String(
-                    "Test Document".to_string(),
-                )),
+                title: Some(crate::ast::MetaValue::String("Test Document".to_string())),
                 ..Meta::default()
             },
             content: SessionContainer {
@@ -1710,7 +1702,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1760,9 +1752,7 @@ mod tests {
 
         let document = Document {
             meta: Meta {
-                title: Some(crate::ast::base::MetaValue::String(
-                    "Test Document".to_string(),
-                )),
+                title: Some(crate::ast::MetaValue::String("Test Document".to_string())),
                 ..Meta::default()
             },
             content: SessionContainer {
@@ -1775,7 +1765,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1855,7 +1845,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 
@@ -1894,7 +1884,7 @@ mod tests {
                 parser_version: "test".to_string(),
                 source_path: None,
                 processed_at: None,
-                stats: crate::ast::base::ProcessingStats::default(),
+                stats: crate::ast::ProcessingStats::default(),
             },
         };
 

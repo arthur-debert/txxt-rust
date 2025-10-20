@@ -8,7 +8,7 @@ use crate::ast::{annotations::Annotation, parameters::Parameters, scanner_tokens
 
 use super::super::{
     containers::ContentContainer,
-    core::{BlockElement, ElementType, TxxtElement},
+    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
 };
 
@@ -122,6 +122,22 @@ impl TxxtElement for ListItem {
 
     fn parameters(&self) -> &Parameters {
         &self.parameters
+    }
+}
+
+impl BlockElement for ListItem {
+    fn content_summary(&self) -> String {
+        format!("List item: {}", self.text_content())
+    }
+}
+
+impl HeaderedBlock for ListItem {
+    fn header_text(&self) -> String {
+        self.text_content()
+    }
+
+    fn tail_container(&self) -> Option<&dyn ContainerElement> {
+        self.nested.as_ref().map(|c| c as &dyn ContainerElement)
     }
 }
 

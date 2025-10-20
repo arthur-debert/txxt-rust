@@ -160,13 +160,8 @@ pub use elements::{
     verbatim::{VerbatimBlock, VerbatimType},
 };
 
-// Core AST infrastructure (moved to elements/)
-pub use elements::{
-    blocks,
-    document as base, // base.rs moved to elements/document/document.rs
-    scanner_tokens,
-    traversal,
-};
+// Core AST infrastructure
+pub use elements::{scanner_tokens, traversal};
 
 // Semantic tokens infrastructure
 pub use semantic_tokens::{
@@ -174,8 +169,5 @@ pub use semantic_tokens::{
     SemanticTokenBuilder, SemanticTokenList, SemanticTokenSpan, ToScannerToken,
 };
 
-// Legacy re-exports for backward compatibility - REMOVED
-// All callers have been updated to use the new element paths
-
-// Advanced query and traversal API (Unist-compatible) - temporarily disabled
-// pub mod query;
+// Note: Tree traversal and querying is provided by elements::traversal
+// using the ego-tree crate for efficient parent/sibling navigation.

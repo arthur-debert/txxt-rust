@@ -105,6 +105,57 @@ pub trait ContainerElement: TxxtElement {
     fn child_elements(&self) -> Vec<&dyn TxxtElement>;
 }
 
+/// Trait for block elements with header/label and optional tail content
+///
+/// This trait abstracts the common pattern across several block types where an element
+/// consists of a "head" (title, term, label, or item text) followed by optional "tail"
+/// content (nested container). This pattern appears in:
+///
+/// - Session: title + session container
+/// - Definition: term + content container
+/// - ListItem: item text + optional nested container
+/// - Annotation: label + optional content container
+/// - Verbatim: title + ignore container
+///
+/// By unifying access to header text and tail containers, this trait enables:
+/// - Generic query operations across different block types
+/// - Consistent test assertions without type-specific field access
+/// - Simplified tree traversal and visualization tools
+/// - Common predicates for filtering by header content
+///
+/// Note: Semantic field names (title, term, label) are preserved in the actual
+/// structs for code clarity. This trait provides a uniform access layer.
+pub trait HeaderedBlock: BlockElement {
+    /// Get the header/label text content
+    ///
+    /// Returns the text from the "head" portion of the block:
+    /// - Session: title text
+    /// - Definition: term text
+    /// - ListItem: item text
+    /// - Annotation: label text
+    /// - Verbatim: title text
+    fn header_text(&self) -> String;
+
+    /// Get the tail container if present
+    ///
+    /// Returns the "tail" container holding nested content:
+    /// - Session: session container (always present)
+    /// - Definition: content container (always present)
+    /// - ListItem: nested container (optional)
+    /// - Annotation: content container if block-style (optional)
+    /// - Verbatim: ignore container (always present)
+    ///
+    /// Returns None for blocks without tail content (e.g., inline annotations).
+    fn tail_container(&self) -> Option<&dyn ContainerElement>;
+
+    /// Check if this block has tail content
+    ///
+    /// Convenience method equivalent to `self.tail_container().is_some()`.
+    fn has_tail(&self) -> bool {
+        self.tail_container().is_some()
+    }
+}
+
 /// Container type for type-safe content restrictions
 ///
 /// From `docs/specs/core/terminology.txxt`:

@@ -6,11 +6,11 @@
 //!
 //! src/parser/mod.rs has the full architecture overview.
 
-use crate::ast::base::Document;
 use crate::ast::elements::{
     document::document_structure::{AssemblyInfo, Meta, ProcessingStats},
     session::SessionContainer,
 };
+use crate::ast::Document;
 use crate::ast::ElementNode;
 
 /// Document assembler for creating final document structure

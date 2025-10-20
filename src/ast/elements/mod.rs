@@ -67,4 +67,4 @@ pub mod inlines;
 pub mod components;
 
 // Re-export core types for convenience
-pub use core::{ElementType, TxxtElement};
+pub use core::{ElementType, HeaderedBlock, TxxtElement};

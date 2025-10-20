@@ -12,7 +12,7 @@ use crate::ast::elements::{
 
 use super::super::{
     containers::ContentContainer,
-    core::{BlockElement, ElementType, TxxtElement},
+    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
 };
 
@@ -88,6 +88,19 @@ impl TxxtElement for AnnotationBlock {
 impl BlockElement for AnnotationBlock {
     fn content_summary(&self) -> String {
         format!("Annotation: {}", self.label)
+    }
+}
+
+impl HeaderedBlock for AnnotationBlock {
+    fn header_text(&self) -> String {
+        self.label.clone()
+    }
+
+    fn tail_container(&self) -> Option<&dyn ContainerElement> {
+        match &self.content {
+            AnnotationContent::Block(container) => Some(container as &dyn ContainerElement),
+            AnnotationContent::Inline(_) => None,
+        }
     }
 }
 

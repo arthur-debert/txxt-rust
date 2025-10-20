@@ -5,15 +5,15 @@
 //!
 //! src/parser/mod.rs has the full architecture overview.
 
-use crate::ast::elements::components::parameters::Parameters;
 use crate::ast::{
-    base::Document,
     elements::{
         annotation::annotation_content::Annotation,
+        components::parameters::Parameters,
         document::document_structure::{AssemblyInfo, Meta, MetaValue, ProcessingStats},
         scanner_tokens::{ScannerToken, ScannerTokenSequence},
         session::SessionContainer,
     },
+    Document,
 };
 use crate::lexer::pipeline::ScannerTokenTree;
 

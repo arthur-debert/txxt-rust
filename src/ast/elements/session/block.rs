@@ -10,7 +10,7 @@ use crate::ast::elements::{
 };
 
 use super::super::{
-    core::{BlockElement, ElementType, TxxtElement},
+    core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
     list::{NumberingForm, NumberingStyle},
 };
@@ -89,6 +89,16 @@ impl BlockElement for SessionBlock {
 
     fn content_summary(&self) -> String {
         format!("Session: {}", self.title.text_content())
+    }
+}
+
+impl HeaderedBlock for SessionBlock {
+    fn header_text(&self) -> String {
+        self.title.text_content()
+    }
+
+    fn tail_container(&self) -> Option<&dyn ContainerElement> {
+        Some(&self.content)
     }
 }
 

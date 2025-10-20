@@ -7,7 +7,8 @@ use std::collections::HashMap;
 
 use txxt::ast::{
     elements::annotation::annotation_content::Annotation,
-    elements::components::parameters::Parameters, elements::inlines::TextTransform,
+    elements::components::parameters::Parameters, elements::core::HeaderedBlock,
+    elements::inlines::TextTransform,
 };
 
 // ============================================================================
@@ -199,6 +200,67 @@ pub fn validate_element_count<T>(elements: &[T], expected_count: usize, context:
          Expected: {} elements\n\
          Actual: {} elements",
         context, expected_count, actual_count
+    );
+}
+
+// ============================================================================
+// HeaderedBlock Validation (Generic)
+// ============================================================================
+
+/// Validate header text matches exactly (for headered blocks).
+///
+/// Works uniformly across SessionBlock, DefinitionBlock, ListItem,
+/// AnnotationBlock, and VerbatimBlock using the HeaderedBlock trait.
+#[allow(dead_code)] // Will be used when element-specific assertions are implemented
+pub fn validate_header_exact<T: HeaderedBlock>(block: &T, expected_text: &str) {
+    let actual = block.header_text();
+    assert_eq!(
+        actual, expected_text,
+        "Header text validation failed\n\
+         Expected: '{}'\n\
+         Actual: '{}'",
+        expected_text, actual
+    );
+}
+
+/// Validate header text contains substring (for headered blocks).
+#[allow(dead_code)] // Will be used when element-specific assertions are implemented
+pub fn validate_header_contains<T: HeaderedBlock>(block: &T, expected_substring: &str) {
+    let actual = block.header_text();
+    assert!(
+        actual.contains(expected_substring),
+        "Header text validation failed\n\
+         Expected to contain: '{}'\n\
+         Actual: '{}'",
+        expected_substring,
+        actual
+    );
+}
+
+/// Validate header text is empty (for headered blocks).
+#[allow(dead_code)] // Will be used when element-specific assertions are implemented
+pub fn validate_header_empty<T: HeaderedBlock>(block: &T, expected_empty: bool) {
+    let actual = block.header_text();
+    let is_empty = actual.trim().is_empty();
+    assert_eq!(
+        is_empty, expected_empty,
+        "Header empty validation failed\n\
+         Expected empty: {}\n\
+         Actual: '{}' (is_empty: {})",
+        expected_empty, actual, is_empty
+    );
+}
+
+/// Validate block has tail content (for headered blocks).
+#[allow(dead_code)] // Will be used when element-specific assertions are implemented
+pub fn validate_has_tail<T: HeaderedBlock>(block: &T, expected_has_tail: bool) {
+    let actual = block.has_tail();
+    assert_eq!(
+        actual, expected_has_tail,
+        "Tail content validation failed\n\
+         Expected has_tail: {}\n\
+         Actual: {}",
+        expected_has_tail, actual
     );
 }
 

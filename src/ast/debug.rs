@@ -4,12 +4,12 @@
 //! including tree printing, structure comparison, and content inspection.
 
 use crate::ast::{
-    base::Document,
     elements::{
         containers::{content::ContentContainerElement, ContentContainer},
         inlines::TextTransform,
         session::{session_container::SessionContainerElement, SessionContainer},
     },
+    Document,
 };
 
 use std::fmt::Write;

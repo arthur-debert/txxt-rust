@@ -1,9 +1,9 @@
 //! Tests for verbatim label parsing functionality
 //!
-//! These tests demonstrate that VerbatimLabel tokens should:
+//! These tests demonstrate that VerbatimBlockEnd tokens should:
 //! 1. Extract label content WITHOUT the :: prefix
-//! 2. Properly separate labels from parameters
-//! 3. Handle various parameter formats
+//! 2. Store the raw label and parameters together as label_raw
+//! 3. Handle various label formats
 
 use txxt::cst::ScannerToken;
 use txxt::syntax::tokenize;
@@ -20,17 +20,17 @@ mod verbatim_label_tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
+        // Find VerbatimBlockEnd token
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
-            // This test SHOULD FAIL initially - content currently includes "::"
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            // VerbatimBlockEnd should contain ONLY the label, not the :: prefix
             assert_eq!(
-                content, "python",
-                "VerbatimLabel should contain ONLY the label, not the :: prefix"
+                label_raw, "python",
+                "VerbatimBlockEnd label_raw should contain ONLY the label, not the :: prefix"
             );
         }
     }
@@ -45,36 +45,25 @@ mod verbatim_label_tests {
 
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
-            // UPDATED: VerbatimLabel now contains ONLY the label, not parameters
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            // VerbatimBlockEnd contains the full label:params string
             assert_eq!(
-                content, "python",
-                "VerbatimLabel should contain ONLY the label without parameters"
+                label_raw, "python:version=3.9,syntax=true",
+                "VerbatimBlockEnd label_raw should contain label and parameters"
+            );
+
+            // The raw string should NOT include :: prefix
+            assert!(
+                !label_raw.starts_with("::"),
+                "label_raw should not include :: prefix"
             );
         }
 
-        // UPDATED: Check that parameters were extracted as separate tokens
-        let param_tokens: Vec<_> = tokens
-            .iter()
-            .filter_map(|token| {
-                if let ScannerToken::Parameter { key, value, .. } = token {
-                    Some((key.clone(), value.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        assert_eq!(
-            param_tokens.len(),
-            2,
-            "Should have extracted 2 parameter tokens"
-        );
-        assert!(param_tokens.contains(&("version".to_string(), "3.9".to_string())));
-        assert!(param_tokens.contains(&("syntax".to_string(), "true".to_string())));
+        // Note: Parameter parsing happens at the semantic analysis level,
+        // not at the scanner token level
     }
 
     #[test]
@@ -87,41 +76,19 @@ mod verbatim_label_tests {
 
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
-            // UPDATED: VerbatimLabel now contains ONLY the label
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            // VerbatimBlockEnd stores the raw label:params string
             assert_eq!(
-                content, "mylabel",
-                "VerbatimLabel should contain ONLY the label without parameters"
+                label_raw, "mylabel:key1=value1,key2=value2",
+                "VerbatimBlockEnd label_raw should contain full label:params"
             );
-            assert!(
-                !content.contains(":"),
-                "Label should not contain colon separator"
-            );
-            assert!(!content.starts_with("::"), "Should not start with ::");
+            assert!(!label_raw.starts_with("::"), "Should not start with ::");
         }
 
-        // UPDATED: Check that parameters were extracted as separate tokens
-        let param_tokens: Vec<_> = tokens
-            .iter()
-            .filter_map(|token| {
-                if let ScannerToken::Parameter { key, value, .. } = token {
-                    Some((key.clone(), value.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        assert_eq!(
-            param_tokens.len(),
-            2,
-            "Should have extracted 2 parameter tokens"
-        );
-        assert!(param_tokens.contains(&("key1".to_string(), "value1".to_string())));
-        assert!(param_tokens.contains(&("key2".to_string(), "value2".to_string())));
+        // Parameter parsing happens at semantic analysis level
     }
 
     #[test]
@@ -139,15 +106,15 @@ mod verbatim_label_tests {
 
             let label_token = tokens
                 .iter()
-                .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
+                .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
                 .unwrap_or_else(|| {
-                    panic!("Should find VerbatimLabel token for: {}", terminator_line)
+                    panic!("Should find VerbatimBlockEnd token for: {}", terminator_line)
                 });
 
-            if let ScannerToken::VerbatimLabel { content, .. } = label_token {
+            if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
                 assert_eq!(
-                    content, expected_label,
-                    "VerbatimLabel for '{}' should be '{}'",
+                    label_raw, expected_label,
+                    "VerbatimBlockEnd label_raw for '{}' should be '{}'",
                     terminator_line, expected_label
                 );
             }
@@ -165,14 +132,14 @@ mod verbatim_label_tests {
 
         let label_token = tokens
             .iter()
-            .find(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        if let ScannerToken::VerbatimLabel { content, .. } = label_token {
-            // This verifies the FIXED behavior - content excludes "::"
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            // This verifies the FIXED behavior - label_raw excludes "::"
             assert_eq!(
-                content, "mylabel",
-                "FIXED: VerbatimLabel now correctly excludes :: prefix"
+                label_raw, "mylabel",
+                "FIXED: VerbatimBlockEnd label_raw now correctly excludes :: prefix"
             );
         }
     }

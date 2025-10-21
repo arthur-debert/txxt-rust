@@ -2,4 +2,5 @@
 //!
 //! Tests for AST construction and inline parsing.
 
+mod ast_construction_test;
 mod elements;

@@ -65,16 +65,14 @@ pub fn create_annotation_element(
                 ))
             };
 
-            Ok(AnnotationBlock {
-                label: label_text,
+            Ok(AnnotationBlock::new(
+                label_text,
                 content,
-                annotations: nested_annotations,
                 // FIXME: post-parser - Extract parameters from token instead of empty Parameters
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                tokens: ScannerTokenSequence::new(),
-                // FIXME: post-parser - Extract namespace from label (e.g., "org.example.custom")
-                namespace: None,
-            })
+                crate::ast::elements::components::parameters::Parameters::new(),
+                nested_annotations,
+                ScannerTokenSequence::new(),
+            ))
         }
         _ => Err(BlockParseError::InvalidStructure(
             "Expected Annotation token for annotation".to_string(),

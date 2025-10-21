@@ -569,7 +569,7 @@ impl QueryFilter {
                 .element
                 .annotations()
                 .iter()
-                .any(|ann| ann.label == *annotation_type),
+                .any(|ann| ann.name == *annotation_type),
 
             QueryFilter::HasParameter(key, value) => node
                 .value()

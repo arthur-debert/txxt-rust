@@ -83,7 +83,7 @@ pub fn validate_annotation_count(actual: &[Annotation], expected_count: usize) {
          Annotations found: {:?}",
         expected_count,
         actual_count,
-        actual.iter().map(|a| &a.label).collect::<Vec<_>>()
+        actual.iter().map(|a| &a.name).collect::<Vec<_>>()
     );
 }
 
@@ -93,14 +93,14 @@ pub fn validate_annotation_count(actual: &[Annotation], expected_count: usize) {
 ///
 /// Panics if annotation with label is not found.
 pub fn validate_has_annotation(actual: &[Annotation], expected_label: &str) {
-    let found = actual.iter().any(|a| a.label == expected_label);
+    let found = actual.iter().any(|a| a.name == expected_label);
     assert!(
         found,
         "Annotation validation failed\n\
          Expected annotation with label: '{}'\n\
          Actual annotations: {:?}",
         expected_label,
-        actual.iter().map(|a| &a.label).collect::<Vec<_>>()
+        actual.iter().map(|a| &a.name).collect::<Vec<_>>()
     );
 }
 

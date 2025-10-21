@@ -214,12 +214,12 @@ pub fn assert_annotation_count_exact(annotations: &[Annotation], expected_count:
 /// Assert annotations vector contains annotation with specific label.
 #[allow(dead_code)]
 pub fn assert_has_annotation_with_label(annotations: &[Annotation], label: &str) {
-    let found = annotations.iter().any(|ann| ann.label == label);
+    let found = annotations.iter().any(|ann| ann.name == label);
     assert!(
         found,
         "Annotation with label '{}' not found\n\
          Available annotations: {:?}",
         label,
-        annotations.iter().map(|a| &a.label).collect::<Vec<_>>()
+        annotations.iter().map(|a| &a.name).collect::<Vec<_>>()
     );
 }

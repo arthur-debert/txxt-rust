@@ -36,10 +36,12 @@ use crate::cst::ScannerTokenSequence;
 ///     Content here
 ///     :: comment :: Final comment        // Attaches to Session (parent)
 /// ```
+use crate::ast::elements::components::ParsedLabel;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Annotation {
     /// Annotation label/type (e.g., "note", "author", "spec")
-    pub label: String,
+    pub name: String,
 
     /// Optional parameters in key=value format
     /// Example: :: warning:severity=high :: Content
@@ -129,11 +131,7 @@ pub struct AnnotationProcessor {
 impl Annotation {
     /// Extract the local label (without namespace)
     pub fn local_label(&self) -> &str {
-        if let Some(dot_pos) = self.label.rfind('.') {
-            &self.label[dot_pos + 1..]
-        } else {
-            &self.label
-        }
+        &self.name
     }
 
     /// Check if this annotation has a specific namespace
@@ -177,13 +175,14 @@ impl Annotation {
     }
 
     /// Create a new annotation with minimal information
-    pub fn new(label: String, content: AnnotationContent) -> Self {
+    pub fn new(raw_label: String, content: AnnotationContent) -> Self {
+        let parsed_label = ParsedLabel::from_raw(&raw_label);
         Self {
-            label,
+            name: parsed_label.name,
             parameters: Parameters::new(),
             content,
             tokens: ScannerTokenSequence::new(),
-            namespace: None,
+            namespace: parsed_label.namespace,
         }
     }
 }
@@ -253,7 +252,7 @@ impl AnnotationProcessor {
     pub fn validate(&self, annotation: &Annotation) -> Result<(), AnnotationError> {
         // Validate namespace restrictions
         if self.validate_namespaces && annotation.is_reserved() {
-            return Err(AnnotationError::ReservedNamespace(annotation.label.clone()));
+            return Err(AnnotationError::ReservedNamespace(annotation.name.clone()));
         }
 
         // Validate known types
@@ -362,7 +361,7 @@ impl From<super::annotation_block::AnnotationBlock> for Annotation {
         };
 
         Self {
-            label: block.label,
+            name: block.name,
             parameters: block.parameters,
             content,
             tokens: block.tokens,

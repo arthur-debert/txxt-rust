@@ -55,12 +55,8 @@ fn make_paragraph(
     // Field 2: annotations (Vec<Annotation>)
     let annotation_vec = annotations
         .iter()
-        .map(|label| Annotation {
-            label: label.to_string(),
-            namespace: None,
-            content: AnnotationContent::Empty,
-            tokens: ScannerTokenSequence { tokens: vec![] },
-            parameters: Parameters::new(),
+        .map(|label| {
+            Annotation::new(label.to_string(), AnnotationContent::Empty)
         })
         .collect();
 

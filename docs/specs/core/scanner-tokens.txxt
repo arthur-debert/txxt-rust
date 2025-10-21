@@ -30,6 +30,23 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
         - `Newline`: Line break characters
         - `Eof`: End of file marker
 
+        Note on Indentation and the Wall Concept:
+
+        Scanner tokens preserve ALL characters, including structural whitespace.
+        When an Indent token is emitted, it is followed by Whitespace tokens containing
+        the physical spaces that create that indentation.
+
+        Example sequence:
+            Indent                   // Structural marker: "we're at level 1"
+            Whitespace("    ")       // Physical spaces (preserved for position tracking)
+            Text("content")          // Actual content starts here (at the wall)
+
+        The Whitespace after Indent is captured by the semantic analyzer and stored
+        in the indentation_chars field of line tokens (PlainTextLine, SequenceTextLine).
+        This separates STRUCTURAL padding from SEMANTIC content.
+
+        See @semantic-tokens.txxt section 3 for the wall concept architecture.
+
     1.3. Formatting Tokens
 
         Tokens that apply text formatting:

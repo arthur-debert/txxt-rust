@@ -47,7 +47,45 @@ impl SemanticAnalyzer {
     ) -> Result<HighLevelTokenList, SemanticAnalysisError> {
         let mut high_level_tokens = Vec::new();
         let mut i = 0;
-        let mut pending_indentation = String::new(); // Captured leading whitespace
+
+        // THE WALL CONCEPT: Indentation Handling
+        //
+        // In txxt, indented content has a "wall" - the position where actual content starts.
+        // This follows the same architecture as verbatim blocks (see docs/specs/elements/verbatim/verbatim.txxt).
+        //
+        // Example:
+        //   1. Session Title
+        //
+        //       |This is content at the wall
+        //       |Second line also at the wall
+        //
+        // The wall (marked by |) is at column 4 (relative to the session title).
+        // The leading whitespace ("    ") is STRUCTURAL, not content.
+        //
+        // Scanner tokens preserve everything for position tracking:
+        //   - Indent (structural marker: "we're now at indent level 1")
+        //   - Whitespace("    ") (the physical spaces creating that indentation)
+        //   - Text("This") (actual content starts here - at the wall)
+        //
+        // High-level tokens separate structure from content:
+        //   - Indent (structural token)
+        //   - PlainTextLine {
+        //       indentation_chars: "    ",  // The wall padding (STRUCTURAL)
+        //       content: "This is content..." // Content at the wall (SEMANTIC)
+        //     }
+        //
+        // This ensures:
+        // 1. Scanner tokens preserve exact positions for LSP features
+        // 2. High-level tokens make structure explicit via indentation_chars
+        // 3. Parser sees content at the wall, never sees structural padding
+        //
+        // CRITICAL: This must be consistent across ALL line-level elements:
+        // - PlainTextLine (paragraphs)
+        // - SequenceTextLine (lists, sessions)
+        // - (Future: Annotations, Definitions when they become line-level)
+        //
+        // See tests/tokenizer/test_indentation_wall_consistency.rs for comprehensive validation.
+        let mut pending_indentation = String::new(); // Captured leading whitespace "before the wall"
 
         while i < scanner_tokens.len() {
             let token = &scanner_tokens[i];

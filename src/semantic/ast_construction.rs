@@ -80,24 +80,28 @@ impl<'a> AstConstructor<'a> {
 
             // Try to match patterns in precedence order
 
-            // Phase 2: Session pattern (higher precedence than paragraph)
+            // Session pattern (higher precedence than list and paragraph)
             // Two variants:
             // 1. Start of document: <TitleLine> <BlankLine> <Indent>
             // 2. Mid-document: <BlankLine> <TitleLine> <BlankLine> <Indent>
-
-            // Try session pattern first (handles both blank line prefix and document start)
             if let Some((node, _tokens_consumed)) = self.try_parse_session()? {
                 ast_nodes.push(node);
                 continue;
             }
 
-            // Skip standalone blank lines (not part of session pattern)
+            // List pattern (2+ consecutive SequenceTextLine, no blank lines)
+            if let Some((node, _tokens_consumed)) = self.try_parse_list()? {
+                ast_nodes.push(node);
+                continue;
+            }
+
+            // Skip standalone blank lines (not part of session/list pattern)
             if matches!(token, HighLevelToken::BlankLine { .. }) {
                 self.position += 1;
                 continue;
             }
 
-            // Phase 1: Paragraph pattern (catch-all for PlainTextLine)
+            // Paragraph pattern (catch-all for PlainTextLine)
             if let Some(node) = self.try_parse_paragraph()? {
                 ast_nodes.push(node);
             } else {
@@ -226,6 +230,12 @@ impl<'a> AstConstructor<'a> {
                 continue;
             }
 
+            // Try list pattern (2+ consecutive SequenceTextLine)
+            if let Some((node, _tokens_consumed)) = self.try_parse_list()? {
+                content_nodes.push(node);
+                continue;
+            }
+
             // Skip blank lines within content
             if matches!(token, HighLevelToken::BlankLine { .. }) {
                 self.position += 1;
@@ -242,6 +252,64 @@ impl<'a> AstConstructor<'a> {
         }
 
         Ok(content_nodes)
+    }
+
+    /// Try to parse a list pattern
+    ///
+    /// Lists are 2+ consecutive SequenceTextLine tokens with no blank lines between them.
+    ///
+    /// Pattern: <SequenceTextLine>{2,} (no <BlankLine> between)
+    ///
+    /// Returns: (ListBlock, tokens_consumed) if matched, None otherwise
+    fn try_parse_list(&mut self) -> Result<Option<(AstNode, usize)>, BlockParseError> {
+        let start_pos = self.position;
+
+        if self.position >= self.tokens.len() {
+            return Ok(None);
+        }
+
+        // First token must be SequenceTextLine
+        if !matches!(
+            self.tokens[self.position],
+            HighLevelToken::SequenceTextLine { .. }
+        ) {
+            return Ok(None);
+        }
+
+        // Collect consecutive SequenceTextLine tokens (no blank lines allowed)
+        let mut list_item_tokens = Vec::new();
+
+        while self.position < self.tokens.len() {
+            let token = &self.tokens[self.position];
+
+            match token {
+                HighLevelToken::SequenceTextLine { .. } => {
+                    list_item_tokens.push(token.clone());
+                    self.position += 1;
+                }
+                HighLevelToken::BlankLine { .. } => {
+                    // Blank line terminates list
+                    break;
+                }
+                _ => {
+                    // Any other token terminates list
+                    break;
+                }
+            }
+        }
+
+        // Lists require at least 2 items
+        if list_item_tokens.len() < 2 {
+            // Not a list - reset position and return None
+            self.position = start_pos;
+            return Ok(None);
+        }
+
+        // Delegate to list element constructor
+        let list_block = crate::semantic::elements::list::create_list_element(&list_item_tokens)?;
+
+        let tokens_consumed = self.position - start_pos;
+        Ok(Some((AstNode::List(list_block), tokens_consumed)))
     }
 
     /// Try to parse a paragraph pattern

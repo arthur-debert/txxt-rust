@@ -16,3 +16,10 @@ mod ensemble_03_session_multiple_paragraphs;
 mod ensemble_04_multiple_sessions_flat;
 mod ensemble_05_nested_sessions_basic;
 mod ensemble_06_nested_sessions_multiple;
+mod ensemble_session_with_list;
+
+// List parsing tests (simple to complex)
+mod list_01_simple_single;
+
+// Debug utilities
+mod debug_tokens;

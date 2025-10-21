@@ -5,3 +5,4 @@
 
 mod annotation_test;
 mod definition_test;
+mod verbatim_test;

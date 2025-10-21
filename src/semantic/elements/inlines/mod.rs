@@ -189,46 +189,16 @@ pub use references::*;
 /// let inlines = parse_inlines(&tokens)?;
 /// // Returns: [Strong(vec![Text("bold")]), Identity(Text(" and ")), Emphasis(vec![Text("italic")]), Identity(Text(" text"))]
 /// ```
+use crate::semantic::elements::formatting::parse_formatting_inlines;
+
 pub fn parse_inlines(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::Inline>, InlineParseError> {
-    // TODO: Implement inline parsing logic
-    // For now, return a placeholder that treats all tokens as plain text
-
     if tokens.is_empty() {
         return Ok(Vec::new());
     }
 
-    // Convert all tokens to plain text and preserve token sequence
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            crate::cst::ScannerToken::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
-
-    if text_content.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Create token sequence from source tokens
-    let token_sequence = crate::cst::ScannerTokenSequence {
-        tokens: tokens.to_vec(),
-    };
-
-    // Create a text inline preserving source tokens
-    let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
-        crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
-                &text_content,
-                token_sequence,
-            ),
-        ),
-    );
-
-    Ok(vec![text_inline])
+    parse_formatting_inlines(tokens)
 }
 
 /// Parse formatting inline elements (bold, italic, code, math)

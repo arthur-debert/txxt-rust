@@ -9,6 +9,41 @@ use serde::{Deserialize, Serialize};
 
 use super::scanner_tokens::ScannerToken;
 
+/// Remove escape backslashes from text content
+///
+/// The scanner includes backslashes in text tokens when they escape special characters.
+/// This function removes those backslashes to get the actual display text.
+///
+/// # Examples
+/// - `\*not bold\*` → `*not bold*`
+/// - `\_not italic\_` → `_not italic_`
+/// - `\`not code\`` → `` `not code` ``
+/// - `\#not math\#` → `#not math#`
+///
+/// Backslashes before non-special characters are preserved.
+fn unescape_text(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            // Check if next character is a special character that was escaped
+            if let Some(&next_ch) = chars.peek() {
+                if matches!(next_ch, '*' | '_' | '`' | '#' | '[' | ']' | '-' | '\\') {
+                    // Skip the backslash, include the escaped character
+                    chars.next();
+                    result.push(next_ch);
+                    continue;
+                }
+            }
+        }
+        // Not an escape sequence, include as-is
+        result.push(ch);
+    }
+
+    result
+}
+
 /// Precise source position for character-level language server support
 ///
 /// Unlike traditional AST source spans, we need both start and end positions
@@ -68,11 +103,15 @@ impl ScannerTokenSequence {
 
     /// Get the text content by concatenating all scanner token content
     pub fn text(&self) -> String {
-        self.tokens
+        let raw_text = self
+            .tokens
             .iter()
             .map(|token| token.content())
             .collect::<Vec<_>>()
-            .join("")
+            .join("");
+
+        // Process escape sequences: remove backslashes before special characters
+        unescape_text(&raw_text)
     }
 
     /// Create a scanner token sequence from a vector of scanner tokens

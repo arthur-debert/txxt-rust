@@ -299,4 +299,20 @@ impl ScannerToken {
             _ => None,
         }
     }
+
+    pub fn is_bold_delimiter(&self) -> bool {
+        matches!(self, ScannerToken::BoldDelimiter { .. })
+    }
+
+    pub fn is_italic_delimiter(&self) -> bool {
+        matches!(self, ScannerToken::ItalicDelimiter { .. })
+    }
+
+    pub fn is_code_delimiter(&self) -> bool {
+        matches!(self, ScannerToken::CodeDelimiter { .. })
+    }
+
+    pub fn is_math_delimiter(&self) -> bool {
+        matches!(self, ScannerToken::MathDelimiter { .. })
+    }
 }

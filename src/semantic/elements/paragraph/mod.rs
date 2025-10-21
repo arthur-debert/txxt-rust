@@ -41,6 +41,7 @@ pub fn create_paragraph_element_multi(
     }
 
     let mut content_transforms = Vec::new();
+    let mut all_scanner_tokens = Vec::new();
 
     for token in tokens {
         match token {
@@ -56,6 +57,9 @@ pub fn create_paragraph_element_multi(
                         ))
                     }
                 };
+
+                // Collect scanner tokens for the paragraph block
+                all_scanner_tokens.extend(source_tokens.tokens.clone());
 
                 // Create TextTransform::Identity, preserving source tokens
                 let text = crate::ast::elements::inlines::Text::simple_with_tokens(
@@ -80,6 +84,9 @@ pub fn create_paragraph_element_multi(
         annotations: Vec::new(),
         // FIXME: post-parser - Extract parameters from paragraph
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
-        tokens: ScannerTokenSequence::new(),
+        // Preserve scanner tokens (including inline delimiters) from semantic analysis
+        tokens: ScannerTokenSequence {
+            tokens: all_scanner_tokens,
+        },
     })
 }

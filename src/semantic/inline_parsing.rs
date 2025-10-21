@@ -7,6 +7,7 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::ElementNode;
+use crate::semantic::elements::formatting::parse_formatting_elements;
 
 /// Inline parser for processing inline elements within blocks
 ///
@@ -35,9 +36,21 @@ impl InlineParser {
         &self,
         blocks: Vec<ElementNode>,
     ) -> Result<Vec<ElementNode>, InlineParseError> {
-        // TODO: Implement inline parsing logic
-        // For now, return the blocks unchanged as Phase 2 is not yet implemented
-        Ok(blocks)
+        blocks
+            .into_iter()
+            .map(|node| self.parse_inlines_in_node(node))
+            .collect()
+    }
+
+    fn parse_inlines_in_node(&self, node: ElementNode) -> Result<ElementNode, InlineParseError> {
+        match node {
+            ElementNode::ParagraphBlock(mut block) => {
+                // Use existing scanner tokens from the block instead of re-tokenizing
+                block.content = parse_formatting_elements(&block.tokens.tokens)?;
+                Ok(ElementNode::ParagraphBlock(block))
+            }
+            _ => Ok(node),
+        }
     }
 }
 
@@ -55,6 +68,14 @@ pub enum InlineParseError {
     },
     /// Reference resolution error
     ReferenceError(String),
+    /// Generic parse error
+    GenericParseError(String),
+}
+
+impl From<crate::semantic::elements::inlines::InlineParseError> for InlineParseError {
+    fn from(err: crate::semantic::elements::inlines::InlineParseError) -> Self {
+        InlineParseError::GenericParseError(err.to_string())
+    }
 }
 
 impl std::fmt::Display for InlineParseError {
@@ -71,6 +92,9 @@ impl std::fmt::Display for InlineParseError {
             }
             InlineParseError::ReferenceError(reference) => {
                 write!(f, "Reference resolution error: {}", reference)
+            }
+            InlineParseError::GenericParseError(msg) => {
+                write!(f, "Parse error: {}", msg)
             }
         }
     }

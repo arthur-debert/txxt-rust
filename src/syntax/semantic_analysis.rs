@@ -596,16 +596,9 @@ impl SemanticAnalyzer {
                     return false;
                 }
 
-                // If the line contains syntactic markers like colons, use individual processing to preserve them
-                let has_syntactic_markers = line_tokens
-                    .iter()
-                    .any(|token| matches!(token, ScannerToken::Colon { .. }));
-
-                if has_syntactic_markers {
-                    return false;
-                }
-
                 // Otherwise, this looks like a paragraph - use line-level processing
+                // Note: Colons are allowed in paragraphs (e.g., "features:" in regular text).
+                // Definitions are detected by TxxtMarkers (::), which are already filtered above.
                 true
             }
 

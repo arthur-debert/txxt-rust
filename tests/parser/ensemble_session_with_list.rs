@@ -15,10 +15,9 @@
 mod corpora;
 
 use corpora::TxxtCorpora;
-use txxt::transform::run_all;
+use txxt::api::run_all_unified;
 
 #[test]
-#[ignore] // Blocked by tokenizer bug #116
 fn test_ensemble_session_with_list() {
     // Load ensemble document
     let corpus = TxxtCorpora::load_document("06-session-with-list")
@@ -29,7 +28,7 @@ fn test_ensemble_session_with_list() {
     println!("===================\n");
 
     // Parse through full pipeline
-    let document = run_all(
+    let document = run_all_unified(
         &corpus.source_text,
         Some("06-session-with-list.txxt".to_string()),
     )

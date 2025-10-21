@@ -45,14 +45,19 @@ pub fn create_paragraph_element_multi(
     for token in tokens {
         match token {
             HighLevelToken::PlainTextLine { content, .. } => {
-                // Extract content text
-                let content_text = match content.as_ref() {
-                    HighLevelToken::TextSpan { content, .. } => content.clone(),
-                    _ => "unknown".to_string(),
+                // Extract content text and source tokens
+                let (content_text, source_tokens) = match content.as_ref() {
+                    HighLevelToken::TextSpan {
+                        content, tokens, ..
+                    } => (content.clone(), tokens.clone()),
+                    _ => ("unknown".to_string(), None),
                 };
 
-                // Create a simple TextTransform::Identity for the plain text content
-                let text = crate::ast::elements::inlines::Text::simple(&content_text);
+                // Create TextTransform::Identity, preserving source tokens
+                let text = crate::ast::elements::inlines::Text::simple_with_tokens(
+                    &content_text,
+                    source_tokens,
+                );
                 let text_transform = crate::ast::elements::inlines::TextTransform::Identity(text);
                 content_transforms.push(text_transform);
             }

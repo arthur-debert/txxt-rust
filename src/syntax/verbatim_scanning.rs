@@ -224,6 +224,7 @@ impl VerbatimScanner {
     }
 
     /// Scan text for verbatim blocks, returning a list of detected blocks
+    /// DEPRECATED: Use scan_boundaries() for new pipeline architecture (Issue #132)
     pub fn scan(&self, text: &str) -> Vec<VerbatimBlock> {
         let mut blocks = Vec::new();
         let mut state = ScanState::ScanningNormal;
@@ -247,6 +248,38 @@ impl VerbatimScanner {
         }
 
         blocks
+    }
+
+    /// Scan text for verbatim block boundaries (NEW - Issue #132)
+    /// Returns boundary metadata only, no content processing
+    pub fn scan_boundaries(&self, text: &str) -> Vec<VerbatimBoundary> {
+        let mut boundaries = Vec::new();
+        let mut state = ScanState::ScanningNormal;
+        let lines: Vec<&str> = text.lines().collect();
+        let mut line_idx = 0;
+
+        while line_idx < lines.len() {
+            let line_num = line_idx + 1; // 1-based line numbers
+            let line = lines[line_idx];
+
+            let (new_state, next_line_idx) = self.process_line_with_backtrack_boundaries(
+                &mut boundaries,
+                state,
+                line_num,
+                line,
+                &lines,
+            );
+
+            state = new_state;
+            line_idx = next_line_idx;
+        }
+
+        // Handle end of document
+        if let Err(error) = self.finalize_scan_boundaries(&mut boundaries, state, lines.len()) {
+            eprintln!("Verbatim scanner error: {}", error);
+        }
+
+        boundaries
     }
 
     /// Process a single line in the state machine with backtracking support
@@ -353,7 +386,7 @@ impl VerbatimScanner {
             // Make sure it doesn't end with :: (that would be a definition)
             if !prefix.ends_with(':') {
                 let title_indent = self.calculate_indentation(line);
-                let title_text = prefix.trim().to_string(); // Extract and store title
+                let title_text = self.extract_title(line); // Use helper method
                 return ScanState::FoundPotentialStart {
                     title_line: line_num,
                     title_indent,
@@ -562,7 +595,6 @@ impl VerbatimScanner {
     }
 
     /// Extract title text from a title line (removes trailing colon and leading/trailing whitespace)
-    #[allow(dead_code)] // Will be used in scan_boundaries() method
     fn extract_title(&self, line: &str) -> String {
         if let Some(captures) = self.verbatim_start_re.captures(line) {
             let prefix = captures.get(1).unwrap().as_str();
@@ -573,7 +605,6 @@ impl VerbatimScanner {
     }
 
     /// Extract label (and optional params) from a terminator line
-    #[allow(dead_code)] // Will be used in scan_boundaries() method
     fn extract_label(&self, line: &str) -> String {
         if let Some(captures) = self.verbatim_end_re.captures(line) {
             if let Some(label_match) = captures.get(1) {
@@ -607,6 +638,314 @@ impl VerbatimScanner {
     pub fn is_verbatim_content(&self, line_num: usize, blocks: &[VerbatimBlock]) -> bool {
         blocks.iter().any(|block| {
             if let (Some(start), Some(end)) = (block.content_start, block.content_end) {
+                line_num >= start && line_num <= end
+            } else {
+                false // Empty blocks have no content
+            }
+        })
+    }
+
+    // ========== NEW BOUNDARY-BASED METHODS (Issue #132) ==========
+
+    /// Process a single line with backtracking for boundary scanning
+    fn process_line_with_backtrack_boundaries(
+        &self,
+        boundaries: &mut Vec<VerbatimBoundary>,
+        state: ScanState,
+        line_num: usize,
+        line: &str,
+        all_lines: &[&str],
+    ) -> (ScanState, usize) {
+        let next_state =
+            self.process_line_boundaries(boundaries, state.clone(), line_num, line, all_lines);
+
+        // Check if we need to backtrack
+        match (&state, &next_state) {
+            (ScanState::InVerbatimNormal { title_line, .. }, ScanState::ScanningNormal)
+            | (ScanState::InVerbatimStretched { title_line, .. }, ScanState::ScanningNormal) => {
+                // Backtrack to line after the failed title line
+                (next_state, *title_line)
+            }
+            _ => {
+                // Normal progression to next line
+                (next_state, line_num)
+            }
+        }
+    }
+
+    /// Process a single line for boundary scanning (builds VerbatimBoundary instead of VerbatimBlock)
+    fn process_line_boundaries(
+        &self,
+        boundaries: &mut Vec<VerbatimBoundary>,
+        state: ScanState,
+        line_num: usize,
+        line: &str,
+        all_lines: &[&str],
+    ) -> ScanState {
+        match state {
+            ScanState::ScanningNormal => self.check_for_verbatim_start(line_num, line),
+
+            ScanState::FoundPotentialStart {
+                title_line,
+                title_indent,
+                title_text,
+            } => self.validate_verbatim_start_boundary(
+                boundaries,
+                title_line,
+                title_indent,
+                title_text,
+                line_num,
+                line,
+            ),
+
+            ScanState::InVerbatimNormal {
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+                expected_indent,
+            } => self.process_normal_verbatim_line_boundary(
+                boundaries,
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+                expected_indent,
+                line_num,
+                line,
+                all_lines,
+            ),
+
+            ScanState::InVerbatimStretched {
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+            } => self.process_stretched_verbatim_line_boundary(
+                boundaries,
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+                line_num,
+                line,
+                all_lines,
+            ),
+        }
+    }
+
+    /// Validate verbatim start and create boundary (instead of VerbatimBlock)
+    fn validate_verbatim_start_boundary(
+        &self,
+        boundaries: &mut Vec<VerbatimBoundary>,
+        title_line: usize,
+        title_indent: usize,
+        title_text: String,
+        line_num: usize,
+        line: &str,
+    ) -> ScanState {
+        // If this is a blank line, continue waiting for content
+        if line.trim().is_empty() {
+            return ScanState::FoundPotentialStart {
+                title_line,
+                title_indent,
+                title_text,
+            };
+        }
+
+        // Check if this line is an annotation - if so, this is NOT a verbatim block
+        if self.annotation_re.is_match(line) {
+            return ScanState::ScanningNormal;
+        }
+
+        let line_indent = self.calculate_indentation(line);
+
+        // Check for terminator immediately after title (empty verbatim block)
+        if self.is_valid_terminator(line, title_indent) {
+            // Extract label from terminator
+            let label_raw = self.extract_label(line);
+
+            // This is an empty verbatim block - add boundary and continue scanning
+            boundaries.push(VerbatimBoundary {
+                title_line,
+                terminator_line: line_num,
+                title: title_text,
+                label_raw,
+                wall_type: WallType::InFlow(title_indent), // Default for empty
+                title_indent,
+                content_start: None,
+                content_end: None,
+            });
+            return ScanState::ScanningNormal;
+        }
+
+        // Determine verbatim type based on content indentation
+        if line_indent == 0 {
+            // Stretched verbatim - content at column 0
+            ScanState::InVerbatimStretched {
+                title_line,
+                title_indent,
+                title_text,
+                content_start: line_num,
+            }
+        } else if line_indent == title_indent + INDENT_SIZE {
+            // Normal verbatim - content at +1 indentation level from title
+            ScanState::InVerbatimNormal {
+                title_line,
+                title_indent,
+                title_text,
+                content_start: line_num,
+                expected_indent: line_indent,
+            }
+        } else {
+            // Not a valid verbatim block - wrong indentation
+            ScanState::ScanningNormal
+        }
+    }
+
+    /// Process normal verbatim line for boundary scanning
+    #[allow(clippy::too_many_arguments)]
+    fn process_normal_verbatim_line_boundary(
+        &self,
+        boundaries: &mut Vec<VerbatimBoundary>,
+        title_line: usize,
+        title_indent: usize,
+        title_text: String,
+        content_start: usize,
+        expected_indent: usize,
+        line_num: usize,
+        line: &str,
+        _all_lines: &[&str],
+    ) -> ScanState {
+        // Allow blank lines
+        if line.trim().is_empty() {
+            return ScanState::InVerbatimNormal {
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+                expected_indent,
+            };
+        }
+
+        // Check for valid terminator
+        if self.is_valid_terminator(line, title_indent) {
+            // Extract label from terminator
+            let label_raw = self.extract_label(line);
+
+            // End of verbatim block - create boundary
+            boundaries.push(VerbatimBoundary {
+                title_line,
+                terminator_line: line_num,
+                title: title_text,
+                label_raw,
+                wall_type: WallType::InFlow(title_indent),
+                title_indent,
+                content_start: Some(content_start),
+                content_end: Some(line_num - 1),
+            });
+            return ScanState::ScanningNormal;
+        }
+
+        let line_indent = self.calculate_indentation(line);
+
+        // Content must be at expected indent (title + INDENT_SIZE) or deeper
+        if line_indent >= title_indent + INDENT_SIZE {
+            ScanState::InVerbatimNormal {
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+                expected_indent,
+            }
+        } else {
+            // Wrong indentation - abandon verbatim block
+            ScanState::ScanningNormal
+        }
+    }
+
+    /// Process stretched verbatim line for boundary scanning
+    #[allow(clippy::too_many_arguments)]
+    fn process_stretched_verbatim_line_boundary(
+        &self,
+        boundaries: &mut Vec<VerbatimBoundary>,
+        title_line: usize,
+        title_indent: usize,
+        title_text: String,
+        content_start: usize,
+        line_num: usize,
+        line: &str,
+        _all_lines: &[&str],
+    ) -> ScanState {
+        // Allow blank lines
+        if line.trim().is_empty() {
+            return ScanState::InVerbatimStretched {
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+            };
+        }
+
+        let line_indent = self.calculate_indentation(line);
+
+        // Check for terminator first (must be at title indent)
+        if self.is_valid_terminator(line, title_indent) {
+            // Extract label from terminator
+            let label_raw = self.extract_label(line);
+
+            boundaries.push(VerbatimBoundary {
+                title_line,
+                terminator_line: line_num,
+                title: title_text,
+                label_raw,
+                wall_type: WallType::Stretched,
+                title_indent,
+                content_start: Some(content_start),
+                content_end: Some(line_num - 1),
+            });
+            return ScanState::ScanningNormal;
+        }
+
+        // Content should be at column 0
+        if line_indent == 0 {
+            return ScanState::InVerbatimStretched {
+                title_line,
+                title_indent,
+                title_text,
+                content_start,
+            };
+        }
+
+        // Invalid - expected terminator or content at column 0
+        ScanState::ScanningNormal
+    }
+
+    /// Finalize boundary scan - check for unterminated blocks
+    fn finalize_scan_boundaries(
+        &self,
+        _boundaries: &mut Vec<VerbatimBoundary>,
+        state: ScanState,
+        _total_lines: usize,
+    ) -> Result<(), String> {
+        match state {
+            ScanState::ScanningNormal | ScanState::FoundPotentialStart { .. } => Ok(()),
+            ScanState::InVerbatimNormal { title_line, .. }
+            | ScanState::InVerbatimStretched { title_line, .. } => Err(format!(
+                "Unterminated verbatim block starting at line {}",
+                title_line
+            )),
+        }
+    }
+
+    /// Check if a line number is within verbatim content (boundary version)
+    pub fn is_verbatim_content_boundary(
+        &self,
+        line_num: usize,
+        boundaries: &[VerbatimBoundary],
+    ) -> bool {
+        boundaries.iter().any(|boundary| {
+            if let (Some(start), Some(end)) = (boundary.content_start, boundary.content_end) {
                 line_num >= start && line_num <= end
             } else {
                 false // Empty blocks have no content

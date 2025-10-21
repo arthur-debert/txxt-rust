@@ -48,6 +48,7 @@ fn test_sequence_text_line_single_text_token() {
             marker,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 
@@ -71,6 +72,7 @@ fn test_sequence_text_line_single_text_token() {
                 HighLevelToken::TextSpan {
                     content: text_content,
                     span: text_span,
+                    ..
                 } => {
                     assert_eq!(text_content, "First item");
                     assert_eq!(text_span, &line_span);
@@ -139,6 +141,7 @@ fn test_sequence_text_line_multiple_text_tokens() {
             marker,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 
@@ -162,6 +165,7 @@ fn test_sequence_text_line_multiple_text_tokens() {
                 HighLevelToken::TextSpan {
                     content: text_content,
                     span: text_span,
+                    ..
                 } => {
                     assert_eq!(text_content, "Item with content");
                     assert_eq!(text_span, &line_span);
@@ -383,6 +387,7 @@ fn test_sequence_text_line_different_marker_types() {
                 marker,
                 content,
                 span,
+                ..
             } => {
                 assert_eq!(span, line_span);
 
@@ -449,6 +454,7 @@ fn test_sequence_text_line_builder() {
             marker,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 
@@ -647,6 +653,7 @@ fn test_sequence_text_line_complex_content() {
             marker,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 

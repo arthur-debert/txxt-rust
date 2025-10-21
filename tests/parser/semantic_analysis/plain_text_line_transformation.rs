@@ -33,6 +33,7 @@ fn test_plain_text_line_single_text_token() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 
@@ -41,6 +42,7 @@ fn test_plain_text_line_single_text_token() {
                 HighLevelToken::TextSpan {
                     content: text_content,
                     span: text_span,
+                    ..
                 } => {
                     assert_eq!(text_content, "Hello world");
                     assert_eq!(text_span, &line_span);
@@ -97,6 +99,7 @@ fn test_plain_text_line_multiple_text_tokens() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 
@@ -105,6 +108,7 @@ fn test_plain_text_line_multiple_text_tokens() {
                 HighLevelToken::TextSpan {
                     content: text_content,
                     span: text_span,
+                    ..
                 } => {
                     assert_eq!(text_content, "Hello world");
                     assert_eq!(text_span, &line_span);
@@ -227,6 +231,7 @@ fn test_plain_text_line_different_content_types() {
                 indentation_chars: _,
                 content,
                 span,
+                ..
             } => {
                 assert_eq!(span, line_span);
 
@@ -271,6 +276,7 @@ fn test_plain_text_line_builder() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 
@@ -412,6 +418,7 @@ fn test_plain_text_line_complex_content() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             assert_eq!(span, line_span);
 

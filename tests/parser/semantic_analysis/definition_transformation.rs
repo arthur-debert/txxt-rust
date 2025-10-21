@@ -48,6 +48,7 @@ fn test_definition_basic_transformation() {
             term,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -124,6 +125,7 @@ fn test_definition_with_parameters() {
             term,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_some());
@@ -210,6 +212,7 @@ fn test_definition_complex_term() {
             term,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -336,6 +339,7 @@ fn test_definition_builder() {
             term,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_some());
@@ -448,6 +452,7 @@ fn test_definition_different_terms() {
                 term,
                 parameters,
                 span: token_span,
+                ..
             } => {
                 assert_eq!(token_span, span);
                 assert!(parameters.is_none());
@@ -537,6 +542,7 @@ fn test_definition_with_multiple_parameters() {
             term,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_some());
@@ -616,6 +622,7 @@ fn test_definition_empty_parameters() {
             term,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none()); // Empty parameters should result in None

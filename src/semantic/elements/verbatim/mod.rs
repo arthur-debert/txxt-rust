@@ -63,7 +63,6 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 vec![
                     crate::ast::elements::verbatim::ignore_container::IgnoreLine {
                         content: content_text,
-                        // FIXME: post-parser - Preserve actual source tokens for ignore line
                         tokens: ScannerTokenSequence::new(),
                     },
                 ]
@@ -79,7 +78,6 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                     vec![],
                     // FIXME: post-parser - Extract parameters from verbatim block
                     crate::ast::elements::components::parameters::Parameters::new(),
-                    // FIXME: post-parser - Preserve actual source tokens for container
                     ScannerTokenSequence::new(),
                 );
 
@@ -98,7 +96,6 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
                 // FIXME: post-parser - Parse block-level annotations
                 annotations: Vec::new(),
-                // FIXME: post-parser - Preserve actual source tokens for entire verbatim block
                 tokens: ScannerTokenSequence::new(),
             })
         }

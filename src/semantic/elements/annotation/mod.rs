@@ -71,7 +71,6 @@ pub fn create_annotation_element(
                 annotations: nested_annotations,
                 // FIXME: post-parser - Extract parameters from token instead of empty Parameters
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                // FIXME: post-parser - Preserve actual source tokens instead of empty sequence
                 tokens: ScannerTokenSequence::new(),
                 // FIXME: post-parser - Extract namespace from label (e.g., "org.example.custom")
                 namespace: None,

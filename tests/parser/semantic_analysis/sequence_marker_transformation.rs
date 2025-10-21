@@ -20,7 +20,7 @@ fn test_sequence_marker_plain_transformation() {
         end: Position { row: 1, column: 1 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone());
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -30,6 +30,7 @@ fn test_sequence_marker_plain_transformation() {
             form,
             marker,
             span: token_span,
+            ..
         } => {
             assert_eq!(style, HighLevelNumberingStyle::Plain);
             assert_eq!(form, HighLevelNumberingForm::Regular);
@@ -53,7 +54,7 @@ fn test_sequence_marker_numerical_transformation() {
         end: Position { row: 1, column: 2 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone());
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -63,6 +64,7 @@ fn test_sequence_marker_numerical_transformation() {
             form,
             marker,
             span: token_span,
+            ..
         } => {
             assert_eq!(style, HighLevelNumberingStyle::Numeric);
             assert_eq!(form, HighLevelNumberingForm::Regular);
@@ -86,7 +88,7 @@ fn test_sequence_marker_alphabetical_transformation() {
         end: Position { row: 1, column: 2 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone());
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -96,6 +98,7 @@ fn test_sequence_marker_alphabetical_transformation() {
             form,
             marker,
             span: token_span,
+            ..
         } => {
             assert_eq!(style, HighLevelNumberingStyle::Alphabetic);
             assert_eq!(form, HighLevelNumberingForm::Regular);
@@ -119,7 +122,7 @@ fn test_sequence_marker_roman_transformation() {
         end: Position { row: 1, column: 2 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone());
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -129,6 +132,7 @@ fn test_sequence_marker_roman_transformation() {
             form,
             marker,
             span: token_span,
+            ..
         } => {
             assert_eq!(style, HighLevelNumberingStyle::Roman);
             assert_eq!(form, HighLevelNumberingForm::Regular);
@@ -171,7 +175,7 @@ fn test_sequence_marker_different_markers() {
             end: Position { row: 1, column: 3 },
         };
 
-        let result = analyzer.transform_sequence_marker(marker_type.clone(), span.clone());
+        let result = analyzer.transform_sequence_marker(marker_type.clone(), span.clone(), None);
         assert!(result.is_ok());
 
         let semantic_token = result.unwrap();
@@ -181,6 +185,7 @@ fn test_sequence_marker_different_markers() {
                 form,
                 marker,
                 span: token_span,
+                ..
             } => {
                 assert_eq!(style, *expected_style);
                 assert_eq!(form, HighLevelNumberingForm::Regular);
@@ -221,7 +226,7 @@ fn test_sequence_marker_different_positions() {
             end: *end,
         };
 
-        let result = analyzer.transform_sequence_marker(marker_type, span.clone());
+        let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
         assert!(result.is_ok());
 
         let semantic_token = result.unwrap();
@@ -280,6 +285,7 @@ fn test_sequence_marker_in_semantic_analysis() {
             form,
             marker,
             span,
+            ..
         } => {
             assert_eq!(*style, HighLevelNumberingStyle::Numeric);
             assert_eq!(*form, HighLevelNumberingForm::Regular);
@@ -297,7 +303,7 @@ fn test_sequence_marker_in_semantic_analysis() {
 
     // Check blank line
     match &semantic_tokens.tokens[1] {
-        HighLevelToken::BlankLine { span } => {
+        HighLevelToken::BlankLine { span, .. } => {
             assert_eq!(span.start.row, 2);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.row, 2);
@@ -316,6 +322,7 @@ fn test_sequence_marker_in_semantic_analysis() {
             form,
             marker,
             span,
+            ..
         } => {
             assert_eq!(*style, HighLevelNumberingStyle::Plain);
             assert_eq!(*form, HighLevelNumberingForm::Regular);
@@ -352,6 +359,7 @@ fn test_sequence_marker_builder() {
             form,
             marker,
             span: token_span,
+            ..
         } => {
             assert_eq!(style, HighLevelNumberingStyle::Numeric);
             assert_eq!(form, HighLevelNumberingForm::Regular);

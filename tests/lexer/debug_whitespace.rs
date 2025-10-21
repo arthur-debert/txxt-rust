@@ -1,6 +1,6 @@
 //! Debug test to understand current tokenizer behavior with whitespace
 
-use txxt::lexer::Lexer;
+use txxt::syntax::Lexer;
 
 #[test]
 fn debug_simple_whitespace() {

@@ -5,7 +5,7 @@
 
 use txxt::ast::elements::formatting::inlines::TextTransform;
 use txxt::cst::{Position, ScannerToken, SourceSpan};
-use txxt::parser::elements::formatting::*;
+use txxt::semantic::elements::formatting::*;
 
 /// Helper function to create a test source span
 fn test_span() -> SourceSpan {

@@ -141,7 +141,7 @@ pub enum ScannerToken {
 
     /// Footnote references ([1], [2], [^label])
     FootnoteRef {
-        footnote_type: crate::lexer::elements::references::footnote_ref::FootnoteType,
+        footnote_type: crate::syntax::elements::references::footnote_ref::FootnoteType,
         span: SourceSpan,
     },
 
@@ -293,7 +293,7 @@ impl ScannerToken {
     /// Get the footnote type information (only valid for FootnoteRef scanner tokens)
     pub fn footnote_type(
         &self,
-    ) -> Option<&crate::lexer::elements::references::footnote_ref::FootnoteType> {
+    ) -> Option<&crate::syntax::elements::references::footnote_ref::FootnoteType> {
         match self {
             ScannerToken::FootnoteRef { footnote_type, .. } => Some(footnote_type),
             _ => None,

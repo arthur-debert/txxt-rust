@@ -8,7 +8,7 @@ use txxt::cst::high_level_tokens::{
     HighLevelTokenSpan,
 };
 use txxt::cst::{Position, ScannerToken, SourceSpan};
-use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::syntax::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_sequence_text_line_single_text_token() {

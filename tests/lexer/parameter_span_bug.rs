@@ -5,7 +5,7 @@
 //! making it impossible to track where they came from in the source.
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::Lexer;
+use txxt::syntax::Lexer;
 
 #[test]
 fn test_parameter_spans_in_annotation() {

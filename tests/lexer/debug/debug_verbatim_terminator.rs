@@ -4,7 +4,7 @@
 //! with label and parameter information instead of skipping the terminator line.
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 #[cfg(test)]
 mod tests {

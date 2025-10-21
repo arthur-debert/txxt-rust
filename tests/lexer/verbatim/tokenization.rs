@@ -5,7 +5,7 @@
 
 use rstest::rstest;
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 // =============================================================================
 // VerbatimTitle and IgnoreTextSpan Token Tests

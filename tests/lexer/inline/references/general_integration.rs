@@ -7,7 +7,7 @@
 use proptest::prelude::*;
 use rstest::rstest;
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 // =============================================================================
 // CitationRef Token Tests (rstest) - Citations produce CitationRef, not RefMarker
@@ -81,7 +81,7 @@ fn test_ref_marker_footnote_passing(#[case] input: &str, #[case] expected_number
             footnote_type,
             span,
         } => {
-            use txxt::lexer::elements::references::footnote_ref::FootnoteType;
+            use txxt::syntax::elements::references::footnote_ref::FootnoteType;
             assert_eq!(footnote_type, &FootnoteType::Naked(expected_number));
             assert_eq!(span.start.row, 0);
             assert_eq!(span.start.column, 0);
@@ -336,7 +336,7 @@ proptest! {
 
         match &tokens[0] {
             ScannerToken::FootnoteRef { footnote_type, span } => {
-                use txxt::lexer::elements::references::footnote_ref::FootnoteType;
+                use txxt::syntax::elements::references::footnote_ref::FootnoteType;
                 prop_assert_eq!(footnote_type, &FootnoteType::Naked(number));
                 prop_assert_eq!(span.start.row, 0);
                 prop_assert_eq!(span.start.column, 0);

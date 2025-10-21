@@ -1,7 +1,7 @@
 //! Integration tests for citation reference tokenization with main lexer
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 #[test]
 fn test_citation_ref_integration_simple() {

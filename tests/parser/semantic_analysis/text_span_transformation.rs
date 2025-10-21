@@ -5,7 +5,7 @@
 
 use txxt::cst::high_level_tokens::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::cst::{Position, ScannerToken, SourceSpan};
-use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::syntax::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_text_span_basic_transformation() {

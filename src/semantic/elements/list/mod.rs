@@ -147,7 +147,6 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
                 annotations: Vec::new(),
                 // FIXME: post-parser - Extract parameters from list item
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                // FIXME: post-parser - Preserve actual source tokens for item
                 tokens: ScannerTokenSequence::new(),
             });
         }
@@ -163,7 +162,6 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
         annotations: Vec::new(),
         // FIXME: post-parser - Extract parameters from list
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
-        // FIXME: post-parser - Preserve actual source tokens for entire list
         tokens: ScannerTokenSequence::new(),
     })
 }

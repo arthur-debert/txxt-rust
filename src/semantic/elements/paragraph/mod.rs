@@ -71,7 +71,6 @@ pub fn create_paragraph_element_multi(
         annotations: Vec::new(),
         // FIXME: post-parser - Extract parameters from paragraph
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
-        // FIXME: post-parser - Preserve actual source tokens for entire paragraph
         tokens: ScannerTokenSequence::new(),
     })
 }

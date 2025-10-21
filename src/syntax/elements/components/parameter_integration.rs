@@ -345,7 +345,7 @@ fn is_valid_parameter_key(s: &str) -> bool {
 
 /// Parse parameters with correct source position tracking
 fn parse_parameters_with_position(input: &str, start_position: Position) -> Vec<ScannerToken> {
-    let mut tokens = Vec::new();
+    let tokens = Vec::new();
     let chars: Vec<char> = input.chars().collect();
     let mut pos = 0;
     let mut current_position = start_position;

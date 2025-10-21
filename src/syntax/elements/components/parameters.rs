@@ -5,7 +5,7 @@
 //! - Boolean shorthand (key without value)
 //! - Namespaced keys (org.example.metadata)
 
-use crate::cst::{Position, ScannerToken, SourceSpan};
+use crate::cst::{Position, ScannerToken};
 use crate::syntax::tokenization::Lexer;
 
 /// Trait for parameter parsing
@@ -29,7 +29,7 @@ pub trait ParameterLexer {
 /// Parse a parameter string into individual Parameter tokens
 /// Input format: key=value,key2="quoted value",key3,key4=value
 pub fn parse_parameters<L: ParameterLexer>(lexer: &mut L, input: &str) -> Vec<ScannerToken> {
-    let mut tokens = Vec::new();
+    let tokens = Vec::new();
     let chars: Vec<char> = input.chars().collect();
     let mut pos = 0;
 
@@ -52,14 +52,14 @@ pub fn parse_parameters<L: ParameterLexer>(lexer: &mut L, input: &str) -> Vec<Sc
                 lexer.advance();
             }
 
-            tokens.push(ScannerToken::Parameter {
-                key,
-                value,
-                span: SourceSpan {
-                    start: start_pos,
-                    end: lexer.current_position(),
-                },
-            });
+            // tokens.push(ScannerToken::Parameter {
+            //     key,
+            //     value,
+            //     span: SourceSpan {
+            //         start: start_pos,
+            //         end: lexer.current_position(),
+            //     },
+            // });
 
             pos += consumed;
 

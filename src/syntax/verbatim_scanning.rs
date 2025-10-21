@@ -102,8 +102,8 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::cst::{Position, ScannerToken, SourceSpan, WallType};
-use crate::syntax::elements::components::parameters::{parse_parameters, ParameterLexer};
+use crate::cst::WallType;
+use crate::syntax::elements::components::parameters::ParameterLexer;
 use regex::Regex;
 
 /// Standard indentation level in spaces

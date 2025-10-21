@@ -34,10 +34,8 @@ use crate::semantic::BlockParseError;
 /// and delegates to element constructors for AST node creation.
 pub struct AstConstructor<'a> {
     /// The semantic token stream being parsed
-    #[allow(dead_code)] // Will be used in Phase 1 implementation
     tokens: &'a [HighLevelToken],
     /// Current parsing position in the token stream
-    #[allow(dead_code)] // Will be used in Phase 1 implementation
     position: usize,
 }
 
@@ -69,11 +67,63 @@ impl<'a> AstConstructor<'a> {
     /// * `Result<Vec<AstNode>, BlockParseError>` - Parsed AST nodes
     pub fn parse(
         &mut self,
-        _semantic_tokens: &'a HighLevelTokenList,
+        semantic_tokens: &'a HighLevelTokenList,
     ) -> Result<Vec<AstNode>, BlockParseError> {
-        // TODO: Implement regex-based grammar engine
-        // Phase 1: Start with paragraph-only parsing
-        todo!("Implement AST construction parser")
+        self.tokens = &semantic_tokens.tokens;
+        self.position = 0;
+
+        let mut ast_nodes = Vec::new();
+
+        // Main parsing loop - process tokens until we reach the end
+        while self.position < self.tokens.len() {
+            let token = &self.tokens[self.position];
+
+            // Skip blank lines (they separate elements but aren't elements themselves)
+            if matches!(token, HighLevelToken::BlankLine { .. }) {
+                self.position += 1;
+                continue;
+            }
+
+            // Try to match patterns in precedence order
+            // Phase 1: Only paragraph pattern (catch-all for PlainTextLine)
+            if let Some(node) = self.try_parse_paragraph()? {
+                ast_nodes.push(node);
+            } else {
+                // No pattern matched - skip this token to avoid infinite loop
+                self.position += 1;
+            }
+        }
+
+        Ok(ast_nodes)
+    }
+
+    /// Try to parse a paragraph pattern
+    ///
+    /// Paragraphs are catch-all: any PlainTextLine token becomes a paragraph.
+    ///
+    /// Pattern: <PlainTextLine>
+    ///
+    /// Returns: ParagraphBlock if matched, None otherwise
+    fn try_parse_paragraph(&mut self) -> Result<Option<AstNode>, BlockParseError> {
+        if self.position >= self.tokens.len() {
+            return Ok(None);
+        }
+
+        let token = &self.tokens[self.position];
+
+        // Match PlainTextLine tokens
+        if let HighLevelToken::PlainTextLine { .. } = token {
+            // Consume the token
+            self.position += 1;
+
+            // Delegate to paragraph element constructor
+            let paragraph_block =
+                crate::semantic::elements::paragraph::create_paragraph_element(token)?;
+
+            Ok(Some(AstNode::Paragraph(paragraph_block)))
+        } else {
+            Ok(None)
+        }
     }
 }
 

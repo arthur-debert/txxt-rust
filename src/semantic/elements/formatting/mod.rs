@@ -97,9 +97,17 @@ pub fn parse_formatting_elements(
         return Ok(Vec::new());
     }
 
-    // Create a simple identity transform
+    // Create token sequence from source tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: tokens.to_vec(),
+    };
+
+    // Create a simple identity transform, preserving source tokens
     let identity_transform = TextTransform::Identity(
-        crate::ast::elements::formatting::inlines::Text::simple(&text_content),
+        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+            &text_content,
+            Some(token_sequence),
+        ),
     );
 
     Ok(vec![identity_transform])

@@ -51,8 +51,9 @@ pub fn create_paragraph_element_multi(
                     _ => "unknown".to_string(),
                 };
 
-                // Create a simple TextTransform::Identity for the plain text content
-                let text = crate::ast::elements::inlines::Text::simple(&content_text);
+                // Create a TextTransform::Identity with preserved source tokens
+                let source_tokens = Some(content.tokens());
+                let text = crate::ast::elements::inlines::Text::simple_with_tokens(&content_text, source_tokens);
                 let text_transform = crate::ast::elements::inlines::TextTransform::Identity(text);
                 content_transforms.push(text_transform);
             }

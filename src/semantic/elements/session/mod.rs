@@ -49,9 +49,10 @@ pub fn create_session_element(
         }
     };
 
-    // Convert title text to TextTransform using Text::simple helper
+    // Convert title text to TextTransform, preserving source tokens
     let title_content = if !title_text.is_empty() {
-        let text = crate::ast::elements::inlines::Text::simple(&title_text);
+        let source_tokens = Some(title_token.tokens());
+        let text = crate::ast::elements::inlines::Text::simple_with_tokens(&title_text, source_tokens);
         vec![TextTransform::Identity(text)]
     } else {
         vec![]

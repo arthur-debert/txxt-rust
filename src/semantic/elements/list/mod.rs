@@ -35,8 +35,9 @@ pub fn create_list_element_with_nesting(
                 _ => "".to_string(),
             };
             let content_transforms = if !content.is_empty() {
+                let source_tokens = Some(content_token.tokens());
                 vec![TextTransform::Identity(
-                    crate::ast::elements::inlines::Text::simple(&content),
+                    crate::ast::elements::inlines::Text::simple_with_tokens(&content, source_tokens),
                 )]
             } else {
                 vec![]
@@ -129,9 +130,10 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
                 _ => String::new(),
             };
 
-            // Create TextTransform for item content
+            // Create TextTransform for item content with preserved source tokens
             let content_transforms = if !item_content.is_empty() {
-                let text = crate::ast::elements::inlines::Text::simple(&item_content);
+                let source_tokens = Some(content_token.tokens());
+                let text = crate::ast::elements::inlines::Text::simple_with_tokens(&item_content, source_tokens);
                 vec![TextTransform::Identity(text)]
             } else {
                 vec![]

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for list element construction
 //!
 //! Tests that list components are correctly converted to list AST nodes.

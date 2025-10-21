@@ -92,7 +92,7 @@ pub fn parse_math(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
     // Validate content (mathematical expression)
     validate_math_content(&content_tokens)?;
 
-    // Convert content tokens to mathematical expression
+    // Convert content tokens to mathematical expression and preserve token sequence
     let text_content = extract_math_expression(&content_tokens);
 
     if text_content.is_empty() {
@@ -101,8 +101,14 @@ pub fn parse_math(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
         ));
     }
 
-    // Create a math transform (no nested formatting allowed)
-    let math_transform = TextTransform::Math(Text::simple(&text_content));
+    // Create token sequence from the content tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: content_tokens,
+    };
+
+    // Create a math transform preserving source tokens
+    let math_transform =
+        TextTransform::Math(Text::simple_with_tokens(&text_content, token_sequence));
 
     Ok(math_transform)
 }

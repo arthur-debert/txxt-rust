@@ -251,7 +251,7 @@ pub fn parse_references(
         return Ok(Vec::new());
     }
 
-    // Convert all tokens to plain text for now
+    // Convert all tokens to plain text and preserve token sequence
     let text_content = tokens
         .iter()
         .filter_map(|token| match token {
@@ -265,10 +265,18 @@ pub fn parse_references(
         return Ok(Vec::new());
     }
 
-    // Create a simple text inline
+    // Create token sequence from source tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: tokens.to_vec(),
+    };
+
+    // Create a text inline preserving source tokens
     let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
+            crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                &text_content,
+                token_sequence,
+            ),
         ),
     );
 

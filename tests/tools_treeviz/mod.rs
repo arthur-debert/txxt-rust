@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for the TXXT Tree Visualization System
 //!
 //! These tests validate the core functionality of the treeviz module,

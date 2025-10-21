@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for TxxtMarker semantic token transformation
 //!
 //! This module tests the TxxtMarker transformation as implemented in Issue #81.

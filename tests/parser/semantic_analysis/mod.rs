@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for semantic analysis transformations
 //!
 //! This module contains tests for the semantic analysis phase that transforms

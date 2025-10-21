@@ -30,13 +30,22 @@ pub fn create_list_element_with_nesting(
                 HighLevelToken::SequenceMarker { marker, .. } => marker.clone(),
                 _ => "".to_string(),
             };
-            let content = match content_token.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => "".to_string(),
+            let (content, source_tokens) = match content_token.as_ref() {
+                HighLevelToken::TextSpan {
+                    content, tokens, ..
+                } => (content.clone(), tokens.clone()),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "List item content must be a TextSpan".to_string(),
+                    ))
+                }
             };
             let content_transforms = if !content.is_empty() {
                 vec![TextTransform::Identity(
-                    crate::ast::elements::inlines::Text::simple(&content),
+                    crate::ast::elements::inlines::Text::simple_with_tokens(
+                        &content,
+                        source_tokens,
+                    ),
                 )]
             } else {
                 vec![]
@@ -123,15 +132,24 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
                 _ => "- ".to_string(), // fallback
             };
 
-            // Extract item content text from content token
-            let item_content = match content_token.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => String::new(),
+            // Extract item content text and source tokens from content token
+            let (item_content, source_tokens) = match content_token.as_ref() {
+                HighLevelToken::TextSpan {
+                    content, tokens, ..
+                } => (content.clone(), tokens.clone()),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "List item content must be a TextSpan".to_string(),
+                    ))
+                }
             };
 
-            // Create TextTransform for item content
+            // Create TextTransform for item content, preserving source tokens
             let content_transforms = if !item_content.is_empty() {
-                let text = crate::ast::elements::inlines::Text::simple(&item_content);
+                let text = crate::ast::elements::inlines::Text::simple_with_tokens(
+                    &item_content,
+                    source_tokens,
+                );
                 vec![TextTransform::Identity(text)]
             } else {
                 vec![]

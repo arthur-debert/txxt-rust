@@ -92,7 +92,7 @@ pub fn parse_code(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
     // Validate content (literal text only)
     validate_code_content(&content_tokens)?;
 
-    // Convert content tokens to literal text
+    // Convert content tokens to literal text and preserve token sequence
     let text_content = extract_literal_text(&content_tokens);
 
     if text_content.is_empty() {
@@ -101,8 +101,14 @@ pub fn parse_code(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
         ));
     }
 
-    // Create a code transform (no nested formatting allowed)
-    let code_transform = TextTransform::Code(Text::simple(&text_content));
+    // Create token sequence from the content tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: content_tokens,
+    };
+
+    // Create a code transform preserving source tokens
+    let code_transform =
+        TextTransform::Code(Text::simple_with_tokens(&text_content, token_sequence));
 
     Ok(code_transform)
 }

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for Sequence Text Line semantic token transformation
 //!
 //! This module tests the transformation of sequence markers followed by text content

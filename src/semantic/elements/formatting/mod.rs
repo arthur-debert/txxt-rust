@@ -106,9 +106,18 @@ pub fn parse_formatting_elements(
         } else if token.is_code_delimiter() {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_code_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let text = content_tokens.iter().map(|t| t.content()).collect::<String>();
+                let text = content_tokens
+                    .iter()
+                    .map(|t| t.content())
+                    .collect::<String>();
+                let token_sequence = crate::cst::ScannerTokenSequence {
+                    tokens: content_tokens.to_vec(),
+                };
                 transforms.push(TextTransform::Code(
-                    crate::ast::elements::formatting::inlines::Text::simple(&text),
+                    crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                        &text,
+                        token_sequence,
+                    ),
                 ));
                 i = j + 1;
             } else {
@@ -118,9 +127,18 @@ pub fn parse_formatting_elements(
         } else if token.is_math_delimiter() {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_math_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let text = content_tokens.iter().map(|t| t.content()).collect::<String>();
+                let text = content_tokens
+                    .iter()
+                    .map(|t| t.content())
+                    .collect::<String>();
+                let token_sequence = crate::cst::ScannerTokenSequence {
+                    tokens: content_tokens.to_vec(),
+                };
                 transforms.push(TextTransform::Math(
-                    crate::ast::elements::formatting::inlines::Text::simple(&text),
+                    crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                        &text,
+                        token_sequence,
+                    ),
                 ));
                 i = j + 1;
             } else {
@@ -140,13 +158,22 @@ fn find_closing_token<P>(tokens: &[ScannerToken], start: usize, predicate: P) ->
 where
     P: Fn(&ScannerToken) -> bool,
 {
-    tokens[start..].iter().position(|token| predicate(token)).map(|pos| start + pos)
+    tokens[start..]
+        .iter()
+        .position(predicate)
+        .map(|pos| start + pos)
 }
 
 fn token_to_identity(token: &ScannerToken) -> TextTransform {
-    TextTransform::Identity(crate::ast::elements::formatting::inlines::Text::simple(
-        token.content(),
-    ))
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: vec![token.clone()],
+    };
+    TextTransform::Identity(
+        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+            token.content(),
+            token_sequence,
+        ),
+    )
 }
 
 /// Parse formatting inline elements and return as Inline variants

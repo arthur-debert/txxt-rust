@@ -26,10 +26,16 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             wall_type,
             ..
         } => {
-            // Extract title text and convert to TextTransform
-            let title_text = match title.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => "unknown".to_string(),
+            // Extract title text and source tokens, convert to TextTransform
+            let (title_text, title_tokens) = match title.as_ref() {
+                HighLevelToken::TextSpan {
+                    content, tokens, ..
+                } => (content.clone(), tokens.clone()),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "Verbatim title must be a TextSpan".to_string(),
+                    ))
+                }
             };
 
             // FIXME: post-parser - Parse inline formatting in title instead of using Text::simple
@@ -38,7 +44,10 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             } else {
                 vec![
                     crate::ast::elements::formatting::inlines::TextTransform::Identity(
-                        crate::ast::elements::formatting::inlines::Text::simple(&title_text),
+                        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                            &title_text,
+                            title_tokens,
+                        ),
                     ),
                 ]
             };

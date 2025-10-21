@@ -85,8 +85,8 @@ pub mod ast;
 pub mod cst;
 pub mod lexer;
 pub mod parser;
-pub mod process;
 pub mod tools;
+pub mod transform;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Annotation {

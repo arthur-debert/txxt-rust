@@ -11,17 +11,17 @@
 //! - process_lexer: Execute Phase 1 (Lexer)
 //! - process_parser: Execute Phase 2 (Parser)
 //! - process_assembler: Execute Phase 3 (Assembler)
-//! - process_full: Execute all three phases
-//! - process_from_file: Convenience function for file input
+//! - run_all: Execute all three phases
+//! - run_from_file: Convenience function for file input
 //!
 //! Usage:
 //!
 //! ```
-//! use txxt::process::process_full;
+//! use txxt::transform::run_all;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! # let source_text = "This is a TXXT document.";
-//! let document = process_full(source_text, Some("file.txxt".to_string()))?;
+//! let document = run_all(source_text, Some("file.txxt".to_string()))?;
 //! # Ok(())
 //! # }
 //! ```
@@ -35,7 +35,7 @@ use crate::parser::{AstConstructor, InlineParser};
 
 /// Processing error type that encompasses all phase errors
 #[derive(Debug)]
-pub enum ProcessError {
+pub enum TransformError {
     /// Lexer phase error
     Lexer(String),
     /// Parser phase error
@@ -46,22 +46,22 @@ pub enum ProcessError {
     Io(std::io::Error),
 }
 
-impl std::fmt::Display for ProcessError {
+impl std::fmt::Display for TransformError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ProcessError::Lexer(msg) => write!(f, "Lexer error: {}", msg),
-            ProcessError::Parser(msg) => write!(f, "Parser error: {}", msg),
-            ProcessError::Assembler(msg) => write!(f, "Assembler error: {}", msg),
-            ProcessError::Io(err) => write!(f, "I/O error: {}", err),
+            TransformError::Lexer(msg) => write!(f, "Lexer error: {}", msg),
+            TransformError::Parser(msg) => write!(f, "Parser error: {}", msg),
+            TransformError::Assembler(msg) => write!(f, "Assembler error: {}", msg),
+            TransformError::Io(err) => write!(f, "I/O error: {}", err),
         }
     }
 }
 
-impl std::error::Error for ProcessError {}
+impl std::error::Error for TransformError {}
 
-impl From<std::io::Error> for ProcessError {
+impl From<std::io::Error> for TransformError {
     fn from(err: std::io::Error) -> Self {
-        ProcessError::Io(err)
+        TransformError::Io(err)
     }
 }
 
@@ -74,8 +74,8 @@ impl From<std::io::Error> for ProcessError {
 /// * `source_text` - The TXXT source text to process
 ///
 /// # Returns
-/// * `Result<Vec<ScannerToken>, ProcessError>` - The flat scanner token stream
-pub fn process_lexer(source_text: &str) -> Result<Vec<ScannerToken>, ProcessError> {
+/// * `Result<Vec<ScannerToken>, TransformError>` - The flat scanner token stream
+pub fn run_lexer(source_text: &str) -> Result<Vec<ScannerToken>, TransformError> {
     // Step 1.a: Verbatim Scanning (handled internally by tokenize)
     // Step 1.b: Tokenization
     let tokens = tokenize(source_text);
@@ -92,25 +92,25 @@ pub fn process_lexer(source_text: &str) -> Result<Vec<ScannerToken>, ProcessErro
 /// * `tokens` - Scanner tokens from Phase 1
 ///
 /// # Returns
-/// * `Result<Vec<ElementNode>, ProcessError>` - The AST element nodes
-pub fn process_parser(
+/// * `Result<Vec<ElementNode>, TransformError>` - The AST element nodes
+pub fn run_parser(
     tokens: Vec<ScannerToken>,
-) -> Result<Vec<crate::ast::ElementNode>, ProcessError> {
+) -> Result<Vec<crate::ast::ElementNode>, TransformError> {
     // Step 2.a: Semantic Analysis
     let semantic_analyzer = SemanticAnalyzer::new();
     let semantic_tokens = semantic_analyzer
         .analyze(tokens)
-        .map_err(|err| ProcessError::Parser(err.to_string()))?;
+        .map_err(|err| TransformError::Parser(err.to_string()))?;
 
     // Step 2.b: AST Construction
     let ast_elements = AstConstructor::parse_to_element_nodes(&semantic_tokens)
-        .map_err(|err| ProcessError::Parser(err.to_string()))?;
+        .map_err(|err| TransformError::Parser(err.to_string()))?;
 
     // Step 2.c: Inline Parsing
     let inline_parser = InlineParser::new();
     let ast = inline_parser
         .parse_inlines(ast_elements)
-        .map_err(|err| ProcessError::Parser(err.to_string()))?;
+        .map_err(|err| TransformError::Parser(err.to_string()))?;
 
     Ok(ast)
 }
@@ -125,22 +125,22 @@ pub fn process_parser(
 /// * `source_path` - Optional source file path for metadata
 ///
 /// # Returns
-/// * `Result<Document, ProcessError>` - The final document
-pub fn process_assembler(
+/// * `Result<Document, TransformError>` - The final document
+pub fn run_assembler(
     elements: Vec<crate::ast::ElementNode>,
     source_path: Option<String>,
-) -> Result<Document, ProcessError> {
+) -> Result<Document, TransformError> {
     // Step 3.a: Document Assembly
     let document_assembler = DocumentAssembler::new();
     let document = document_assembler
         .assemble_document(elements, source_path)
-        .map_err(|err| ProcessError::Assembler(err.to_string()))?;
+        .map_err(|err| TransformError::Assembler(err.to_string()))?;
 
     // Step 3.b: Annotation Attachment
     let annotation_attacher = AnnotationAttacher::new();
     let document = annotation_attacher
         .attach_annotations(document)
-        .map_err(|err| ProcessError::Assembler(err.to_string()))?;
+        .map_err(|err| TransformError::Assembler(err.to_string()))?;
 
     Ok(document)
 }
@@ -155,19 +155,16 @@ pub fn process_assembler(
 /// * `source_path` - Optional source file path for metadata
 ///
 /// # Returns
-/// * `Result<Document, ProcessError>` - The final document
-pub fn process_full(
-    source_text: &str,
-    source_path: Option<String>,
-) -> Result<Document, ProcessError> {
+/// * `Result<Document, TransformError>` - The final document
+pub fn run_all(source_text: &str, source_path: Option<String>) -> Result<Document, TransformError> {
     // Phase 1: Lexer (String → Vec<ScannerToken>)
-    let tokens = process_lexer(source_text)?;
+    let tokens = run_lexer(source_text)?;
 
     // Phase 2: Parser (Vec<ScannerToken> → Vec<ElementNode>)
-    let elements = process_parser(tokens)?;
+    let elements = run_parser(tokens)?;
 
     // Phase 3: Assembler (AST Elements → Document)
-    let document = process_assembler(elements, source_path)?;
+    let document = run_assembler(elements, source_path)?;
 
     Ok(document)
 }
@@ -181,10 +178,10 @@ pub fn process_full(
 /// * `file_path` - Path to the TXXT file to process
 ///
 /// # Returns
-/// * `Result<Document, ProcessError>` - The final document
-pub fn process_from_file(file_path: &str) -> Result<Document, ProcessError> {
+/// * `Result<Document, TransformError>` - The final document
+pub fn run_from_file(file_path: &str) -> Result<Document, TransformError> {
     let source_text = std::fs::read_to_string(file_path)?;
-    process_full(&source_text, Some(file_path.to_string()))
+    run_all(&source_text, Some(file_path.to_string()))
 }
 
 #[cfg(test)]
@@ -194,7 +191,7 @@ mod tests {
     #[test]
     fn test_process_lexer_basic() {
         let source = "Hello, world!";
-        let result = process_lexer(source);
+        let result = run_lexer(source);
         assert!(result.is_ok());
 
         let tokens = result.unwrap();
@@ -205,7 +202,7 @@ mod tests {
     fn test_process_parser_placeholder() {
         let tokens = vec![];
 
-        let result = process_parser(tokens);
+        let result = run_parser(tokens);
         assert!(result.is_ok());
 
         let elements = result.unwrap();
@@ -215,7 +212,7 @@ mod tests {
     #[test]
     fn test_process_assembler_placeholder() {
         let elements = vec![];
-        let result = process_assembler(elements, Some("test.txxt".to_string()));
+        let result = run_assembler(elements, Some("test.txxt".to_string()));
         assert!(result.is_ok());
 
         let document = result.unwrap();
@@ -226,9 +223,9 @@ mod tests {
     }
 
     #[test]
-    fn test_process_full_placeholder() {
+    fn test_run_all_placeholder() {
         let source = "Hello, world!";
-        let result = process_full(source, Some("test.txxt".to_string()));
+        let result = run_all(source, Some("test.txxt".to_string()));
         assert!(result.is_ok());
 
         let document = result.unwrap();

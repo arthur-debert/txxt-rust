@@ -7,26 +7,27 @@ This document aggregates most of these issues, both for reference and tests. Do 
 
     There are three elements that cannot be identified by themselves, that is, by only looking at the line they are in. These are: 
 
-    - Session titles , hence sessions (list-item)
+    - Session titles , hence sessions {{list-item}}
     - List items
     - Paragraphs
 
-    All these can have similar forms. While list items do require a list marker (- or 1.), session titles and paragraphs do not and can contain them. Hence, for some variants you can write list items off these three as consistently intertwined.  (paragraph)
+    All these can have similar forms. While list items do require a list marker (- or 1.), session titles and paragraphs do not and can contain them. Hence, for some variants you can write list items off these three as consistently intertwined.  {{paragraph}}
 
 2. General idea {{session-title}}
-(session)
+{{session-title}}
 
     The general idea is that sessions create a new , deeper level, thus +1 indented. 
     Like here, the "2. General Idea" line itself could be any one of the three. How do you tell them apart? 
     The key is that session and lists require other features in the text, if you can't find them, by exclusion the element will be the paragraph.
 
     1. Sessions {{session-title}}
+ {{session-title}}
 
         A session's title has to be preceded by a blank line, it's content is +1 Indented and Sessions cannot be empty. Hence: 
-        
-        Foo 
+            Foo 
 
-        Bar
+            Bar
+        :: txxt
 
         Foo and Bar can only be paragraphs.
 
@@ -37,7 +38,8 @@ This document aggregates most of these issues, both for reference and tests. Do 
 
                 a. Sub-Section {{session-title}}
 
-                    c. Foo {{paragraph}}
+                    c. Foo
+        :: txxt
 
         What is each element in this example?  The way to decide is this: 
         - 1. Session follows all the rules for a session title, including an indented child. So it's a Session.
@@ -90,16 +92,16 @@ This document aggregates most of these issues, both for reference and tests. Do 
 
     As we've seen in both these: 
 
-    1. This is a title (session)
+    1. This is a title {{session-title}}
 
-        A paragraph, followed by a list (paragraph)
+        A paragraph, followed by a list {{paragraph}}
 
-        1. Pack for Trip (list-item)
-            1. Passport (list-item)
+        1. Pack for Trip {{list-item}}
+            1. Passport {{list-item}}
 
-    The title, and the outer list (pack for trip) are not indented +1, although they denote the relationship. The reason for this is containers.  (paragraph)
+    The title, and the outer list (pack for trip) are not indented +1, although they denote the relationship. The reason for this is containers.  {{paragraph}}
 
-    Containers is how any element that can have children work. Their form is
+    Containers is how any element that can have children work. Their form is{{verbatim}}: 
 
         <element>
             </element title / item>
@@ -108,15 +110,17 @@ This document aggregates most of these issues, both for reference and tests. Do 
             </container>
         </element>
 
+    :: txxt
 
-    In this case lists look like this (verbatim): 
+    In this case lists look like this {{verbatim}}: 
         <list-item>
             <text line>
             <container>
             </container>
         </list-item
+    :: text
 
-    If a list has no children the text line is aligned with the parent. When a nested list exists, then it will be like 
+    If a list has no children the text line is aligned with the parent. When a nested list exists, then it will be like this {{verbatim}}: 
 
         <list>
             <outter-list-item>
@@ -131,27 +135,28 @@ This document aggregates most of these issues, both for reference and tests. Do 
                 </container>
             </outter-list-item>
         </list>
+    :: text
 
     There are two types of containers: ContentContainers and Session Containers.
 
-    4.1 Content Container(session)
+    4.1 Content Container{{session-title}}
 s
 
-        The following elements have them, that is, they can have multiple children;  (paragraph)
-        - Annotations (list-item)
-        - Definitions (list-item)
-        - Lists (list-item)
+        The following elements have them, that is, they can have multiple children;  {{paragraph}}
+        - Annotations {{list-item}}
+        - Definitions {{list-item}}
+        - Lists {{list-item}}
 
-        These elements cannot host children:  (paragraph)
-        - Paragraph ,pretty obvious why, (list-item)
-        - Verbatim Block: since this marks text that txxt does not format, no way to have children. (list-item)
+        These elements cannot host children:  {{paragraph}}
+        - Paragraph ,pretty obvious why, {{list-item}}
+        - Verbatim Block: since this marks text that txxt does not format, no way to have children. {{list-item}}
 
         Content containers can attach any element type but one Session. 
-        It makes sense, right? You don't want an inner list item creating a new session, from a navigation point of view it would not make any sense, hence: (paragraph)
+        It makes sense, right? You don't want an inner list item creating a new session, from a navigation point of view it would not make any sense, hence: {{paragraph}}
 
-    4.2 Session Containers: (session)
+    4.2 Session Containers: {{session-title}}
 
 
-        These are and behave just like the Content ones, with the exception that they can hold another sessions. Hence the document's root is a session container of its own.  (paragraph)
+        These are and behave just like the Content ones, with the exception that they can hold another sessions. Hence the document's root is a session container of its own.  {{paragraph}}
 
-        ps: currently the implementation still has session as having a title attribute then children node not the container here described. This is temporary so we're documenting the correct information. (paragraph)
+        ps: currently the implementation still has session as having a title attribute then children node not the container here described. This is temporary so we're documenting the correct information. {{paragraph}}

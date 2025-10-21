@@ -208,18 +208,35 @@ impl<'a> AstConstructor<'a> {
         Ok(Some((AstNode::Session(session_block), tokens_consumed)))
     }
 
-    /// Parse content tokens until we hit a Dedent token
+    /// Parse content tokens until we hit a Dedent token at the current nesting level
     ///
     /// This is used for recursive parsing of container content (sessions, definitions, etc.)
+    /// It tracks Indent/Dedent nesting to ensure we stop at the correct Dedent.
     fn parse_until_dedent(&mut self) -> Result<Vec<AstNode>, BlockParseError> {
         let mut content_nodes = Vec::new();
+        let mut indent_depth = 0; // Track nested indentation levels
 
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
 
-            // Stop at Dedent
+            // Track Indent tokens to handle nested indentation (e.g., verbatim blocks, nested lists)
+            if matches!(token, HighLevelToken::Indent { .. }) {
+                indent_depth += 1;
+                self.position += 1;
+                continue;
+            }
+
+            // Stop at Dedent only if we're at the base level (no nested indents)
             if matches!(token, HighLevelToken::Dedent { .. }) {
-                break;
+                if indent_depth == 0 {
+                    // This is the Dedent that closes our container
+                    break;
+                } else {
+                    // This closes a nested indent - decrement and continue
+                    indent_depth -= 1;
+                    self.position += 1;
+                    continue;
+                }
             }
 
             // Try to match patterns in precedence order
@@ -314,9 +331,9 @@ impl<'a> AstConstructor<'a> {
 
     /// Try to parse a paragraph pattern
     ///
-    /// Paragraphs are catch-all: any PlainTextLine token becomes a paragraph.
+    /// Paragraphs are consecutive PlainTextLine tokens until a blank line or other element.
     ///
-    /// Pattern: <PlainTextLine>
+    /// Pattern: <PlainTextLine>+ (consecutive, no <BlankLine> between)
     ///
     /// Returns: ParagraphBlock if matched, None otherwise
     fn try_parse_paragraph(&mut self) -> Result<Option<AstNode>, BlockParseError> {
@@ -328,12 +345,33 @@ impl<'a> AstConstructor<'a> {
 
         // Match PlainTextLine tokens
         if let HighLevelToken::PlainTextLine { .. } = token {
-            // Consume the token
-            self.position += 1;
+            // Collect consecutive PlainTextLine tokens (no blank lines allowed)
+            let mut paragraph_lines = Vec::new();
 
-            // Delegate to paragraph element constructor
+            while self.position < self.tokens.len() {
+                let token = &self.tokens[self.position];
+
+                match token {
+                    HighLevelToken::PlainTextLine { .. } => {
+                        paragraph_lines.push(token.clone());
+                        self.position += 1;
+                    }
+                    HighLevelToken::BlankLine { .. } => {
+                        // Blank line terminates paragraph
+                        break;
+                    }
+                    _ => {
+                        // Any other token terminates paragraph
+                        break;
+                    }
+                }
+            }
+
+            // Delegate to paragraph element constructor with all lines
             let paragraph_block =
-                crate::semantic::elements::paragraph::create_paragraph_element(token)?;
+                crate::semantic::elements::paragraph::create_paragraph_element_multi(
+                    &paragraph_lines,
+                )?;
 
             Ok(Some(AstNode::Paragraph(paragraph_block)))
         } else {

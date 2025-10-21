@@ -107,10 +107,8 @@ pub fn parse_code(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
     };
 
     // Create a code transform preserving source tokens
-    let code_transform = TextTransform::Code(Text::simple_with_tokens(
-        &text_content,
-        Some(token_sequence),
-    ));
+    let code_transform =
+        TextTransform::Code(Text::simple_with_tokens(&text_content, token_sequence));
 
     Ok(code_transform)
 }

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for paragraph element construction
 //!
 //! Tests that paragraph tokens are correctly converted to paragraph AST nodes.

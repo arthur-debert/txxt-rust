@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for definition element construction
 //!
 //! Tests that definition tokens are correctly converted to definition AST nodes.

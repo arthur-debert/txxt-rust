@@ -113,10 +113,8 @@ pub fn parse_emphasis(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePa
     };
 
     // Create an emphasis transform with identity content, preserving source tokens
-    let content_transform = TextTransform::Identity(Text::simple_with_tokens(
-        &text_content,
-        Some(token_sequence),
-    ));
+    let content_transform =
+        TextTransform::Identity(Text::simple_with_tokens(&text_content, token_sequence));
     let emphasis_transform = TextTransform::Emphasis(vec![content_transform]);
 
     Ok(emphasis_transform)

@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use crate::ast::elements::{
     annotation::annotation_content::Annotation, components::parameters::Parameters,
 };
-use crate::cst::{ScannerToken, ScannerTokenSequence};
+use crate::cst::ScannerTokenSequence;
 
 use super::core::{ElementType, SpanElement, TxxtElement};
 use super::references::reference_types::ReferenceTarget;
@@ -157,34 +157,26 @@ impl TextSpan {
         self.tokens.text()
     }
 
-    /// Create a simple text span from a string (for testing/convenience)
+    /// Create a text span with source tokens
     ///
-    /// If source tokens are available, use `simple_with_tokens()` instead.
-    pub fn simple(content: &str) -> Self {
-        Self::simple_with_tokens(content, None)
-    }
-
-    /// Create a text span with optional source tokens
+    /// This is the ONLY way to create a TextSpan. All text must have associated
+    /// scanner tokens for accurate source position tracking.
     ///
     /// # Arguments
-    /// * `content` - The text content
-    /// * `tokens` - Optional source token sequence from parent HighLevelToken
+    /// * `content` - The text content (for validation/debugging)
+    /// * `tokens` - Source token sequence from scanner/parser
     ///
-    /// If `tokens` is provided, uses those. Otherwise creates synthetic tokens
-    /// with dummy positions (for testing/backwards compatibility).
-    pub fn simple_with_tokens(content: &str, tokens: Option<ScannerTokenSequence>) -> Self {
-        let tokens = tokens.unwrap_or_else(|| ScannerTokenSequence {
-            tokens: vec![ScannerToken::Text {
-                content: content.to_string(),
-                span: crate::cst::SourceSpan {
-                    start: crate::cst::Position { row: 0, column: 0 },
-                    end: crate::cst::Position {
-                        row: 0,
-                        column: content.len(),
-                    },
-                },
-            }],
-        });
+    /// # Panics
+    /// Panics if tokens are empty while content is non-empty, indicating a bug
+    /// in token extraction. All callers must ensure tokens match content.
+    pub fn simple_with_tokens(content: &str, tokens: ScannerTokenSequence) -> Self {
+        // Validate that tokens are provided when content is non-empty
+        // This is a safety check - if it fails, it indicates a bug in token extraction
+        assert!(
+            !tokens.tokens.is_empty() || content.is_empty(),
+            "BUG: simple_with_tokens called with empty tokens but non-empty content: {:?}",
+            content
+        );
 
         Self {
             tokens,

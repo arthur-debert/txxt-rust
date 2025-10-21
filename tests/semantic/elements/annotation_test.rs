@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for annotation element construction
 //!
 //! Tests that annotation tokens are correctly converted to annotation AST nodes.

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for Plain Text Line semantic token transformation
 //!
 //! This module tests the transformation of sequences of Text scanner tokens

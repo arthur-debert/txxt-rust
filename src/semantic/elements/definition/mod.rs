@@ -31,7 +31,11 @@ pub fn create_definition_element(
                 HighLevelToken::TextSpan {
                     content, tokens, ..
                 } => (content.clone(), tokens.clone()),
-                _ => ("unknown".to_string(), None),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "Definition term must be a TextSpan".to_string(),
+                    ))
+                }
             };
 
             // Create text transform for the term, preserving source tokens

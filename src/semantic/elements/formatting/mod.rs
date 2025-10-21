@@ -106,7 +106,7 @@ pub fn parse_formatting_elements(
     let identity_transform = TextTransform::Identity(
         crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
             &text_content,
-            Some(token_sequence),
+            token_sequence,
         ),
     );
 

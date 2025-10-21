@@ -167,35 +167,53 @@ impl Text {
         self.tokens.text()
     }
 
-    /// Create a simple text node from a string (for testing/convenience)
+    /// Create a simple text node from a string (TEST ONLY - DO NOT USE IN PRODUCTION)
     ///
-    /// If `tokens` is provided, uses those source tokens. Otherwise creates
-    /// synthetic tokens with dummy positions (for testing/backwards compatibility).
+    /// **WARNING**: This function creates synthetic tokens and should ONLY be used
+    /// in tests. Production code MUST use simple_with_tokens() to ensure proper
+    /// token tracking for language server features.
+    ///
+    /// Using this in production will result in incorrect source position tracking.
+    #[doc(hidden)]
+    #[deprecated(note = "TEST ONLY: Use simple_with_tokens() in production code")]
     pub fn simple(content: &str) -> Self {
-        Self::simple_with_tokens(content, None)
+        Self::simple_with_tokens(
+            content,
+            ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
+                    content: content.to_string(),
+                    span: SourceSpan {
+                        start: Position { row: 0, column: 0 },
+                        end: Position {
+                            row: 0,
+                            column: content.len(),
+                        },
+                    },
+                }],
+            },
+        )
     }
 
-    /// Create a text node with optional source tokens
+    /// Create a text node with source tokens
+    ///
+    /// This is the ONLY way to create a Text node in production. All text must
+    /// have associated scanner tokens for accurate source position tracking.
     ///
     /// # Arguments
-    /// * `content` - The text content
-    /// * `tokens` - Optional source token sequence from parent HighLevelToken
+    /// * `content` - The text content (for validation/debugging)
+    /// * `tokens` - Source token sequence from scanner/parser
     ///
-    /// If `tokens` is provided, uses those. Otherwise creates synthetic tokens
-    /// with dummy positions (for testing/backwards compatibility).
-    pub fn simple_with_tokens(content: &str, tokens: Option<ScannerTokenSequence>) -> Self {
-        let tokens = tokens.unwrap_or_else(|| ScannerTokenSequence {
-            tokens: vec![ScannerToken::Text {
-                content: content.to_string(),
-                span: SourceSpan {
-                    start: Position { row: 0, column: 0 },
-                    end: Position {
-                        row: 0,
-                        column: content.len(),
-                    },
-                },
-            }],
-        });
+    /// # Panics
+    /// Panics if tokens are empty while content is non-empty, indicating a bug
+    /// in token extraction. All callers must ensure tokens match content.
+    pub fn simple_with_tokens(content: &str, tokens: ScannerTokenSequence) -> Self {
+        // Validate that tokens are provided when content is non-empty
+        // This is a safety check - if it fails, it indicates a bug in token extraction
+        assert!(
+            !tokens.tokens.is_empty() || content.is_empty(),
+            "BUG: simple_with_tokens called with empty tokens but non-empty content: {:?}",
+            content
+        );
 
         Self { tokens }
     }

@@ -91,12 +91,20 @@ fn parse_formatting_elements_with_context(
         if token.is_bold_delimiter() && context != FormattingContext::Strong {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_bold_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let nested_transforms = parse_formatting_elements_with_context(
-                    content_tokens,
-                    FormattingContext::Strong,
-                )?;
-                transforms.push(TextTransform::Strong(nested_transforms));
-                i = j + 1;
+
+                // Enforce single-line constraint: inline elements cannot span newlines
+                if contains_newline(content_tokens) {
+                    // Treat as literal delimiter if content spans lines
+                    transforms.push(token_to_identity(token));
+                    i += 1;
+                } else {
+                    let nested_transforms = parse_formatting_elements_with_context(
+                        content_tokens,
+                        FormattingContext::Strong,
+                    )?;
+                    transforms.push(TextTransform::Strong(nested_transforms));
+                    i = j + 1;
+                }
             } else {
                 transforms.push(token_to_identity(token));
                 i += 1;
@@ -104,12 +112,19 @@ fn parse_formatting_elements_with_context(
         } else if token.is_italic_delimiter() && context != FormattingContext::Emphasis {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_italic_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let nested_transforms = parse_formatting_elements_with_context(
-                    content_tokens,
-                    FormattingContext::Emphasis,
-                )?;
-                transforms.push(TextTransform::Emphasis(nested_transforms));
-                i = j + 1;
+
+                // Enforce single-line constraint
+                if contains_newline(content_tokens) {
+                    transforms.push(token_to_identity(token));
+                    i += 1;
+                } else {
+                    let nested_transforms = parse_formatting_elements_with_context(
+                        content_tokens,
+                        FormattingContext::Emphasis,
+                    )?;
+                    transforms.push(TextTransform::Emphasis(nested_transforms));
+                    i = j + 1;
+                }
             } else {
                 transforms.push(token_to_identity(token));
                 i += 1;
@@ -117,20 +132,27 @@ fn parse_formatting_elements_with_context(
         } else if token.is_code_delimiter() {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_code_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let text = content_tokens
-                    .iter()
-                    .map(|t| t.content())
-                    .collect::<String>();
-                let token_sequence = crate::cst::ScannerTokenSequence {
-                    tokens: content_tokens.to_vec(),
-                };
-                transforms.push(TextTransform::Code(
-                    crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
-                        &text,
-                        token_sequence,
-                    ),
-                ));
-                i = j + 1;
+
+                // Enforce single-line constraint
+                if contains_newline(content_tokens) {
+                    transforms.push(token_to_identity(token));
+                    i += 1;
+                } else {
+                    let text = content_tokens
+                        .iter()
+                        .map(|t| t.content())
+                        .collect::<String>();
+                    let token_sequence = crate::cst::ScannerTokenSequence {
+                        tokens: content_tokens.to_vec(),
+                    };
+                    transforms.push(TextTransform::Code(
+                        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                            &text,
+                            token_sequence,
+                        ),
+                    ));
+                    i = j + 1;
+                }
             } else {
                 transforms.push(token_to_identity(token));
                 i += 1;
@@ -138,20 +160,27 @@ fn parse_formatting_elements_with_context(
         } else if token.is_math_delimiter() {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_math_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let text = content_tokens
-                    .iter()
-                    .map(|t| t.content())
-                    .collect::<String>();
-                let token_sequence = crate::cst::ScannerTokenSequence {
-                    tokens: content_tokens.to_vec(),
-                };
-                transforms.push(TextTransform::Math(
-                    crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
-                        &text,
-                        token_sequence,
-                    ),
-                ));
-                i = j + 1;
+
+                // Enforce single-line constraint
+                if contains_newline(content_tokens) {
+                    transforms.push(token_to_identity(token));
+                    i += 1;
+                } else {
+                    let text = content_tokens
+                        .iter()
+                        .map(|t| t.content())
+                        .collect::<String>();
+                    let token_sequence = crate::cst::ScannerTokenSequence {
+                        tokens: content_tokens.to_vec(),
+                    };
+                    transforms.push(TextTransform::Math(
+                        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                            &text,
+                            token_sequence,
+                        ),
+                    ));
+                    i = j + 1;
+                }
             } else {
                 transforms.push(token_to_identity(token));
                 i += 1;
@@ -173,6 +202,16 @@ where
         .iter()
         .position(predicate)
         .map(|pos| start + pos)
+}
+
+/// Check if token sequence contains newlines (violates single-line constraint)
+fn contains_newline(tokens: &[ScannerToken]) -> bool {
+    tokens.iter().any(|token| {
+        matches!(
+            token,
+            ScannerToken::Newline { .. } | ScannerToken::BlankLine { .. }
+        )
+    })
 }
 
 fn token_to_identity(token: &ScannerToken) -> TextTransform {

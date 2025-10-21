@@ -80,6 +80,18 @@ fn create_text(content: &str, start: usize, end: usize) -> ScannerToken {
     }
 }
 
+fn create_newline(row: usize, column: usize) -> ScannerToken {
+    ScannerToken::Newline {
+        span: SourceSpan {
+            start: Position { row, column },
+            end: Position {
+                row,
+                column: column + 1,
+            },
+        },
+    }
+}
+
 #[test]
 fn test_simple_bold() {
     let tokens = vec![
@@ -309,5 +321,113 @@ fn test_escaped_delimiters() {
         assert_eq!(text.content(), "bold*"); // Backslash removed
     } else {
         panic!("Expected Identity transform for escaped content");
+    }
+}
+
+#[test]
+fn test_multiline_bold_rejected() {
+    // Per spec: inline elements cannot span line breaks (single-line constraint)
+    // *bold\ntext* should treat delimiters as literal
+    let tokens = vec![
+        create_bold_delimiter(0, 1),
+        create_text("bold", 1, 5),
+        create_newline(0, 5),
+        create_text("text", 1, 5),
+        create_bold_delimiter(1, 6),
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Should parse as: Identity("*"), Identity("bold"), Identity("\n"), Identity("text"), Identity("*")
+    assert_eq!(result.len(), 5);
+
+    // All should be Identity transforms (no formatting applied)
+    if let TextTransform::Identity(text) = &result[0] {
+        assert_eq!(text.content(), "*");
+    } else {
+        panic!("Expected Identity for opening delimiter");
+    }
+
+    if let TextTransform::Identity(text) = &result[1] {
+        assert_eq!(text.content(), "bold");
+    } else {
+        panic!("Expected Identity for text before newline");
+    }
+}
+
+#[test]
+fn test_multiline_italic_rejected() {
+    // Per spec: inline elements cannot span line breaks
+    // _italic\ntext_ should treat delimiters as literal
+    let tokens = vec![
+        create_italic_delimiter(0, 1),
+        create_text("italic", 1, 7),
+        create_newline(0, 7),
+        create_text("text", 1, 5),
+        create_italic_delimiter(1, 6),
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Should parse as: Identity("_"), Identity("italic"), Identity("\n"), Identity("text"), Identity("_")
+    assert_eq!(result.len(), 5);
+
+    // All should be Identity transforms (no formatting applied)
+    if let TextTransform::Identity(text) = &result[0] {
+        assert_eq!(text.content(), "_");
+    } else {
+        panic!("Expected Identity for opening delimiter");
+    }
+
+    if let TextTransform::Identity(text) = &result[1] {
+        assert_eq!(text.content(), "italic");
+    } else {
+        panic!("Expected Identity for text before newline");
+    }
+}
+
+#[test]
+fn test_multiline_code_rejected() {
+    // Per spec: inline elements cannot span line breaks
+    // `code\ntext` should treat delimiters as literal
+    let tokens = vec![
+        create_code_delimiter(0, 1),
+        create_text("code", 1, 5),
+        create_newline(0, 5),
+        create_text("text", 1, 5),
+        create_code_delimiter(1, 6),
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Should parse as: Identity("`"), Identity("code"), Identity("\n"), Identity("text"), Identity("`")
+    assert_eq!(result.len(), 5);
+
+    // All should be Identity transforms (no formatting applied)
+    if let TextTransform::Identity(text) = &result[0] {
+        assert_eq!(text.content(), "`");
+    } else {
+        panic!("Expected Identity for opening delimiter");
+    }
+}
+
+#[test]
+fn test_multiline_math_rejected() {
+    // Per spec: inline elements cannot span line breaks
+    // #math\ntext# should treat delimiters as literal
+    let tokens = vec![
+        create_math_delimiter(0, 1),
+        create_text("x = y", 1, 6),
+        create_newline(0, 6),
+        create_text("+ 2", 1, 4),
+        create_math_delimiter(1, 5),
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Should parse as: Identity("#"), Identity("x = y"), Identity("\n"), Identity("+ 2"), Identity("#")
+    assert_eq!(result.len(), 5);
+
+    // All should be Identity transforms (no formatting applied)
+    if let TextTransform::Identity(text) = &result[0] {
+        assert_eq!(text.content(), "#");
+    } else {
+        panic!("Expected Identity for opening delimiter");
     }
 }

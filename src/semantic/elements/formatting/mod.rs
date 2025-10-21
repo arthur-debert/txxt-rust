@@ -77,32 +77,76 @@ use crate::semantic::elements::inlines::InlineParseError;
 pub fn parse_formatting_elements(
     tokens: &[ScannerToken],
 ) -> Result<Vec<TextTransform>, InlineParseError> {
-    if tokens.is_empty() {
-        return Ok(Vec::new());
+    let mut transforms = Vec::new();
+    let mut i = 0;
+
+    while i < tokens.len() {
+        let token = &tokens[i];
+
+        if token.is_bold_delimiter() {
+            if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_bold_delimiter()) {
+                let content_tokens = &tokens[i + 1..j];
+                let nested_transforms = parse_formatting_elements(content_tokens)?;
+                transforms.push(TextTransform::Strong(nested_transforms));
+                i = j + 1;
+            } else {
+                transforms.push(token_to_identity(token));
+                i += 1;
+            }
+        } else if token.is_italic_delimiter() {
+            if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_italic_delimiter()) {
+                let content_tokens = &tokens[i + 1..j];
+                let nested_transforms = parse_formatting_elements(content_tokens)?;
+                transforms.push(TextTransform::Emphasis(nested_transforms));
+                i = j + 1;
+            } else {
+                transforms.push(token_to_identity(token));
+                i += 1;
+            }
+        } else if token.is_code_delimiter() {
+            if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_code_delimiter()) {
+                let content_tokens = &tokens[i + 1..j];
+                let text = content_tokens.iter().map(|t| t.content()).collect::<String>();
+                transforms.push(TextTransform::Code(
+                    crate::ast::elements::formatting::inlines::Text::simple(&text),
+                ));
+                i = j + 1;
+            } else {
+                transforms.push(token_to_identity(token));
+                i += 1;
+            }
+        } else if token.is_math_delimiter() {
+            if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_math_delimiter()) {
+                let content_tokens = &tokens[i + 1..j];
+                let text = content_tokens.iter().map(|t| t.content()).collect::<String>();
+                transforms.push(TextTransform::Math(
+                    crate::ast::elements::formatting::inlines::Text::simple(&text),
+                ));
+                i = j + 1;
+            } else {
+                transforms.push(token_to_identity(token));
+                i += 1;
+            }
+        } else {
+            transforms.push(token_to_identity(token));
+            i += 1;
+        }
     }
 
-    // TODO: Implement proper formatting parsing with precedence
-    // For now, return a simple identity transform as placeholder
+    Ok(transforms)
+}
 
-    let text_content = tokens
-        .iter()
-        .filter_map(|token| match token {
-            ScannerToken::Text { content, .. } => Some(content.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("");
+fn find_closing_token<P>(tokens: &[ScannerToken], start: usize, predicate: P) -> Option<usize>
+where
+    P: Fn(&ScannerToken) -> bool,
+{
+    tokens[start..].iter().position(|token| predicate(token)).map(|pos| start + pos)
+}
 
-    if text_content.is_empty() {
-        return Ok(Vec::new());
-    }
-
-    // Create a simple identity transform
-    let identity_transform = TextTransform::Identity(
-        crate::ast::elements::formatting::inlines::Text::simple(&text_content),
-    );
-
-    Ok(vec![identity_transform])
+fn token_to_identity(token: &ScannerToken) -> TextTransform {
+    TextTransform::Identity(crate::ast::elements::formatting::inlines::Text::simple(
+        token.content(),
+    ))
 }
 
 /// Parse formatting inline elements and return as Inline variants

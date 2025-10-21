@@ -5,6 +5,7 @@
 
 mod annotation_test;
 mod definition_test;
+mod list_test;
 mod paragraph_test;
 mod session_test;
 mod verbatim_test;

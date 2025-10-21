@@ -34,19 +34,19 @@ pub fn create_session_element(
             HighLevelToken::TextSpan {
                 content, tokens, ..
             } => (content.clone(), tokens.clone()),
-            _ => ("unknown".to_string(), None),
+            _ => ("unknown".to_string(), ScannerTokenSequence::new()),
         },
         HighLevelToken::SequenceTextLine { content, .. } => match content.as_ref() {
             HighLevelToken::TextSpan {
                 content, tokens, ..
             } => (content.clone(), tokens.clone()),
-            _ => ("unknown".to_string(), None),
+            _ => ("unknown".to_string(), ScannerTokenSequence::new()),
         },
         HighLevelToken::Definition { term, .. } => match term.as_ref() {
             HighLevelToken::TextSpan {
                 content, tokens, ..
             } => (content.clone(), tokens.clone()),
-            _ => ("unknown".to_string(), None),
+            _ => ("unknown".to_string(), ScannerTokenSequence::new()),
         },
         _ => {
             return Err(BlockParseError::InvalidStructure(

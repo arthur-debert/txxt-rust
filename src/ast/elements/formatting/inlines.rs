@@ -169,33 +169,48 @@ impl Text {
 
     /// Create a simple text node from a string (for testing/convenience)
     ///
-    /// If `tokens` is provided, uses those source tokens. Otherwise creates
-    /// synthetic tokens with dummy positions (for testing/backwards compatibility).
+    /// Creates synthetic tokens with dummy positions for testing/backwards compatibility.
     pub fn simple(content: &str) -> Self {
-        Self::simple_with_tokens(content, None)
+        Self::simple_with_tokens(
+            content,
+            ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
+                    content: content.to_string(),
+                    span: SourceSpan {
+                        start: Position { row: 0, column: 0 },
+                        end: Position {
+                            row: 0,
+                            column: content.len(),
+                        },
+                    },
+                }],
+            },
+        )
     }
 
-    /// Create a text node with optional source tokens
+    /// Create a text node with source tokens
     ///
     /// # Arguments
-    /// * `content` - The text content
-    /// * `tokens` - Optional source token sequence from parent HighLevelToken
-    ///
-    /// If `tokens` is provided, uses those. Otherwise creates synthetic tokens
-    /// with dummy positions (for testing/backwards compatibility).
-    pub fn simple_with_tokens(content: &str, tokens: Option<ScannerTokenSequence>) -> Self {
-        let tokens = tokens.unwrap_or_else(|| ScannerTokenSequence {
-            tokens: vec![ScannerToken::Text {
-                content: content.to_string(),
-                span: SourceSpan {
-                    start: Position { row: 0, column: 0 },
-                    end: Position {
-                        row: 0,
-                        column: content.len(),
+    /// * `content` - The text content (used as fallback if tokens are empty)
+    /// * `tokens` - Source token sequence from parent HighLevelToken
+    pub fn simple_with_tokens(content: &str, tokens: ScannerTokenSequence) -> Self {
+        // If tokens are empty, create synthetic tokens from content
+        let tokens = if tokens.tokens.is_empty() && !content.is_empty() {
+            ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
+                    content: content.to_string(),
+                    span: SourceSpan {
+                        start: Position { row: 0, column: 0 },
+                        end: Position {
+                            row: 0,
+                            column: content.len(),
+                        },
                     },
-                },
-            }],
-        });
+                }],
+            }
+        } else {
+            tokens
+        };
 
         Self { tokens }
     }

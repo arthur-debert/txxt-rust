@@ -97,7 +97,7 @@ impl SemanticAnalyzer {
                     let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
                     high_level_tokens.push(HighLevelToken::BlankLine {
                         span: span.clone(),
-                        tokens: Some(tokens),
+                        tokens,
                     });
                     pending_indentation.clear(); // Reset after structural token
                     i += 1;
@@ -106,7 +106,7 @@ impl SemanticAnalyzer {
                     let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
                     high_level_tokens.push(HighLevelToken::Indent {
                         span: span.clone(),
-                        tokens: Some(tokens),
+                        tokens,
                     });
                     pending_indentation.clear(); // Reset after structural token
                     i += 1;
@@ -115,7 +115,7 @@ impl SemanticAnalyzer {
                     let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
                     high_level_tokens.push(HighLevelToken::Dedent {
                         span: span.clone(),
-                        tokens: Some(tokens),
+                        tokens,
                     });
                     pending_indentation.clear(); // Reset after structural token
                     i += 1;
@@ -208,7 +208,7 @@ impl SemanticAnalyzer {
                                 let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
                                 high_level_tokens.push(HighLevelTokenBuilder::colon_with_tokens(
                                     span.clone(),
-                                    Some(tokens),
+                                    tokens,
                                 ));
                             }
 
@@ -932,7 +932,7 @@ impl SemanticAnalyzer {
 
                 Ok(HighLevelTokenBuilder::txxt_marker_with_tokens(
                     span.clone(),
-                    Some(tokens),
+                    tokens,
                 ))
             }
             _ => Err(SemanticAnalysisError::InvalidTokenType {
@@ -989,7 +989,9 @@ impl SemanticAnalyzer {
         }
 
         // Preserve source token if provided
-        let tokens = source_token.map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]));
+        let tokens = source_token
+            .map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]))
+            .unwrap_or_default();
 
         // Transform Identifier scanner token to Label semantic token
         Ok(HighLevelTokenBuilder::label_with_tokens(
@@ -1033,7 +1035,9 @@ impl SemanticAnalyzer {
         }
 
         // Preserve source token if provided
-        let tokens = source_token.map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]));
+        let tokens = source_token
+            .map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]))
+            .unwrap_or_default();
 
         // Transform Text scanner token to TextSpan semantic token
         // This preserves the basic text content for use in subsequent parsing phases
@@ -1065,7 +1069,9 @@ impl SemanticAnalyzer {
         let marker_text = marker_type.content().to_string();
 
         // Preserve source token if provided
-        let tokens = source_token.map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]));
+        let tokens = source_token
+            .map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]))
+            .unwrap_or_default();
 
         // Transform SequenceMarker scanner token to SequenceMarker semantic token
         Ok(HighLevelTokenBuilder::sequence_marker_with_tokens(
@@ -1163,7 +1169,7 @@ impl SemanticAnalyzer {
         let text_span = HighLevelTokenBuilder::text_span_with_tokens(
             combined_content,
             line_span.clone(),
-            Some(aggregated_tokens.clone()),
+            aggregated_tokens.clone(),
         );
 
         // Transform to PlainTextLine semantic token with aggregated tokens
@@ -1172,7 +1178,7 @@ impl SemanticAnalyzer {
             String::new(),
             text_span,
             line_span,
-            Some(aggregated_tokens),
+            aggregated_tokens,
         ))
     }
 
@@ -1234,7 +1240,7 @@ impl SemanticAnalyzer {
             .join("");
 
         // Aggregate source tokens: marker tokens + text tokens
-        let mut all_tokens = marker_token.tokens().tokens;
+        let mut all_tokens = marker_token.tokens().tokens.clone();
         all_tokens.extend(text_tokens.clone());
         let aggregated_tokens = ScannerTokenSequence::from_tokens(all_tokens);
 
@@ -1243,7 +1249,7 @@ impl SemanticAnalyzer {
         let text_span = HighLevelTokenBuilder::text_span_with_tokens(
             combined_content,
             line_span.clone(),
-            Some(text_tokens_seq),
+            text_tokens_seq,
         );
 
         // Transform to SequenceTextLine semantic token with all aggregated tokens
@@ -1253,7 +1259,7 @@ impl SemanticAnalyzer {
             marker_token,
             text_span,
             line_span,
-            Some(aggregated_tokens),
+            aggregated_tokens,
         ))
     }
 
@@ -1318,7 +1324,7 @@ impl SemanticAnalyzer {
             parameters,
             content,
             span,
-            Some(aggregated_tokens),
+            aggregated_tokens,
         ))
     }
 
@@ -1367,7 +1373,7 @@ impl SemanticAnalyzer {
             term_token,
             parameters,
             span,
-            Some(aggregated_tokens),
+            aggregated_tokens,
         ))
     }
 
@@ -1501,7 +1507,7 @@ impl SemanticAnalyzer {
                             Some(HighLevelTokenBuilder::parameters_with_tokens(
                                 params,
                                 tokens[i].span().clone(),
-                                Some(param_tokens),
+                                param_tokens,
                             ))
                         };
 
@@ -1549,7 +1555,7 @@ impl SemanticAnalyzer {
             parameters,
             wall_type,
             span,
-            Some(aggregated_tokens),
+            aggregated_tokens,
         ))
     }
 
@@ -1717,9 +1723,9 @@ impl SemanticAnalyzer {
 
         // Aggregate source tokens for preservation
         let aggregated_tokens = if !tokens.is_empty() {
-            Some(ScannerTokenSequence::from_tokens(tokens.to_vec()))
+            ScannerTokenSequence::from_tokens(tokens.to_vec())
         } else {
-            None
+            ScannerTokenSequence::new()
         };
 
         Ok(HighLevelTokenBuilder::parameters_with_tokens(

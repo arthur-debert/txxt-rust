@@ -159,32 +159,48 @@ impl TextSpan {
 
     /// Create a simple text span from a string (for testing/convenience)
     ///
-    /// If source tokens are available, use `simple_with_tokens()` instead.
+    /// Creates synthetic tokens with dummy positions for testing/backwards compatibility.
     pub fn simple(content: &str) -> Self {
-        Self::simple_with_tokens(content, None)
+        Self::simple_with_tokens(
+            content,
+            ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
+                    content: content.to_string(),
+                    span: crate::cst::SourceSpan {
+                        start: crate::cst::Position { row: 0, column: 0 },
+                        end: crate::cst::Position {
+                            row: 0,
+                            column: content.len(),
+                        },
+                    },
+                }],
+            },
+        )
     }
 
-    /// Create a text span with optional source tokens
+    /// Create a text span with source tokens
     ///
     /// # Arguments
-    /// * `content` - The text content
-    /// * `tokens` - Optional source token sequence from parent HighLevelToken
-    ///
-    /// If `tokens` is provided, uses those. Otherwise creates synthetic tokens
-    /// with dummy positions (for testing/backwards compatibility).
-    pub fn simple_with_tokens(content: &str, tokens: Option<ScannerTokenSequence>) -> Self {
-        let tokens = tokens.unwrap_or_else(|| ScannerTokenSequence {
-            tokens: vec![ScannerToken::Text {
-                content: content.to_string(),
-                span: crate::cst::SourceSpan {
-                    start: crate::cst::Position { row: 0, column: 0 },
-                    end: crate::cst::Position {
-                        row: 0,
-                        column: content.len(),
+    /// * `content` - The text content (used as fallback if tokens are empty)
+    /// * `tokens` - Source token sequence from parent HighLevelToken
+    pub fn simple_with_tokens(content: &str, tokens: ScannerTokenSequence) -> Self {
+        // If tokens are empty, create synthetic tokens from content
+        let tokens = if tokens.tokens.is_empty() && !content.is_empty() {
+            ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
+                    content: content.to_string(),
+                    span: crate::cst::SourceSpan {
+                        start: crate::cst::Position { row: 0, column: 0 },
+                        end: crate::cst::Position {
+                            row: 0,
+                            column: content.len(),
+                        },
                     },
-                },
-            }],
-        });
+                }],
+            }
+        } else {
+            tokens
+        };
 
         Self {
             tokens,

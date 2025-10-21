@@ -169,7 +169,7 @@ pub fn parse_footnote_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline,
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
             crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
                 &text_content,
-                Some(token_sequence),
+                token_sequence,
             ),
         ),
     );

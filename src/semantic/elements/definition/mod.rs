@@ -31,7 +31,7 @@ pub fn create_definition_element(
                 HighLevelToken::TextSpan {
                     content, tokens, ..
                 } => (content.clone(), tokens.clone()),
-                _ => ("unknown".to_string(), None),
+                _ => ("unknown".to_string(), ScannerTokenSequence::new()),
             };
 
             // Create text transform for the term, preserving source tokens

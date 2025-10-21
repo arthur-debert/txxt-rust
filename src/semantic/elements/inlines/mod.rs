@@ -223,7 +223,7 @@ pub fn parse_inlines(
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
             crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
                 &text_content,
-                Some(token_sequence),
+                token_sequence,
             ),
         ),
     );
@@ -305,7 +305,7 @@ pub fn parse_references(
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
             crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
                 &text_content,
-                Some(token_sequence),
+                token_sequence,
             ),
         ),
     );

@@ -50,7 +50,7 @@ pub fn create_paragraph_element_multi(
                     HighLevelToken::TextSpan {
                         content, tokens, ..
                     } => (content.clone(), tokens.clone()),
-                    _ => ("unknown".to_string(), None),
+                    _ => ("unknown".to_string(), ScannerTokenSequence::new()),
                 };
 
                 // Create TextTransform::Identity, preserving source tokens

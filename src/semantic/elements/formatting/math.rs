@@ -107,10 +107,8 @@ pub fn parse_math(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
     };
 
     // Create a math transform preserving source tokens
-    let math_transform = TextTransform::Math(Text::simple_with_tokens(
-        &text_content,
-        Some(token_sequence),
-    ));
+    let math_transform =
+        TextTransform::Math(Text::simple_with_tokens(&text_content, token_sequence));
 
     Ok(math_transform)
 }

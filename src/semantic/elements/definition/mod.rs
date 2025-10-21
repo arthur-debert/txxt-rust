@@ -67,8 +67,11 @@ pub fn create_definition_element(
             let content_container =
                 crate::ast::elements::containers::content::ContentContainer::new(
                     content_elements,
-                    vec![], // No annotations for now
+                    // FIXME: post-parser - Parse container-level annotations instead of empty vec
+                    vec![],
+                    // FIXME: post-parser - Extract parameters from token instead of empty Parameters
                     crate::ast::elements::components::parameters::Parameters::new(),
+                    // FIXME: post-parser - Preserve actual source tokens instead of empty sequence
                     ScannerTokenSequence::new(),
                 );
 
@@ -78,11 +81,15 @@ pub fn create_definition_element(
             Ok(DefinitionBlock {
                 term: DefinitionTerm {
                     content: term_content,
+                    // FIXME: post-parser - Preserve actual source tokens for term
                     tokens: ScannerTokenSequence::new(),
                 },
                 content: content_container,
+                // FIXME: post-parser - Extract parameters from definition token
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                // FIXME: post-parser - Parse definition-level annotations
                 annotations: Vec::new(),
+                // FIXME: post-parser - Preserve actual source tokens for entire definition
                 tokens: ScannerTokenSequence::new(),
             })
         }

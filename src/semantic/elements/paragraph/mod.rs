@@ -65,9 +65,13 @@ pub fn create_paragraph_element_multi(
     }
 
     Ok(ParagraphBlock {
+        // FIXME: post-parser - Parse inline formatting in content instead of using Text::simple
         content: content_transforms,
+        // FIXME: post-parser - Parse paragraph-level annotations
         annotations: Vec::new(),
+        // FIXME: post-parser - Extract parameters from paragraph
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
+        // FIXME: post-parser - Preserve actual source tokens for entire paragraph
         tokens: ScannerTokenSequence::new(),
     })
 }

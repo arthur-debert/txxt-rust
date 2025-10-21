@@ -32,7 +32,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 _ => "unknown".to_string(),
             };
 
-            // Create title as TextTransform
+            // FIXME: post-parser - Parse inline formatting in title instead of using Text::simple
             let title_transforms = if title_text.is_empty() {
                 vec![]
             } else {
@@ -63,6 +63,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 vec![
                     crate::ast::elements::verbatim::ignore_container::IgnoreLine {
                         content: content_text,
+                        // FIXME: post-parser - Preserve actual source tokens for ignore line
                         tokens: ScannerTokenSequence::new(),
                     },
                 ]
@@ -72,9 +73,13 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             let ignore_container =
                 crate::ast::elements::verbatim::ignore_container::IgnoreContainer::new(
                     ignore_lines,
+                    // FIXME: post-parser - Parse container-level comments
                     vec![],
+                    // FIXME: post-parser - Parse container-level annotations
                     vec![],
+                    // FIXME: post-parser - Extract parameters from verbatim block
                     crate::ast::elements::components::parameters::Parameters::new(),
+                    // FIXME: post-parser - Preserve actual source tokens for container
                     ScannerTokenSequence::new(),
                 );
 
@@ -89,8 +94,11 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 content: ignore_container,
                 label: label_text,
                 verbatim_type,
+                // FIXME: post-parser - Extract parameters from verbatim block token
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                // FIXME: post-parser - Parse block-level annotations
                 annotations: Vec::new(),
+                // FIXME: post-parser - Preserve actual source tokens for entire verbatim block
                 tokens: ScannerTokenSequence::new(),
             })
         }

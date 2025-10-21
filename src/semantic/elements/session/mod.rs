@@ -72,18 +72,27 @@ pub fn create_session_element(
 
     Ok(SessionBlock {
         title: SessionTitle {
+            // FIXME: post-parser - Parse inline formatting in title instead of using Text::simple
             content: title_content,
+            // FIXME: post-parser - Extract numbering from title_token (e.g., "1.2.3")
             numbering: None,
+            // FIXME: post-parser - Preserve actual source tokens for title
             tokens: ScannerTokenSequence::new(),
         },
         content: SessionContainer {
             content: content_elements,
+            // FIXME: post-parser - Parse container-level annotations
             annotations: Vec::new(),
+            // FIXME: post-parser - Extract parameters from session
             parameters: crate::ast::elements::components::parameters::Parameters::new(),
+            // FIXME: post-parser - Preserve actual source tokens for container
             tokens: ScannerTokenSequence::new(),
         },
+        // FIXME: post-parser - Parse session-level annotations
         annotations: Vec::new(),
+        // FIXME: post-parser - Extract parameters from session
         parameters: crate::ast::elements::components::parameters::Parameters::new(),
+        // FIXME: post-parser - Preserve actual source tokens for entire session
         tokens: ScannerTokenSequence::new(),
     })
 }

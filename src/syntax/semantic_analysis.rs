@@ -261,6 +261,21 @@ impl SemanticAnalyzer {
                 }
             }
 
+            // Check for verbatim block pattern starting with IndentationWall
+            ScannerToken::IndentationWall { .. } => {
+                if start_index + 1 < scanner_tokens.len()
+                    && matches!(
+                        scanner_tokens[start_index + 1],
+                        ScannerToken::VerbatimTitle { .. }
+                    ) {
+                        if let Some((tokens, consumed)) =
+                            self.recognize_verbatim_block_pattern(scanner_tokens, start_index)?
+                        {
+                            return Ok(Some((tokens, consumed)));
+                        }
+                    }
+            }
+
             _ => {}
         }
 
@@ -428,14 +443,24 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for VerbatimTitle + IndentationWall
-        if matches!(
+        // Check for either:
+        // 1. VerbatimTitle + IndentationWall
+        // 2. IndentationWall + VerbatimTitle
+        let has_verbatim_pattern = (matches!(
             scanner_tokens[start_index],
             ScannerToken::VerbatimTitle { .. }
         ) && matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::IndentationWall { .. }
-        ) {
+        )) || (matches!(
+            scanner_tokens[start_index],
+            ScannerToken::IndentationWall { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 1],
+            ScannerToken::VerbatimTitle { .. }
+        ));
+
+        if has_verbatim_pattern {
             // Look for VerbatimLabel (may have content in between)
             let mut consumed = 2;
             let mut i = start_index + 2;
@@ -459,7 +484,7 @@ impl SemanticAnalyzer {
             }
 
             if consumed >= 3 {
-                // Must have at least VerbatimTitle + IndentationWall + VerbatimLabel
+                // Must have at least (VerbatimTitle + IndentationWall OR IndentationWall + VerbatimTitle) + VerbatimLabel
                 let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
                 return Ok(Some((pattern_tokens, consumed)));
             }
@@ -530,6 +555,23 @@ impl SemanticAnalyzer {
             ScannerToken::VerbatimTitle { .. } => {
                 if pattern_tokens.len() >= 3
                     && matches!(pattern_tokens[1], ScannerToken::IndentationWall { .. })
+                    && matches!(
+                        pattern_tokens[pattern_tokens.len() - 1],
+                        ScannerToken::VerbatimLabel { .. }
+                    )
+                {
+                    let span = SourceSpan {
+                        start: pattern_tokens[0].span().start,
+                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                    };
+                    return self.transform_verbatim_block(pattern_tokens, span);
+                }
+            }
+
+            // Verbatim block pattern: IndentationWall + VerbatimTitle + ... + VerbatimLabel
+            ScannerToken::IndentationWall { .. } => {
+                if pattern_tokens.len() >= 3
+                    && matches!(pattern_tokens[1], ScannerToken::VerbatimTitle { .. })
                     && matches!(
                         pattern_tokens[pattern_tokens.len() - 1],
                         ScannerToken::VerbatimLabel { .. }
@@ -1274,35 +1316,56 @@ impl SemanticAnalyzer {
             ));
         }
 
-        // Extract components in order
+        // Extract components - handle both orderings:
+        // 1. VerbatimTitle + IndentationWall
+        // 2. IndentationWall + VerbatimTitle
         let mut i = 0;
+        let title_token;
+        let wall_token;
 
-        // 1. VerbatimTitle
-        let title_token = if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
-            HighLevelTokenBuilder::text_span(
+        if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+            // Order 1: VerbatimTitle first
+            title_token = HighLevelTokenBuilder::text_span(
                 tokens[i].content().to_string(),
                 tokens[i].span().clone(),
-            )
-        } else {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "VerbatimBlock must start with VerbatimTitle".to_string(),
-            ));
-        };
-        i += 1;
+            );
+            i += 1;
 
-        // 2. IndentationWall
-        let wall_token = if let ScannerToken::IndentationWall { .. } = &tokens[i] {
-            // Create a simple semantic token for the wall (structural token)
-            HighLevelTokenBuilder::text_span(
+            if let ScannerToken::IndentationWall { .. } = &tokens[i] {
+                wall_token = HighLevelTokenBuilder::text_span(
+                    "".to_string(), // Wall is structural, no content
+                    tokens[i].span().clone(),
+                );
+                i += 1;
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
+                ));
+            }
+        } else if let ScannerToken::IndentationWall { .. } = &tokens[i] {
+            // Order 2: IndentationWall first
+            wall_token = HighLevelTokenBuilder::text_span(
                 "".to_string(), // Wall is structural, no content
                 tokens[i].span().clone(),
-            )
+            );
+            i += 1;
+
+            if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+                title_token = HighLevelTokenBuilder::text_span(
+                    tokens[i].content().to_string(),
+                    tokens[i].span().clone(),
+                );
+                i += 1;
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must have VerbatimTitle after IndentationWall".to_string(),
+                ));
+            }
         } else {
             return Err(SemanticAnalysisError::AnalysisError(
-                "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
+                "VerbatimBlock must start with VerbatimTitle or IndentationWall".to_string(),
             ));
-        };
-        i += 1;
+        }
 
         // 3. IgnoreTextSpan (may be multiple tokens, or empty for empty verbatim blocks)
         let mut content_tokens = Vec::new();

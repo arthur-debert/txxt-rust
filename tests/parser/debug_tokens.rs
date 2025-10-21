@@ -2,6 +2,40 @@ use txxt::syntax::tokenize;
 use txxt::syntax::SemanticAnalyzer;
 
 #[test]
+fn debug_verbatim_01_tokens() {
+    let source = "Code example:\n    def hello():\n        print(\"Hello, world!\")\n:: python\n";
+
+    println!("=== Source ===\n{}", source);
+
+    // Phase 1.b: Scanner tokens
+    let scanner_tokens = tokenize(source);
+    println!("\n=== Scanner Tokens ===");
+    for (i, token) in scanner_tokens.iter().enumerate() {
+        println!("{}: {:?}", i, scanner_token_summary(token));
+    }
+
+    // Phase 1.c: High-level tokens
+    let analyzer = SemanticAnalyzer::new();
+    let high_level_tokens = analyzer.analyze(scanner_tokens);
+
+    println!("\n=== High Level Tokens ===");
+    let high_level_tokens = high_level_tokens.unwrap();
+    for (i, token) in high_level_tokens.tokens.iter().enumerate() {
+        println!("{}: {}", i, token_summary(token));
+    }
+
+    // Check we got exactly 1 verbatim token
+    let verbatim_count = high_level_tokens
+        .tokens
+        .iter()
+        .filter(|t| matches!(t, txxt::cst::HighLevelToken::VerbatimBlock { .. }))
+        .count();
+
+    println!("\nVerbatim blocks found: {}", verbatim_count);
+    assert_eq!(verbatim_count, 1, "Expected 1 verbatim block");
+}
+
+#[test]
 fn debug_simple_list_tokens() {
     let source = "- First item\n- Second item\n- Third item\n";
 

@@ -62,6 +62,7 @@ fn test_annotation_basic_transformation() {
             parameters,
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -154,6 +155,7 @@ fn test_annotation_with_content() {
             parameters,
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -256,6 +258,7 @@ fn test_annotation_with_parameters() {
             parameters,
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_some());
@@ -471,6 +474,7 @@ fn test_annotation_builder() {
             parameters,
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -600,6 +604,7 @@ fn test_annotation_different_labels() {
                 parameters,
                 content,
                 span: token_span,
+                ..
             } => {
                 assert_eq!(token_span, span);
                 assert!(parameters.is_none());
@@ -720,6 +725,7 @@ fn test_annotation_complex_content() {
             parameters,
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());

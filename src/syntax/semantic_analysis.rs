@@ -93,17 +93,26 @@ impl SemanticAnalyzer {
             match token {
                 // Structural tokens - pass through unchanged and clear pending indentation
                 ScannerToken::BlankLine { span, .. } => {
-                    high_level_tokens.push(HighLevelToken::BlankLine { span: span.clone() });
+                    high_level_tokens.push(HighLevelToken::BlankLine {
+                        span: span.clone(),
+                        tokens: None,
+                    });
                     pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }
                 ScannerToken::Indent { span } => {
-                    high_level_tokens.push(HighLevelToken::Indent { span: span.clone() });
+                    high_level_tokens.push(HighLevelToken::Indent {
+                        span: span.clone(),
+                        tokens: None,
+                    });
                     pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }
                 ScannerToken::Dedent { span } => {
-                    high_level_tokens.push(HighLevelToken::Dedent { span: span.clone() });
+                    high_level_tokens.push(HighLevelToken::Dedent {
+                        span: span.clone(),
+                        tokens: None,
+                    });
                     pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }

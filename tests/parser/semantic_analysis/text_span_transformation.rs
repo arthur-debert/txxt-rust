@@ -24,6 +24,7 @@ fn test_text_span_basic_transformation() {
         HighLevelToken::TextSpan {
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(content, "Hello");
             assert_eq!(token_span, span);
@@ -61,6 +62,7 @@ fn test_text_span_different_content() {
             HighLevelToken::TextSpan {
                 content,
                 span: token_span,
+                ..
             } => {
                 assert_eq!(content, *text_content);
                 assert_eq!(token_span, span);
@@ -172,6 +174,7 @@ fn test_text_span_in_semantic_analysis() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             // The content should be a TextSpan containing "Hello world" (with newline for line-level processing)
             match content.as_ref() {
@@ -203,6 +206,7 @@ fn test_text_span_in_semantic_analysis() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             // The content should be a TextSpan containing "Another line"
             match content.as_ref() {
@@ -242,6 +246,7 @@ fn test_text_span_builder() {
         HighLevelToken::TextSpan {
             content,
             span: token_span,
+            ..
         } => {
             assert_eq!(content, "Hello");
             assert_eq!(token_span, span);
@@ -379,6 +384,7 @@ fn test_text_span_multiple_text_tokens() {
             indentation_chars: _,
             content,
             span,
+            ..
         } => {
             // The content should be a TextSpan containing the combined text "FirstSecondThird"
             match content.as_ref() {

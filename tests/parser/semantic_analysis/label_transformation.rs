@@ -31,7 +31,7 @@ fn test_label_basic_transformation() {
     let semantic_token = result.unwrap();
 
     match semantic_token {
-        HighLevelToken::Label { text, span } => {
+        HighLevelToken::Label { text, span, .. } => {
             assert_eq!(text, "python");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
@@ -71,6 +71,7 @@ fn test_label_namespaced_transformation() {
             HighLevelToken::Label {
                 text,
                 span: token_span,
+                ..
             } => {
                 assert_eq!(text, *label_text);
                 assert_eq!(token_span, span);
@@ -227,7 +228,7 @@ fn test_label_in_semantic_analysis() {
     // Verify the Identifier was transformed to Label
     let label_token = &semantic_tokens.tokens[1];
     match label_token {
-        HighLevelToken::Label { text, span } => {
+        HighLevelToken::Label { text, span, .. } => {
             assert_eq!(text, "python");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 6);
@@ -255,6 +256,7 @@ fn test_label_builder() {
         HighLevelToken::Label {
             text,
             span: label_span,
+            ..
         } => {
             assert_eq!(text, "python");
             assert_eq!(label_span, span);
@@ -318,7 +320,7 @@ fn test_multiple_labels() {
     let expected_labels = ["python", "org.example", "custom-label"];
     for (i, token) in semantic_tokens.tokens.iter().enumerate() {
         match token {
-            HighLevelToken::Label { text, span } => {
+            HighLevelToken::Label { text, span, .. } => {
                 assert_eq!(text, expected_labels[i]);
                 // Verify each label has correct position
                 match i {
@@ -385,7 +387,7 @@ fn test_label_with_structural_tokens() {
 
     // Verify structural tokens are passed through unchanged
     match &semantic_tokens.tokens[0] {
-        HighLevelToken::Indent { span } => {
+        HighLevelToken::Indent { span, .. } => {
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 4);
@@ -395,7 +397,7 @@ fn test_label_with_structural_tokens() {
 
     // Verify Identifier is transformed to Label
     match &semantic_tokens.tokens[1] {
-        HighLevelToken::Label { text, span } => {
+        HighLevelToken::Label { text, span, .. } => {
             assert_eq!(text, "python");
             assert_eq!(span.start.row, 1);
             assert_eq!(span.start.column, 4);
@@ -406,7 +408,7 @@ fn test_label_with_structural_tokens() {
 
     // Verify structural tokens are passed through unchanged
     match &semantic_tokens.tokens[2] {
-        HighLevelToken::Dedent { span } => {
+        HighLevelToken::Dedent { span, .. } => {
             assert_eq!(span.start.row, 2);
             assert_eq!(span.start.column, 0);
             assert_eq!(span.end.column, 0);

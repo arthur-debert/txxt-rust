@@ -41,7 +41,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::primitives::{Position, SourceSpan};
+use super::primitives::{Position, ScannerTokenSequence, SourceSpan};
 use super::scanner_tokens::{ScannerToken, WallType};
 
 /// High-level token representing higher-level syntactic constructs
@@ -54,6 +54,8 @@ pub enum HighLevelToken {
         text: String,
         /// Source span of the label
         span: SourceSpan,
+        /// Scanner tokens that make up this label (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Fundamental :: marker used across annotations, definitions, and verbatim blocks
@@ -61,6 +63,8 @@ pub enum HighLevelToken {
     TxxtMarker {
         /// Source span of the marker
         span: SourceSpan,
+        /// Scanner tokens that make up this marker (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Colon punctuation marker used for parameter separation
@@ -68,6 +72,8 @@ pub enum HighLevelToken {
     Colon {
         /// Source span of the colon
         span: SourceSpan,
+        /// Scanner tokens that make up this colon (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Key-value metadata component used in annotations and verbatim elements
@@ -77,6 +83,8 @@ pub enum HighLevelToken {
         params: HashMap<String, String>,
         /// Source span of the entire parameter list
         span: SourceSpan,
+        /// Scanner tokens that make up these parameters (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// List and session numbering component
@@ -91,6 +99,8 @@ pub enum HighLevelToken {
         marker: String,
         /// Source span of the marker
         span: SourceSpan,
+        /// Scanner tokens that make up this marker (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Basic text content component without special formatting
@@ -100,6 +110,8 @@ pub enum HighLevelToken {
         content: String,
         /// Source span of the text
         span: SourceSpan,
+        /// Scanner tokens that make up this text (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Line beginning with sequence marker followed by text content
@@ -128,6 +140,8 @@ pub enum HighLevelToken {
         content: Box<HighLevelToken>,
         /// Source span of the entire line
         span: SourceSpan,
+        /// Scanner tokens that make up this line (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Simple text content without special markers or structure
@@ -154,6 +168,8 @@ pub enum HighLevelToken {
         content: Box<HighLevelToken>,
         /// Source span of the entire line
         span: SourceSpan,
+        /// Scanner tokens that make up this line (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Preserved exactly as written without txxt processing
@@ -163,6 +179,8 @@ pub enum HighLevelToken {
         content: String,
         /// Source span of the line
         span: SourceSpan,
+        /// Scanner tokens that make up this line (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Line containing only whitespace or completely empty
@@ -170,18 +188,24 @@ pub enum HighLevelToken {
     BlankLine {
         /// Source span of the blank line
         span: SourceSpan,
+        /// Scanner tokens that make up this blank line (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Indentation marker - passed through unchanged from scanner tokens
     Indent {
         /// Source span of the indent token
         span: SourceSpan,
+        /// Scanner tokens that make up this indent (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Dedentation marker - passed through unchanged from scanner tokens
     Dedent {
         /// Source span of the dedent token
         span: SourceSpan,
+        /// Scanner tokens that make up this dedent (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Annotation semantic token combining txxt markers with labels and optional content
@@ -196,6 +220,8 @@ pub enum HighLevelToken {
         content: Option<Box<HighLevelToken>>,
         /// Source span of the entire annotation
         span: SourceSpan,
+        /// Scanner tokens that make up this annotation (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Definition semantic token combining text with txxt markers
@@ -208,6 +234,8 @@ pub enum HighLevelToken {
         parameters: Option<Box<HighLevelToken>>,
         /// Source span of the entire definition
         span: SourceSpan,
+        /// Scanner tokens that make up this definition (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 
     /// Verbatim block semantic token using wall architecture
@@ -228,6 +256,8 @@ pub enum HighLevelToken {
         wall_type: WallType,
         /// Source span of the entire verbatim block
         span: SourceSpan,
+        /// Scanner tokens that make up this verbatim block (None if not yet populated)
+        tokens: Option<ScannerTokenSequence>,
     },
 }
 
@@ -339,20 +369,48 @@ impl HighLevelTokenSpan for HighLevelToken {
     fn span(&self) -> &SourceSpan {
         match self {
             HighLevelToken::Label { span, .. }
-            | HighLevelToken::TxxtMarker { span }
-            | HighLevelToken::Colon { span }
+            | HighLevelToken::TxxtMarker { span, .. }
+            | HighLevelToken::Colon { span, .. }
             | HighLevelToken::Parameters { span, .. }
             | HighLevelToken::SequenceMarker { span, .. }
             | HighLevelToken::TextSpan { span, .. }
             | HighLevelToken::SequenceTextLine { span, .. }
             | HighLevelToken::PlainTextLine { span, .. }
             | HighLevelToken::IgnoreLine { span, .. }
-            | HighLevelToken::BlankLine { span }
-            | HighLevelToken::Indent { span }
-            | HighLevelToken::Dedent { span }
+            | HighLevelToken::BlankLine { span, .. }
+            | HighLevelToken::Indent { span, .. }
+            | HighLevelToken::Dedent { span, .. }
             | HighLevelToken::Annotation { span, .. }
             | HighLevelToken::Definition { span, .. }
             | HighLevelToken::VerbatimBlock { span, .. } => span,
+        }
+    }
+}
+
+impl HighLevelToken {
+    /// Get the scanner token sequence for this high-level token
+    ///
+    /// Returns an empty sequence if tokens haven't been populated yet.
+    /// This allows existing code to continue working during the transition to token preservation.
+    pub fn tokens(&self) -> ScannerTokenSequence {
+        match self {
+            HighLevelToken::Label { tokens, .. }
+            | HighLevelToken::TxxtMarker { tokens, .. }
+            | HighLevelToken::Colon { tokens, .. }
+            | HighLevelToken::Parameters { tokens, .. }
+            | HighLevelToken::SequenceMarker { tokens, .. }
+            | HighLevelToken::TextSpan { tokens, .. }
+            | HighLevelToken::SequenceTextLine { tokens, .. }
+            | HighLevelToken::PlainTextLine { tokens, .. }
+            | HighLevelToken::IgnoreLine { tokens, .. }
+            | HighLevelToken::BlankLine { tokens, .. }
+            | HighLevelToken::Indent { tokens, .. }
+            | HighLevelToken::Dedent { tokens, .. }
+            | HighLevelToken::Annotation { tokens, .. }
+            | HighLevelToken::Definition { tokens, .. }
+            | HighLevelToken::VerbatimBlock { tokens, .. } => {
+                tokens.clone().unwrap_or_else(ScannerTokenSequence::new)
+            }
         }
     }
 }
@@ -374,11 +432,18 @@ pub trait ToScannerToken {
 impl FromScannerToken for HighLevelToken {
     fn from_scanner_token(token: &ScannerToken) -> Option<Self> {
         match token {
-            ScannerToken::BlankLine { span, .. } => {
-                Some(HighLevelToken::BlankLine { span: span.clone() })
-            }
-            ScannerToken::Indent { span } => Some(HighLevelToken::Indent { span: span.clone() }),
-            ScannerToken::Dedent { span } => Some(HighLevelToken::Dedent { span: span.clone() }),
+            ScannerToken::BlankLine { span, .. } => Some(HighLevelToken::BlankLine {
+                span: span.clone(),
+                tokens: None,
+            }),
+            ScannerToken::Indent { span } => Some(HighLevelToken::Indent {
+                span: span.clone(),
+                tokens: None,
+            }),
+            ScannerToken::Dedent { span } => Some(HighLevelToken::Dedent {
+                span: span.clone(),
+                tokens: None,
+            }),
             // For now, we'll handle simple cases and expand in later phases
             _ => None,
         }
@@ -388,12 +453,16 @@ impl FromScannerToken for HighLevelToken {
 impl ToScannerToken for HighLevelToken {
     fn to_scanner_tokens(&self) -> Vec<ScannerToken> {
         match self {
-            HighLevelToken::BlankLine { span } => vec![ScannerToken::BlankLine {
+            HighLevelToken::BlankLine { span, .. } => vec![ScannerToken::BlankLine {
                 whitespace: "".to_string(),
                 span: span.clone(),
             }],
-            HighLevelToken::Indent { span } => vec![ScannerToken::Indent { span: span.clone() }],
-            HighLevelToken::Dedent { span } => vec![ScannerToken::Dedent { span: span.clone() }],
+            HighLevelToken::Indent { span, .. } => {
+                vec![ScannerToken::Indent { span: span.clone() }]
+            }
+            HighLevelToken::Dedent { span, .. } => {
+                vec![ScannerToken::Dedent { span: span.clone() }]
+            }
             // For now, we'll handle simple cases and expand in later phases
             _ => vec![],
         }
@@ -406,22 +475,30 @@ pub struct HighLevelTokenBuilder;
 impl HighLevelTokenBuilder {
     /// Create a label semantic token
     pub fn label(text: String, span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Label { text, span }
+        HighLevelToken::Label {
+            text,
+            span,
+            tokens: None,
+        }
     }
 
     /// Create a txxt marker semantic token
     pub fn txxt_marker(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::TxxtMarker { span }
+        HighLevelToken::TxxtMarker { span, tokens: None }
     }
 
     /// Create a colon semantic token
     pub fn colon(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Colon { span }
+        HighLevelToken::Colon { span, tokens: None }
     }
 
     /// Create a parameters semantic token
     pub fn parameters(params: HashMap<String, String>, span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Parameters { params, span }
+        HighLevelToken::Parameters {
+            params,
+            span,
+            tokens: None,
+        }
     }
 
     /// Create a sequence marker semantic token
@@ -436,12 +513,17 @@ impl HighLevelTokenBuilder {
             form,
             marker,
             span,
+            tokens: None,
         }
     }
 
     /// Create a text span semantic token
     pub fn text_span(content: String, span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::TextSpan { content, span }
+        HighLevelToken::TextSpan {
+            content,
+            span,
+            tokens: None,
+        }
     }
 
     /// Create a plain text line semantic token
@@ -476,6 +558,7 @@ impl HighLevelTokenBuilder {
             indentation_chars,
             content: Box::new(content),
             span,
+            tokens: None,
         }
     }
 
@@ -515,27 +598,32 @@ impl HighLevelTokenBuilder {
             marker: Box::new(marker),
             content: Box::new(content),
             span,
+            tokens: None,
         }
     }
 
     /// Create an ignore line semantic token
     pub fn ignore_line(content: String, span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::IgnoreLine { content, span }
+        HighLevelToken::IgnoreLine {
+            content,
+            span,
+            tokens: None,
+        }
     }
 
     /// Create a blank line semantic token
     pub fn blank_line(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::BlankLine { span }
+        HighLevelToken::BlankLine { span, tokens: None }
     }
 
     /// Create an indent semantic token
     pub fn indent(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Indent { span }
+        HighLevelToken::Indent { span, tokens: None }
     }
 
     /// Create a dedent semantic token
     pub fn dedent(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Dedent { span }
+        HighLevelToken::Dedent { span, tokens: None }
     }
 
     /// Create an annotation semantic token
@@ -550,6 +638,7 @@ impl HighLevelTokenBuilder {
             parameters: parameters.map(Box::new),
             content: content.map(Box::new),
             span,
+            tokens: None,
         }
     }
 
@@ -563,6 +652,7 @@ impl HighLevelTokenBuilder {
             term: Box::new(term),
             parameters: parameters.map(Box::new),
             span,
+            tokens: None,
         }
     }
 
@@ -584,6 +674,7 @@ impl HighLevelTokenBuilder {
             parameters: parameters.map(Box::new),
             wall_type,
             span,
+            tokens: None,
         }
     }
 }

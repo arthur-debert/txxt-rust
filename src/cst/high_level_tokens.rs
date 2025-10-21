@@ -475,29 +475,59 @@ pub struct HighLevelTokenBuilder;
 impl HighLevelTokenBuilder {
     /// Create a label semantic token
     pub fn label(text: String, span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Label {
-            text,
-            span,
-            tokens: None,
-        }
+        Self::label_with_tokens(text, span, None)
+    }
+
+    /// Create a label semantic token with source tokens
+    pub fn label_with_tokens(
+        text: String,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
+        HighLevelToken::Label { text, span, tokens }
     }
 
     /// Create a txxt marker semantic token
     pub fn txxt_marker(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::TxxtMarker { span, tokens: None }
+        Self::txxt_marker_with_tokens(span, None)
+    }
+
+    /// Create a txxt marker semantic token with source tokens
+    pub fn txxt_marker_with_tokens(
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
+        HighLevelToken::TxxtMarker { span, tokens }
     }
 
     /// Create a colon semantic token
     pub fn colon(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Colon { span, tokens: None }
+        Self::colon_with_tokens(span, None)
+    }
+
+    /// Create a colon semantic token with source tokens
+    pub fn colon_with_tokens(
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
+        HighLevelToken::Colon { span, tokens }
     }
 
     /// Create a parameters semantic token
     pub fn parameters(params: HashMap<String, String>, span: SourceSpan) -> HighLevelToken {
+        Self::parameters_with_tokens(params, span, None)
+    }
+
+    /// Create a parameters semantic token with source tokens
+    pub fn parameters_with_tokens(
+        params: HashMap<String, String>,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::Parameters {
             params,
             span,
-            tokens: None,
+            tokens,
         }
     }
 
@@ -508,21 +538,41 @@ impl HighLevelTokenBuilder {
         marker: String,
         span: SourceSpan,
     ) -> HighLevelToken {
+        Self::sequence_marker_with_tokens(style, form, marker, span, None)
+    }
+
+    /// Create a sequence marker semantic token with source tokens
+    pub fn sequence_marker_with_tokens(
+        style: HighLevelNumberingStyle,
+        form: HighLevelNumberingForm,
+        marker: String,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::SequenceMarker {
             style,
             form,
             marker,
             span,
-            tokens: None,
+            tokens,
         }
     }
 
     /// Create a text span semantic token
     pub fn text_span(content: String, span: SourceSpan) -> HighLevelToken {
+        Self::text_span_with_tokens(content, span, None)
+    }
+
+    /// Create a text span semantic token with source tokens
+    pub fn text_span_with_tokens(
+        content: String,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::TextSpan {
             content,
             span,
-            tokens: None,
+            tokens,
         }
     }
 
@@ -554,11 +604,21 @@ impl HighLevelTokenBuilder {
         content: HighLevelToken,
         span: SourceSpan,
     ) -> HighLevelToken {
+        Self::plain_text_line_with_tokens(indentation_chars, content, span, None)
+    }
+
+    /// Create a plain text line semantic token with source tokens
+    pub fn plain_text_line_with_tokens(
+        indentation_chars: String,
+        content: HighLevelToken,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::PlainTextLine {
             indentation_chars,
             content: Box::new(content),
             span,
-            tokens: None,
+            tokens,
         }
     }
 
@@ -593,37 +653,81 @@ impl HighLevelTokenBuilder {
         content: HighLevelToken,
         span: SourceSpan,
     ) -> HighLevelToken {
+        Self::sequence_text_line_with_tokens(indentation_chars, marker, content, span, None)
+    }
+
+    /// Create a sequence text line semantic token with source tokens
+    pub fn sequence_text_line_with_tokens(
+        indentation_chars: String,
+        marker: HighLevelToken,
+        content: HighLevelToken,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::SequenceTextLine {
             indentation_chars,
             marker: Box::new(marker),
             content: Box::new(content),
             span,
-            tokens: None,
+            tokens,
         }
     }
 
     /// Create an ignore line semantic token
     pub fn ignore_line(content: String, span: SourceSpan) -> HighLevelToken {
+        Self::ignore_line_with_tokens(content, span, None)
+    }
+
+    /// Create an ignore line semantic token with source tokens
+    pub fn ignore_line_with_tokens(
+        content: String,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::IgnoreLine {
             content,
             span,
-            tokens: None,
+            tokens,
         }
     }
 
     /// Create a blank line semantic token
     pub fn blank_line(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::BlankLine { span, tokens: None }
+        Self::blank_line_with_tokens(span, None)
+    }
+
+    /// Create a blank line semantic token with source tokens
+    pub fn blank_line_with_tokens(
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
+        HighLevelToken::BlankLine { span, tokens }
     }
 
     /// Create an indent semantic token
     pub fn indent(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Indent { span, tokens: None }
+        Self::indent_with_tokens(span, None)
+    }
+
+    /// Create an indent semantic token with source tokens
+    pub fn indent_with_tokens(
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
+        HighLevelToken::Indent { span, tokens }
     }
 
     /// Create a dedent semantic token
     pub fn dedent(span: SourceSpan) -> HighLevelToken {
-        HighLevelToken::Dedent { span, tokens: None }
+        Self::dedent_with_tokens(span, None)
+    }
+
+    /// Create a dedent semantic token with source tokens
+    pub fn dedent_with_tokens(
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
+        HighLevelToken::Dedent { span, tokens }
     }
 
     /// Create an annotation semantic token
@@ -633,12 +737,23 @@ impl HighLevelTokenBuilder {
         content: Option<HighLevelToken>,
         span: SourceSpan,
     ) -> HighLevelToken {
+        Self::annotation_with_tokens(label, parameters, content, span, None)
+    }
+
+    /// Create an annotation semantic token with source tokens
+    pub fn annotation_with_tokens(
+        label: HighLevelToken,
+        parameters: Option<HighLevelToken>,
+        content: Option<HighLevelToken>,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::Annotation {
             label: Box::new(label),
             parameters: parameters.map(Box::new),
             content: content.map(Box::new),
             span,
-            tokens: None,
+            tokens,
         }
     }
 
@@ -648,11 +763,21 @@ impl HighLevelTokenBuilder {
         parameters: Option<HighLevelToken>,
         span: SourceSpan,
     ) -> HighLevelToken {
+        Self::definition_with_tokens(term, parameters, span, None)
+    }
+
+    /// Create a definition semantic token with source tokens
+    pub fn definition_with_tokens(
+        term: HighLevelToken,
+        parameters: Option<HighLevelToken>,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::Definition {
             term: Box::new(term),
             parameters: parameters.map(Box::new),
             span,
-            tokens: None,
+            tokens,
         }
     }
 
@@ -666,6 +791,23 @@ impl HighLevelTokenBuilder {
         wall_type: WallType,
         span: SourceSpan,
     ) -> HighLevelToken {
+        Self::verbatim_block_with_tokens(
+            title, wall, content, label, parameters, wall_type, span, None,
+        )
+    }
+
+    /// Create a verbatim block semantic token with source tokens
+    #[allow(clippy::too_many_arguments)]
+    pub fn verbatim_block_with_tokens(
+        title: HighLevelToken,
+        wall: HighLevelToken,
+        content: HighLevelToken,
+        label: HighLevelToken,
+        parameters: Option<HighLevelToken>,
+        wall_type: WallType,
+        span: SourceSpan,
+        tokens: Option<ScannerTokenSequence>,
+    ) -> HighLevelToken {
         HighLevelToken::VerbatimBlock {
             title: Box::new(title),
             wall: Box::new(wall),
@@ -674,7 +816,7 @@ impl HighLevelTokenBuilder {
             parameters: parameters.map(Box::new),
             wall_type,
             span,
-            tokens: None,
+            tokens,
         }
     }
 }

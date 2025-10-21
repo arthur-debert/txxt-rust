@@ -10,6 +10,7 @@ use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenList,
 };
+use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
 /// High-level token analyzer for converting scanner tokens to high-level tokens
@@ -173,14 +174,20 @@ impl SemanticAnalyzer {
 
                             // Label transformation - Issue #82
                             ScannerToken::Identifier { content, span } => {
-                                high_level_tokens
-                                    .push(self.transform_label(content.clone(), span.clone())?);
+                                high_level_tokens.push(self.transform_label(
+                                    content.clone(),
+                                    span.clone(),
+                                    Some(token),
+                                )?);
                             }
 
                             // Text Span transformation - Issue #85
                             ScannerToken::Text { content, span } => {
-                                high_level_tokens
-                                    .push(self.transform_text_span(content.clone(), span.clone())?);
+                                high_level_tokens.push(self.transform_text_span(
+                                    content.clone(),
+                                    span.clone(),
+                                    Some(token),
+                                )?);
                             }
 
                             // Sequence Marker transformation - Issue #84
@@ -188,13 +195,18 @@ impl SemanticAnalyzer {
                                 high_level_tokens.push(self.transform_sequence_marker(
                                     marker_type.clone(),
                                     span.clone(),
+                                    Some(token),
                                 )?);
                             }
 
                             // Preserve syntactic markers instead of converting to text spans
                             ScannerToken::Colon { span } => {
                                 // Preserve colon as a syntactic marker for parameter parsing
-                                high_level_tokens.push(HighLevelTokenBuilder::colon(span.clone()));
+                                let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
+                                high_level_tokens.push(HighLevelTokenBuilder::colon_with_tokens(
+                                    span.clone(),
+                                    Some(tokens),
+                                ));
                             }
 
                             // Handle other tokens as text spans for now
@@ -772,9 +784,11 @@ impl SemanticAnalyzer {
 
         // Transform the sequence marker
         let marker_semantic = match &marker_token {
-            ScannerToken::SequenceMarker { marker_type, span } => {
-                self.transform_sequence_marker(marker_type.clone(), span.clone())?
-            }
+            ScannerToken::SequenceMarker { marker_type, span } => self.transform_sequence_marker(
+                marker_type.clone(),
+                span.clone(),
+                Some(&marker_token),
+            )?,
             _ => {
                 return Err(SemanticAnalysisError::AnalysisError(
                     "Expected SequenceMarker as first token".to_string(),
@@ -909,7 +923,14 @@ impl SemanticAnalyzer {
                 // Transform TxxtMarker scanner token to TxxtMarker semantic token
                 // This preserves the fundamental :: marker information for use
                 // in subsequent parsing phases
-                Ok(HighLevelTokenBuilder::txxt_marker(span.clone()))
+
+                // Preserve the source token
+                let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
+
+                Ok(HighLevelTokenBuilder::txxt_marker_with_tokens(
+                    span.clone(),
+                    Some(tokens),
+                ))
             }
             _ => Err(SemanticAnalysisError::InvalidTokenType {
                 expected: "TxxtMarker".to_string(),
@@ -935,6 +956,7 @@ impl SemanticAnalyzer {
         &self,
         content: String,
         span: SourceSpan,
+        source_token: Option<&ScannerToken>,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate that the content is a valid label
         if content.is_empty() {
@@ -963,8 +985,13 @@ impl SemanticAnalyzer {
             }
         }
 
+        // Preserve source token if provided
+        let tokens = source_token.map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]));
+
         // Transform Identifier scanner token to Label semantic token
-        Ok(HighLevelTokenBuilder::label(content, span))
+        Ok(HighLevelTokenBuilder::label_with_tokens(
+            content, span, tokens,
+        ))
     }
 
     /// Check if a character is valid at the start of a label
@@ -993,6 +1020,7 @@ impl SemanticAnalyzer {
         &self,
         content: String,
         span: SourceSpan,
+        source_token: Option<&ScannerToken>,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Validate that the content is not empty
         if content.is_empty() {
@@ -1001,9 +1029,14 @@ impl SemanticAnalyzer {
             ));
         }
 
+        // Preserve source token if provided
+        let tokens = source_token.map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]));
+
         // Transform Text scanner token to TextSpan semantic token
         // This preserves the basic text content for use in subsequent parsing phases
-        Ok(HighLevelTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span_with_tokens(
+            content, span, tokens,
+        ))
     }
 
     /// Transform SequenceMarker scanner token to SequenceMarker semantic token
@@ -1023,16 +1056,21 @@ impl SemanticAnalyzer {
         &self,
         marker_type: SequenceMarkerType,
         span: SourceSpan,
+        source_token: Option<&ScannerToken>,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         let (style, form) = self.classify_sequence_marker(&marker_type);
         let marker_text = marker_type.content().to_string();
 
+        // Preserve source token if provided
+        let tokens = source_token.map(|t| ScannerTokenSequence::from_tokens(vec![t.clone()]));
+
         // Transform SequenceMarker scanner token to SequenceMarker semantic token
-        Ok(HighLevelTokenBuilder::sequence_marker(
+        Ok(HighLevelTokenBuilder::sequence_marker_with_tokens(
             style,
             form,
             marker_text,
             span,
+            tokens,
         ))
     }
 

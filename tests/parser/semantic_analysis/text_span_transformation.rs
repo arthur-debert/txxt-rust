@@ -16,7 +16,7 @@ fn test_text_span_basic_transformation() {
         end: Position { row: 1, column: 5 },
     };
 
-    let result = analyzer.transform_text_span("Hello".to_string(), span.clone());
+    let result = analyzer.transform_text_span("Hello".to_string(), span.clone(), None);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -54,7 +54,7 @@ fn test_text_span_different_content() {
             },
         };
 
-        let result = analyzer.transform_text_span(text_content.to_string(), span.clone());
+        let result = analyzer.transform_text_span(text_content.to_string(), span.clone(), None);
         assert!(result.is_ok(), "Should succeed for text: {}", text_content);
 
         let semantic_token = result.unwrap();
@@ -81,7 +81,7 @@ fn test_text_span_empty_content() {
         end: Position { row: 1, column: 0 },
     };
 
-    let result = analyzer.transform_text_span("".to_string(), span);
+    let result = analyzer.transform_text_span("".to_string(), span, None);
     assert!(result.is_err(), "Should fail for empty content");
 
     match result.unwrap_err() {
@@ -117,7 +117,7 @@ fn test_text_span_different_positions() {
             end: *end,
         };
 
-        let result = analyzer.transform_text_span("Test".to_string(), span.clone());
+        let result = analyzer.transform_text_span("Test".to_string(), span.clone(), None);
         assert!(result.is_ok());
 
         let semantic_token = result.unwrap();

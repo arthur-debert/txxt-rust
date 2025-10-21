@@ -22,6 +22,9 @@ mod ensemble_session_with_list;
 mod list_01_simple_single;
 mod test_list_simple;
 
+// Definition parsing tests
+mod definition_01_simple;
+
 // Complex ensemble tests
 mod ensemble_12_complex_sessions;
 

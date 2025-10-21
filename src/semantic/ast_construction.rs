@@ -80,6 +80,13 @@ impl<'a> AstConstructor<'a> {
 
             // Try to match patterns in precedence order
 
+            // Definition pattern (check before sessions as both can have similar structure)
+            // Pattern: <Definition> <Indent> <Content>* <Dedent>
+            if let Some((node, _tokens_consumed)) = self.try_parse_definition()? {
+                ast_nodes.push(node);
+                continue;
+            }
+
             // Session pattern (higher precedence than list and paragraph)
             // Two variants:
             // 1. Start of document: <TitleLine> <BlankLine> <Indent>
@@ -287,6 +294,63 @@ impl<'a> AstConstructor<'a> {
         Ok(content_nodes)
     }
 
+    /// Try to parse a definition pattern
+    ///
+    /// Definitions have the pattern:
+    /// <Definition> <Indent> <Content>* <Dedent>
+    ///
+    /// Returns: (DefinitionBlock, tokens_consumed) if matched, None otherwise
+    fn try_parse_definition(&mut self) -> Result<Option<(AstNode, usize)>, BlockParseError> {
+        let start_pos = self.position;
+
+        if self.position >= self.tokens.len() {
+            return Ok(None);
+        }
+
+        // Check if current token is a Definition
+        let current_token = &self.tokens[self.position];
+        if !matches!(current_token, HighLevelToken::Definition { .. }) {
+            return Ok(None);
+        }
+
+        // Check if next token is Indent (definition must have indented content)
+        if self.position + 1 >= self.tokens.len()
+            || !matches!(
+                self.tokens[self.position + 1],
+                HighLevelToken::Indent { .. }
+            )
+        {
+            return Ok(None);
+        }
+
+        // Clone the definition token before advancing position
+        let definition_token_clone = self.tokens[self.position].clone();
+        self.position += 1; // Consume definition token
+        self.position += 1; // Skip Indent
+
+        // Recursively parse the content until we hit Dedent
+        let content_nodes = self.parse_until_dedent()?;
+
+        // Consume the Dedent token
+        if self.position < self.tokens.len()
+            && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. })
+        {
+            self.position += 1;
+        }
+
+        // Delegate to definition element constructor
+        let definition_block = crate::semantic::elements::definition::create_definition_element(
+            &definition_token_clone,
+            &content_nodes,
+        )?;
+
+        let tokens_consumed = self.position - start_pos;
+        Ok(Some((
+            AstNode::Definition(definition_block),
+            tokens_consumed,
+        )))
+    }
+
     /// Try to parse a list pattern
     ///
     /// Lists are 2+ consecutive SequenceTextLine tokens with no blank lines between them.
@@ -415,6 +479,8 @@ pub enum AstNode {
     Session(crate::ast::elements::session::SessionBlock),
     /// List block node
     List(crate::ast::elements::list::ListBlock),
+    /// Definition block node
+    Definition(crate::ast::elements::definition::DefinitionBlock),
 }
 
 impl AstNode {
@@ -429,6 +495,9 @@ impl AstNode {
             }
             AstNode::List(block) => {
                 crate::ast::elements::core::ElementNode::ListBlock(block.clone())
+            }
+            AstNode::Definition(block) => {
+                crate::ast::elements::core::ElementNode::DefinitionBlock(block.clone())
             }
         }
     }

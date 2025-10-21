@@ -338,8 +338,20 @@ impl SemanticAnalyzer {
             && (has_whitespace || consumed > 3)
         // Either has whitespace or has parameters
         {
+            // Check if there's a trailing newline after the TxxtMarker and consume it
+            // This prevents it from being converted to a TextSpan in the main loop
+            let mut final_consumed = consumed;
+            if start_index + consumed < scanner_tokens.len()
+                && matches!(
+                    scanner_tokens[start_index + consumed],
+                    ScannerToken::Newline { .. }
+                )
+            {
+                final_consumed += 1; // Consume the newline
+            }
+
             let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
-            return Ok(Some((pattern_tokens, consumed)));
+            return Ok(Some((pattern_tokens, final_consumed)));
         }
 
         Ok(None)

@@ -20,6 +20,7 @@ mod ensemble_session_with_list;
 
 // List parsing tests (simple to complex)
 mod list_01_simple_single;
+mod test_list_simple;
 
 // Debug utilities
 mod debug_tokens;

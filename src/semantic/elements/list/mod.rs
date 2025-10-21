@@ -33,30 +33,23 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
     let mut items = Vec::new();
 
     for token in item_tokens {
-        if let HighLevelToken::SequenceTextLine { content, .. } = token {
-            // Extract marker and content from the SequenceTextLine
-            // The content is a TextSpan with the text after the marker
-            let (marker, item_content) = match content.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => {
-                    // For now, extract marker from the beginning of content
-                    // This is simplified - proper marker extraction should happen in tokenizer
-                    let text = content.as_str();
+        if let HighLevelToken::SequenceTextLine {
+            marker: marker_token,
+            content: content_token,
+            ..
+        } = token
+        {
+            // Extract marker text from marker token
+            let marker = match marker_token.as_ref() {
+                HighLevelToken::SequenceMarker { marker, .. } => marker.clone(),
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
+                _ => "- ".to_string(), // fallback
+            };
 
-                    // Simple marker detection
-                    let marker = if text.starts_with("- ") {
-                        "- ".to_string()
-                    } else if let Some(pos) = text.find(". ") {
-                        text[..=pos].to_string()
-                    } else if let Some(pos) = text.find(") ") {
-                        text[..=pos].to_string()
-                    } else {
-                        "- ".to_string() // fallback
-                    };
-
-                    let content_text = text.trim_start_matches(&marker);
-                    (marker, content_text.to_string())
-                }
-                _ => ("- ".to_string(), String::new()),
+            // Extract item content text from content token
+            let item_content = match content_token.as_ref() {
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
+                _ => String::new(),
             };
 
             // Create TextTransform for item content

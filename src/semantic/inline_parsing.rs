@@ -7,7 +7,6 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::ElementNode;
-use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::semantic::elements::formatting::parse_formatting_elements;
 
 /// Inline parser for processing inline elements within blocks
@@ -46,98 +45,12 @@ impl InlineParser {
     fn parse_inlines_in_node(&self, node: ElementNode) -> Result<ElementNode, InlineParseError> {
         match node {
             ElementNode::ParagraphBlock(mut block) => {
-                let text = block.text_content();
-                let tokens = self.tokenize_text(&text);
-                block.content = parse_formatting_elements(&tokens)?;
+                // Use existing scanner tokens from the block instead of re-tokenizing
+                block.content = parse_formatting_elements(&block.tokens.tokens)?;
                 Ok(ElementNode::ParagraphBlock(block))
             }
             _ => Ok(node),
         }
-    }
-
-    fn tokenize_text(&self, text: &str) -> Vec<ScannerToken> {
-        let mut tokens = Vec::new();
-        let mut current_pos = 0;
-        while current_pos < text.len() {
-            let remaining_text = &text[current_pos..];
-            if remaining_text.starts_with('*') {
-                tokens.push(ScannerToken::BoldDelimiter {
-                    span: SourceSpan {
-                        start: Position {
-                            row: 0,
-                            column: current_pos,
-                        },
-                        end: Position {
-                            row: 0,
-                            column: current_pos + 1,
-                        },
-                    },
-                });
-                current_pos += 1;
-            } else if remaining_text.starts_with('_') {
-                tokens.push(ScannerToken::ItalicDelimiter {
-                    span: SourceSpan {
-                        start: Position {
-                            row: 0,
-                            column: current_pos,
-                        },
-                        end: Position {
-                            row: 0,
-                            column: current_pos + 1,
-                        },
-                    },
-                });
-                current_pos += 1;
-            } else if remaining_text.starts_with('`') {
-                tokens.push(ScannerToken::CodeDelimiter {
-                    span: SourceSpan {
-                        start: Position {
-                            row: 0,
-                            column: current_pos,
-                        },
-                        end: Position {
-                            row: 0,
-                            column: current_pos + 1,
-                        },
-                    },
-                });
-                current_pos += 1;
-            } else if remaining_text.starts_with('#') {
-                tokens.push(ScannerToken::MathDelimiter {
-                    span: SourceSpan {
-                        start: Position {
-                            row: 0,
-                            column: current_pos,
-                        },
-                        end: Position {
-                            row: 0,
-                            column: current_pos + 1,
-                        },
-                    },
-                });
-                current_pos += 1;
-            } else {
-                let end_pos = remaining_text
-                    .find(|c| ['*', '_', '`', '#'].contains(&c))
-                    .unwrap_or(remaining_text.len());
-                let content = &remaining_text[..end_pos];
-                tokens.push(ScannerToken::Text {
-                    content: content.to_string(),
-                    span: SourceSpan {
-                        start: Position {
-                            row: 0,
-                            column: current_pos,
-                        },
-                        end: Position {
-                            row: 0,
-                            column: current_pos + end_pos,
-                        },
-                    },
-                });
-                current_pos += end_pos;
-            }
-        }
-        tokens
     }
 }
 

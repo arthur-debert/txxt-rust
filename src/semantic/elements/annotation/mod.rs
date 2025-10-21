@@ -25,6 +25,7 @@ pub fn create_annotation_element(
             // Extract label text
             let label_text = match label.as_ref() {
                 HighLevelToken::Label { text, .. } => text.clone(),
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
             };
 

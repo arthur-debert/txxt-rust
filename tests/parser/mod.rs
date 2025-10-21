@@ -30,6 +30,8 @@ mod ensemble_07_session_with_definition;
 
 // Complex ensemble tests
 mod ensemble_09_nested_complex;
+mod ensemble_10_document_with_annotations;
+mod ensemble_11_full_document;
 mod ensemble_12_complex_sessions;
 
 // Debug utilities

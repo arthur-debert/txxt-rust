@@ -26,16 +26,15 @@ pub fn create_definition_element(
         HighLevelToken::Definition {
             term, parameters, ..
         } => {
-            // Extract term text
-            let term_text = match term.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => "unknown".to_string(),
+            // Extract term text and tokens from TextSpan
+            let (term_text, term_tokens) = match term.as_ref() {
+                HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+                _ => ("unknown".to_string(), None),
             };
 
             // Create text transform for the term with preserved source tokens
-            let source_tokens = Some(term.tokens());
             let term_content = vec![crate::ast::elements::inlines::TextTransform::Identity(
-                crate::ast::elements::inlines::Text::simple_with_tokens(&term_text, source_tokens),
+                crate::ast::elements::inlines::Text::simple_with_tokens(&term_text, term_tokens),
             )];
 
             // Convert content nodes to ContentContainerElements

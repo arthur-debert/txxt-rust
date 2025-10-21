@@ -30,14 +30,13 @@ pub fn create_list_element_with_nesting(
                 HighLevelToken::SequenceMarker { marker, .. } => marker.clone(),
                 _ => "".to_string(),
             };
-            let content = match content_token.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => "".to_string(),
+            let (content, content_tokens) = match content_token.as_ref() {
+                HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+                _ => ("".to_string(), None),
             };
             let content_transforms = if !content.is_empty() {
-                let source_tokens = Some(content_token.tokens());
                 vec![TextTransform::Identity(
-                    crate::ast::elements::inlines::Text::simple_with_tokens(&content, source_tokens),
+                    crate::ast::elements::inlines::Text::simple_with_tokens(&content, content_tokens),
                 )]
             } else {
                 vec![]
@@ -124,16 +123,15 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
                 _ => "- ".to_string(), // fallback
             };
 
-            // Extract item content text from content token
-            let item_content = match content_token.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => String::new(),
+            // Extract item content text and tokens from content token
+            let (item_content, content_tokens) = match content_token.as_ref() {
+                HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+                _ => (String::new(), None),
             };
 
             // Create TextTransform for item content with preserved source tokens
             let content_transforms = if !item_content.is_empty() {
-                let source_tokens = Some(content_token.tokens());
-                let text = crate::ast::elements::inlines::Text::simple_with_tokens(&item_content, source_tokens);
+                let text = crate::ast::elements::inlines::Text::simple_with_tokens(&item_content, content_tokens);
                 vec![TextTransform::Identity(text)]
             } else {
                 vec![]

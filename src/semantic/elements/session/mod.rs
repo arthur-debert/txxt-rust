@@ -28,19 +28,19 @@ pub fn create_session_element(
     title_token: &HighLevelToken,
     child_nodes: &[AstNode],
 ) -> Result<SessionBlock, BlockParseError> {
-    // Extract title text from the title token
-    let title_text = match title_token {
+    // Extract title text and tokens from the title token
+    let (title_text, title_tokens) = match title_token {
         HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
-            HighLevelToken::TextSpan { content, .. } => content.clone(),
-            _ => "unknown".to_string(),
+            HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+            _ => ("unknown".to_string(), None),
         },
         HighLevelToken::SequenceTextLine { content, .. } => match content.as_ref() {
-            HighLevelToken::TextSpan { content, .. } => content.clone(),
-            _ => "unknown".to_string(),
+            HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+            _ => ("unknown".to_string(), None),
         },
         HighLevelToken::Definition { term, .. } => match term.as_ref() {
-            HighLevelToken::TextSpan { content, .. } => content.clone(),
-            _ => "unknown".to_string(),
+            HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+            _ => ("unknown".to_string(), None),
         },
         _ => {
             return Err(BlockParseError::InvalidStructure(
@@ -51,8 +51,7 @@ pub fn create_session_element(
 
     // Convert title text to TextTransform, preserving source tokens
     let title_content = if !title_text.is_empty() {
-        let source_tokens = Some(title_token.tokens());
-        let text = crate::ast::elements::inlines::Text::simple_with_tokens(&title_text, source_tokens);
+        let text = crate::ast::elements::inlines::Text::simple_with_tokens(&title_text, title_tokens);
         vec![TextTransform::Identity(text)]
     } else {
         vec![]

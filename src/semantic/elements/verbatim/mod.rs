@@ -26,20 +26,19 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             wall_type,
             ..
         } => {
-            // Extract title text and convert to TextTransform
-            let title_text = match title.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => "unknown".to_string(),
+            // Extract title text and tokens from TextSpan
+            let (title_text, title_tokens) = match title.as_ref() {
+                HighLevelToken::TextSpan { content, tokens, .. } => (content.clone(), tokens.clone()),
+                _ => ("unknown".to_string(), None),
             };
 
             // FIXME: post-parser - Parse inline formatting in title
             let title_transforms = if title_text.is_empty() {
                 vec![]
             } else {
-                let source_tokens = Some(title.tokens());
                 vec![
                     crate::ast::elements::formatting::inlines::TextTransform::Identity(
-                        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(&title_text, source_tokens),
+                        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(&title_text, title_tokens),
                     ),
                 ]
             };

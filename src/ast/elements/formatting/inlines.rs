@@ -191,29 +191,20 @@ impl Text {
     /// Create a text node with source tokens
     ///
     /// # Arguments
-    /// * `content` - The text content (used as fallback if tokens are empty)
+    /// * `content` - The text content (for validation/debugging)
     /// * `tokens` - Source token sequence from parent HighLevelToken
     ///
-    /// Note: If tokens are empty, creates synthetic tokens from content as a fallback.
-    /// This ensures text content is never lost even when token extraction fails.
+    /// # Panics
+    /// Panics if tokens are empty while content is non-empty, indicating a bug
+    /// in token extraction. All callers must ensure tokens match content.
     pub fn simple_with_tokens(content: &str, tokens: ScannerTokenSequence) -> Self {
-        // If tokens are empty, create synthetic tokens from content
-        let tokens = if tokens.tokens.is_empty() && !content.is_empty() {
-            ScannerTokenSequence {
-                tokens: vec![ScannerToken::Text {
-                    content: content.to_string(),
-                    span: SourceSpan {
-                        start: Position { row: 0, column: 0 },
-                        end: Position {
-                            row: 0,
-                            column: content.len(),
-                        },
-                    },
-                }],
-            }
-        } else {
-            tokens
-        };
+        // Validate that tokens are provided when content is non-empty
+        // This is a safety check - if it fails, it indicates a bug in token extraction
+        assert!(
+            !tokens.tokens.is_empty() || content.is_empty(),
+            "BUG: simple_with_tokens called with empty tokens but non-empty content: {:?}",
+            content
+        );
 
         Self { tokens }
     }

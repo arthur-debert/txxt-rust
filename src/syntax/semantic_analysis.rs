@@ -217,10 +217,15 @@ impl SemanticAnalyzer {
                                 // Convert other tokens to text spans as fallback
                                 // This will be refined in subsequent transformation issues
                                 let content = self.token_to_text_content(token);
-                                high_level_tokens.push(HighLevelTokenBuilder::text_span(
-                                    content,
-                                    token.span().clone(),
-                                ));
+                                high_level_tokens.push(
+                                    HighLevelTokenBuilder::text_span_with_tokens(
+                                        content,
+                                        token.span().clone(),
+                                        ScannerTokenSequence {
+                                            tokens: vec![token.clone()],
+                                        },
+                                    ),
+                                );
                             }
                         }
                         i += 1;
@@ -848,6 +853,7 @@ impl SemanticAnalyzer {
         let mut content = String::new();
         let mut start_span = None;
         let mut end_span = None;
+        let token_sequence = tokens.clone();
 
         for token in tokens {
             if start_span.is_none() {
@@ -865,7 +871,13 @@ impl SemanticAnalyzer {
             end: end_span.unwrap_or(Position { row: 0, column: 0 }),
         };
 
-        Ok(HighLevelTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span_with_tokens(
+            content,
+            span,
+            ScannerTokenSequence {
+                tokens: token_sequence,
+            },
+        ))
     }
 
     /// Convert a list of scanner tokens into a single TextSpan semantic token (for individual processing)
@@ -876,6 +888,7 @@ impl SemanticAnalyzer {
         let mut content = String::new();
         let mut start_span = None;
         let mut end_span = None;
+        let token_sequence = tokens.clone();
 
         for token in tokens {
             if start_span.is_none() {
@@ -901,7 +914,13 @@ impl SemanticAnalyzer {
             end: end_span.unwrap_or(Position { row: 0, column: 0 }),
         };
 
-        Ok(HighLevelTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span_with_tokens(
+            content,
+            span,
+            ScannerTokenSequence {
+                tokens: token_sequence,
+            },
+        ))
     }
 
     /// Transform TxxtMarker scanner token to semantic token
@@ -1404,16 +1423,22 @@ impl SemanticAnalyzer {
 
         if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
             // Order 1: VerbatimTitle first
-            title_token = HighLevelTokenBuilder::text_span(
+            title_token = HighLevelTokenBuilder::text_span_with_tokens(
                 tokens[i].content().to_string(),
                 tokens[i].span().clone(),
+                ScannerTokenSequence {
+                    tokens: vec![tokens[i].clone()],
+                },
             );
             i += 1;
 
             if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
-                wall_token = HighLevelTokenBuilder::text_span(
+                wall_token = HighLevelTokenBuilder::text_span_with_tokens(
                     "".to_string(), // Wall is structural, no content
                     tokens[i].span().clone(),
+                    ScannerTokenSequence {
+                        tokens: vec![tokens[i].clone()],
+                    },
                 );
                 wall_type = wt.clone();
                 i += 1;
@@ -1424,17 +1449,23 @@ impl SemanticAnalyzer {
             }
         } else if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
             // Order 2: IndentationWall first
-            wall_token = HighLevelTokenBuilder::text_span(
+            wall_token = HighLevelTokenBuilder::text_span_with_tokens(
                 "".to_string(), // Wall is structural, no content
                 tokens[i].span().clone(),
+                ScannerTokenSequence {
+                    tokens: vec![tokens[i].clone()],
+                },
             );
             wall_type = wt.clone();
             i += 1;
 
             if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
-                title_token = HighLevelTokenBuilder::text_span(
+                title_token = HighLevelTokenBuilder::text_span_with_tokens(
                     tokens[i].content().to_string(),
                     tokens[i].span().clone(),
+                    ScannerTokenSequence {
+                        tokens: vec![tokens[i].clone()],
+                    },
                 );
                 i += 1;
             } else {
@@ -1458,12 +1489,14 @@ impl SemanticAnalyzer {
         // Create content token (empty verbatim blocks are allowed per specification)
         let content_token = if content_tokens.is_empty() {
             // Create empty content token for empty verbatim blocks
-            HighLevelTokenBuilder::text_span(
+            let span = SourceSpan {
+                start: tokens[i - 1].span().end, // Start after the wall
+                end: tokens[i - 1].span().end,   // Same position (empty)
+            };
+            HighLevelTokenBuilder::text_span_with_tokens(
                 "".to_string(),
-                SourceSpan {
-                    start: tokens[i - 1].span().end, // Start after the wall
-                    end: tokens[i - 1].span().end,   // Same position (empty)
-                },
+                span.clone(),
+                ScannerTokenSequence { tokens: vec![] }, // Empty tokens for empty content
             )
         } else {
             // Combine all content tokens into a single TextSpan (preserve exact whitespace for verbatim)
@@ -1482,9 +1515,12 @@ impl SemanticAnalyzer {
                         let label_text = parts[0];
                         let param_text = parts[1];
 
-                        let label_semantic_token = HighLevelTokenBuilder::text_span(
+                        let label_semantic_token = HighLevelTokenBuilder::text_span_with_tokens(
                             label_text.to_string(),
                             tokens[i].span().clone(),
+                            ScannerTokenSequence {
+                                tokens: vec![tokens[i].clone()],
+                            },
                         );
 
                         let parameters = if param_text.is_empty() {
@@ -1507,9 +1543,12 @@ impl SemanticAnalyzer {
                     } else {
                         // No colon found, treat as simple label
                         (
-                            HighLevelTokenBuilder::text_span(
+                            HighLevelTokenBuilder::text_span_with_tokens(
                                 label_content.to_string(),
                                 tokens[i].span().clone(),
+                                ScannerTokenSequence {
+                                    tokens: vec![tokens[i].clone()],
+                                },
                             ),
                             None,
                         )
@@ -1517,9 +1556,12 @@ impl SemanticAnalyzer {
                 } else {
                     // No colon found, treat as simple label
                     (
-                        HighLevelTokenBuilder::text_span(
+                        HighLevelTokenBuilder::text_span_with_tokens(
                             label_content.to_string(),
                             tokens[i].span().clone(),
+                            ScannerTokenSequence {
+                                tokens: vec![tokens[i].clone()],
+                            },
                         ),
                         None,
                     )
@@ -1786,7 +1828,13 @@ impl SemanticAnalyzer {
             end: tokens[tokens.len() - 1].span().end,
         };
 
-        Ok(HighLevelTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span_with_tokens(
+            content,
+            span,
+            ScannerTokenSequence {
+                tokens: tokens.to_vec(),
+            },
+        ))
     }
 
     /// Convert a sequence of tokens to a TextSpan semantic token preserving exact whitespace
@@ -1813,7 +1861,13 @@ impl SemanticAnalyzer {
             end: tokens[tokens.len() - 1].span().end,
         };
 
-        Ok(HighLevelTokenBuilder::text_span(content, span))
+        Ok(HighLevelTokenBuilder::text_span_with_tokens(
+            content,
+            span,
+            ScannerTokenSequence {
+                tokens: tokens.to_vec(),
+            },
+        ))
     }
 
     /// This is a utility method to convert any scanner token to text content

@@ -554,9 +554,23 @@ impl HighLevelTokenBuilder {
         }
     }
 
-    /// Create a text span semantic token
+    /// Create a text span semantic token (for testing)
+    ///
+    /// Creates synthetic tokens from the content for test convenience.
+    /// Production code should use text_span_with_tokens() with real scanner tokens.
     pub fn text_span(content: String, span: SourceSpan) -> HighLevelToken {
-        Self::text_span_with_tokens(content, span, ScannerTokenSequence::new())
+        // Create synthetic tokens from content for test convenience
+        let tokens = if !content.is_empty() {
+            ScannerTokenSequence {
+                tokens: vec![ScannerToken::Text {
+                    content: content.clone(),
+                    span: span.clone(),
+                }],
+            }
+        } else {
+            ScannerTokenSequence::new()
+        };
+        Self::text_span_with_tokens(content, span, tokens)
     }
 
     /// Create a text span semantic token with source tokens

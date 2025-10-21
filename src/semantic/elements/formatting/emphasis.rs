@@ -91,7 +91,7 @@ pub fn parse_emphasis(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePa
     // Validate nesting rules
     validate_emphasis_nesting(&content_tokens)?;
 
-    // Convert content tokens to text (for now, simple implementation)
+    // Convert content tokens to text and preserve token sequence
     let text_content = content_tokens
         .iter()
         .filter_map(|token| match token {
@@ -107,8 +107,16 @@ pub fn parse_emphasis(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePa
         ));
     }
 
-    // Create an emphasis transform with identity content
-    let content_transform = TextTransform::Identity(Text::simple(&text_content));
+    // Create token sequence from the content tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: content_tokens,
+    };
+
+    // Create an emphasis transform with identity content, preserving source tokens
+    let content_transform = TextTransform::Identity(Text::simple_with_tokens(
+        &text_content,
+        Some(token_sequence),
+    ));
     let emphasis_transform = TextTransform::Emphasis(vec![content_transform]);
 
     Ok(emphasis_transform)

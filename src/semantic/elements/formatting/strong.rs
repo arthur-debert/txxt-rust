@@ -91,7 +91,7 @@ pub fn parse_strong(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePars
     // Validate nesting rules
     validate_strong_nesting(&content_tokens)?;
 
-    // Convert content tokens to text (for now, simple implementation)
+    // Convert content tokens to text and preserve token sequence
     let text_content = content_tokens
         .iter()
         .filter_map(|token| match token {
@@ -107,8 +107,16 @@ pub fn parse_strong(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePars
         ));
     }
 
-    // Create a strong transform with identity content
-    let content_transform = TextTransform::Identity(Text::simple(&text_content));
+    // Create token sequence from the content tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: content_tokens,
+    };
+
+    // Create a strong transform with identity content, preserving source tokens
+    let content_transform = TextTransform::Identity(Text::simple_with_tokens(
+        &text_content,
+        Some(token_sequence),
+    ));
     let strong_transform = TextTransform::Strong(vec![content_transform]);
 
     Ok(strong_transform)

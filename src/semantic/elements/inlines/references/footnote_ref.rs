@@ -159,10 +159,18 @@ pub fn parse_footnote_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline,
         ));
     }
 
-    // Create a simple text inline for now
+    // Create token sequence from source tokens
+    let token_sequence = crate::cst::ScannerTokenSequence {
+        tokens: tokens.to_vec(),
+    };
+
+    // Create a text inline preserving source tokens
     let text_inline = Inline::TextLine(
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
+            crate::ast::elements::formatting::inlines::Text::simple_with_tokens(
+                &text_content,
+                Some(token_sequence),
+            ),
         ),
     );
 

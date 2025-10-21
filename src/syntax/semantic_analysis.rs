@@ -48,22 +48,89 @@ impl SemanticAnalyzer {
         let mut high_level_tokens = Vec::new();
         let mut i = 0;
 
+        // THE WALL CONCEPT: Indentation Handling
+        //
+        // In txxt, indented content has a "wall" - the position where actual content starts.
+        // This follows the same architecture as verbatim blocks (see docs/specs/elements/verbatim/verbatim.txxt).
+        //
+        // Example:
+        //   1. Session Title
+        //
+        //       |This is content at the wall
+        //       |Second line also at the wall
+        //
+        // The wall (marked by |) is at column 4 (relative to the session title).
+        // The leading whitespace ("    ") is STRUCTURAL, not content.
+        //
+        // Scanner tokens preserve everything for position tracking:
+        //   - Indent (structural marker: "we're now at indent level 1")
+        //   - Whitespace("    ") (the physical spaces creating that indentation)
+        //   - Text("This") (actual content starts here - at the wall)
+        //
+        // High-level tokens separate structure from content:
+        //   - Indent (structural token)
+        //   - PlainTextLine {
+        //       indentation_chars: "    ",  // The wall padding (STRUCTURAL)
+        //       content: "This is content..." // Content at the wall (SEMANTIC)
+        //     }
+        //
+        // This ensures:
+        // 1. Scanner tokens preserve exact positions for LSP features
+        // 2. High-level tokens make structure explicit via indentation_chars
+        // 3. Parser sees content at the wall, never sees structural padding
+        //
+        // CRITICAL: This must be consistent across ALL line-level elements:
+        // - PlainTextLine (paragraphs)
+        // - SequenceTextLine (lists, sessions)
+        // - (Future: Annotations, Definitions when they become line-level)
+        //
+        // See tests/tokenizer/test_indentation_wall_consistency.rs for comprehensive validation.
+        let mut pending_indentation = String::new(); // Captured leading whitespace "before the wall"
+
         while i < scanner_tokens.len() {
             let token = &scanner_tokens[i];
 
             match token {
-                // Structural tokens - pass through unchanged
+                // Structural tokens - pass through unchanged and clear pending indentation
                 ScannerToken::BlankLine { span, .. } => {
                     high_level_tokens.push(HighLevelToken::BlankLine { span: span.clone() });
+                    pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }
                 ScannerToken::Indent { span } => {
                     high_level_tokens.push(HighLevelToken::Indent { span: span.clone() });
+                    pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }
                 ScannerToken::Dedent { span } => {
                     high_level_tokens.push(HighLevelToken::Dedent { span: span.clone() });
+                    pending_indentation.clear(); // Reset after structural token
                     i += 1;
+                }
+
+                // Leading whitespace at line start - capture it as indentation padding
+                // This applies after: Indent, BlankLine, Dedent, Newline, or start of file
+                ScannerToken::Whitespace { content, .. }
+                    if pending_indentation.is_empty()
+                        && (i == 0
+                            || matches!(
+                                scanner_tokens.get(i - 1),
+                                Some(ScannerToken::Indent { .. })
+                                    | Some(ScannerToken::BlankLine { .. })
+                                    | Some(ScannerToken::Dedent { .. })
+                                    | Some(ScannerToken::Newline { .. })
+                            )) =>
+                {
+                    // This whitespace is "before the wall" - capture it as indentation padding
+                    pending_indentation = content.clone();
+                    i += 1;
+                    continue;
+                }
+
+                // Eof token - skip it (don't convert to empty TextSpan)
+                ScannerToken::Eof { .. } => {
+                    i += 1;
+                    continue;
                 }
 
                 // Process line-level tokens
@@ -81,8 +148,10 @@ impl SemanticAnalyzer {
                     else if self.is_core_block_element(&scanner_tokens, i) {
                         let (line_tokens, consumed) =
                             self.extract_line_tokens(&scanner_tokens, i)?;
-                        let line_semantic_token = self.process_line_tokens(line_tokens)?;
+                        let line_semantic_token =
+                            self.process_line_tokens(line_tokens, pending_indentation.clone())?;
                         high_level_tokens.push(line_semantic_token);
+                        pending_indentation.clear(); // Used up the indentation
                         i += consumed;
                     } else {
                         // Process individual tokens for specific elements (annotations, definitions, etc.)
@@ -600,12 +669,14 @@ impl SemanticAnalyzer {
     ///
     /// # Arguments
     /// * `line_tokens` - The scanner tokens for a single line
+    /// * `indentation_chars` - Leading whitespace before this line (from pending_indentation)
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The line-level semantic token
     fn process_line_tokens(
         &self,
         line_tokens: Vec<ScannerToken>,
+        indentation_chars: String,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if line_tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -616,18 +687,19 @@ impl SemanticAnalyzer {
         // Check if this line starts with a sequence marker
         if let Some(first_token) = line_tokens.first() {
             if matches!(first_token, ScannerToken::SequenceMarker { .. }) {
-                return self.create_sequence_text_line(line_tokens);
+                return self.create_sequence_text_line(line_tokens, indentation_chars);
             }
         }
 
         // Otherwise, create a plain text line
-        self.create_plain_text_line(line_tokens)
+        self.create_plain_text_line(line_tokens, indentation_chars)
     }
 
     /// Create a SequenceTextLine semantic token from line tokens
     fn create_sequence_text_line(
         &self,
         line_tokens: Vec<ScannerToken>,
+        indentation_chars: String,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if line_tokens.len() < 2 {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -662,6 +734,7 @@ impl SemanticAnalyzer {
         };
 
         Ok(HighLevelTokenBuilder::sequence_text_line(
+            indentation_chars,
             marker_semantic,
             content_semantic,
             line_span,
@@ -672,6 +745,7 @@ impl SemanticAnalyzer {
     fn create_plain_text_line(
         &self,
         line_tokens: Vec<ScannerToken>,
+        indentation_chars: String,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Transform all tokens into a single text span
         let content_semantic = self.tokens_to_text_span_line_level(line_tokens.clone())?;
@@ -685,6 +759,7 @@ impl SemanticAnalyzer {
         };
 
         Ok(HighLevelTokenBuilder::plain_text_line(
+            indentation_chars,
             content_semantic,
             line_span,
         ))
@@ -984,7 +1059,12 @@ impl SemanticAnalyzer {
         let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
 
         // Transform to PlainTextLine semantic token
-        Ok(HighLevelTokenBuilder::plain_text_line(text_span, line_span))
+        // Note: This is a legacy method, indentation should be handled by the caller
+        Ok(HighLevelTokenBuilder::plain_text_line(
+            String::new(),
+            text_span,
+            line_span,
+        ))
     }
 
     /// Transform a sequence marker followed by text content into a SequenceTextLine semantic token
@@ -1048,7 +1128,9 @@ impl SemanticAnalyzer {
         let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
 
         // Transform to SequenceTextLine semantic token
+        // Note: This is a legacy method, indentation should be handled by the caller
         Ok(HighLevelTokenBuilder::sequence_text_line(
+            String::new(),
             marker_token,
             text_span,
             line_span,

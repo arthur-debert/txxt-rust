@@ -105,6 +105,23 @@ pub enum HighLevelToken {
     /// Line beginning with sequence marker followed by text content
     /// Combines Sequence Marker and Text Span components
     SequenceTextLine {
+        /// Leading whitespace before the sequence marker (implements the "wall" concept)
+        ///
+        /// This is the STRUCTURAL indentation padding that positions content at the wall.
+        /// It contains the physical whitespace characters that appear after an Indent token
+        /// but are not part of the semantic content.
+        ///
+        /// Values:
+        /// - "" (empty) for top-level content (no indentation)
+        /// - "    " (4 spaces) for content at indentation level 1
+        /// - "        " (8 spaces) for content at indentation level 2
+        /// - etc.
+        ///
+        /// CRITICAL: This field must be populated consistently with the current indentation level.
+        /// The parser must NEVER see this whitespace in the content field - it's purely structural.
+        ///
+        /// See: SemanticAnalyzer::analyze() for implementation details.
+        indentation_chars: String,
         /// The sequence marker
         marker: Box<HighLevelToken>,
         /// The text content following the marker
@@ -116,6 +133,23 @@ pub enum HighLevelToken {
     /// Simple text content without special markers or structure
     /// Contains single Text Span component
     PlainTextLine {
+        /// Leading whitespace before the text content (implements the "wall" concept)
+        ///
+        /// This is the STRUCTURAL indentation padding that positions content at the wall.
+        /// It contains the physical whitespace characters that appear after an Indent token
+        /// but are not part of the semantic content.
+        ///
+        /// Values:
+        /// - "" (empty) for top-level content (no indentation)
+        /// - "    " (4 spaces) for content at indentation level 1
+        /// - "        " (8 spaces) for content at indentation level 2
+        /// - etc.
+        ///
+        /// CRITICAL: This field must be populated consistently with the current indentation level.
+        /// The parser must NEVER see this whitespace in the content field - it's purely structural.
+        ///
+        /// See: SemanticAnalyzer::analyze() for implementation details.
+        indentation_chars: String,
         /// The text content
         content: Box<HighLevelToken>,
         /// Source span of the entire line
@@ -409,20 +443,73 @@ impl HighLevelTokenBuilder {
     }
 
     /// Create a plain text line semantic token
-    pub fn plain_text_line(content: HighLevelToken, span: SourceSpan) -> HighLevelToken {
+    ///
+    /// # Arguments
+    /// * `indentation_chars` - Leading whitespace before content (the "wall" padding).
+    ///                         Empty string for top-level content, "    " for indented content, etc.
+    ///                         This MUST match the physical spaces after an Indent token.
+    /// * `content` - The actual line content (starts at the wall, no leading spaces)
+    /// * `span` - Source span covering the entire line
+    ///
+    /// # The Wall Concept
+    ///
+    /// The `indentation_chars` field implements the "wall" architecture for indented content.
+    /// It separates STRUCTURAL indentation (padding) from SEMANTIC content.
+    ///
+    /// Example:
+    /// ```text
+    /// Input:  "    This is indented text"
+    ///          ^^^^--- indentation_chars (structural)
+    ///              ^^^^^^^^^^^^^^^^^^^--- content (semantic)
+    /// ```
+    ///
+    /// This ensures the parser never sees structural whitespace in content,
+    /// while preserving exact source positions for error reporting and LSP features.
+    pub fn plain_text_line(
+        indentation_chars: String,
+        content: HighLevelToken,
+        span: SourceSpan,
+    ) -> HighLevelToken {
         HighLevelToken::PlainTextLine {
+            indentation_chars,
             content: Box::new(content),
             span,
         }
     }
 
     /// Create a sequence text line semantic token
+    ///
+    /// # Arguments
+    /// * `indentation_chars` - Leading whitespace before the sequence marker (the "wall" padding).
+    ///                         Empty string for top-level content, "    " for indented content, etc.
+    ///                         This MUST match the physical spaces after an Indent token.
+    /// * `marker` - The sequence marker (1., -, a., etc.)
+    /// * `content` - The line content following the marker
+    /// * `span` - Source span covering the entire line
+    ///
+    /// # The Wall Concept
+    ///
+    /// The `indentation_chars` field implements the "wall" architecture for indented content.
+    /// It separates STRUCTURAL indentation (padding) from SEMANTIC content.
+    ///
+    /// Example:
+    /// ```text
+    /// Input:  "    - List item"
+    ///          ^^^^--- indentation_chars (structural)
+    ///              ^----------- marker
+    ///                ^^^^^^^^^^--- content (semantic)
+    /// ```
+    ///
+    /// This ensures the parser never sees structural whitespace in content,
+    /// while preserving exact source positions for error reporting and LSP features.
     pub fn sequence_text_line(
+        indentation_chars: String,
         marker: HighLevelToken,
         content: HighLevelToken,
         span: SourceSpan,
     ) -> HighLevelToken {
         HighLevelToken::SequenceTextLine {
+            indentation_chars,
             marker: Box::new(marker),
             content: Box::new(content),
             span,

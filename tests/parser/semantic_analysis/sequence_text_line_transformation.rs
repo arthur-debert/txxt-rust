@@ -44,6 +44,7 @@ fn test_sequence_text_line_single_text_token() {
     let semantic_token = result.unwrap();
     match semantic_token {
         HighLevelToken::SequenceTextLine {
+            indentation_chars: _,
             marker,
             content,
             span,
@@ -134,6 +135,7 @@ fn test_sequence_text_line_multiple_text_tokens() {
     let semantic_token = result.unwrap();
     match semantic_token {
         HighLevelToken::SequenceTextLine {
+            indentation_chars: _,
             marker,
             content,
             span,
@@ -377,6 +379,7 @@ fn test_sequence_text_line_different_marker_types() {
         let semantic_token = result.unwrap();
         match semantic_token {
             HighLevelToken::SequenceTextLine {
+                indentation_chars: _,
                 marker,
                 content,
                 span,
@@ -433,11 +436,16 @@ fn test_sequence_text_line_builder() {
         end: Position { row: 1, column: 13 },
     };
 
-    let semantic_token =
-        HighLevelTokenBuilder::sequence_text_line(marker_token, content_token, line_span.clone());
+    let semantic_token = HighLevelTokenBuilder::sequence_text_line(
+        String::new(),
+        marker_token,
+        content_token,
+        line_span.clone(),
+    );
 
     match semantic_token {
         HighLevelToken::SequenceTextLine {
+            indentation_chars: _,
             marker,
             content,
             span,
@@ -500,8 +508,12 @@ fn test_sequence_text_line_span_trait() {
         end: Position { row: 1, column: 13 },
     };
 
-    let semantic_token =
-        HighLevelTokenBuilder::sequence_text_line(marker_token, content_token, line_span.clone());
+    let semantic_token = HighLevelTokenBuilder::sequence_text_line(
+        String::new(),
+        marker_token,
+        content_token,
+        line_span.clone(),
+    );
     let token_span = semantic_token.span();
 
     assert_eq!(token_span, &line_span);
@@ -631,6 +643,7 @@ fn test_sequence_text_line_complex_content() {
     let semantic_token = result.unwrap();
     match semantic_token {
         HighLevelToken::SequenceTextLine {
+            indentation_chars: _,
             marker,
             content,
             span,

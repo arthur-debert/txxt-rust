@@ -54,10 +54,29 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Combines Sequence Marker and Text Span components.
         Used for list items, session titles, and numbered paragraphs.
 
+        Structure:
+        - indentation_chars: Leading whitespace before the marker (implements the wall concept)
+        - marker: The sequence marker component
+        - content: The text content following the marker
+        - span: Source span covering the entire line
+
+        The indentation_chars field contains structural padding (empty for top-level,
+        "    " for indented content, etc.). This separates STRUCTURAL indentation from
+        SEMANTIC content, ensuring the parser never sees structural whitespace.
+
     Plain Text Line::
         Simple text content without special markers or structure.
         Contains single Text Span component.
         Default fallback for unstructured content.
+
+        Structure:
+        - indentation_chars: Leading whitespace before the content (implements the wall concept)
+        - content: The text content component
+        - span: Source span covering the entire line
+
+        The indentation_chars field contains structural padding (empty for top-level,
+        "    " for indented content, etc.). This separates STRUCTURAL indentation from
+        SEMANTIC content, ensuring the parser never sees structural whitespace.
 
     Ignore Line::
         Preserved exactly as written without txxt processing.
@@ -94,32 +113,84 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Composition: VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
         Used for content that preserves exact formatting and spacing.
 
-3. Token Composition Patterns
+3. The Wall Concept for Indentation
+
+    The wall concept is a fundamental architecture pattern for handling indented content
+    in txxt. It separates STRUCTURAL indentation (padding) from SEMANTIC content.
+
+    3.1. Wall Definition
+
+        The "wall" is the position where actual content starts after indentation.
+        Everything before the wall is structural padding, not content.
+
+        Example:
+            1. Session Title
+
+                |This is content at the wall
+                |Second line also at the wall
+
+        The wall (marked by |) is at column 4 relative to the session title.
+        The leading "    " (4 spaces) is STRUCTURAL, not SEMANTIC.
+
+    3.2. Implementation in Tokens
+
+        Line-level semantic tokens (PlainTextLine, SequenceTextLine) implement the wall
+        concept through the indentation_chars field:
+
+        Scanner tokens preserve everything:
+        - Indent (structural marker)
+        - Whitespace("    ") (physical spaces)
+        - Text("This") (content at wall)
+
+        High-level tokens separate structure from content:
+        - Indent (structural token)
+        - PlainTextLine {
+            indentation_chars: "    ",  // Wall padding (STRUCTURAL)
+            content: "This is content...",  // Content at wall (SEMANTIC)
+          }
+
+    3.3. Benefits
+
+        - Scanner tokens: Preserve exact positions for LSP features and error reporting
+        - High-level tokens: Make structure explicit via indentation_chars
+        - Parser: Sees content at the wall, never sees structural padding
+        - Consistency: Same architecture across all line-level elements
+
+    3.4. Relationship to Verbatim Blocks
+
+        The wall concept originated in verbatim blocks (see @verbatim.txxt section 5.2).
+        It has been extended to ALL line-level content for consistency:
+        - Verbatim blocks: Use IndentationWall scanner token
+        - Regular content: Use indentation_chars field in line tokens
+
+        This ensures uniform handling of indented content throughout the parser.
+
+4. Token Composition Patterns
 
     Semantic tokens are composed from scanner tokens using well-defined patterns:
 
-    3.1. Annotation Composition
+    4.1. Annotation Composition
 
         Annotations combine txxt markers with labels and optional content:
         `TxxtMarker` + `Whitespace` + `Text` + `Whitespace` + `TxxtMarker` + `Text`?
 
-    3.2. Definition Composition
+    4.2. Definition Composition
 
         Definitions combine text with txxt markers, optionally with parameters:
         `Text` + `Whitespace` + `TxxtMarker` (simple definition)
         `Text` + `Colon` + `Text` + `Whitespace` + `TxxtMarker` (parameterized definition)
 
-    3.3. Verbatim Composition
+    4.3. Verbatim Composition
 
         Verbatim blocks use wall architecture:
         `VerbatimTitle` + `IndentationWall` + `IgnoreTextSpan` + `VerbatimLabel`
 
-    3.4. Parameter Composition
+    4.4. Parameter Composition
 
         Parameters combine identifiers, equals signs, and values:
         `Identifier` + `Equals` + `Value` + `Comma`?
 
-    3.5. Structural Token Composition
+    4.5. Structural Token Composition
 
         Structural tokens are passed through unchanged from scanner tokens:
         `Indent` and `Dedent` tokens preserve indentation structure

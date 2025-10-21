@@ -17,6 +17,7 @@ fn test_create_session_element() {
 
     // Create a session title token
     let title_token = HighLevelTokenBuilder::plain_text_line(
+        String::new(),
         HighLevelTokenBuilder::text_span("Session Title".to_string(), span.clone()),
         span,
     );
@@ -48,6 +49,7 @@ fn test_create_session_element_with_sequence_title() {
 
     // Create a session title token with sequence marker
     let title_token = HighLevelTokenBuilder::sequence_text_line(
+        String::new(),
         HighLevelTokenBuilder::sequence_marker(
             txxt::cst::high_level_tokens::HighLevelNumberingStyle::Plain,
             txxt::cst::high_level_tokens::HighLevelNumberingForm::Regular,

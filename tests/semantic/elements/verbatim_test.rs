@@ -64,6 +64,7 @@ fn test_create_verbatim_element_rejects_wrong_token() {
 
     // Create a plain text token (not a verbatim block)
     let plain_token = HighLevelTokenBuilder::plain_text_line(
+        String::new(),
         HighLevelTokenBuilder::text_span("Hello".to_string(), span.clone()),
         span,
     );

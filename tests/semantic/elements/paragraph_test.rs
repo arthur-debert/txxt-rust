@@ -21,6 +21,7 @@ fn test_create_paragraph_element() {
 
     // Create a paragraph semantic token
     let paragraph_token = HighLevelTokenBuilder::plain_text_line(
+        String::new(),
         HighLevelTokenBuilder::text_span("Hello world".to_string(), content_span),
         span,
     );

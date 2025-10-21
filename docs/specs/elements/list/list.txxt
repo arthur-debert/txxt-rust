@@ -71,6 +71,15 @@ Complete specification for lists - ordered and unordered collections of items wi
                 - Paint
         :: txxt.core.spec.list.valid.nested-mixed-styles ::
 
+        Multi-level nesting (3+ levels deep):
+            - Level 1
+                1. Level 2
+                    a. Level 3
+                        i. Level 4
+        :: txxt.core.spec.list.valid.multi-level-nesting ::
+
+        Nested lists with multi-line items are not supported yet.
+
 3. Grammar
 
     3.1. List Markers

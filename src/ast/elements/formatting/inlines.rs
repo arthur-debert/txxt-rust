@@ -221,4 +221,8 @@ impl TextTransform {
     pub fn is_identity(&self) -> bool {
         matches!(self, TextTransform::Identity(_))
     }
+
+    pub fn to_inline(&self) -> Inline {
+        Inline::TextLine(self.clone())
+    }
 }

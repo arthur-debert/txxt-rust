@@ -96,11 +96,11 @@ fn test_ensemble_09_nested_complex() {
             println!("  Title: {}", sub_title);
             assert!(sub_title.contains("First Major Subsection"));
 
-            // Should have: paragraph + 2 lists + paragraph + definition
+            // Should have: paragraph + list + paragraph + definition
             assert_eq!(
                 subsession.content.content.len(),
-                5,
-                "Session 1.1 should have 5 elements"
+                4,
+                "Session 1.1 should have 4 elements"
             );
 
             // Element 0: Intro paragraph
@@ -112,36 +112,52 @@ fn test_ensemble_09_nested_complex() {
                 panic!("Session 1.1 element 0 should be a Paragraph");
             }
 
-            // Element 1: First list
+            // Element 1: First list with nested content
             if let SessionContainerElement::List(list) = &subsession.content.content[1] {
                 println!("  [1] List:");
                 println!("      Items: {}", list.items.len());
-                // Just verify it's a list - nested list parsing is complex and tested elsewhere
+                assert_eq!(list.items.len(), 2, "Top level list should have 2 items");
+
+                // Validate first item has nested content
+                assert!(
+                    list.items[0].has_nested_content(),
+                    "First list item should have nested content (numbered sub-list)"
+                );
+
+                if let Some(nested_container) = &list.items[0].nested {
+                    println!(
+                        "      First item has {} nested elements",
+                        nested_container.content.len()
+                    );
+                    assert!(
+                        !nested_container.content.is_empty(),
+                        "Nested container should have content"
+                    );
+
+                    // The nested content should be a list
+                    use txxt::ast::elements::containers::content::ContentContainerElement;
+                    let has_nested_list = nested_container
+                        .content
+                        .iter()
+                        .any(|elem| matches!(elem, ContentContainerElement::List(_)));
+                    assert!(has_nested_list, "Nested content should contain a list");
+                }
             } else {
                 panic!("Session 1.1 element 1 should be a List");
             }
 
-            // Element 2: Second list (numbered sub-list - skip detailed validation)
-            if let SessionContainerElement::List(list) = &subsession.content.content[2] {
-                println!("  [2] List (numbered):");
-                println!("      Items: {}", list.items.len());
-                assert_eq!(list.items.len(), 2, "Numbered list should have 2 items");
-            } else {
-                panic!("Session 1.1 element 2 should be a List");
-            }
-
-            // Element 3: Paragraph (transition text)
-            if let SessionContainerElement::Paragraph(para) = &subsession.content.content[3] {
+            // Element 2: Paragraph (transition text)
+            if let SessionContainerElement::Paragraph(para) = &subsession.content.content[2] {
                 let para_text: String = para.content.iter().map(|t| t.text_content()).collect();
-                println!("  [3] Paragraph: {}", para_text);
+                println!("  [2] Paragraph: {}", para_text);
                 assert!(para_text.contains("Following the list"));
             } else {
-                panic!("Session 1.1 element 3 should be a Paragraph");
+                panic!("Session 1.1 element 2 should be a Paragraph");
             }
 
-            // Element 4: Definition
-            if let SessionContainerElement::Definition(def) = &subsession.content.content[4] {
-                println!("  [4] Definition:");
+            // Element 3: Definition
+            if let SessionContainerElement::Definition(def) = &subsession.content.content[3] {
+                println!("  [3] Definition:");
                 let term_text: String = def.term.content.iter().map(|t| t.text_content()).collect();
                 println!("      Term: {}", term_text);
                 assert!(term_text.contains("Nested Definition"));

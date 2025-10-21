@@ -35,6 +35,7 @@ pub enum Block {
     // Content container blocks (cannot host sessions)
     List(List),
     Definition(Definition),
+    Annotation(super::annotation::AnnotationBlock),
 
     // Session container blocks (can host new document sessions)
     Session(super::session::SessionBlock),
@@ -44,3 +45,18 @@ pub enum Block {
 }
 
 // All block-level types now defined in elements/ - see re-exports above
+
+impl From<super::containers::content::ContentContainerElement> for Block {
+    fn from(element: super::containers::content::ContentContainerElement) -> Self {
+        use super::containers::content::ContentContainerElement;
+        match element {
+            ContentContainerElement::Paragraph(p) => Block::Paragraph(p),
+            ContentContainerElement::List(l) => Block::List(l),
+            ContentContainerElement::Definition(d) => Block::Definition(d),
+            ContentContainerElement::Verbatim(v) => Block::VerbatimBlock(v),
+            ContentContainerElement::Annotation(a) => Block::Annotation(a),
+            ContentContainerElement::Container(c) => Block::Container(c),
+            ContentContainerElement::BlankLine(b) => Block::BlankLine(b),
+        }
+    }
+}

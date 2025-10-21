@@ -160,3 +160,93 @@ fn test_nested_bold_italic() {
         panic!("Expected Strong transform");
     }
 }
+
+#[test]
+fn test_same_type_nesting_prevented_bold() {
+    // Per spec: *outer *inner* text* should break at second asterisk (closing first bold)
+    // Because nested bold-in-bold is prevented, the second * closes the first bold
+    // Result: Strong("outer "), Identity("inner"), Strong(" text")
+    let tokens = vec![
+        create_bold_delimiter(0, 1),
+        create_text("outer ", 1, 7),
+        create_bold_delimiter(7, 8), // This closes the first bold (can't nest bold-in-bold)
+        create_text("inner", 8, 13),
+        create_bold_delimiter(13, 14), // Unmatched (would need nesting)
+        create_text(" text", 14, 19),
+        create_bold_delimiter(19, 20), // Unmatched
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Parser produces: Strong("outer "), "*", "inner", "*", " text", "*"
+    // Actually, unmatched delimiters become Identity transforms
+    assert_eq!(result.len(), 3);
+
+    // First element: Strong("outer ")
+    if let TextTransform::Strong(inner) = &result[0] {
+        assert_eq!(inner.len(), 1);
+        if let TextTransform::Identity(text) = &inner[0] {
+            assert_eq!(text.content(), "outer ");
+        } else {
+            panic!("Expected Identity in strong");
+        }
+    } else {
+        panic!("Expected Strong transform");
+    }
+
+    // Second element: Identity("inner")  (unmatched delimiters become plain text)
+    if let TextTransform::Identity(text) = &result[1] {
+        assert_eq!(text.content(), "inner");
+    } else {
+        panic!("Expected Identity for unmatched content");
+    }
+
+    // Third element: Strong(" text")
+    if let TextTransform::Strong(inner) = &result[2] {
+        assert_eq!(inner.len(), 1);
+        if let TextTransform::Identity(text) = &inner[0] {
+            assert_eq!(text.content(), " text");
+        } else {
+            panic!("Expected Identity in strong");
+        }
+    } else {
+        panic!("Expected Strong transform");
+    }
+}
+
+#[test]
+fn test_same_type_nesting_prevented_italic() {
+    // Per spec: _outer _inner_ text_ should break at second underscore (closing first italic)
+    let tokens = vec![
+        create_italic_delimiter(0, 1),
+        create_text("outer ", 1, 7),
+        create_italic_delimiter(7, 8), // Closes first italic (can't nest italic-in-italic)
+        create_text("inner", 8, 13),
+        create_italic_delimiter(13, 14), // Unmatched
+        create_text(" text", 14, 19),
+        create_italic_delimiter(19, 20), // Unmatched
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Should have 3 elements like the bold test
+    assert_eq!(result.len(), 3);
+
+    // First element: Emphasis("outer ")
+    if let TextTransform::Emphasis(inner) = &result[0] {
+        assert_eq!(inner.len(), 1);
+        if let TextTransform::Identity(text) = &inner[0] {
+            assert_eq!(text.content(), "outer ");
+        }
+    } else {
+        panic!("Expected Emphasis transform");
+    }
+
+    // Second: plain "inner"
+    if let TextTransform::Identity(text) = &result[1] {
+        assert_eq!(text.content(), "inner");
+    }
+
+    // Third: Emphasis(" text")
+    if let TextTransform::Emphasis(inner) = &result[2] {
+        assert_eq!(inner.len(), 1);
+    }
+}

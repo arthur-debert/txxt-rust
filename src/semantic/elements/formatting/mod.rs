@@ -46,6 +46,14 @@ use crate::ast::elements::formatting::inlines::{Inline, TextTransform};
 use crate::cst::ScannerToken;
 use crate::semantic::elements::inlines::InlineParseError;
 
+/// Formatting type being parsed (for preventing same-type nesting)
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum FormattingContext {
+    None,
+    Strong,
+    Emphasis,
+}
+
 /// Parse all formatting elements from a sequence of tokens
 ///
 /// This is the main entry point for formatting parsing. It processes a sequence
@@ -66,26 +74,40 @@ use crate::semantic::elements::inlines::InlineParseError;
 pub fn parse_formatting_elements(
     tokens: &[ScannerToken],
 ) -> Result<Vec<TextTransform>, InlineParseError> {
+    parse_formatting_elements_with_context(tokens, FormattingContext::None)
+}
+
+/// Parse formatting elements with context to prevent same-type nesting
+fn parse_formatting_elements_with_context(
+    tokens: &[ScannerToken],
+    context: FormattingContext,
+) -> Result<Vec<TextTransform>, InlineParseError> {
     let mut transforms = Vec::new();
     let mut i = 0;
 
     while i < tokens.len() {
         let token = &tokens[i];
 
-        if token.is_bold_delimiter() {
+        if token.is_bold_delimiter() && context != FormattingContext::Strong {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_bold_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let nested_transforms = parse_formatting_elements(content_tokens)?;
+                let nested_transforms = parse_formatting_elements_with_context(
+                    content_tokens,
+                    FormattingContext::Strong,
+                )?;
                 transforms.push(TextTransform::Strong(nested_transforms));
                 i = j + 1;
             } else {
                 transforms.push(token_to_identity(token));
                 i += 1;
             }
-        } else if token.is_italic_delimiter() {
+        } else if token.is_italic_delimiter() && context != FormattingContext::Emphasis {
             if let Some(j) = find_closing_token(tokens, i + 1, |t| t.is_italic_delimiter()) {
                 let content_tokens = &tokens[i + 1..j];
-                let nested_transforms = parse_formatting_elements(content_tokens)?;
+                let nested_transforms = parse_formatting_elements_with_context(
+                    content_tokens,
+                    FormattingContext::Emphasis,
+                )?;
                 transforms.push(TextTransform::Emphasis(nested_transforms));
                 i = j + 1;
             } else {

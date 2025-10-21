@@ -354,21 +354,10 @@ impl From<super::annotation_block::AnnotationBlock> for Annotation {
     fn from(block: super::annotation_block::AnnotationBlock) -> Self {
         let content = match block.content {
             super::annotation_block::AnnotationContent::Inline(transforms) => {
-                AnnotationContent::Inline(
-                    transforms
-                        .into_iter()
-                        .map(|t| t.to_inline())
-                        .collect(),
-                )
+                AnnotationContent::Inline(transforms.into_iter().map(|t| t.to_inline()).collect())
             }
             super::annotation_block::AnnotationContent::Block(container) => {
-                AnnotationContent::Block(
-                    container
-                        .content
-                        .into_iter()
-                        .map(|c| c.into())
-                        .collect(),
-                )
+                AnnotationContent::Block(container.content.into_iter().map(|c| c.into()).collect())
             }
         };
 

@@ -41,11 +41,15 @@ pub fn create_annotation_element(
             for node in content_nodes {
                 match node {
                     AstNode::Annotation(block) => nested_annotations.push(block.clone().into()),
-                    _ => {
-                        if let Ok(element) = node.to_element_node().try_into() {
-                            other_content.push(element);
+                    _ => match node.to_element_node().try_into() {
+                        Ok(element) => other_content.push(element),
+                        Err(e) => {
+                            return Err(BlockParseError::InvalidStructure(format!(
+                                "Failed to convert nested element in annotation: {}",
+                                e
+                            )));
                         }
-                    }
+                    },
                 }
             }
 
@@ -99,8 +103,9 @@ impl TryFrom<crate::ast::elements::core::ElementNode> for ContentContainerElemen
             crate::ast::elements::core::ElementNode::AnnotationBlock(block) => {
                 Ok(ContentContainerElement::Annotation(block))
             }
-            _ => Err(BlockParseError::InvalidStructure(
-                "Element not allowed in content container".to_string(),
+            other => Err(BlockParseError::InvalidStructure(
+                format!("Element type {:?} not allowed in ContentContainer (only Paragraph, List, Definition, Verbatim, Annotation are allowed)",
+                    std::mem::discriminant(&other)),
             )),
         }
     }

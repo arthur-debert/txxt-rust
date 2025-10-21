@@ -6,7 +6,6 @@
 //! - **Specification**: `docs/specs/elements/list/`
 //! - **AST Node**: `src/ast/elements/list/block.rs`
 
-use crate::ast::elements::containers::content::ContentContainerElement;
 use crate::ast::elements::containers::ContentContainer;
 use crate::ast::elements::inlines::TextTransform;
 use crate::ast::elements::list::block::{
@@ -47,8 +46,14 @@ pub fn create_list_element_with_nesting(
                 let mut content_elements = Vec::new();
                 for node in nested_nodes {
                     let element_node = node.to_element_node();
-                    if let Ok(container_element) = element_node.try_into() {
-                        content_elements.push(container_element);
+                    match element_node.try_into() {
+                        Ok(container_element) => content_elements.push(container_element),
+                        Err(e) => {
+                            return Err(BlockParseError::InvalidStructure(format!(
+                                "Failed to convert nested element in list item: {}",
+                                e
+                            )));
+                        }
                     }
                 }
                 Some(ContentContainer::new(

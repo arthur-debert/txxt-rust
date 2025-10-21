@@ -28,6 +28,9 @@
 use crate::cst::{HighLevelToken, HighLevelTokenList};
 use crate::semantic::BlockParseError;
 
+/// Maximum recursion depth for nested structures to prevent stack overflow
+const MAX_RECURSION_DEPTH: usize = 100;
+
 /// AST Construction parser for converting semantic tokens to AST nodes
 ///
 /// This parser implements a regex-based grammar engine that matches token patterns
@@ -37,6 +40,8 @@ pub struct AstConstructor<'a> {
     tokens: &'a [HighLevelToken],
     /// Current parsing position in the token stream
     position: usize,
+    /// Current recursion depth (for nested structures)
+    recursion_depth: usize,
 }
 
 impl<'a> AstConstructor<'a> {
@@ -45,6 +50,7 @@ impl<'a> AstConstructor<'a> {
         Self {
             tokens: &[],
             position: 0,
+            recursion_depth: 0,
         }
     }
 
@@ -53,6 +59,7 @@ impl<'a> AstConstructor<'a> {
         Self {
             tokens,
             position: 0,
+            recursion_depth: 0,
         }
     }
 
@@ -250,6 +257,15 @@ impl<'a> AstConstructor<'a> {
     /// This is used for recursive parsing of container content (sessions, definitions, etc.)
     /// It tracks Indent/Dedent nesting to ensure we stop at the correct Dedent.
     fn parse_until_dedent(&mut self) -> Result<Vec<AstNode>, BlockParseError> {
+        // Check recursion depth to prevent stack overflow
+        self.recursion_depth += 1;
+        if self.recursion_depth > MAX_RECURSION_DEPTH {
+            return Err(BlockParseError::InvalidStructure(format!(
+                "Maximum nesting depth exceeded ({}). Document has too many nested structures.",
+                MAX_RECURSION_DEPTH
+            )));
+        }
+
         let mut content_nodes = Vec::new();
         let mut indent_depth = 0; // Track nested indentation levels
 
@@ -323,6 +339,8 @@ impl<'a> AstConstructor<'a> {
             }
         }
 
+        // Decrement recursion depth before returning
+        self.recursion_depth -= 1;
         Ok(content_nodes)
     }
 
@@ -426,11 +444,10 @@ impl<'a> AstConstructor<'a> {
         }
 
         // Delegate to annotation element constructor
-        let annotation_block =
-            crate::semantic::elements::annotation::create_annotation_element(
-                &annotation_token_clone,
-                &content_nodes,
-            )?;
+        let annotation_block = crate::semantic::elements::annotation::create_annotation_element(
+            &annotation_token_clone,
+            &content_nodes,
+        )?;
 
         Ok(Some(AstNode::Annotation(annotation_block)))
     }

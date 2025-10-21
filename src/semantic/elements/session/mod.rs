@@ -6,8 +6,9 @@
 //! - **Specification**: `docs/specs/elements/session/`
 //! - **AST Node**: `src/ast/elements/session/block.rs`
 
+use crate::ast::elements::inlines::TextTransform;
 use crate::ast::elements::session::block::{SessionBlock, SessionTitle};
-use crate::ast::elements::session::session_container::SessionContainer;
+use crate::ast::elements::session::session_container::{SessionContainer, SessionContainerElement};
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
 use crate::semantic::ast_construction::AstNode;
 use crate::semantic::BlockParseError;
@@ -25,10 +26,10 @@ use crate::semantic::BlockParseError;
 /// * `Result<SessionBlock, BlockParseError>`
 pub fn create_session_element(
     title_token: &HighLevelToken,
-    _child_nodes: &[AstNode],
+    child_nodes: &[AstNode],
 ) -> Result<SessionBlock, BlockParseError> {
     // Extract title text from the title token
-    let _title_text = match title_token {
+    let title_text = match title_token {
         HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
             HighLevelToken::TextSpan { content, .. } => content.clone(),
             _ => "unknown".to_string(),
@@ -48,14 +49,32 @@ pub fn create_session_element(
         }
     };
 
+    // Convert title text to TextTransform using Text::simple helper
+    let title_content = if !title_text.is_empty() {
+        let text = crate::ast::elements::inlines::Text::simple(&title_text);
+        vec![TextTransform::Identity(text)]
+    } else {
+        vec![]
+    };
+
+    // Convert AstNodes to SessionContainerElements
+    let content_elements: Vec<SessionContainerElement> = child_nodes
+        .iter()
+        .map(|node| match node {
+            AstNode::Paragraph(p) => SessionContainerElement::Paragraph(p.clone()),
+            AstNode::Session(s) => SessionContainerElement::Session(s.clone()),
+            AstNode::List(l) => SessionContainerElement::List(l.clone()),
+        })
+        .collect();
+
     Ok(SessionBlock {
         title: SessionTitle {
-            content: vec![], // TODO: Convert title_text to TextTransform
+            content: title_content,
             numbering: None,
             tokens: ScannerTokenSequence::new(),
         },
         content: SessionContainer {
-            content: vec![], // TODO: Add parsed child nodes
+            content: content_elements,
             annotations: Vec::new(),
             parameters: crate::ast::elements::components::parameters::Parameters::new(),
             tokens: ScannerTokenSequence::new(),

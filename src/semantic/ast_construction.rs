@@ -78,14 +78,26 @@ impl<'a> AstConstructor<'a> {
         while self.position < self.tokens.len() {
             let token = &self.tokens[self.position];
 
-            // Skip blank lines (they separate elements but aren't elements themselves)
+            // Try to match patterns in precedence order
+
+            // Phase 2: Session pattern (higher precedence than paragraph)
+            // Two variants:
+            // 1. Start of document: <TitleLine> <BlankLine> <Indent>
+            // 2. Mid-document: <BlankLine> <TitleLine> <BlankLine> <Indent>
+
+            // Try session pattern first (handles both blank line prefix and document start)
+            if let Some((node, _tokens_consumed)) = self.try_parse_session()? {
+                ast_nodes.push(node);
+                continue;
+            }
+
+            // Skip standalone blank lines (not part of session pattern)
             if matches!(token, HighLevelToken::BlankLine { .. }) {
                 self.position += 1;
                 continue;
             }
 
-            // Try to match patterns in precedence order
-            // Phase 1: Only paragraph pattern (catch-all for PlainTextLine)
+            // Phase 1: Paragraph pattern (catch-all for PlainTextLine)
             if let Some(node) = self.try_parse_paragraph()? {
                 ast_nodes.push(node);
             } else {
@@ -95,6 +107,132 @@ impl<'a> AstConstructor<'a> {
         }
 
         Ok(ast_nodes)
+    }
+
+    /// Try to parse a session pattern
+    ///
+    /// Sessions have two patterns:
+    /// 1. Start of document: <TitleLine> <BlankLine> <Indent> <Content>* <Dedent>
+    /// 2. Mid-document: <BlankLine> <TitleLine> <BlankLine> <Indent> <Content>* <Dedent>
+    ///
+    /// Returns: (SessionBlock, tokens_consumed) if matched, None otherwise
+    fn try_parse_session(&mut self) -> Result<Option<(AstNode, usize)>, BlockParseError> {
+        let start_pos = self.position;
+
+        if self.position >= self.tokens.len() {
+            return Ok(None);
+        }
+
+        let current_token = &self.tokens[self.position];
+
+        // Determine which pattern we're trying to match
+        let (title_offset, has_leading_blank) =
+            if matches!(current_token, HighLevelToken::BlankLine { .. }) {
+                // Pattern 2: Mid-document with leading blank line
+                // Position 0: BlankLine, Position 1: Title
+                (1, true)
+            } else if matches!(
+                current_token,
+                HighLevelToken::PlainTextLine { .. } | HighLevelToken::SequenceTextLine { .. }
+            ) {
+                // Pattern 1: Start of document, no leading blank line
+                // Position 0: Title
+                (0, false)
+            } else {
+                return Ok(None);
+            };
+
+        // Check if we have enough tokens for the pattern
+        let min_tokens = if has_leading_blank { 4 } else { 3 }; // BlankLine? + Title + BlankLine + Indent
+        if self.position + min_tokens > self.tokens.len() {
+            return Ok(None);
+        }
+
+        // Validate title token
+        let title_pos = self.position + title_offset;
+        let title_token = &self.tokens[title_pos];
+        if !matches!(
+            title_token,
+            HighLevelToken::PlainTextLine { .. } | HighLevelToken::SequenceTextLine { .. }
+        ) {
+            return Ok(None);
+        }
+
+        // Check for blank line after title
+        let blank_after_title_pos = title_pos + 1;
+        if !matches!(
+            self.tokens[blank_after_title_pos],
+            HighLevelToken::BlankLine { .. }
+        ) {
+            return Ok(None);
+        }
+
+        // Check for Indent token
+        let indent_pos = blank_after_title_pos + 1;
+        if !matches!(self.tokens[indent_pos], HighLevelToken::Indent { .. }) {
+            return Ok(None);
+        }
+
+        // Pattern matched! Now consume tokens and build session
+        if has_leading_blank {
+            self.position += 1; // Skip leading BlankLine
+        }
+
+        // Clone/capture the title token before advancing position
+        let title_token_clone = self.tokens[self.position].clone();
+        self.position += 1; // Consume title
+        self.position += 1; // Skip BlankLine after title
+        self.position += 1; // Skip Indent
+
+        // Now recursively parse the content until we hit Dedent
+        let content_nodes = self.parse_until_dedent()?;
+
+        // Consume the Dedent token
+        if self.position < self.tokens.len()
+            && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. }) {
+                self.position += 1;
+            }
+
+        // Delegate to session element constructor
+        let session_block = crate::semantic::elements::session::create_session_element(
+            &title_token_clone,
+            &content_nodes,
+        )?;
+
+        let tokens_consumed = self.position - start_pos;
+        Ok(Some((AstNode::Session(session_block), tokens_consumed)))
+    }
+
+    /// Parse content tokens until we hit a Dedent token
+    ///
+    /// This is used for recursive parsing of container content (sessions, definitions, etc.)
+    fn parse_until_dedent(&mut self) -> Result<Vec<AstNode>, BlockParseError> {
+        let mut content_nodes = Vec::new();
+
+        while self.position < self.tokens.len() {
+            let token = &self.tokens[self.position];
+
+            // Stop at Dedent
+            if matches!(token, HighLevelToken::Dedent { .. }) {
+                break;
+            }
+
+            // Skip blank lines within content
+            if matches!(token, HighLevelToken::BlankLine { .. }) {
+                self.position += 1;
+                continue;
+            }
+
+            // Try to match patterns (only paragraph for now in Phase 2)
+            if let Some(node) = self.try_parse_paragraph()? {
+                content_nodes.push(node);
+            } else {
+                // No pattern matched - skip to avoid infinite loop
+                self.position += 1;
+            }
+        }
+
+        Ok(content_nodes)
     }
 
     /// Try to parse a paragraph pattern

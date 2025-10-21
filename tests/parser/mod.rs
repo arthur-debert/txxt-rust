@@ -25,7 +25,11 @@ mod test_list_simple;
 // Definition parsing tests
 mod definition_01_simple;
 
+// Ensemble tests with definitions
+mod ensemble_07_session_with_definition;
+
 // Complex ensemble tests
+mod ensemble_09_nested_complex;
 mod ensemble_12_complex_sessions;
 
 // Debug utilities

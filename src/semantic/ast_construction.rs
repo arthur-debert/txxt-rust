@@ -264,7 +264,13 @@ impl<'a> AstConstructor<'a> {
 
             // Try to match patterns in precedence order
 
-            // Try session pattern first (for nested sessions)
+            // Try definition pattern first (explicit marker)
+            if let Some((node, _tokens_consumed)) = self.try_parse_definition()? {
+                content_nodes.push(node);
+                continue;
+            }
+
+            // Try session pattern (for nested sessions)
             if let Some((node, _tokens_consumed)) = self.try_parse_session()? {
                 content_nodes.push(node);
                 continue;

@@ -11,7 +11,7 @@ use crate::ast::elements::{
     list::block::ListBlock, paragraph::block::ParagraphBlock, session::block::SessionBlock,
     verbatim::block::VerbatimBlock,
 };
-use crate::cst::{HighLevelToken, HighLevelTokenList, Position, ScannerTokenSequence, SourceSpan};
+use crate::cst::{HighLevelToken, HighLevelTokenList};
 use crate::semantic::BlockParseError;
 
 /// AST Construction parser for converting semantic tokens to AST nodes
@@ -210,37 +210,15 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            HighLevelToken::Annotation { label, content, .. } => {
+            HighLevelToken::Annotation { .. } => {
                 // Consume the token
                 self.position += 1;
 
-                // Extract label text
-                let label_text = match label.as_ref() {
-                    HighLevelToken::Label { text, .. } => text.clone(),
-                    _ => "unknown".to_string(),
-                };
+                // Delegate to annotation element constructor
+                let annotation_block =
+                    crate::semantic::elements::annotation::create_annotation_element(token)?;
 
-                // Extract content text if present
-                let _content_text = match content {
-                    Some(content_token) => match content_token.as_ref() {
-                        HighLevelToken::TextSpan { content, .. } => Some(content.clone()),
-                        HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
-                            HighLevelToken::TextSpan { content, .. } => Some(content.clone()),
-                            _ => None,
-                        },
-                        _ => None,
-                    },
-                    None => None,
-                };
-
-                Ok(Some(AstNode::Annotation(AnnotationBlock {
-                    label: label_text,
-                    content: crate::ast::elements::annotation::annotation_block::AnnotationContent::Inline(vec![]),
-                    parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                    annotations: Vec::new(),
-                    tokens: ScannerTokenSequence::new(),
-                    namespace: None,
-                })))
+                Ok(Some(AstNode::Annotation(annotation_block)))
             }
             _ => Ok(None),
         }
@@ -260,37 +238,15 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            HighLevelToken::VerbatimBlock { title, label, .. } => {
+            HighLevelToken::VerbatimBlock { .. } => {
                 // Consume the token
                 self.position += 1;
 
-                // Extract title text
-                let _title_text = match title.as_ref() {
-                    HighLevelToken::TextSpan { content, .. } => content.clone(),
-                    _ => "unknown".to_string(),
-                };
+                // Delegate to verbatim element constructor
+                let verbatim_block =
+                    crate::semantic::elements::verbatim::create_verbatim_element(token)?;
 
-                // Extract label text
-                let label_text = match label.as_ref() {
-                    HighLevelToken::Label { text, .. } => text.clone(),
-                    _ => "unknown".to_string(),
-                };
-
-                Ok(Some(AstNode::VerbatimBlock(VerbatimBlock {
-                    title: vec![], // TODO: Convert title_text to TextTransform
-                    content: crate::ast::elements::verbatim::ignore_container::IgnoreContainer::new(
-                        vec![],
-                        vec![],
-                        vec![],
-                        crate::ast::elements::components::parameters::Parameters::new(),
-                        ScannerTokenSequence::new(),
-                    ),
-                    label: label_text,
-                    verbatim_type: crate::ast::elements::verbatim::block::VerbatimType::InFlow,
-                    parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                    annotations: Vec::new(),
-                    tokens: ScannerTokenSequence::new(),
-                })))
+                Ok(Some(AstNode::VerbatimBlock(verbatim_block)))
             }
             _ => Ok(None),
         }
@@ -310,49 +266,15 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            HighLevelToken::Definition {
-                term, parameters, ..
-            } => {
+            HighLevelToken::Definition { .. } => {
                 // Consume the token
                 self.position += 1;
 
-                // Extract term text
-                let _term_text = match term.as_ref() {
-                    HighLevelToken::TextSpan { content, .. } => content.clone(),
-                    _ => "unknown".to_string(),
-                };
+                // Delegate to definition element constructor
+                let definition_block =
+                    crate::semantic::elements::definition::create_definition_element(token)?;
 
-                // Extract parameters text if present
-                let _params_text = match parameters {
-                    Some(params_token) => {
-                        match params_token.as_ref() {
-                            HighLevelToken::Parameters { params, .. } => {
-                                // Convert parameters to string representation
-                                let param_strings: Vec<String> =
-                                    params.iter().map(|(k, v)| format!("{}={}", k, v)).collect();
-                                Some(param_strings.join(","))
-                            }
-                            _ => None,
-                        }
-                    }
-                    None => None,
-                };
-
-                Ok(Some(AstNode::Definition(DefinitionBlock {
-                    term: crate::ast::elements::definition::block::DefinitionTerm {
-                        content: vec![], // TODO: Convert term_text to TextTransform
-                        tokens: ScannerTokenSequence::new(),
-                    },
-                    content: crate::ast::elements::containers::content::ContentContainer::new(
-                        vec![],
-                        vec![],
-                        crate::ast::elements::components::parameters::Parameters::new(),
-                        ScannerTokenSequence::new(),
-                    ),
-                    parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                    annotations: Vec::new(),
-                    tokens: ScannerTokenSequence::new(),
-                })))
+                Ok(Some(AstNode::Definition(definition_block)))
             }
             _ => Ok(None),
         }
@@ -473,34 +395,18 @@ impl<'a> AstConstructor<'a> {
         }
 
         // We have a valid session pattern!
-        // Use a fallback span since we consumed the first token
-        let _span = SourceSpan {
-            start: Position { row: 1, column: 0 },
-            end: Position { row: 1, column: 0 },
-        };
-
         // Calculate how many tokens we consumed
         let tokens_consumed = self.position - start_position;
 
-        Ok(Some((
-            AstNode::Session(SessionBlock {
-                title: crate::ast::elements::session::block::SessionTitle {
-                    content: vec![], // TODO: Convert title_text to TextTransform
-                    numbering: None,
-                    tokens: ScannerTokenSequence::new(),
-                },
-                content: crate::ast::elements::session::session_container::SessionContainer {
-                    content: vec![], // TODO: Add parsed child nodes
-                    annotations: Vec::new(),
-                    parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                    tokens: ScannerTokenSequence::new(),
-                },
-                annotations: Vec::new(),
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                tokens: ScannerTokenSequence::new(),
-            }),
-            tokens_consumed,
-        )))
+        // Get the title token (we need to go back to find it)
+        let title_token_index = start_position + 1; // Skip blank line, get title
+        let title_token = &self.tokens[title_token_index];
+
+        // Delegate to session element constructor
+        let session_block =
+            crate::semantic::elements::session::create_session_element(title_token, &child_nodes)?;
+
+        Ok(Some((AstNode::Session(session_block), tokens_consumed)))
     }
 
     /// Try to parse a list pattern
@@ -572,28 +478,13 @@ impl<'a> AstConstructor<'a> {
         }
 
         // We have a valid list pattern!
-        // Use a fallback span since we consumed the tokens
-        let _span = SourceSpan {
-            start: Position { row: 1, column: 0 },
-            end: Position { row: 1, column: 0 },
-        };
-
         // Calculate how many tokens we consumed
         let tokens_consumed = self.position - start_position;
 
-        Ok(Some((
-            AstNode::List(ListBlock {
-                decoration_type: crate::ast::elements::list::block::ListDecorationType {
-                    style: crate::ast::elements::list::block::NumberingStyle::Plain,
-                    form: crate::ast::elements::list::block::NumberingForm::Short,
-                },
-                items: vec![], // TODO: Add parsed list items
-                annotations: Vec::new(),
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                tokens: ScannerTokenSequence::new(),
-            }),
-            tokens_consumed,
-        )))
+        // Delegate to list element constructor
+        let list_block = crate::semantic::elements::list::create_list_element(item_count)?;
+
+        Ok(Some((AstNode::List(list_block), tokens_consumed)))
     }
 
     /// Parse the content of a list item (indented content following a sequence text line)
@@ -658,26 +549,15 @@ impl<'a> AstConstructor<'a> {
 
         let token = &self.tokens[self.position];
         match token {
-            HighLevelToken::PlainTextLine { content, .. } => {
+            HighLevelToken::PlainTextLine { .. } => {
                 // Consume the token
                 self.position += 1;
 
-                // Extract content text
-                let content_text = match content.as_ref() {
-                    HighLevelToken::TextSpan { content, .. } => content.clone(),
-                    _ => "unknown".to_string(),
-                };
+                // Delegate to paragraph element constructor
+                let paragraph_block =
+                    crate::semantic::elements::paragraph::create_paragraph_element(token)?;
 
-                // Create a simple TextTransform::Identity for the plain text content
-                let text = crate::ast::elements::inlines::Text::simple(&content_text);
-                let text_transform = crate::ast::elements::inlines::TextTransform::Identity(text);
-
-                Ok(Some(AstNode::Paragraph(ParagraphBlock {
-                    content: vec![text_transform],
-                    annotations: Vec::new(),
-                    parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                    tokens: ScannerTokenSequence::new(),
-                })))
+                Ok(Some(AstNode::Paragraph(paragraph_block)))
             }
             _ => Ok(None),
         }

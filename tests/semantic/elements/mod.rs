@@ -4,3 +4,4 @@
 //! functions in isolation.
 
 mod annotation_test;
+mod definition_test;

@@ -7,7 +7,7 @@
 use proptest::prelude::*;
 use rstest::rstest;
 use txxt::cst::ScannerToken;
-use txxt::lexer::{core::patterns::IDENTIFIER_PATTERN, tokenize};
+use txxt::syntax::{core::patterns::IDENTIFIER_PATTERN, tokenize};
 
 // =============================================================================
 // ANNOTATION_MARKER Token - Isolated Tests (rstest)

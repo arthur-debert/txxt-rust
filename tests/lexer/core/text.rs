@@ -6,7 +6,7 @@
 use proptest::prelude::*;
 use rstest::rstest;
 use txxt::cst::ScannerToken;
-use txxt::lexer::{core::patterns::TEXT_PATTERN, tokenize};
+use txxt::syntax::{core::patterns::TEXT_PATTERN, tokenize};
 
 // =============================================================================
 // TEXT Token - Isolated Tests (rstest)

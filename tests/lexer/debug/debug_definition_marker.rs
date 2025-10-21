@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use txxt::lexer::tokenize;
+    use txxt::syntax::tokenize;
 
     #[test]
     fn debug_definition_vs_annotation_markers() {

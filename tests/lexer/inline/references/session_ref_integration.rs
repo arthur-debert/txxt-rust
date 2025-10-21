@@ -1,7 +1,7 @@
 //! Integration tests for session reference tokenization with main lexer
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 #[test]
 fn test_session_ref_integration_simple() {

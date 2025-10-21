@@ -4,7 +4,7 @@
 //! from patterns.rs instead of manual string manipulation.
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 #[cfg(test)]
 mod tests {

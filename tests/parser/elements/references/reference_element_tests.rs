@@ -5,7 +5,7 @@
 
 use txxt::ast::elements::references::reference_types::*;
 use txxt::cst::{Position, ScannerToken, SourceSpan};
-use txxt::parser::elements::inlines::references::*;
+use txxt::semantic::elements::inlines::references::*;
 
 /// Helper function to create a test source span
 fn test_span() -> SourceSpan {

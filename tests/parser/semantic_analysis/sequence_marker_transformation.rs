@@ -8,7 +8,7 @@ use txxt::cst::high_level_tokens::{
     HighLevelTokenSpan,
 };
 use txxt::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
-use txxt::lexer::semantic_analysis::SemanticAnalyzer;
+use txxt::syntax::semantic_analysis::SemanticAnalyzer;
 
 #[test]
 fn test_sequence_marker_plain_transformation() {

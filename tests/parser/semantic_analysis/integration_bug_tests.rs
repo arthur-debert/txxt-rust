@@ -8,7 +8,7 @@
 
 use txxt::cst::high_level_tokens::HighLevelToken;
 use txxt::cst::{Position, ScannerToken, SourceSpan};
-use txxt::lexer::semantic_analysis::SemanticAnalyzer;
+use txxt::syntax::semantic_analysis::SemanticAnalyzer;
 
 /// Test that captures Defect 1: Main analysis loop doesn't compose complex tokens
 ///

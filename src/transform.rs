@@ -26,12 +26,12 @@
 //! # }
 //! ```
 
-use crate::assembler::{AnnotationAttacher, DocumentAssembler};
+use crate::assembly::{AnnotationAttacher, DocumentAssembler};
 use crate::ast::Document;
 use crate::cst::ScannerToken;
-use crate::lexer::tokenize;
-use crate::lexer::SemanticAnalyzer;
-use crate::parser::{AstConstructor, InlineParser};
+use crate::semantic::{AstConstructor, InlineParser};
+use crate::syntax::tokenize;
+use crate::syntax::SemanticAnalyzer;
 
 /// Processing error type that encompasses all phase errors
 #[derive(Debug)]

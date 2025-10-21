@@ -1,6 +1,6 @@
 //! Verify that the tokenizer actually handles Unicode correctly
 
-use txxt::lexer::Lexer;
+use txxt::syntax::Lexer;
 
 #[test]
 fn verify_lexer_counts_characters_not_bytes() {

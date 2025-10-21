@@ -5,7 +5,7 @@
 //! specification.
 
 use txxt::cst::{ScannerToken, SequenceMarkerType};
-use txxt::lexer::Lexer;
+use txxt::syntax::Lexer;
 
 #[test]
 fn test_hierarchical_numerical_sequence_markers() {

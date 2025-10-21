@@ -80,11 +80,11 @@ use std::path::{Path, PathBuf};
 
 pub mod annotation_parser;
 pub mod api;
-pub mod assembler;
+pub mod assembly;
 pub mod ast;
 pub mod cst;
-pub mod lexer;
-pub mod parser;
+pub mod semantic;
+pub mod syntax;
 pub mod tools;
 pub mod transform;
 

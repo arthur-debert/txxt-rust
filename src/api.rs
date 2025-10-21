@@ -10,8 +10,8 @@ use serde_json;
 use std::error::Error;
 use std::fmt;
 
-use crate::lexer::tokenize;
-use crate::lexer::SemanticAnalyzer;
+use crate::syntax::tokenize;
+use crate::syntax::SemanticAnalyzer;
 
 #[derive(Debug)]
 pub enum TransformError {
@@ -56,10 +56,10 @@ fn format_element_node(element: &crate::ast::ElementNode) -> String {
     }
 }
 
-use crate::assembler::{AnnotationAttacher, DocumentAssembler};
+use crate::assembly::{AnnotationAttacher, DocumentAssembler};
 use crate::ast::{Document, ElementNode};
 use crate::cst::{HighLevelTokenList, ScannerToken};
-use crate::parser::{AstConstructor, InlineParser};
+use crate::semantic::{AstConstructor, InlineParser};
 
 /// Processing stages in the TXXT pipeline (new unified API).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

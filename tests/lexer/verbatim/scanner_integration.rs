@@ -3,7 +3,7 @@
 //! This module provides verbatim scanner integration tests.
 //! The main integration test is available in tests/verbatim_scanner_tests.rs
 
-use txxt::lexer::verbatim_scanning::VerbatimScanner;
+use txxt::syntax::verbatim_scanning::VerbatimScanner;
 
 #[test]
 fn test_basic_verbatim_scanner_integration() {

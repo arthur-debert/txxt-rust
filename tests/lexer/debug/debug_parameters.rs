@@ -1,4 +1,4 @@
-use txxt::lexer::verbatim_scanning::VerbatimScanner;
+use txxt::syntax::verbatim_scanning::VerbatimScanner;
 
 #[test]
 fn debug_parameters() {

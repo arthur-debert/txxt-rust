@@ -7,7 +7,7 @@
 
 use txxt::cst::high_level_tokens::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::cst::{Position, ScannerToken, SourceSpan, WallType};
-use txxt::lexer::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
+use txxt::syntax::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 
 #[test]
 fn test_verbatim_block_basic_transformation() {

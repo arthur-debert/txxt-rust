@@ -5,7 +5,7 @@
 //! - Individual Parameter tokens for each key=value pair
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 #[cfg(test)]
 mod verbatim_parameter_integration_tests {

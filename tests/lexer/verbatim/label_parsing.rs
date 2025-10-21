@@ -6,7 +6,7 @@
 //! 3. Handle various parameter formats
 
 use txxt::cst::ScannerToken;
-use txxt::lexer::tokenize;
+use txxt::syntax::tokenize;
 
 #[cfg(test)]
 mod verbatim_label_tests {

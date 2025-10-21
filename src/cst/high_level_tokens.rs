@@ -105,6 +105,10 @@ pub enum HighLevelToken {
     /// Line beginning with sequence marker followed by text content
     /// Combines Sequence Marker and Text Span components
     SequenceTextLine {
+        /// Leading whitespace before the sequence marker (indentation padding)
+        /// This is the whitespace after an Indent token that positions content at the wall.
+        /// Empty string for top-level (non-indented) content.
+        indentation_chars: String,
         /// The sequence marker
         marker: Box<HighLevelToken>,
         /// The text content following the marker
@@ -116,6 +120,10 @@ pub enum HighLevelToken {
     /// Simple text content without special markers or structure
     /// Contains single Text Span component
     PlainTextLine {
+        /// Leading whitespace before the text content (indentation padding)
+        /// This is the whitespace after an Indent token that positions content at the wall.
+        /// Empty string for top-level (non-indented) content.
+        indentation_chars: String,
         /// The text content
         content: Box<HighLevelToken>,
         /// Source span of the entire line
@@ -409,8 +417,13 @@ impl HighLevelTokenBuilder {
     }
 
     /// Create a plain text line semantic token
-    pub fn plain_text_line(content: HighLevelToken, span: SourceSpan) -> HighLevelToken {
+    pub fn plain_text_line(
+        indentation_chars: String,
+        content: HighLevelToken,
+        span: SourceSpan,
+    ) -> HighLevelToken {
         HighLevelToken::PlainTextLine {
+            indentation_chars,
             content: Box::new(content),
             span,
         }
@@ -418,11 +431,13 @@ impl HighLevelTokenBuilder {
 
     /// Create a sequence text line semantic token
     pub fn sequence_text_line(
+        indentation_chars: String,
         marker: HighLevelToken,
         content: HighLevelToken,
         span: SourceSpan,
     ) -> HighLevelToken {
         HighLevelToken::SequenceTextLine {
+            indentation_chars,
             marker: Box::new(marker),
             content: Box::new(content),
             span,

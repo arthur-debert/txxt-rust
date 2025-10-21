@@ -183,6 +183,9 @@ impl TextSpan {
     /// # Arguments
     /// * `content` - The text content (used as fallback if tokens are empty)
     /// * `tokens` - Source token sequence from parent HighLevelToken
+    ///
+    /// Note: If tokens are empty, creates synthetic tokens from content as a fallback.
+    /// This ensures text content is never lost even when token extraction fails.
     pub fn simple_with_tokens(content: &str, tokens: ScannerTokenSequence) -> Self {
         // If tokens are empty, create synthetic tokens from content
         let tokens = if tokens.tokens.is_empty() && !content.is_empty() {

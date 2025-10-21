@@ -50,7 +50,11 @@ pub fn create_paragraph_element_multi(
                     HighLevelToken::TextSpan {
                         content, tokens, ..
                     } => (content.clone(), tokens.clone()),
-                    _ => ("unknown".to_string(), ScannerTokenSequence::new()),
+                    _ => {
+                        return Err(BlockParseError::InvalidStructure(
+                            "Paragraph line content must be a TextSpan".to_string(),
+                        ))
+                    }
                 };
 
                 // Create TextTransform::Identity, preserving source tokens

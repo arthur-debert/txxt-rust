@@ -20,7 +20,11 @@ fn test_sequence_marker_plain_transformation() {
         end: Position { row: 1, column: 1 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
+    let dummy_token = ScannerToken::SequenceMarker {
+        marker_type: marker_type.clone(),
+        span: span.clone(),
+    };
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), &dummy_token);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -54,7 +58,11 @@ fn test_sequence_marker_numerical_transformation() {
         end: Position { row: 1, column: 2 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
+    let dummy_token = ScannerToken::SequenceMarker {
+        marker_type: marker_type.clone(),
+        span: span.clone(),
+    };
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), &dummy_token);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -88,7 +96,11 @@ fn test_sequence_marker_alphabetical_transformation() {
         end: Position { row: 1, column: 2 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
+    let dummy_token = ScannerToken::SequenceMarker {
+        marker_type: marker_type.clone(),
+        span: span.clone(),
+    };
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), &dummy_token);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -122,7 +134,11 @@ fn test_sequence_marker_roman_transformation() {
         end: Position { row: 1, column: 2 },
     };
 
-    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
+    let dummy_token = ScannerToken::SequenceMarker {
+        marker_type: marker_type.clone(),
+        span: span.clone(),
+    };
+    let result = analyzer.transform_sequence_marker(marker_type, span.clone(), &dummy_token);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -175,7 +191,12 @@ fn test_sequence_marker_different_markers() {
             end: Position { row: 1, column: 3 },
         };
 
-        let result = analyzer.transform_sequence_marker(marker_type.clone(), span.clone(), None);
+        let dummy_token = ScannerToken::SequenceMarker {
+            marker_type: marker_type.clone(),
+            span: span.clone(),
+        };
+        let result =
+            analyzer.transform_sequence_marker(marker_type.clone(), span.clone(), &dummy_token);
         assert!(result.is_ok());
 
         let semantic_token = result.unwrap();
@@ -226,7 +247,11 @@ fn test_sequence_marker_different_positions() {
             end: *end,
         };
 
-        let result = analyzer.transform_sequence_marker(marker_type, span.clone(), None);
+        let dummy_token = ScannerToken::SequenceMarker {
+            marker_type: marker_type.clone(),
+            span: span.clone(),
+        };
+        let result = analyzer.transform_sequence_marker(marker_type, span.clone(), &dummy_token);
         assert!(result.is_ok());
 
         let semantic_token = result.unwrap();

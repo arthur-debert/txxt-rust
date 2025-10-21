@@ -24,8 +24,11 @@ fn test_label_basic_transformation() {
     };
 
     // Transform the token
-    let result =
-        analyzer.transform_label("python".to_string(), identifier_token.span().clone(), None);
+    let result = analyzer.transform_label(
+        "python".to_string(),
+        identifier_token.span().clone(),
+        &identifier_token,
+    );
 
     // Verify the transformation
     assert!(result.is_ok());
@@ -64,7 +67,11 @@ fn test_label_namespaced_transformation() {
             },
         };
 
-        let result = analyzer.transform_label(label_text.to_string(), span.clone(), None);
+        let dummy_token = ScannerToken::Identifier {
+            content: label_text.to_string(),
+            span: span.clone(),
+        };
+        let result = analyzer.transform_label(label_text.to_string(), span.clone(), &dummy_token);
         assert!(result.is_ok(), "Failed for label: {}", label_text);
 
         let semantic_token = result.unwrap();
@@ -106,7 +113,11 @@ fn test_label_valid_characters() {
             },
         };
 
-        let result = analyzer.transform_label(label_text.to_string(), span.clone(), None);
+        let dummy_token = ScannerToken::Identifier {
+            content: label_text.to_string(),
+            span: span.clone(),
+        };
+        let result = analyzer.transform_label(label_text.to_string(), span.clone(), &dummy_token);
         assert!(result.is_ok(), "Failed for valid label: {}", label_text);
 
         let semantic_token = result.unwrap();
@@ -141,7 +152,11 @@ fn test_label_invalid_characters() {
             },
         };
 
-        let result = analyzer.transform_label(label_text.to_string(), span, None);
+        let dummy_token = ScannerToken::Identifier {
+            content: label_text.to_string(),
+            span: span.clone(),
+        };
+        let result = analyzer.transform_label(label_text.to_string(), span, &dummy_token);
         assert!(
             result.is_err(),
             "Should fail for invalid label: {}",
@@ -172,7 +187,11 @@ fn test_label_empty_content() {
         end: Position { row: 1, column: 0 },
     };
 
-    let result = analyzer.transform_label("".to_string(), span, None);
+    let dummy_token = ScannerToken::Identifier {
+        content: "".to_string(),
+        span: span.clone(),
+    };
+    let result = analyzer.transform_label("".to_string(), span, &dummy_token);
     assert!(result.is_err());
 
     match result.unwrap_err() {

@@ -31,7 +31,11 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 HighLevelToken::TextSpan {
                     content, tokens, ..
                 } => (content.clone(), tokens.clone()),
-                _ => ("unknown".to_string(), ScannerTokenSequence::new()),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "Verbatim title must be a TextSpan".to_string(),
+                    ))
+                }
             };
 
             // FIXME: post-parser - Parse inline formatting in title instead of using Text::simple

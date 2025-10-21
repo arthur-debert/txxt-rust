@@ -34,7 +34,11 @@ pub fn create_list_element_with_nesting(
                 HighLevelToken::TextSpan {
                     content, tokens, ..
                 } => (content.clone(), tokens.clone()),
-                _ => ("".to_string(), ScannerTokenSequence::new()),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "List item content must be a TextSpan".to_string(),
+                    ))
+                }
             };
             let content_transforms = if !content.is_empty() {
                 vec![TextTransform::Identity(
@@ -133,7 +137,11 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
                 HighLevelToken::TextSpan {
                     content, tokens, ..
                 } => (content.clone(), tokens.clone()),
-                _ => (String::new(), ScannerTokenSequence::new()),
+                _ => {
+                    return Err(BlockParseError::InvalidStructure(
+                        "List item content must be a TextSpan".to_string(),
+                    ))
+                }
             };
 
             // Create TextTransform for item content, preserving source tokens

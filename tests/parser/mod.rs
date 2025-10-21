@@ -30,6 +30,7 @@ mod ensemble_07_session_with_definition;
 
 // Verbatim parsing tests
 mod verbatim_01_simple;
+mod verbatim_02_multiple;
 
 // Complex ensemble tests
 mod ensemble_09_nested_complex;

@@ -42,7 +42,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use super::primitives::{Position, SourceSpan};
-use super::scanner_tokens::ScannerToken;
+use super::scanner_tokens::{ScannerToken, WallType};
 
 /// High-level token representing higher-level syntactic constructs
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -224,6 +224,8 @@ pub enum HighLevelToken {
         label: Box<HighLevelToken>,
         /// Optional parameters in key=value format
         parameters: Option<Box<HighLevelToken>>,
+        /// Wall type (InFlow or Stretched)
+        wall_type: WallType,
         /// Source span of the entire verbatim block
         span: SourceSpan,
     },
@@ -571,6 +573,7 @@ impl HighLevelTokenBuilder {
         content: HighLevelToken,
         label: HighLevelToken,
         parameters: Option<HighLevelToken>,
+        wall_type: WallType,
         span: SourceSpan,
     ) -> HighLevelToken {
         HighLevelToken::VerbatimBlock {
@@ -579,6 +582,7 @@ impl HighLevelTokenBuilder {
             content: Box::new(content),
             label: Box::new(label),
             parameters: parameters.map(Box::new),
+            wall_type,
             span,
         }
     }

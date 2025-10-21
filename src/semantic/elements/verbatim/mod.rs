@@ -7,7 +7,7 @@
 //! - **AST Node**: `src/ast/elements/verbatim/block.rs`
 
 use crate::ast::elements::verbatim::block::{VerbatimBlock, VerbatimType};
-use crate::cst::{HighLevelToken, ScannerTokenSequence};
+use crate::cst::{HighLevelToken, ScannerTokenSequence, WallType};
 use crate::semantic::BlockParseError;
 
 /// Create a verbatim block element from a VerbatimBlock token
@@ -23,6 +23,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             title,
             content,
             label,
+            wall_type,
             ..
         } => {
             // Extract title text and convert to TextTransform
@@ -77,11 +78,17 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                     ScannerTokenSequence::new(),
                 );
 
+            // Convert WallType to VerbatimType
+            let verbatim_type = match wall_type {
+                WallType::InFlow(_) => VerbatimType::InFlow,
+                WallType::Stretched => VerbatimType::Stretched,
+            };
+
             Ok(VerbatimBlock {
                 title: title_transforms,
                 content: ignore_container,
                 label: label_text,
-                verbatim_type: VerbatimType::InFlow,
+                verbatim_type,
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
                 annotations: Vec::new(),
                 tokens: ScannerTokenSequence::new(),

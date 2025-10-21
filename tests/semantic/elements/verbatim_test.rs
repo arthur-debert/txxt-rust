@@ -41,6 +41,7 @@ fn test_create_verbatim_element() {
         HighLevelTokenBuilder::text_span("print('hello')".to_string(), content_span),
         HighLevelTokenBuilder::label("python".to_string(), label_span),
         None,
+        txxt::cst::WallType::InFlow(0),
         span,
     );
 

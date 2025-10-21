@@ -61,7 +61,9 @@ fn test_verbatim_block_basic_transformation() {
             content,
             label,
             parameters,
+            wall_type: _,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -169,7 +171,9 @@ fn test_verbatim_block_with_parameters() {
             content,
             label,
             parameters,
+            wall_type: _,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_some());
@@ -278,7 +282,9 @@ fn test_verbatim_block_multiple_content_tokens() {
             content,
             label,
             parameters,
+            wall_type: _,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -494,7 +500,9 @@ fn test_verbatim_block_empty_content() {
             content,
             label,
             parameters,
+            wall_type: _,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -614,6 +622,7 @@ fn test_verbatim_block_builder() {
         content_token,
         label_token,
         None,
+        WallType::InFlow(0),
         span.clone(),
     );
 
@@ -625,6 +634,7 @@ fn test_verbatim_block_builder() {
             label,
             parameters,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
@@ -721,6 +731,7 @@ fn test_verbatim_block_span_trait() {
         content_token,
         label_token,
         None,
+        WallType::InFlow(0),
         span.clone(),
     );
     let token_span = semantic_token.span();
@@ -788,6 +799,7 @@ fn test_verbatim_block_different_wall_types() {
                 label,
                 parameters,
                 span: token_span,
+                ..
             } => {
                 assert_eq!(token_span, span);
                 assert!(parameters.is_none());
@@ -858,7 +870,9 @@ fn test_verbatim_block_empty_title() {
             content,
             label,
             parameters,
+            wall_type: _,
             span: token_span,
+            ..
         } => {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());

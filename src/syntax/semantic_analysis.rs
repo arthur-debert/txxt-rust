@@ -267,13 +267,14 @@ impl SemanticAnalyzer {
                     && matches!(
                         scanner_tokens[start_index + 1],
                         ScannerToken::VerbatimTitle { .. }
-                    ) {
-                        if let Some((tokens, consumed)) =
-                            self.recognize_verbatim_block_pattern(scanner_tokens, start_index)?
-                        {
-                            return Ok(Some((tokens, consumed)));
-                        }
+                    )
+                {
+                    if let Some((tokens, consumed)) =
+                        self.recognize_verbatim_block_pattern(scanner_tokens, start_index)?
+                    {
+                        return Ok(Some((tokens, consumed)));
                     }
+                }
             }
 
             _ => {}
@@ -1322,6 +1323,7 @@ impl SemanticAnalyzer {
         let mut i = 0;
         let title_token;
         let wall_token;
+        let wall_type;
 
         if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
             // Order 1: VerbatimTitle first
@@ -1331,23 +1333,25 @@ impl SemanticAnalyzer {
             );
             i += 1;
 
-            if let ScannerToken::IndentationWall { .. } = &tokens[i] {
+            if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
                 wall_token = HighLevelTokenBuilder::text_span(
                     "".to_string(), // Wall is structural, no content
                     tokens[i].span().clone(),
                 );
+                wall_type = wt.clone();
                 i += 1;
             } else {
                 return Err(SemanticAnalysisError::AnalysisError(
                     "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
                 ));
             }
-        } else if let ScannerToken::IndentationWall { .. } = &tokens[i] {
+        } else if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
             // Order 2: IndentationWall first
             wall_token = HighLevelTokenBuilder::text_span(
                 "".to_string(), // Wall is structural, no content
                 tokens[i].span().clone(),
             );
+            wall_type = wt.clone();
             i += 1;
 
             if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
@@ -1457,6 +1461,7 @@ impl SemanticAnalyzer {
             content_token,
             label_token,
             parameters,
+            wall_type,
             span,
         ))
     }

@@ -101,7 +101,6 @@ This document aggregates most of these issues, both for reference and tests. Do 
     There are two types of containers: ContentContainers and Session Containers.
 
     4.1 Content Container{{session-title}}
-s
 
         The following elements have them, that is, they can have multiple children;  {{paragraph}}
         - Annotations {{list-item}}

@@ -1156,15 +1156,23 @@ impl SemanticAnalyzer {
             .collect::<Vec<&str>>()
             .join("");
 
-        // Create a single TextSpan for the combined content
-        let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
+        // Aggregate all source tokens for preservation
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(text_tokens.clone());
 
-        // Transform to PlainTextLine semantic token
+        // Create a single TextSpan for the combined content with aggregated tokens
+        let text_span = HighLevelTokenBuilder::text_span_with_tokens(
+            combined_content,
+            line_span.clone(),
+            Some(aggregated_tokens.clone()),
+        );
+
+        // Transform to PlainTextLine semantic token with aggregated tokens
         // Note: This is a legacy method, indentation should be handled by the caller
-        Ok(HighLevelTokenBuilder::plain_text_line(
+        Ok(HighLevelTokenBuilder::plain_text_line_with_tokens(
             String::new(),
             text_span,
             line_span,
+            Some(aggregated_tokens),
         ))
     }
 
@@ -1225,16 +1233,27 @@ impl SemanticAnalyzer {
             .collect::<Vec<&str>>()
             .join("");
 
-        // Create a single TextSpan for the combined content
-        let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
+        // Aggregate source tokens: marker tokens + text tokens
+        let mut all_tokens = marker_token.tokens().tokens;
+        all_tokens.extend(text_tokens.clone());
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(all_tokens);
 
-        // Transform to SequenceTextLine semantic token
+        // Create a single TextSpan for the combined content with text tokens
+        let text_tokens_seq = ScannerTokenSequence::from_tokens(text_tokens.clone());
+        let text_span = HighLevelTokenBuilder::text_span_with_tokens(
+            combined_content,
+            line_span.clone(),
+            Some(text_tokens_seq),
+        );
+
+        // Transform to SequenceTextLine semantic token with all aggregated tokens
         // Note: This is a legacy method, indentation should be handled by the caller
-        Ok(HighLevelTokenBuilder::sequence_text_line(
+        Ok(HighLevelTokenBuilder::sequence_text_line_with_tokens(
             String::new(),
             marker_token,
             text_span,
             line_span,
+            Some(aggregated_tokens),
         ))
     }
 
@@ -1290,12 +1309,16 @@ impl SemanticAnalyzer {
             None
         };
 
-        // Transform to Annotation semantic token
-        Ok(HighLevelTokenBuilder::annotation(
+        // Aggregate all source tokens for preservation
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
+
+        // Transform to Annotation semantic token with aggregated tokens
+        Ok(HighLevelTokenBuilder::annotation_with_tokens(
             label_token,
             parameters,
             content,
             span,
+            Some(aggregated_tokens),
         ))
     }
 
@@ -1336,9 +1359,15 @@ impl SemanticAnalyzer {
         let term_tokens = &tokens[..txxt_marker_pos];
         let (term_token, parameters) = self.parse_definition_term_with_parameters(term_tokens)?;
 
-        // Transform to Definition semantic token
-        Ok(HighLevelTokenBuilder::definition(
-            term_token, parameters, span,
+        // Aggregate all source tokens for preservation
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
+
+        // Transform to Definition semantic token with aggregated tokens
+        Ok(HighLevelTokenBuilder::definition_with_tokens(
+            term_token,
+            parameters,
+            span,
+            Some(aggregated_tokens),
         ))
     }
 
@@ -1466,9 +1495,13 @@ impl SemanticAnalyzer {
                             // Create parameters from the parameter text
                             let mut params = std::collections::HashMap::new();
                             params.insert("raw".to_string(), param_text.to_string());
-                            Some(HighLevelTokenBuilder::parameters(
+                            // Preserve the verbatim label token as source for parameters
+                            let param_tokens =
+                                ScannerTokenSequence::from_tokens(vec![tokens[i].clone()]);
+                            Some(HighLevelTokenBuilder::parameters_with_tokens(
                                 params,
                                 tokens[i].span().clone(),
+                                Some(param_tokens),
                             ))
                         };
 
@@ -1504,8 +1537,11 @@ impl SemanticAnalyzer {
             ));
         };
 
-        // Transform to VerbatimBlock semantic token
-        Ok(HighLevelTokenBuilder::verbatim_block(
+        // Aggregate all source tokens for preservation
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
+
+        // Transform to VerbatimBlock semantic token with aggregated tokens
+        Ok(HighLevelTokenBuilder::verbatim_block_with_tokens(
             title_token,
             wall_token,
             content_token,
@@ -1513,6 +1549,7 @@ impl SemanticAnalyzer {
             parameters,
             wall_type,
             span,
+            Some(aggregated_tokens),
         ))
     }
 
@@ -1678,7 +1715,18 @@ impl SemanticAnalyzer {
             }
         };
 
-        Ok(HighLevelTokenBuilder::parameters(params, span))
+        // Aggregate source tokens for preservation
+        let aggregated_tokens = if !tokens.is_empty() {
+            Some(ScannerTokenSequence::from_tokens(tokens.to_vec()))
+        } else {
+            None
+        };
+
+        Ok(HighLevelTokenBuilder::parameters_with_tokens(
+            params,
+            span,
+            aggregated_tokens,
+        ))
     }
 
     /// Parse annotation content tokens into a semantic token

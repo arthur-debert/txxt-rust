@@ -24,7 +24,7 @@ The idea behind 2.b is that , from the semantic token list we can parse and cons
 
 The first point is that inlines are not included. They are already correctly handled and their structure is much simpler as they don't nest. This is about the core block elements: Session, Paragraph, List, Annotation,  Definition and Verbatim.
 
-We wish to do so by a homegrown grammar engine, that is, we will supply a sequence of grammar rules, with a carefuly planned precedence rules.
+We wish to do so by a homegrown grammar engine, that is, we will supply a sequence of grammar rules, with a carefully planned precedence rules.
 
 Before we start, I want us to review both the grammar.txxt file and the semantic.tokens.txxt.
 What we want to ensure is that our grammar is specific enough to be able to parse the semantic token list correctly, and that we can generate the correct semantic tokens, which requires us to generate the correct scanner tokens, and that we can do the transformations. In short: are the tokens we currently expect correct and enough? If so as we walk from string up to semantic tokens, are we able to generate the needed tokens? 

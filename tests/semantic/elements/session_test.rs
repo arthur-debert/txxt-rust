@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for session element construction
 //!
 //! Tests that session components are correctly converted to session AST nodes.

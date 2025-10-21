@@ -167,9 +167,15 @@ impl Text {
         self.tokens.text()
     }
 
-    /// Create a simple text node from a string (for testing/convenience)
+    /// Create a simple text node from a string (TEST ONLY - DO NOT USE IN PRODUCTION)
     ///
-    /// Creates synthetic tokens with dummy positions for testing/backwards compatibility.
+    /// **WARNING**: This function creates synthetic tokens and should ONLY be used
+    /// in tests. Production code MUST use simple_with_tokens() to ensure proper
+    /// token tracking for language server features.
+    ///
+    /// Using this in production will result in incorrect source position tracking.
+    #[doc(hidden)]
+    #[deprecated(note = "TEST ONLY: Use simple_with_tokens() in production code")]
     pub fn simple(content: &str) -> Self {
         Self::simple_with_tokens(
             content,
@@ -190,9 +196,12 @@ impl Text {
 
     /// Create a text node with source tokens
     ///
+    /// This is the ONLY way to create a Text node in production. All text must
+    /// have associated scanner tokens for accurate source position tracking.
+    ///
     /// # Arguments
     /// * `content` - The text content (for validation/debugging)
-    /// * `tokens` - Source token sequence from parent HighLevelToken
+    /// * `tokens` - Source token sequence from scanner/parser
     ///
     /// # Panics
     /// Panics if tokens are empty while content is non-empty, indicating a bug

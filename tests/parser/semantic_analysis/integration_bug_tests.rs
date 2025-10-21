@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Integration tests that capture the main semantic analysis bugs
 //!
 //! These tests demonstrate the current failures in the semantic analysis pipeline

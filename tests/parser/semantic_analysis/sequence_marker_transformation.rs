@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for Sequence Marker semantic token transformation
 //!
 //! This module tests the transformation of SequenceMarker scanner tokens into

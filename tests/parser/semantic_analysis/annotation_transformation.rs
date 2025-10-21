@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for Annotation semantic token transformation
 //!
 //! This module tests the transformation of scanner tokens into

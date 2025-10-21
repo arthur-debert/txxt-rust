@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for verbatim element construction
 //!
 //! Tests that verbatim block tokens are correctly converted to verbatim AST nodes.

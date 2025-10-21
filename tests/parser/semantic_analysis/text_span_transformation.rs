@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for Text Span semantic token transformation
 //!
 //! This module tests the transformation of Text scanner tokens into TextSpan

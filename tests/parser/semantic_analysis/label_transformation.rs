@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 //! Tests for Label semantic token transformation
 //!
 //! This module tests the Label transformation as implemented in Issue #82.

@@ -14,7 +14,7 @@ use crate::lexer::tokenize;
 use crate::lexer::SemanticAnalyzer;
 
 #[derive(Debug)]
-pub enum ProcessError {
+pub enum TransformError {
     TokenizationError(String),
     ParseError(String),
     AssemblyError(String),
@@ -22,19 +22,19 @@ pub enum ProcessError {
     NotImplemented(String),
 }
 
-impl fmt::Display for ProcessError {
+impl fmt::Display for TransformError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ProcessError::TokenizationError(msg) => write!(f, "Tokenization error: {}", msg),
-            ProcessError::ParseError(msg) => write!(f, "Parse error: {}", msg),
-            ProcessError::AssemblyError(msg) => write!(f, "Assembly error: {}", msg),
-            ProcessError::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
-            ProcessError::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
+            TransformError::TokenizationError(msg) => write!(f, "Tokenization error: {}", msg),
+            TransformError::ParseError(msg) => write!(f, "Parse error: {}", msg),
+            TransformError::AssemblyError(msg) => write!(f, "Assembly error: {}", msg),
+            TransformError::SerializationError(msg) => write!(f, "Serialization error: {}", msg),
+            TransformError::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
         }
     }
 }
 
-impl Error for ProcessError {}
+impl Error for TransformError {}
 
 /// Helper function to format ElementNode for treeviz output
 fn format_element_node(element: &crate::ast::ElementNode) -> String {
@@ -198,7 +198,7 @@ pub fn process_unified(
     source: &str,
     stage: Stage,
     source_path: Option<String>,
-) -> Result<Output, ProcessError> {
+) -> Result<Output, TransformError> {
     // Step 1.b: Tokenization
     let scanner_tokens = tokenize(source);
 
@@ -210,7 +210,7 @@ pub fn process_unified(
     let semantic_analyzer = SemanticAnalyzer::new();
     let high_level_tokens = semantic_analyzer
         .analyze(scanner_tokens)
-        .map_err(|e| ProcessError::TokenizationError(e.to_string()))?;
+        .map_err(|e| TransformError::TokenizationError(e.to_string()))?;
 
     if stage == Stage::HighLevelTokens {
         return Ok(Output::HighLevelTokens(high_level_tokens));
@@ -218,7 +218,7 @@ pub fn process_unified(
 
     // Step 2.a: AST Construction (blocks only)
     let ast_blocks = AstConstructor::parse_to_element_nodes(&high_level_tokens)
-        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+        .map_err(|e| TransformError::ParseError(e.to_string()))?;
 
     if stage == Stage::AstBlock {
         return Ok(Output::AstBlock(ast_blocks));
@@ -228,7 +228,7 @@ pub fn process_unified(
     let inline_parser = InlineParser::new();
     let ast_with_inlines = inline_parser
         .parse_inlines(ast_blocks)
-        .map_err(|e| ProcessError::ParseError(e.to_string()))?;
+        .map_err(|e| TransformError::ParseError(e.to_string()))?;
 
     if stage == Stage::AstInlines {
         return Ok(Output::AstInlines(ast_with_inlines));
@@ -238,7 +238,7 @@ pub fn process_unified(
     let document_assembler = DocumentAssembler::new();
     let document = document_assembler
         .assemble_document(ast_with_inlines, source_path)
-        .map_err(|e| ProcessError::AssemblyError(e.to_string()))?;
+        .map_err(|e| TransformError::AssemblyError(e.to_string()))?;
 
     if stage == Stage::AstDocument {
         return Ok(Output::AstDocument(document));
@@ -248,16 +248,16 @@ pub fn process_unified(
     let annotation_attacher = AnnotationAttacher::new();
     let full_document = annotation_attacher
         .attach_annotations(document)
-        .map_err(|e| ProcessError::AssemblyError(e.to_string()))?;
+        .map_err(|e| TransformError::AssemblyError(e.to_string()))?;
 
     Ok(Output::AstFull(full_document))
 }
 
 /// Convenience function for full processing.
-pub fn process_full_unified(
+pub fn run_all_unified(
     source: &str,
     source_path: Option<String>,
-) -> Result<Document, ProcessError> {
+) -> Result<Document, TransformError> {
     match process_unified(source, Stage::AstFull, source_path)? {
         Output::AstFull(doc) => Ok(doc),
         _ => unreachable!(),
@@ -269,9 +269,9 @@ pub fn format_output_unified(
     output: &Output,
     format: Format,
     source_path: Option<&str>,
-) -> Result<String, ProcessError> {
+) -> Result<String, TransformError> {
     if !output.stage().supports_format(format) {
-        return Err(ProcessError::NotImplemented(format!(
+        return Err(TransformError::NotImplemented(format!(
             "Format '{}' not supported for stage '{}'",
             format.name(),
             output.stage().name()
@@ -287,7 +287,7 @@ pub fn format_output_unified(
 fn format_as_json_unified(
     output: &Output,
     source_path: Option<&str>,
-) -> Result<String, ProcessError> {
+) -> Result<String, TransformError> {
     let source = source_path.unwrap_or("(no source)");
 
     let json_value = match output {
@@ -342,18 +342,18 @@ fn format_as_json_unified(
     };
 
     serde_json::to_string_pretty(&json_value)
-        .map_err(|e| ProcessError::SerializationError(e.to_string()))
+        .map_err(|e| TransformError::SerializationError(e.to_string()))
 }
 
 fn format_as_treeviz_unified(
     output: &Output,
     source_path: Option<&str>,
-) -> Result<String, ProcessError> {
+) -> Result<String, TransformError> {
     let source = source_path.unwrap_or("(no source)");
 
     match output {
         Output::ScannerTokens(_) | Output::HighLevelTokens(_) => {
-            Err(ProcessError::NotImplemented(format!(
+            Err(TransformError::NotImplemented(format!(
                 "TreeViz not supported for stage '{}'",
                 output.stage().name()
             )))
@@ -381,7 +381,7 @@ fn format_as_treeviz_unified(
             let document_element = ElementNode::SessionContainer(doc.content.clone());
             let treeviz_output = crate::tools::treeviz::ast_to_tree_notation(&document_element)
                 .map_err(|e| {
-                    ProcessError::SerializationError(format!("Treeviz rendering failed: {}", e))
+                    TransformError::SerializationError(format!("Treeviz rendering failed: {}", e))
                 })?;
 
             let stage_label = match output.stage() {

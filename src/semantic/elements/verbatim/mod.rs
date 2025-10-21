@@ -32,13 +32,14 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 _ => "unknown".to_string(),
             };
 
-            // FIXME: post-parser - Parse inline formatting in title instead of using Text::simple
+            // FIXME: post-parser - Parse inline formatting in title
             let title_transforms = if title_text.is_empty() {
                 vec![]
             } else {
+                let source_tokens = Some(title.tokens());
                 vec![
                     crate::ast::elements::formatting::inlines::TextTransform::Identity(
-                        crate::ast::elements::formatting::inlines::Text::simple(&title_text),
+                        crate::ast::elements::formatting::inlines::Text::simple_with_tokens(&title_text, source_tokens),
                     ),
                 ]
             };

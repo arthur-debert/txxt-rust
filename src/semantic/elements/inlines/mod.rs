@@ -213,10 +213,11 @@ pub fn parse_inlines(
         return Ok(Vec::new());
     }
 
-    // Create a simple text inline
+    // Create a simple text inline with preserved source tokens
+    let source_tokens = Some(crate::cst::ScannerTokenSequence::from_tokens(tokens.to_vec()));
     let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
+            crate::ast::elements::formatting::inlines::Text::simple_with_tokens(&text_content, source_tokens),
         ),
     );
 
@@ -287,10 +288,11 @@ pub fn parse_references(
         return Ok(Vec::new());
     }
 
-    // Create a simple text inline
+    // Create a simple text inline with preserved source tokens
+    let source_tokens = Some(crate::cst::ScannerTokenSequence::from_tokens(tokens.to_vec()));
     let text_inline = crate::ast::elements::formatting::inlines::Inline::TextLine(
         crate::ast::elements::formatting::inlines::TextTransform::Identity(
-            crate::ast::elements::formatting::inlines::Text::simple(&text_content),
+            crate::ast::elements::formatting::inlines::Text::simple_with_tokens(&text_content, source_tokens),
         ),
     );
 

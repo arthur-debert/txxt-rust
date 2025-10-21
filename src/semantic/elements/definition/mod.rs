@@ -32,9 +32,10 @@ pub fn create_definition_element(
                 _ => "unknown".to_string(),
             };
 
-            // Create simple text transform for the term
+            // Create text transform for the term with preserved source tokens
+            let source_tokens = Some(term.tokens());
             let term_content = vec![crate::ast::elements::inlines::TextTransform::Identity(
-                crate::ast::elements::inlines::Text::simple(&term_text),
+                crate::ast::elements::inlines::Text::simple_with_tokens(&term_text, source_tokens),
             )];
 
             // Convert content nodes to ContentContainerElements

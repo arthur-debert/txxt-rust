@@ -527,6 +527,117 @@ impl HighLevelTokenBuilder {
         }
     }
 
+    /// Build Parameters from scanner tokens
+    ///
+    /// Takes a sequence of scanner tokens (Identifier, Equals, Text/QuotedString, Comma)
+    /// and assembles them into a Parameters high-level token.
+    ///
+    /// # Arguments
+    /// * `scanner_tokens` - Slice of scanner tokens representing parameters
+    ///
+    /// # Returns
+    /// A Parameters high-level token with parsed key-value pairs, or None if invalid
+    pub fn parameters_from_scanner_tokens(
+        scanner_tokens: &[ScannerToken],
+    ) -> Option<HighLevelToken> {
+        if scanner_tokens.is_empty() {
+            return None;
+        }
+
+        let mut params = HashMap::new();
+        let mut i = 0;
+
+        // Calculate span
+        let start_span = scanner_tokens.first()?.span();
+        let end_span = scanner_tokens.last()?.span();
+        let span = SourceSpan {
+            start: start_span.start,
+            end: end_span.end,
+        };
+
+        while i < scanner_tokens.len() {
+            // Skip whitespace
+            if matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. }) {
+                i += 1;
+                continue;
+            }
+
+            // Skip colon (parameter separator)
+            if matches!(&scanner_tokens[i], ScannerToken::Colon { .. }) {
+                i += 1;
+                continue;
+            }
+
+            // Parse key=value pair or boolean shorthand
+            if let ScannerToken::Identifier { content: key, .. } = &scanner_tokens[i] {
+                i += 1;
+
+                // Skip whitespace after key
+                while i < scanner_tokens.len()
+                    && matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. })
+                {
+                    i += 1;
+                }
+
+                // Check for equals sign
+                if i < scanner_tokens.len()
+                    && matches!(&scanner_tokens[i], ScannerToken::Equals { .. })
+                {
+                    i += 1; // Skip equals
+
+                    // Skip whitespace after equals
+                    while i < scanner_tokens.len()
+                        && matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. })
+                    {
+                        i += 1;
+                    }
+
+                    // Get value
+                    if i < scanner_tokens.len() {
+                        let value = match &scanner_tokens[i] {
+                            ScannerToken::Text { content, .. } => content.clone(),
+                            ScannerToken::QuotedString { content, .. } => content.clone(),
+                            ScannerToken::Identifier { content, .. } => content.clone(),
+                            _ => String::new(),
+                        };
+
+                        if !value.is_empty() {
+                            params.insert(key.clone(), value);
+                        }
+                        i += 1;
+                    }
+                } else {
+                    // Boolean shorthand - key without value means true
+                    params.insert(key.clone(), "true".to_string());
+                }
+
+                // Skip whitespace and comma
+                while i < scanner_tokens.len() {
+                    if matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. })
+                        || matches!(&scanner_tokens[i], ScannerToken::Comma { .. })
+                    {
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                // Unexpected token, skip it
+                i += 1;
+            }
+        }
+
+        if params.is_empty() {
+            return None;
+        }
+
+        Some(HighLevelToken::Parameters {
+            params,
+            span,
+            tokens: ScannerTokenSequence::from_tokens(scanner_tokens.to_vec()),
+        })
+    }
+
     /// Create a sequence marker semantic token
     pub fn sequence_marker(
         style: HighLevelNumberingStyle,
@@ -848,6 +959,163 @@ impl HighLevelTokenBuilder {
             wall_type,
             span,
             tokens,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parameters_from_scanner_tokens_simple() {
+        let tokens = vec![
+            ScannerToken::Identifier {
+                content: "key".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 0 },
+                    end: Position { row: 0, column: 3 },
+                },
+            },
+            ScannerToken::Equals {
+                span: SourceSpan {
+                    start: Position { row: 0, column: 3 },
+                    end: Position { row: 0, column: 4 },
+                },
+            },
+            ScannerToken::Text {
+                content: "value".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 4 },
+                    end: Position { row: 0, column: 9 },
+                },
+            },
+        ];
+
+        let result = HighLevelTokenBuilder::parameters_from_scanner_tokens(&tokens);
+        assert!(result.is_some());
+
+        if let Some(HighLevelToken::Parameters { params, .. }) = result {
+            assert_eq!(params.get("key"), Some(&"value".to_string()));
+        } else {
+            panic!("Expected Parameters token");
+        }
+    }
+
+    #[test]
+    fn test_parameters_from_scanner_tokens_quoted() {
+        let tokens = vec![
+            ScannerToken::Identifier {
+                content: "title".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 0 },
+                    end: Position { row: 0, column: 5 },
+                },
+            },
+            ScannerToken::Equals {
+                span: SourceSpan {
+                    start: Position { row: 0, column: 5 },
+                    end: Position { row: 0, column: 6 },
+                },
+            },
+            ScannerToken::QuotedString {
+                content: "My Document".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 6 },
+                    end: Position { row: 0, column: 19 },
+                },
+            },
+        ];
+
+        let result = HighLevelTokenBuilder::parameters_from_scanner_tokens(&tokens);
+        assert!(result.is_some());
+
+        if let Some(HighLevelToken::Parameters { params, .. }) = result {
+            assert_eq!(params.get("title"), Some(&"My Document".to_string()));
+        } else {
+            panic!("Expected Parameters token");
+        }
+    }
+
+    #[test]
+    fn test_parameters_from_scanner_tokens_multiple() {
+        let tokens = vec![
+            ScannerToken::Identifier {
+                content: "key1".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 0 },
+                    end: Position { row: 0, column: 4 },
+                },
+            },
+            ScannerToken::Equals {
+                span: SourceSpan {
+                    start: Position { row: 0, column: 4 },
+                    end: Position { row: 0, column: 5 },
+                },
+            },
+            ScannerToken::Text {
+                content: "value1".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 5 },
+                    end: Position { row: 0, column: 11 },
+                },
+            },
+            ScannerToken::Comma {
+                span: SourceSpan {
+                    start: Position { row: 0, column: 11 },
+                    end: Position { row: 0, column: 12 },
+                },
+            },
+            ScannerToken::Identifier {
+                content: "key2".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 12 },
+                    end: Position { row: 0, column: 16 },
+                },
+            },
+            ScannerToken::Equals {
+                span: SourceSpan {
+                    start: Position { row: 0, column: 16 },
+                    end: Position { row: 0, column: 17 },
+                },
+            },
+            ScannerToken::Text {
+                content: "value2".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 17 },
+                    end: Position { row: 0, column: 23 },
+                },
+            },
+        ];
+
+        let result = HighLevelTokenBuilder::parameters_from_scanner_tokens(&tokens);
+        assert!(result.is_some());
+
+        if let Some(HighLevelToken::Parameters { params, .. }) = result {
+            assert_eq!(params.get("key1"), Some(&"value1".to_string()));
+            assert_eq!(params.get("key2"), Some(&"value2".to_string()));
+        } else {
+            panic!("Expected Parameters token");
+        }
+    }
+
+    #[test]
+    fn test_parameters_from_scanner_tokens_boolean() {
+        let tokens = vec![ScannerToken::Identifier {
+            content: "debug".to_string(),
+            span: SourceSpan {
+                start: Position { row: 0, column: 0 },
+                end: Position { row: 0, column: 5 },
+            },
+        }];
+
+        let result = HighLevelTokenBuilder::parameters_from_scanner_tokens(&tokens);
+        assert!(result.is_some());
+
+        if let Some(HighLevelToken::Parameters { params, .. }) = result {
+            assert_eq!(params.get("debug"), Some(&"true".to_string()));
+        } else {
+            panic!("Expected Parameters token");
         }
     }
 }

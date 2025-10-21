@@ -36,7 +36,7 @@ fn test_create_annotation_element() {
     );
 
     // Test the element constructor directly
-    let result = create_annotation_element(&annotation_token);
+    let result = create_annotation_element(&annotation_token, &[]);
 
     assert!(result.is_ok());
     let annotation_block = result.unwrap();
@@ -60,6 +60,6 @@ fn test_create_annotation_element_rejects_wrong_token() {
     );
 
     // Should fail because it's not an annotation token
-    let result = create_annotation_element(&plain_token);
+    let result = create_annotation_element(&plain_token, &[]);
     assert!(result.is_err());
 }

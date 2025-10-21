@@ -221,11 +221,33 @@ Complete specification for annotations - metadata elements that attach informati
 
     8.3. Nested Annotations
 
-        Annotations cannot contain other annotations:
-            :: note :: This is a note with :: warning :: nested annotation
-        (invalid)
+        Annotations can be nested to create hierarchical metadata structures. Nesting is achieved by indenting child annotations under a parent.
 
-        The nested `:: warning ::` is treated as literal text.
+        Single-level nesting:
+            :: note :: This is a top-level annotation
+                :: warning :: This is a nested annotation
+                    More nested content
+        :: txxt.core.spec.annotation.valid.single-level-nesting ::
+
+        Multi-level nesting:
+            :: level1 ::
+                :: level2 ::
+                    :: level3 ::
+                        Deeply nested content
+        :: txxt.core.spec.annotation.valid.multi-level-nesting ::
+
+        Multiple siblings at the same nesting level:
+            :: parent ::
+                :: child1 ::
+                :: child2 ::
+        :: txxt.core.spec.annotation.valid.nested-siblings ::
+
+        Mixed with other content:
+            :: parent ::
+                This is a paragraph.
+                :: child ::
+                    Nested annotation content.
+        :: txxt.core.spec.annotation.valid.nested-mixed-content ::
 
     8.4. Indentation Context
 

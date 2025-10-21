@@ -385,10 +385,11 @@ impl<'a> AstConstructor<'a> {
 
     /// Try to parse an annotation pattern
     ///
-    /// Annotations are standalone tokens - they don't have indented content.
-    /// For now, we only support inline annotations.
+    /// Annotations can be standalone tokens or have indented content for nesting.
     ///
-    /// Pattern: <Annotation>
+    /// Patterns:
+    /// 1. `<Annotation>` (inline)
+    /// 2. `<Annotation> <Indent> <Content>* <Dedent>` (with nested content)
     ///
     /// Returns: AnnotationBlock if matched, None otherwise
     fn try_parse_annotation(&mut self) -> Result<Option<AstNode>, BlockParseError> {
@@ -406,10 +407,30 @@ impl<'a> AstConstructor<'a> {
         let annotation_token_clone = token.clone();
         self.position += 1; // Consume annotation token
 
+        // Check for optional indented content
+        let mut content_nodes = Vec::new();
+        if self.position < self.tokens.len()
+            && matches!(self.tokens[self.position], HighLevelToken::Indent { .. })
+        {
+            self.position += 1; // Consume Indent token
+
+            // Recursively parse the content until we hit Dedent
+            content_nodes = self.parse_until_dedent()?;
+
+            // Consume the Dedent token
+            if self.position < self.tokens.len()
+                && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. })
+            {
+                self.position += 1;
+            }
+        }
+
         // Delegate to annotation element constructor
-        let annotation_block = crate::semantic::elements::annotation::create_annotation_element(
-            &annotation_token_clone,
-        )?;
+        let annotation_block =
+            crate::semantic::elements::annotation::create_annotation_element(
+                &annotation_token_clone,
+                &content_nodes,
+            )?;
 
         Ok(Some(AstNode::Annotation(annotation_block)))
     }
@@ -444,60 +465,62 @@ impl<'a> AstConstructor<'a> {
         Ok(Some(AstNode::Verbatim(verbatim_block)))
     }
 
-    /// Try to parse a list pattern
+    /// Try to parse a list pattern, supporting nested lists
     ///
-    /// Lists are 2+ consecutive SequenceTextLine tokens with no blank lines between them.
+    /// Lists are one or more consecutive SequenceTextLine tokens. Nesting is handled
+    /// by Indent/Dedent tokens.
     ///
-    /// Pattern: <SequenceTextLine>{2,} (no <BlankLine> between)
+    /// # Arguments
+    /// * `level` - The current indentation level for the list
     ///
-    /// Returns: (ListBlock, tokens_consumed) if matched, None otherwise
+    /// Try to parse a list pattern, supporting nested content within list items.
+    ///
+    /// Lists are 2+ consecutive SequenceTextLine tokens. Nesting is handled by
+    /// parsing indented content after a list item.
     fn try_parse_list(&mut self) -> Result<Option<(AstNode, usize)>, BlockParseError> {
         let start_pos = self.position;
-
-        if self.position >= self.tokens.len() {
+        if self.position >= self.tokens.len()
+            || !matches!(
+                self.tokens[self.position],
+                HighLevelToken::SequenceTextLine { .. }
+            )
+        {
             return Ok(None);
         }
 
-        // First token must be SequenceTextLine
-        if !matches!(
-            self.tokens[self.position],
-            HighLevelToken::SequenceTextLine { .. }
-        ) {
-            return Ok(None);
-        }
-
-        // Collect consecutive SequenceTextLine tokens (no blank lines allowed)
-        let mut list_item_tokens = Vec::new();
-
+        let mut list_items_data = Vec::new();
         while self.position < self.tokens.len() {
-            let token = &self.tokens[self.position];
+            if let HighLevelToken::SequenceTextLine { .. } = self.tokens[self.position] {
+                let item_token = self.tokens[self.position].clone();
+                self.position += 1;
 
-            match token {
-                HighLevelToken::SequenceTextLine { .. } => {
-                    list_item_tokens.push(token.clone());
-                    self.position += 1;
-                }
-                HighLevelToken::BlankLine { .. } => {
-                    // Blank line terminates list
-                    break;
-                }
-                _ => {
-                    // Any other token terminates list
-                    break;
-                }
+                let nested_content = if self.position < self.tokens.len()
+                    && matches!(self.tokens[self.position], HighLevelToken::Indent { .. })
+                {
+                    self.position += 1; // Consume Indent
+                    let content = self.parse_until_dedent()?;
+                    if self.position < self.tokens.len()
+                        && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. })
+                    {
+                        self.position += 1; // Consume Dedent
+                    }
+                    content
+                } else {
+                    Vec::new()
+                };
+                list_items_data.push((item_token, nested_content));
+            } else {
+                break;
             }
         }
 
-        // Lists require at least 2 items
-        if list_item_tokens.len() < 2 {
-            // Not a list - reset position and return None
+        if list_items_data.len() < 2 {
             self.position = start_pos;
             return Ok(None);
         }
 
-        // Delegate to list element constructor
-        let list_block = crate::semantic::elements::list::create_list_element(&list_item_tokens)?;
-
+        let list_block =
+            crate::semantic::elements::list::create_list_element_with_nesting(&list_items_data)?;
         let tokens_consumed = self.position - start_pos;
         Ok(Some((AstNode::List(list_block), tokens_consumed)))
     }

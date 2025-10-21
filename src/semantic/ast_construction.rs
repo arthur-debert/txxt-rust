@@ -218,13 +218,21 @@ impl<'a> AstConstructor<'a> {
                 break;
             }
 
+            // Try to match patterns in precedence order
+
+            // Try session pattern first (for nested sessions)
+            if let Some((node, _tokens_consumed)) = self.try_parse_session()? {
+                content_nodes.push(node);
+                continue;
+            }
+
             // Skip blank lines within content
             if matches!(token, HighLevelToken::BlankLine { .. }) {
                 self.position += 1;
                 continue;
             }
 
-            // Try to match patterns (only paragraph for now in Phase 2)
+            // Try paragraph pattern (catch-all)
             if let Some(node) = self.try_parse_paragraph()? {
                 content_nodes.push(node);
             } else {

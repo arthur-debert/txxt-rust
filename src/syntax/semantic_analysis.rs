@@ -372,13 +372,13 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for pattern: TxxtMarker + Whitespace + Identifier + Whitespace + TxxtMarker
+        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + Whitespace + TxxtMarker
         if matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::Whitespace { .. }
         ) && matches!(
             scanner_tokens[start_index + 2],
-            ScannerToken::Identifier { .. }
+            ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
         ) && matches!(
             scanner_tokens[start_index + 3],
             ScannerToken::Whitespace { .. }
@@ -511,7 +511,10 @@ impl SemanticAnalyzer {
             ScannerToken::TxxtMarker { .. } => {
                 if pattern_tokens.len() >= 5
                     && matches!(pattern_tokens[1], ScannerToken::Whitespace { .. })
-                    && matches!(pattern_tokens[2], ScannerToken::Identifier { .. })
+                    && matches!(
+                        pattern_tokens[2],
+                        ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
+                    )
                     && matches!(pattern_tokens[3], ScannerToken::Whitespace { .. })
                     && matches!(pattern_tokens[4], ScannerToken::TxxtMarker { .. })
                 {

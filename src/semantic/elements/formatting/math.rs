@@ -101,8 +101,9 @@ pub fn parse_math(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
         ));
     }
 
-    // Create a math transform (no nested formatting allowed)
-    let math_transform = TextTransform::Math(Text::simple(&text_content));
+    // Create a math transform with preserved source tokens (no nested formatting allowed)
+    let source_tokens = Some(crate::cst::ScannerTokenSequence::from_tokens(content_tokens));
+    let math_transform = TextTransform::Math(Text::simple_with_tokens(&text_content, source_tokens));
 
     Ok(math_transform)
 }

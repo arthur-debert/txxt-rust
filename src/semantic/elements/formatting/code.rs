@@ -101,8 +101,9 @@ pub fn parse_code(tokens: &[ScannerToken]) -> Result<TextTransform, InlineParseE
         ));
     }
 
-    // Create a code transform (no nested formatting allowed)
-    let code_transform = TextTransform::Code(Text::simple(&text_content));
+    // Create a code transform with preserved source tokens (no nested formatting allowed)
+    let source_tokens = Some(crate::cst::ScannerTokenSequence::from_tokens(content_tokens));
+    let code_transform = TextTransform::Code(Text::simple_with_tokens(&text_content, source_tokens));
 
     Ok(code_transform)
 }

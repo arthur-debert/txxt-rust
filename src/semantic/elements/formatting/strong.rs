@@ -107,8 +107,9 @@ pub fn parse_strong(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePars
         ));
     }
 
-    // Create a strong transform with identity content
-    let content_transform = TextTransform::Identity(Text::simple(&text_content));
+    // Create a strong transform with identity content and preserved source tokens
+    let source_tokens = Some(crate::cst::ScannerTokenSequence::from_tokens(content_tokens));
+    let content_transform = TextTransform::Identity(Text::simple_with_tokens(&text_content, source_tokens));
     let strong_transform = TextTransform::Strong(vec![content_transform]);
 
     Ok(strong_transform)

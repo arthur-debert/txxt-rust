@@ -107,8 +107,9 @@ pub fn parse_emphasis(tokens: &[ScannerToken]) -> Result<TextTransform, InlinePa
         ));
     }
 
-    // Create an emphasis transform with identity content
-    let content_transform = TextTransform::Identity(Text::simple(&text_content));
+    // Create an emphasis transform with identity content and preserved source tokens
+    let source_tokens = Some(crate::cst::ScannerTokenSequence::from_tokens(content_tokens));
+    let content_transform = TextTransform::Identity(Text::simple_with_tokens(&text_content, source_tokens));
     let emphasis_transform = TextTransform::Emphasis(vec![content_transform]);
 
     Ok(emphasis_transform)

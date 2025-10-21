@@ -66,6 +66,7 @@ pub fn create_session_element(
             AstNode::List(l) => SessionContainerElement::List(l.clone()),
             AstNode::Definition(d) => SessionContainerElement::Definition(d.clone()),
             AstNode::Annotation(a) => SessionContainerElement::Annotation(a.clone()),
+            AstNode::Verbatim(v) => SessionContainerElement::Verbatim(v.clone()),
         })
         .collect();
 

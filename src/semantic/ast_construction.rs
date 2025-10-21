@@ -87,6 +87,13 @@ impl<'a> AstConstructor<'a> {
                 continue;
             }
 
+            // Verbatim block pattern (standalone token, content already parsed)
+            // Pattern: <VerbatimBlock>
+            if let Some(node) = self.try_parse_verbatim()? {
+                ast_nodes.push(node);
+                continue;
+            }
+
             // Definition pattern (check before sessions as both can have similar structure)
             // Pattern: <Definition> <Indent> <Content>* <Dedent>
             if let Some((node, _tokens_consumed)) = self.try_parse_definition()? {
@@ -277,6 +284,12 @@ impl<'a> AstConstructor<'a> {
                 continue;
             }
 
+            // Try verbatim block pattern (standalone token, content already parsed)
+            if let Some(node) = self.try_parse_verbatim()? {
+                content_nodes.push(node);
+                continue;
+            }
+
             // Try definition pattern (explicit marker)
             if let Some((node, _tokens_consumed)) = self.try_parse_definition()? {
                 content_nodes.push(node);
@@ -399,6 +412,36 @@ impl<'a> AstConstructor<'a> {
         )?;
 
         Ok(Some(AstNode::Annotation(annotation_block)))
+    }
+
+    /// Try to parse a verbatim block pattern
+    ///
+    /// Verbatim blocks are standalone tokens - the scanner/tokenizer has already
+    /// extracted the title, content, and label.
+    ///
+    /// Pattern: <VerbatimBlock>
+    ///
+    /// Returns: VerbatimBlock if matched, None otherwise
+    fn try_parse_verbatim(&mut self) -> Result<Option<AstNode>, BlockParseError> {
+        if self.position >= self.tokens.len() {
+            return Ok(None);
+        }
+
+        // Check if current token is a VerbatimBlock
+        let token = &self.tokens[self.position];
+        if !matches!(token, HighLevelToken::VerbatimBlock { .. }) {
+            return Ok(None);
+        }
+
+        // Clone the verbatim token before advancing position
+        let verbatim_token_clone = token.clone();
+        self.position += 1; // Consume verbatim token
+
+        // Delegate to verbatim element constructor
+        let verbatim_block =
+            crate::semantic::elements::verbatim::create_verbatim_element(&verbatim_token_clone)?;
+
+        Ok(Some(AstNode::Verbatim(verbatim_block)))
     }
 
     /// Try to parse a list pattern
@@ -531,6 +574,8 @@ pub enum AstNode {
     Definition(crate::ast::elements::definition::DefinitionBlock),
     /// Annotation block node
     Annotation(crate::ast::elements::annotation::annotation_block::AnnotationBlock),
+    /// Verbatim block node
+    Verbatim(crate::ast::elements::verbatim::block::VerbatimBlock),
 }
 
 impl AstNode {
@@ -551,6 +596,9 @@ impl AstNode {
             }
             AstNode::Annotation(block) => {
                 crate::ast::elements::core::ElementNode::AnnotationBlock(block.clone())
+            }
+            AstNode::Verbatim(block) => {
+                crate::ast::elements::core::ElementNode::VerbatimBlock(block.clone())
             }
         }
     }

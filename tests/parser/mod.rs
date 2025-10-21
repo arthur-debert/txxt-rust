@@ -28,6 +28,9 @@ mod definition_01_simple;
 // Ensemble tests with definitions
 mod ensemble_07_session_with_definition;
 
+// Verbatim parsing tests
+mod verbatim_01_simple;
+
 // Complex ensemble tests
 mod ensemble_09_nested_complex;
 mod ensemble_10_document_with_annotations;

@@ -53,6 +53,9 @@ pub fn create_definition_element(
                     crate::semantic::ast_construction::AstNode::Annotation(a) => {
                         crate::ast::elements::containers::content::ContentContainerElement::Annotation(a.clone())
                     }
+                    crate::semantic::ast_construction::AstNode::Verbatim(v) => {
+                        crate::ast::elements::containers::content::ContentContainerElement::Verbatim(v.clone())
+                    }
                     crate::semantic::ast_construction::AstNode::Session(_) => {
                         // Sessions cannot be in ContentContainer - only in SessionContainer
                         panic!("Sessions cannot be inside definitions (ContentContainer restriction)")

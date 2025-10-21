@@ -431,18 +431,19 @@ pub trait ToScannerToken {
 
 impl FromScannerToken for HighLevelToken {
     fn from_scanner_token(token: &ScannerToken) -> Option<Self> {
+        let tokens = ScannerTokenSequence::from_tokens(vec![token.clone()]);
         match token {
             ScannerToken::BlankLine { span, .. } => Some(HighLevelToken::BlankLine {
                 span: span.clone(),
-                tokens: None,
+                tokens: Some(tokens),
             }),
             ScannerToken::Indent { span } => Some(HighLevelToken::Indent {
                 span: span.clone(),
-                tokens: None,
+                tokens: Some(tokens),
             }),
             ScannerToken::Dedent { span } => Some(HighLevelToken::Dedent {
                 span: span.clone(),
-                tokens: None,
+                tokens: Some(tokens),
             }),
             // For now, we'll handle simple cases and expand in later phases
             _ => None,

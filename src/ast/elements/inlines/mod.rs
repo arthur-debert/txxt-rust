@@ -159,19 +159,29 @@ impl TextSpan {
 
     /// Create a simple text span from a string (for testing/convenience)
     pub fn simple(content: &str) -> Self {
-        Self {
-            tokens: ScannerTokenSequence {
-                tokens: vec![ScannerToken::Text {
-                    content: content.to_string(),
-                    span: crate::cst::SourceSpan {
-                        start: crate::cst::Position { row: 0, column: 0 },
-                        end: crate::cst::Position {
-                            row: 0,
-                            column: content.len(),
-                        },
+        Self::simple_with_tokens(content, None)
+    }
+
+    /// Create a text span from content with optional source tokens
+    /// 
+    /// When tokens are provided, they are used directly for token preservation.
+    /// When None, synthetic tokens with dummy positions are created (for tests/convenience).
+    pub fn simple_with_tokens(content: &str, tokens: Option<ScannerTokenSequence>) -> Self {
+        let tokens = tokens.unwrap_or_else(|| ScannerTokenSequence {
+            tokens: vec![ScannerToken::Text {
+                content: content.to_string(),
+                span: crate::cst::SourceSpan {
+                    start: crate::cst::Position { row: 0, column: 0 },
+                    end: crate::cst::Position {
+                        row: 0,
+                        column: content.len(),
                     },
-                }],
-            },
+                },
+            }],
+        });
+
+        Self {
+            tokens,
             annotations: Vec::new(),
             parameters: Parameters::new(),
         }

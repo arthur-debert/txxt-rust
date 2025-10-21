@@ -169,21 +169,28 @@ impl Text {
 
     /// Create a simple text node from a string (for testing/convenience)
     pub fn simple(content: &str) -> Self {
-        // This would normally be created by the tokenizer with proper positions
-        Self {
-            tokens: ScannerTokenSequence {
-                tokens: vec![ScannerToken::Text {
-                    content: content.to_string(),
-                    span: SourceSpan {
-                        start: Position { row: 0, column: 0 },
-                        end: Position {
-                            row: 0,
-                            column: content.len(),
-                        },
+        Self::simple_with_tokens(content, None)
+    }
+
+    /// Create a text node from content with optional source tokens
+    /// 
+    /// When tokens are provided, they are used directly for token preservation.
+    /// When None, synthetic tokens with dummy positions are created (for tests/convenience).
+    pub fn simple_with_tokens(content: &str, tokens: Option<ScannerTokenSequence>) -> Self {
+        let tokens = tokens.unwrap_or_else(|| ScannerTokenSequence {
+            tokens: vec![ScannerToken::Text {
+                content: content.to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 0 },
+                    end: Position {
+                        row: 0,
+                        column: content.len(),
                     },
-                }],
-            },
-        }
+                },
+            }],
+        });
+
+        Self { tokens }
     }
 }
 

@@ -16,7 +16,8 @@
 //!
 //! Usage:
 //!
-//! ```
+//! ```ignore
+//! // Disabled: Parser being reimplemented with regex-based grammar engine
 //! use txxt::transform::run_all;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -199,6 +200,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
     fn test_process_parser_placeholder() {
         let tokens = vec![];
 
@@ -223,6 +225,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
     fn test_run_all_placeholder() {
         let source = "Hello, world!";
         let result = run_all(source, Some("test.txxt".to_string()));

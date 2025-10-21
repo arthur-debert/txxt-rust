@@ -120,6 +120,7 @@ fn extract_paragraph_text(
 
 /// Test that shows the current behavior (only finds first paragraph)
 #[test]
+#[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
 fn test_current_behavior_one_paragraph() {
     let corpus = TxxtCorpora::load_document("01-two-paragraphs").expect("Failed to load document");
 

@@ -122,7 +122,29 @@ pub enum VerbatimType {
     Empty,
 }
 
-/// A detected verbatim block with line boundaries
+/// A detected verbatim block boundary (NEW - Issue #132)
+/// Contains only boundary metadata, no content processing
+#[derive(Debug, Clone, PartialEq)]
+pub struct VerbatimBoundary {
+    /// Line number where the verbatim block starts (title line, 1-based)
+    pub title_line: usize,
+    /// Line number where the verbatim block ends (terminator line, 1-based)
+    pub terminator_line: usize,
+    /// Title text (extracted, without trailing colon)
+    pub title: String,
+    /// Label and parameters (raw string, e.g., "python:version=3.11")
+    pub label_raw: String,
+    /// Wall type for content indentation
+    pub wall_type: WallType,
+    /// Indentation level of the title line
+    pub title_indent: usize,
+    /// First line of verbatim content (1-based, inclusive) - None for empty blocks
+    pub content_start: Option<usize>,
+    /// Last line of verbatim content (1-based, inclusive) - None for empty blocks
+    pub content_end: Option<usize>,
+}
+
+/// DEPRECATED: Old verbatim block structure - use VerbatimBoundary instead
 #[derive(Debug, Clone, PartialEq)]
 pub struct VerbatimBlock {
     /// Line number where the verbatim block starts (title line, 1-based)
@@ -148,11 +170,13 @@ enum ScanState {
     FoundPotentialStart {
         title_line: usize,
         title_indent: usize,
+        title_text: String, // NEW: Store title text for boundaries
     },
     /// Inside normal verbatim block (+1 indented content)
     InVerbatimNormal {
         title_line: usize,
         title_indent: usize,
+        title_text: String, // NEW: Store title text for boundaries
         content_start: usize,
         expected_indent: usize,
     },
@@ -160,6 +184,7 @@ enum ScanState {
     InVerbatimStretched {
         title_line: usize,
         title_indent: usize,
+        title_text: String, // NEW: Store title text for boundaries
         content_start: usize,
     },
 }
@@ -265,17 +290,27 @@ impl VerbatimScanner {
             ScanState::FoundPotentialStart {
                 title_line,
                 title_indent,
-            } => self.validate_verbatim_start(blocks, title_line, title_indent, line_num, line),
+                title_text,
+            } => self.validate_verbatim_start(
+                blocks,
+                title_line,
+                title_indent,
+                title_text,
+                line_num,
+                line,
+            ),
 
             ScanState::InVerbatimNormal {
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
                 expected_indent,
             } => self.process_normal_verbatim_line(
                 blocks,
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
                 expected_indent,
                 line_num,
@@ -285,11 +320,13 @@ impl VerbatimScanner {
             ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
             } => self.process_stretched_verbatim_line(
                 blocks,
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
                 line_num,
                 line,
@@ -316,9 +353,11 @@ impl VerbatimScanner {
             // Make sure it doesn't end with :: (that would be a definition)
             if !prefix.ends_with(':') {
                 let title_indent = self.calculate_indentation(line);
+                let title_text = prefix.trim().to_string(); // Extract and store title
                 return ScanState::FoundPotentialStart {
                     title_line: line_num,
                     title_indent,
+                    title_text,
                 };
             }
         }
@@ -332,6 +371,7 @@ impl VerbatimScanner {
         blocks: &mut Vec<VerbatimBlock>,
         title_line: usize,
         title_indent: usize,
+        title_text: String, // NEW: title text parameter
         line_num: usize,
         line: &str,
     ) -> ScanState {
@@ -340,6 +380,7 @@ impl VerbatimScanner {
             return ScanState::FoundPotentialStart {
                 title_line,
                 title_indent,
+                title_text, // Pass through
             };
         }
 
@@ -370,6 +411,7 @@ impl VerbatimScanner {
             ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
+                title_text,
                 content_start: line_num,
             }
         } else if line_indent == title_indent + INDENT_SIZE {
@@ -377,6 +419,7 @@ impl VerbatimScanner {
             ScanState::InVerbatimNormal {
                 title_line,
                 title_indent,
+                title_text,
                 content_start: line_num,
                 expected_indent: line_indent,
             }
@@ -393,6 +436,7 @@ impl VerbatimScanner {
         blocks: &mut Vec<VerbatimBlock>,
         title_line: usize,
         title_indent: usize,
+        title_text: String, // NEW
         content_start: usize,
         expected_indent: usize,
         line_num: usize,
@@ -403,6 +447,7 @@ impl VerbatimScanner {
             return ScanState::InVerbatimNormal {
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
                 expected_indent,
             };
@@ -429,6 +474,7 @@ impl VerbatimScanner {
             ScanState::InVerbatimNormal {
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
                 expected_indent,
             }
@@ -439,11 +485,13 @@ impl VerbatimScanner {
     }
 
     /// Process a line while in stretched verbatim mode
+    #[allow(clippy::too_many_arguments)]
     fn process_stretched_verbatim_line(
         &self,
         blocks: &mut Vec<VerbatimBlock>,
         title_line: usize,
         title_indent: usize,
+        title_text: String, // NEW
         content_start: usize,
         line_num: usize,
         line: &str,
@@ -453,6 +501,7 @@ impl VerbatimScanner {
             return ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
             };
         }
@@ -477,6 +526,7 @@ impl VerbatimScanner {
             return ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
+                title_text,
                 content_start,
             };
         }
@@ -509,6 +559,28 @@ impl VerbatimScanner {
             }
         }
         indent
+    }
+
+    /// Extract title text from a title line (removes trailing colon and leading/trailing whitespace)
+    #[allow(dead_code)] // Will be used in scan_boundaries() method
+    fn extract_title(&self, line: &str) -> String {
+        if let Some(captures) = self.verbatim_start_re.captures(line) {
+            let prefix = captures.get(1).unwrap().as_str();
+            prefix.trim().to_string()
+        } else {
+            String::new()
+        }
+    }
+
+    /// Extract label (and optional params) from a terminator line
+    #[allow(dead_code)] // Will be used in scan_boundaries() method
+    fn extract_label(&self, line: &str) -> String {
+        if let Some(captures) = self.verbatim_end_re.captures(line) {
+            if let Some(label_match) = captures.get(1) {
+                return label_match.as_str().to_string();
+            }
+        }
+        String::new()
     }
 
     /// Handle end of document - check for unterminated verbatim blocks

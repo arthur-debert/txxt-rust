@@ -145,7 +145,33 @@ pub enum ScannerToken {
         span: SourceSpan,
     },
 
-    /// Verbatim block title (title:)
+    /// Verbatim block start boundary (NEW - Issue #132)
+    VerbatimBlockStart {
+        /// Title text (without trailing colon)
+        title: String,
+        /// Wall type for content indentation
+        wall_type: WallType,
+        span: SourceSpan,
+    },
+
+    /// Verbatim content line (NEW - Issue #132)
+    /// Raw content line inside verbatim block, unparsed
+    VerbatimContentLine {
+        /// Raw content of the line
+        content: String,
+        /// Full indentation before content (for wall calculation)
+        indentation: String,
+        span: SourceSpan,
+    },
+
+    /// Verbatim block end boundary (NEW - Issue #132)
+    VerbatimBlockEnd {
+        /// Raw label and parameters string (e.g., "python:version=3.11")
+        label_raw: String,
+        span: SourceSpan,
+    },
+
+    /// Verbatim block title (title:) - DEPRECATED, use VerbatimBlockStart
     VerbatimTitle { content: String, span: SourceSpan },
 
     /// Indentation wall marker for verbatim blocks
@@ -218,6 +244,9 @@ impl ScannerToken {
             ScannerToken::Identifier { span, .. } => span,
             ScannerToken::RefMarker { span, .. } => span,
             ScannerToken::FootnoteRef { span, .. } => span,
+            ScannerToken::VerbatimBlockStart { span, .. } => span,
+            ScannerToken::VerbatimContentLine { span, .. } => span,
+            ScannerToken::VerbatimBlockEnd { span, .. } => span,
             ScannerToken::VerbatimTitle { span, .. } => span,
             ScannerToken::IndentationWall { span, .. } => span,
             ScannerToken::IgnoreTextSpan { span, .. } => span,
@@ -244,6 +273,9 @@ impl ScannerToken {
             ScannerToken::Identifier { content, .. } => content,
             ScannerToken::RefMarker { content, .. } => content,
             ScannerToken::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
+            ScannerToken::VerbatimBlockStart { title, .. } => title,
+            ScannerToken::VerbatimContentLine { content, .. } => content,
+            ScannerToken::VerbatimBlockEnd { label_raw, .. } => label_raw,
             ScannerToken::VerbatimTitle { content, .. } => content,
             ScannerToken::IndentationWall { .. } => "", // Structural token, no content
             ScannerToken::IgnoreTextSpan { content, .. } => content,

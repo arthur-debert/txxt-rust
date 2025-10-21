@@ -286,3 +286,28 @@ fn test_simple_math() {
         panic!("Expected Math transform");
     }
 }
+
+#[test]
+fn test_escaped_delimiters() {
+    // Escaped delimiters should appear as literal text
+    // \*not bold\* should display as "*not bold*"
+    let tokens = vec![create_text("\\*not", 0, 5), create_text("bold\\*", 6, 12)];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Should be plain text, not formatted
+    assert_eq!(result.len(), 2);
+
+    // First token contains escaped asterisk
+    if let TextTransform::Identity(text) = &result[0] {
+        assert_eq!(text.content(), "*not"); // Backslash removed
+    } else {
+        panic!("Expected Identity transform for escaped content");
+    }
+
+    // Second token also contains escaped asterisk
+    if let TextTransform::Identity(text) = &result[1] {
+        assert_eq!(text.content(), "bold*"); // Backslash removed
+    } else {
+        panic!("Expected Identity transform for escaped content");
+    }
+}

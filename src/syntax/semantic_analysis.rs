@@ -48,22 +48,89 @@ impl SemanticAnalyzer {
         let mut high_level_tokens = Vec::new();
         let mut i = 0;
 
+        // THE WALL CONCEPT: Indentation Handling
+        //
+        // In txxt, indented content has a "wall" - the position where actual content starts.
+        // This follows the same architecture as verbatim blocks (see docs/specs/elements/verbatim/verbatim.txxt).
+        //
+        // Example:
+        //   1. Session Title
+        //
+        //       |This is content at the wall
+        //       |Second line also at the wall
+        //
+        // The wall (marked by |) is at column 4 (relative to the session title).
+        // The leading whitespace ("    ") is STRUCTURAL, not content.
+        //
+        // Scanner tokens preserve everything for position tracking:
+        //   - Indent (structural marker: "we're now at indent level 1")
+        //   - Whitespace("    ") (the physical spaces creating that indentation)
+        //   - Text("This") (actual content starts here - at the wall)
+        //
+        // High-level tokens separate structure from content:
+        //   - Indent (structural token)
+        //   - PlainTextLine {
+        //       indentation_chars: "    ",  // The wall padding (STRUCTURAL)
+        //       content: "This is content..." // Content at the wall (SEMANTIC)
+        //     }
+        //
+        // This ensures:
+        // 1. Scanner tokens preserve exact positions for LSP features
+        // 2. High-level tokens make structure explicit via indentation_chars
+        // 3. Parser sees content at the wall, never sees structural padding
+        //
+        // CRITICAL: This must be consistent across ALL line-level elements:
+        // - PlainTextLine (paragraphs)
+        // - SequenceTextLine (lists, sessions)
+        // - (Future: Annotations, Definitions when they become line-level)
+        //
+        // See tests/tokenizer/test_indentation_wall_consistency.rs for comprehensive validation.
+        let mut pending_indentation = String::new(); // Captured leading whitespace "before the wall"
+
         while i < scanner_tokens.len() {
             let token = &scanner_tokens[i];
 
             match token {
-                // Structural tokens - pass through unchanged
+                // Structural tokens - pass through unchanged and clear pending indentation
                 ScannerToken::BlankLine { span, .. } => {
                     high_level_tokens.push(HighLevelToken::BlankLine { span: span.clone() });
+                    pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }
                 ScannerToken::Indent { span } => {
                     high_level_tokens.push(HighLevelToken::Indent { span: span.clone() });
+                    pending_indentation.clear(); // Reset after structural token
                     i += 1;
                 }
                 ScannerToken::Dedent { span } => {
                     high_level_tokens.push(HighLevelToken::Dedent { span: span.clone() });
+                    pending_indentation.clear(); // Reset after structural token
                     i += 1;
+                }
+
+                // Leading whitespace at line start - capture it as indentation padding
+                // This applies after: Indent, BlankLine, Dedent, Newline, or start of file
+                ScannerToken::Whitespace { content, .. }
+                    if pending_indentation.is_empty()
+                        && (i == 0
+                            || matches!(
+                                scanner_tokens.get(i - 1),
+                                Some(ScannerToken::Indent { .. })
+                                    | Some(ScannerToken::BlankLine { .. })
+                                    | Some(ScannerToken::Dedent { .. })
+                                    | Some(ScannerToken::Newline { .. })
+                            )) =>
+                {
+                    // This whitespace is "before the wall" - capture it as indentation padding
+                    pending_indentation = content.clone();
+                    i += 1;
+                    continue;
+                }
+
+                // Eof token - skip it (don't convert to empty TextSpan)
+                ScannerToken::Eof { .. } => {
+                    i += 1;
+                    continue;
                 }
 
                 // Process line-level tokens
@@ -81,8 +148,10 @@ impl SemanticAnalyzer {
                     else if self.is_core_block_element(&scanner_tokens, i) {
                         let (line_tokens, consumed) =
                             self.extract_line_tokens(&scanner_tokens, i)?;
-                        let line_semantic_token = self.process_line_tokens(line_tokens)?;
+                        let line_semantic_token =
+                            self.process_line_tokens(line_tokens, pending_indentation.clone())?;
                         high_level_tokens.push(line_semantic_token);
+                        pending_indentation.clear(); // Used up the indentation
                         i += consumed;
                     } else {
                         // Process individual tokens for specific elements (annotations, definitions, etc.)
@@ -192,6 +261,22 @@ impl SemanticAnalyzer {
                 }
             }
 
+            // Check for verbatim block pattern starting with IndentationWall
+            ScannerToken::IndentationWall { .. } => {
+                if start_index + 1 < scanner_tokens.len()
+                    && matches!(
+                        scanner_tokens[start_index + 1],
+                        ScannerToken::VerbatimTitle { .. }
+                    )
+                {
+                    if let Some((tokens, consumed)) =
+                        self.recognize_verbatim_block_pattern(scanner_tokens, start_index)?
+                    {
+                        return Ok(Some((tokens, consumed)));
+                    }
+                }
+            }
+
             _ => {}
         }
 
@@ -269,8 +354,20 @@ impl SemanticAnalyzer {
             && (has_whitespace || consumed > 3)
         // Either has whitespace or has parameters
         {
+            // Check if there's a trailing newline after the TxxtMarker and consume it
+            // This prevents it from being converted to a TextSpan in the main loop
+            let mut final_consumed = consumed;
+            if start_index + consumed < scanner_tokens.len()
+                && matches!(
+                    scanner_tokens[start_index + consumed],
+                    ScannerToken::Newline { .. }
+                )
+            {
+                final_consumed += 1; // Consume the newline
+            }
+
             let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
-            return Ok(Some((pattern_tokens, consumed)));
+            return Ok(Some((pattern_tokens, final_consumed)));
         }
 
         Ok(None)
@@ -291,13 +388,13 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for pattern: TxxtMarker + Whitespace + Identifier + Whitespace + TxxtMarker
+        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + Whitespace + TxxtMarker
         if matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::Whitespace { .. }
         ) && matches!(
             scanner_tokens[start_index + 2],
-            ScannerToken::Identifier { .. }
+            ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
         ) && matches!(
             scanner_tokens[start_index + 3],
             ScannerToken::Whitespace { .. }
@@ -347,14 +444,24 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for VerbatimTitle + IndentationWall
-        if matches!(
+        // Check for either:
+        // 1. VerbatimTitle + IndentationWall
+        // 2. IndentationWall + VerbatimTitle
+        let has_verbatim_pattern = (matches!(
             scanner_tokens[start_index],
             ScannerToken::VerbatimTitle { .. }
         ) && matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::IndentationWall { .. }
-        ) {
+        )) || (matches!(
+            scanner_tokens[start_index],
+            ScannerToken::IndentationWall { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 1],
+            ScannerToken::VerbatimTitle { .. }
+        ));
+
+        if has_verbatim_pattern {
             // Look for VerbatimLabel (may have content in between)
             let mut consumed = 2;
             let mut i = start_index + 2;
@@ -378,7 +485,7 @@ impl SemanticAnalyzer {
             }
 
             if consumed >= 3 {
-                // Must have at least VerbatimTitle + IndentationWall + VerbatimLabel
+                // Must have at least (VerbatimTitle + IndentationWall OR IndentationWall + VerbatimTitle) + VerbatimLabel
                 let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
                 return Ok(Some((pattern_tokens, consumed)));
             }
@@ -430,7 +537,10 @@ impl SemanticAnalyzer {
             ScannerToken::TxxtMarker { .. } => {
                 if pattern_tokens.len() >= 5
                     && matches!(pattern_tokens[1], ScannerToken::Whitespace { .. })
-                    && matches!(pattern_tokens[2], ScannerToken::Identifier { .. })
+                    && matches!(
+                        pattern_tokens[2],
+                        ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
+                    )
                     && matches!(pattern_tokens[3], ScannerToken::Whitespace { .. })
                     && matches!(pattern_tokens[4], ScannerToken::TxxtMarker { .. })
                 {
@@ -446,6 +556,23 @@ impl SemanticAnalyzer {
             ScannerToken::VerbatimTitle { .. } => {
                 if pattern_tokens.len() >= 3
                     && matches!(pattern_tokens[1], ScannerToken::IndentationWall { .. })
+                    && matches!(
+                        pattern_tokens[pattern_tokens.len() - 1],
+                        ScannerToken::VerbatimLabel { .. }
+                    )
+                {
+                    let span = SourceSpan {
+                        start: pattern_tokens[0].span().start,
+                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                    };
+                    return self.transform_verbatim_block(pattern_tokens, span);
+                }
+            }
+
+            // Verbatim block pattern: IndentationWall + VerbatimTitle + ... + VerbatimLabel
+            ScannerToken::IndentationWall { .. } => {
+                if pattern_tokens.len() >= 3
+                    && matches!(pattern_tokens[1], ScannerToken::VerbatimTitle { .. })
                     && matches!(
                         pattern_tokens[pattern_tokens.len() - 1],
                         ScannerToken::VerbatimLabel { .. }
@@ -527,16 +654,9 @@ impl SemanticAnalyzer {
                     return false;
                 }
 
-                // If the line contains syntactic markers like colons, use individual processing to preserve them
-                let has_syntactic_markers = line_tokens
-                    .iter()
-                    .any(|token| matches!(token, ScannerToken::Colon { .. }));
-
-                if has_syntactic_markers {
-                    return false;
-                }
-
                 // Otherwise, this looks like a paragraph - use line-level processing
+                // Note: Colons are allowed in paragraphs (e.g., "features:" in regular text).
+                // Definitions are detected by TxxtMarkers (::), which are already filtered above.
                 true
             }
 
@@ -600,12 +720,14 @@ impl SemanticAnalyzer {
     ///
     /// # Arguments
     /// * `line_tokens` - The scanner tokens for a single line
+    /// * `indentation_chars` - Leading whitespace before this line (from pending_indentation)
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The line-level semantic token
     fn process_line_tokens(
         &self,
         line_tokens: Vec<ScannerToken>,
+        indentation_chars: String,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if line_tokens.is_empty() {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -616,18 +738,19 @@ impl SemanticAnalyzer {
         // Check if this line starts with a sequence marker
         if let Some(first_token) = line_tokens.first() {
             if matches!(first_token, ScannerToken::SequenceMarker { .. }) {
-                return self.create_sequence_text_line(line_tokens);
+                return self.create_sequence_text_line(line_tokens, indentation_chars);
             }
         }
 
         // Otherwise, create a plain text line
-        self.create_plain_text_line(line_tokens)
+        self.create_plain_text_line(line_tokens, indentation_chars)
     }
 
     /// Create a SequenceTextLine semantic token from line tokens
     fn create_sequence_text_line(
         &self,
         line_tokens: Vec<ScannerToken>,
+        indentation_chars: String,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         if line_tokens.len() < 2 {
             return Err(SemanticAnalysisError::AnalysisError(
@@ -662,6 +785,7 @@ impl SemanticAnalyzer {
         };
 
         Ok(HighLevelTokenBuilder::sequence_text_line(
+            indentation_chars,
             marker_semantic,
             content_semantic,
             line_span,
@@ -672,6 +796,7 @@ impl SemanticAnalyzer {
     fn create_plain_text_line(
         &self,
         line_tokens: Vec<ScannerToken>,
+        indentation_chars: String,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Transform all tokens into a single text span
         let content_semantic = self.tokens_to_text_span_line_level(line_tokens.clone())?;
@@ -685,6 +810,7 @@ impl SemanticAnalyzer {
         };
 
         Ok(HighLevelTokenBuilder::plain_text_line(
+            indentation_chars,
             content_semantic,
             line_span,
         ))
@@ -984,7 +1110,12 @@ impl SemanticAnalyzer {
         let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
 
         // Transform to PlainTextLine semantic token
-        Ok(HighLevelTokenBuilder::plain_text_line(text_span, line_span))
+        // Note: This is a legacy method, indentation should be handled by the caller
+        Ok(HighLevelTokenBuilder::plain_text_line(
+            String::new(),
+            text_span,
+            line_span,
+        ))
     }
 
     /// Transform a sequence marker followed by text content into a SequenceTextLine semantic token
@@ -1048,7 +1179,9 @@ impl SemanticAnalyzer {
         let text_span = HighLevelTokenBuilder::text_span(combined_content, line_span.clone());
 
         // Transform to SequenceTextLine semantic token
+        // Note: This is a legacy method, indentation should be handled by the caller
         Ok(HighLevelTokenBuilder::sequence_text_line(
+            String::new(),
             marker_token,
             text_span,
             line_span,
@@ -1184,35 +1317,59 @@ impl SemanticAnalyzer {
             ));
         }
 
-        // Extract components in order
+        // Extract components - handle both orderings:
+        // 1. VerbatimTitle + IndentationWall
+        // 2. IndentationWall + VerbatimTitle
         let mut i = 0;
+        let title_token;
+        let wall_token;
+        let wall_type;
 
-        // 1. VerbatimTitle
-        let title_token = if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
-            HighLevelTokenBuilder::text_span(
+        if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+            // Order 1: VerbatimTitle first
+            title_token = HighLevelTokenBuilder::text_span(
                 tokens[i].content().to_string(),
                 tokens[i].span().clone(),
-            )
-        } else {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "VerbatimBlock must start with VerbatimTitle".to_string(),
-            ));
-        };
-        i += 1;
+            );
+            i += 1;
 
-        // 2. IndentationWall
-        let wall_token = if let ScannerToken::IndentationWall { .. } = &tokens[i] {
-            // Create a simple semantic token for the wall (structural token)
-            HighLevelTokenBuilder::text_span(
+            if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
+                wall_token = HighLevelTokenBuilder::text_span(
+                    "".to_string(), // Wall is structural, no content
+                    tokens[i].span().clone(),
+                );
+                wall_type = wt.clone();
+                i += 1;
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
+                ));
+            }
+        } else if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
+            // Order 2: IndentationWall first
+            wall_token = HighLevelTokenBuilder::text_span(
                 "".to_string(), // Wall is structural, no content
                 tokens[i].span().clone(),
-            )
+            );
+            wall_type = wt.clone();
+            i += 1;
+
+            if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+                title_token = HighLevelTokenBuilder::text_span(
+                    tokens[i].content().to_string(),
+                    tokens[i].span().clone(),
+                );
+                i += 1;
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must have VerbatimTitle after IndentationWall".to_string(),
+                ));
+            }
         } else {
             return Err(SemanticAnalysisError::AnalysisError(
-                "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
+                "VerbatimBlock must start with VerbatimTitle or IndentationWall".to_string(),
             ));
-        };
-        i += 1;
+        }
 
         // 3. IgnoreTextSpan (may be multiple tokens, or empty for empty verbatim blocks)
         let mut content_tokens = Vec::new();
@@ -1304,6 +1461,7 @@ impl SemanticAnalyzer {
             content_token,
             label_token,
             parameters,
+            wall_type,
             span,
         ))
     }

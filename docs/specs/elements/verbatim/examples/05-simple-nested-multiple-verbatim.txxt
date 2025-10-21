@@ -3,7 +3,7 @@
     Code example:
         def hello():
             print("Hello, world!")
-        :: python
+    :: python
 
     This is the introduction to the main topic. It provides an overview before diving into specific subtopics.
 
@@ -18,14 +18,14 @@
                     proxy_pass http://backend;
                 }
             }
-            :: nginx
+        :: nginx
 
         Database schema:
             CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL
             );
-            :: sql
+        :: sql
 
     1.2. Second Subtopic
     
@@ -39,7 +39,7 @@
              | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
              |----------|----------|----------|----------|----------|
              | Data     | Data     | Data     | Data     | Data     |
-                :: markdown
+            :: markdown
 
             This is the deepest level of nesting, demonstrating how verbatim blocks can appear at any level of the document hierarchy.
 
@@ -49,7 +49,7 @@
                     "value": 42,
                     "active": true
                 }
-                :: json
+            :: json
 
 2. Another Main Topic
 
@@ -60,4 +60,4 @@
             <h1>Title</h1>
             <p>Content here</p>
         </div>
-        :: html
+    :: html

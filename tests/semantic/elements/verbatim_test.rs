@@ -41,6 +41,7 @@ fn test_create_verbatim_element() {
         HighLevelTokenBuilder::text_span("print('hello')".to_string(), content_span),
         HighLevelTokenBuilder::label("python".to_string(), label_span),
         None,
+        txxt::cst::WallType::InFlow(0),
         span,
     );
 
@@ -64,6 +65,7 @@ fn test_create_verbatim_element_rejects_wrong_token() {
 
     // Create a plain text token (not a verbatim block)
     let plain_token = HighLevelTokenBuilder::plain_text_line(
+        String::new(),
         HighLevelTokenBuilder::text_span("Hello".to_string(), span.clone()),
         span,
     );

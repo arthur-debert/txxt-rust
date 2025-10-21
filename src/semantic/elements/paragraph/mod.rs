@@ -18,27 +18,60 @@ use crate::semantic::BlockParseError;
 /// # Returns
 /// * `Result<ParagraphBlock, BlockParseError>`
 pub fn create_paragraph_element(token: &HighLevelToken) -> Result<ParagraphBlock, BlockParseError> {
-    match token {
-        HighLevelToken::PlainTextLine { content, .. } => {
-            // Extract content text
-            let content_text = match content.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => "unknown".to_string(),
-            };
+    create_paragraph_element_multi(std::slice::from_ref(token))
+}
 
-            // Create a simple TextTransform::Identity for the plain text content
-            let text = crate::ast::elements::inlines::Text::simple(&content_text);
-            let text_transform = crate::ast::elements::inlines::TextTransform::Identity(text);
-
-            Ok(ParagraphBlock {
-                content: vec![text_transform],
-                annotations: Vec::new(),
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                tokens: ScannerTokenSequence::new(),
-            })
-        }
-        _ => Err(BlockParseError::InvalidStructure(
-            "Expected PlainTextLine token for paragraph".to_string(),
-        )),
+/// Create a paragraph element from multiple PlainTextLine tokens
+///
+/// Paragraphs in txxt consist of consecutive PlainTextLine tokens terminated by
+/// a blank line or other element.
+///
+/// # Arguments
+/// * `tokens` - Vector of PlainTextLine tokens to combine into one paragraph
+///
+/// # Returns
+/// * `Result<ParagraphBlock, BlockParseError>`
+pub fn create_paragraph_element_multi(
+    tokens: &[HighLevelToken],
+) -> Result<ParagraphBlock, BlockParseError> {
+    if tokens.is_empty() {
+        return Err(BlockParseError::InvalidStructure(
+            "Paragraph requires at least one line".to_string(),
+        ));
     }
+
+    let mut content_transforms = Vec::new();
+
+    for token in tokens {
+        match token {
+            HighLevelToken::PlainTextLine { content, .. } => {
+                // Extract content text
+                let content_text = match content.as_ref() {
+                    HighLevelToken::TextSpan { content, .. } => content.clone(),
+                    _ => "unknown".to_string(),
+                };
+
+                // Create a simple TextTransform::Identity for the plain text content
+                let text = crate::ast::elements::inlines::Text::simple(&content_text);
+                let text_transform = crate::ast::elements::inlines::TextTransform::Identity(text);
+                content_transforms.push(text_transform);
+            }
+            _ => {
+                return Err(BlockParseError::InvalidStructure(
+                    "Expected PlainTextLine token for paragraph".to_string(),
+                ))
+            }
+        }
+    }
+
+    Ok(ParagraphBlock {
+        // FIXME: post-parser - Parse inline formatting in content instead of using Text::simple
+        content: content_transforms,
+        // FIXME: post-parser - Parse paragraph-level annotations
+        annotations: Vec::new(),
+        // FIXME: post-parser - Extract parameters from paragraph
+        parameters: crate::ast::elements::components::parameters::Parameters::new(),
+        // FIXME: post-parser - Preserve actual source tokens for entire paragraph
+        tokens: ScannerTokenSequence::new(),
+    })
 }

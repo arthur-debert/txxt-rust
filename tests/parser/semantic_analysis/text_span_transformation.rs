@@ -168,7 +168,11 @@ fn test_text_span_in_semantic_analysis() {
 
     // Check first plain text line
     match &semantic_tokens.tokens[0] {
-        HighLevelToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine {
+            indentation_chars: _,
+            content,
+            span,
+        } => {
             // The content should be a TextSpan containing "Hello world" (with newline for line-level processing)
             match content.as_ref() {
                 HighLevelToken::TextSpan {
@@ -195,7 +199,11 @@ fn test_text_span_in_semantic_analysis() {
 
     // Check second plain text line
     match &semantic_tokens.tokens[1] {
-        HighLevelToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine {
+            indentation_chars: _,
+            content,
+            span,
+        } => {
             // The content should be a TextSpan containing "Another line"
             match content.as_ref() {
                 HighLevelToken::TextSpan {
@@ -367,7 +375,11 @@ fn test_text_span_multiple_text_tokens() {
 
     // Check that all text tokens are combined into a single line-level element
     match &semantic_tokens.tokens[0] {
-        HighLevelToken::PlainTextLine { content, span } => {
+        HighLevelToken::PlainTextLine {
+            indentation_chars: _,
+            content,
+            span,
+        } => {
             // The content should be a TextSpan containing the combined text "FirstSecondThird"
             match content.as_ref() {
                 HighLevelToken::TextSpan {

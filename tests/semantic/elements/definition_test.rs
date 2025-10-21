@@ -26,8 +26,8 @@ fn test_create_definition_element() {
         span,
     );
 
-    // Test the element constructor directly
-    let result = create_definition_element(&definition_token);
+    // Test the element constructor directly with empty content
+    let result = create_definition_element(&definition_token, &[]);
 
     assert!(result.is_ok());
     let _definition_block = result.unwrap();
@@ -45,11 +45,12 @@ fn test_create_definition_element_rejects_wrong_token() {
 
     // Create a plain text token (not a definition)
     let plain_token = HighLevelTokenBuilder::plain_text_line(
+        String::new(),
         HighLevelTokenBuilder::text_span("Hello".to_string(), span.clone()),
         span,
     );
 
     // Should fail because it's not a definition token
-    let result = create_definition_element(&plain_token);
+    let result = create_definition_element(&plain_token, &[]);
     assert!(result.is_err());
 }

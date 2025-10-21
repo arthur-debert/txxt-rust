@@ -54,6 +54,7 @@ fn test_create_annotation_element_rejects_wrong_token() {
 
     // Create a plain text token (not an annotation)
     let plain_token = HighLevelTokenBuilder::plain_text_line(
+        String::new(),
         HighLevelTokenBuilder::text_span("Hello".to_string(), span.clone()),
         span,
     );

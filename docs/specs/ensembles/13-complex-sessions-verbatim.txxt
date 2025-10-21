@@ -3,29 +3,31 @@ The indentation itself is not the problem, but the lack of explicit syntax for m
 
 This document aggregates most of these issues, both for reference and tests. Do not add cases to it.
 
-1. Sources 
+1. Sources {{session-title}}
 
     There are three elements that cannot be identified by themselves, that is, by only looking at the line they are in. These are: 
 
-    - Session titles , hence sessions 
+    - Session titles , hence sessions {{list-item}}
     - List items
     - Paragraphs
 
-    All these can have similar forms. While list items do require a list marker (- or 1.), session titles and paragraphs do not and can contain them. Hence, for some variants you can write list items off these three as consistently intertwined.  
+    All these can have similar forms. While list items do require a list marker (- or 1.), session titles and paragraphs do not and can contain them. Hence, for some variants you can write list items off these three as consistently intertwined.  {{paragraph}}
 
 2. General idea {{session-title}}
+{{session-title}}
 
     The general idea is that sessions create a new , deeper level, thus +1 indented. 
     Like here, the "2. General Idea" line itself could be any one of the three. How do you tell them apart? 
     The key is that session and lists require other features in the text, if you can't find them, by exclusion the element will be the paragraph.
 
     1. Sessions {{session-title}}
+ {{session-title}}
 
         A session's title has to be preceded by a blank line, it's content is +1 Indented and Sessions cannot be empty. Hence: 
-        
-        Foo 
+            Foo 
 
-        Bar
+            Bar
+        :: txxt
 
         Foo and Bar can only be paragraphs.
 
@@ -36,7 +38,8 @@ This document aggregates most of these issues, both for reference and tests. Do 
 
                 a. Sub-Section {{session-title}}
 
-                    c. Foo {{paragraph}}
+                    c. Foo
+        :: txxt
 
         What is each element in this example?  The way to decide is this: 
         - 1. Session follows all the rules for a session title, including an indented child. So it's a Session.
@@ -70,13 +73,13 @@ This document aggregates most of these issues, both for reference and tests. Do 
 
     While txxt is geared towards technical writing, it should be able to correctly represent dialogs, which, as one expects, uses the same initial characters as some lists, the dash. Hence:
 
-    - Not sure about this. {{list-item}}
+    - Not sure about this.
     - Call John.
 
     Could be a perfectly fine list, but in this example it's a dialog. 
     The way to tell txxt that such line is a paragraph is by adding a period to the end-punctuation
 
-    - Not sure about this.. its a list item until the dialog rule is implemented {{list-item}}
+    - Not sure about this..
     - Call John.
 
     Here since the first line ends with "." and the preceding character is a valid end punctuation mark (?, ., !, .. and others) it's a dialog. Note that only the first line needs to have the extra period.
@@ -98,9 +101,46 @@ This document aggregates most of these issues, both for reference and tests. Do 
 
     The title, and the outer list (pack for trip) are not indented +1, although they denote the relationship. The reason for this is containers.  {{paragraph}}
 
+    Containers is how any element that can have children work. Their form is{{verbatim}}: 
+
+        <element>
+            </element title / item>
+            <container>
+                <container children> -> indented
+            </container>
+        </element>
+
+    :: txxt
+
+    In this case lists look like this {{verbatim}}: 
+        <list-item>
+            <text line>
+            <container>
+            </container>
+        </list-item
+    :: text
+
+    If a list has no children the text line is aligned with the parent. When a nested list exists, then it will be like this {{verbatim}}: 
+
+        <list>
+            <outter-list-item>
+                <text-line>
+                <container>
+                    <list>
+                        <inner-list-item>
+                            <text line>
+                            </container>
+                        </inner-list-item>
+                    </list>
+                </container>
+            </outter-list-item>
+        </list>
+    :: text
+
     There are two types of containers: ContentContainers and Session Containers.
 
     4.1 Content Container{{session-title}}
+s
 
         The following elements have them, that is, they can have multiple children;  {{paragraph}}
         - Annotations {{list-item}}

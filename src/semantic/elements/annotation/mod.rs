@@ -25,6 +25,7 @@ pub fn create_annotation_element(
             // Extract label text
             let label_text = match label.as_ref() {
                 HighLevelToken::Label { text, .. } => text.clone(),
+                HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
             };
 
@@ -43,10 +44,15 @@ pub fn create_annotation_element(
 
             Ok(AnnotationBlock {
                 label: label_text,
+                // FIXME: post-parser - Parse inline content from _content_text instead of empty vec
                 content: AnnotationContent::Inline(vec![]),
+                // FIXME: post-parser - Extract parameters from token instead of empty Parameters
                 parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                // FIXME: post-parser - Support nested annotations instead of empty vec
                 annotations: Vec::new(),
+                // FIXME: post-parser - Preserve actual source tokens instead of empty sequence
                 tokens: ScannerTokenSequence::new(),
+                // FIXME: post-parser - Extract namespace from label (e.g., "org.example.custom")
                 namespace: None,
             })
         }

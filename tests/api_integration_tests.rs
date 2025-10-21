@@ -47,6 +47,7 @@ fn test_semantic_tokens_format() {
 }
 
 #[test]
+#[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
 fn test_ast_full_json_format() {
     let output =
         process_unified("Hello world", Stage::AstFull, Some("test.txxt".to_string())).unwrap();

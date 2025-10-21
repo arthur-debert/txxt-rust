@@ -8,3 +8,35 @@ mod issue_26_indented_sequence_markers;
 // TODO: Update for new API
 // mod parser_integration;
 mod parser_tests;
+
+// Ensemble document tests (regex-based grammar engine)
+mod ensemble_01_two_paragraphs;
+mod ensemble_02_session_one_paragraph;
+mod ensemble_03_session_multiple_paragraphs;
+mod ensemble_04_multiple_sessions_flat;
+mod ensemble_05_nested_sessions_basic;
+mod ensemble_06_nested_sessions_multiple;
+mod ensemble_session_with_list;
+
+// List parsing tests (simple to complex)
+mod list_01_simple_single;
+mod test_list_simple;
+
+// Definition parsing tests
+mod definition_01_simple;
+
+// Ensemble tests with definitions
+mod ensemble_07_session_with_definition;
+
+// Verbatim parsing tests
+mod verbatim_01_simple;
+mod verbatim_02_multiple;
+
+// Complex ensemble tests
+mod ensemble_09_nested_complex;
+mod ensemble_10_document_with_annotations;
+mod ensemble_11_full_document;
+mod ensemble_12_complex_sessions;
+
+// Debug utilities
+mod debug_tokens;

@@ -2,5 +2,5 @@
 //!
 //! Tests for AST construction and inline parsing.
 
-mod ast_construction_test;
+// mod ast_construction_test; // Removed: Old procedural parser tests
 mod elements;

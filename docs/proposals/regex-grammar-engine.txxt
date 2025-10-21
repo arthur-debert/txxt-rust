@@ -1,0 +1,317 @@
+:: title :: Regex-Based Grammar Engine for AST Construction
+:: author :: Arthur Debert
+:: pub-date :: 2025-10-20
+
+This document proposes a declarative regex-based grammar engine for the AST Construction phase of txxt parsing. The approach uses pattern matching on serialized token streams to replace procedural token management with a maintainable, grammar-driven design.
+
+1. Problem Statement
+
+    The AST Construction phase (Semantic Tokens � AST Nodes) has repeatedly devolved into procedural token management code. Each iteration starts with declarative intentions but ends with low-level position tracking, manual lookahead, and brittle state management.
+
+    The core issues:
+
+    - Manual token position management leads to off-by-one errors
+    - Lookahead logic becomes complex and hard to reason about
+    - Precedence rules are implicit in code structure rather than explicit
+    - Recursive parsing of containers requires careful state tracking
+    - Code becomes difficult to maintain and align with grammar specifications
+
+    We need a declarative approach that keeps grammar rules explicit and separate from parsing mechanics.
+
+2. Core Insight
+
+    txxt's grammar is simple enough that token patterns can be matched using regular expressions. Unlike general-purpose programming languages requiring complex parsers, txxt has:
+
+    - Linear compositional patterns without ambiguous backtracking
+    - Well-defined precedence rules (first-match-wins)
+    - Clear token boundaries (no tokenization ambiguity)
+    - Limited recursion (only through indent/dedent containers)
+
+    This constrained problem space makes regex matching viable.
+
+3. Proposed Architecture
+
+    3.1. Token Stream Serialization
+
+        Convert semantic token streams into string representations for regex matching:
+
+        Token sequence: [BlankLineToken, TextSpanToken("Title"), BlankLineToken, IndentToken]
+        Serialized form: "<BlankLine> <TextSpan> <BlankLine> <Indent>"
+
+        Each token type maps to a unique string tag. Token metadata (content, spans) remains accessible via the original token array.
+
+    3.2. Grammar Rule Definition
+
+        Define grammar rules declaratively as regex patterns paired with node constructors:
+
+        Rule: Annotation
+        Pattern: "<TxxtMarker> <Whitespace> <Label> <Whitespace> <TxxtMarker> <TextSpan>?"
+        Constructor: create_annotation_node(tokens: &[Token]) � AnnotationNode
+
+        Rule: Definition
+        Pattern: "<TextSpan> (<Whitespace> | <Colon> <TextSpan>)* <TxxtMarker>"
+        Constructor: create_definition_node(tokens: &[Token]) � DefinitionNode
+
+        Rule: Session Start
+        Pattern: "<BlankLine> <(PlainTextLine|SequenceTextLine)> <BlankLine> <Indent>"
+        Constructor: create_session_node(tokens: &[Token]) � SessionNode
+
+    3.3. Pattern Matching Engine
+
+        The engine operates in a simple loop:
+
+        1. Serialize remaining token stream to string
+        2. Try each grammar rule in precedence order
+        3. On first match, count capture groups to determine tokens consumed
+        4. Slice consumed tokens from stream
+        5. Pass tokens to constructor function
+        6. Continue with remaining tokens
+
+        Token consumption math: Number of capture groups = Number of tokens consumed
+
+    3.4. Container Recursion
+
+        Containers (indent/dedent blocks) require special handling:
+
+        1. Match pattern up to <Indent> token
+        2. Slice token stream from Indent to matching Dedent
+        3. Recursively apply grammar engine to container contents
+        4. Pass child nodes to container constructor
+        5. Resume parsing after Dedent
+
+        The recursive call uses the same grammar rules, ensuring consistent handling at all nesting levels.
+
+    3.5. Precedence Rules
+
+        Rules are tried in strict order matching the grammar specification. The final precedence order is:
+
+        1. VerbatimBlock (highest precedence)
+        2. Annotation
+        3. Definition
+        4. Session
+        5. List
+        6. Paragraph (catch-all, lowest precedence)
+
+        First match wins. No backtracking needed.
+
+        Note: Implementation will be incremental (see section 6), starting with Paragraph, Session, and List only. Other elements will be added progressively, maintaining this precedence order.
+
+4. Benefits
+
+    4.1. Declarative Grammar
+
+        Grammar rules are explicit data structures, not implicit in code flow. This makes the grammar visible, reviewable, and easy to compare against specifications.
+
+    4.2. Alignment with Specifications
+
+        Grammar rules map directly to patterns in docs/specs/core/grammar.txxt. Changes to specifications translate directly to pattern updates.
+
+    4.3. Reduced Complexity
+
+        Token position management, lookahead, and state tracking are handled by the engine. Rule definitions focus purely on pattern matching logic.
+
+    4.4. Maintainability
+
+        Debugging focuses on pattern correctness, not procedural logic. Adding new element types means adding new rules, not refactoring existing code.
+
+    4.5. Testability
+
+        Each grammar rule can be tested independently with minimal setup. Pattern matching is deterministic and easy to verify.
+
+5. Limitations and Tradeoffs
+
+    5.1. Regex Complexity
+
+        Complex patterns may become difficult to write and debug. Mitigation: Keep patterns simple, use non-greedy quantifiers, and test thoroughly.
+
+    5.2. Performance
+
+        Regex matching on string representations adds overhead compared to direct token inspection. Mitigation: For txxt's typical document sizes, this overhead is negligible. Profile if needed.
+
+    5.3. Error Diagnostics
+
+        Regex failures provide match/no-match, not detailed error locations. Mitigation: Use graceful degradation (fallback to paragraph) as specified in grammar.txxt.
+
+    5.4. Not General Purpose
+
+        This approach won't scale to complex programming language grammars. That's acceptable - it's designed specifically for txxt's constraints.
+
+6. Implementation Strategy
+
+    CRITICAL: This implementation focuses ONLY on the core three elements (Paragraph, Session, List). These are the only elements without explicit syntax markers and are the source of all parsing difficulty. We must master their interaction before adding other elements.
+
+    6.1. Phase 1: Engine + Paragraph Only
+
+        Build the basic matching engine and implement paragraph detection:
+        - Token stream serialization
+        - Pattern matching loop
+        - Token consumption math
+        - Paragraph rule (catch-all pattern)
+
+        Test with: docs/specs/ensembles/01-two-paragraphs.txxt
+
+        Success criteria: Parse two paragraphs correctly, test block by block.
+
+    6.2. Phase 2: Add Session (Simple)
+
+        Add session pattern matching:
+        - Session pattern: <BlankLine> <TitleLine> <BlankLine> <Indent> ... <Dedent>
+        - Container recursion for session content
+        - Session with single paragraph child
+
+        Test with:
+        - docs/specs/ensembles/02-session-one-paragraph.txxt
+        - docs/specs/ensembles/03-session-multiple-paragraphs.txxt
+
+        Success criteria: Sessions with paragraph children parse correctly.
+
+    6.3. Phase 3: Multiple Sessions (Flat)
+
+        Handle multiple peer sessions at same level:
+        - No new patterns needed
+        - Test disambiguation between sessions and paragraphs
+
+        Test with: docs/specs/ensembles/04-multiple-sessions-flat.txxt
+
+        Success criteria: Multiple sessions at same nesting level.
+
+    6.4. Phase 4: Nested Sessions
+
+        Handle hierarchical session nesting:
+        - Recursive session detection within session containers
+        - Session children can be sessions
+
+        Test with:
+        - docs/specs/ensembles/05-nested-sessions-basic.txxt
+        - docs/specs/ensembles/06-nested-sessions-multiple.txxt
+
+        Success criteria: Deep session hierarchies parse correctly.
+
+    6.5. Phase 5: Add List
+
+        Add list pattern matching:
+        - List pattern: consecutive <SequenceTextLine> tokens (at least 2)
+        - No blank lines between items constraint
+        - List vs session vs paragraph disambiguation
+
+        Test with: docs/specs/ensembles/07-session-with-list.txxt
+
+        Success criteria: Lists correctly detected, not confused with sessions.
+
+    6.6. Phase 6: Complex Disambiguation
+
+        Handle all edge cases for Paragraph/Session/List interaction:
+        - Blank line behavior
+        - Sequence markers in different contexts
+        - Nested content combinations
+
+        Test with: docs/specs/ensembles/12-complex-sessions.txxt
+
+        This document is comprehensive and explains all ambiguous cases.
+
+        Success criteria: All disambiguation cases parse correctly.
+
+    6.7. Future: Other Elements
+
+        After mastering Paragraph/Session/List, add other elements incrementally:
+        - Definition (next priority - has explicit :: marker)
+        - Annotation (has explicit :: marker)
+        - VerbatimBlock (has explicit : and :: markers)
+
+        Each element gets its own grammar rule added to the engine, following the same incremental test-driven approach.
+
+7. Testing Strategy
+
+    7.1. Progressive Document Testing (PRIMARY APPROACH)
+
+        Test each ensemble document in sequence, never skipping ahead:
+
+        For each document:
+        1. Load document using TxxtCorpora (gives high-level tokens)
+        2. Test BLOCK BY BLOCK, not whole document at once
+        3. Use traversal framework (src/ast/elements/traversal.rs) to navigate AST
+        4. Use element-specific assertions (tests/assertions/elements/)
+        5. Assert actual AST structure and content
+        6. Commit and push when document parses perfectly
+
+        NEVER:
+        - Hand-roll txxt sources for testing
+        - Assert only on element counts
+        - Write long brittle AST walks
+        - Jump ahead in document sequence
+        - Fallback to procedural parsing
+        - Test whole document at once
+
+        ALWAYS:
+        - Use corpora.rs to load documents
+        - Test block by block
+        - Use traversal framework
+        - Use custom per-element assertions
+        - Assert actual AST tree content
+
+    7.2. Testing Example
+
+        Example test using TxxtCorpora, traversal, and assertion framework:
+        :: rust
+        let corpus = TxxtCorpora::load_document("01-two-paragraphs")?;
+        let doc = parse(&corpus.source_text)?;
+
+        // Navigate to first block
+        let first_block = &doc.blocks[0];
+        assert_paragraph(first_block, ParagraphExpected {
+            text_contains: Some("first paragraph"),
+            has_formatting: Some(false),
+            ..Default::default()
+        });
+        :: rust
+
+    7.3. Unit Tests Per Rule
+
+        Test each grammar rule independently:
+        - Positive cases: Valid patterns should match
+        - Negative cases: Invalid patterns should not match
+        - Edge cases: Boundary conditions and near-misses
+        - Token consumption: Verify correct number of tokens consumed
+
+    7.4. Disambiguation Tests
+
+        Critical tests for ambiguous cases:
+        - docs/specs/ensembles/12-complex-sessions.txxt
+        - Session vs paragraph vs list disambiguation
+        - Nested sessions vs nested lists
+        - Blank line behavior
+
+        This document explains all edge cases and is the final validation.
+
+8. Success Criteria
+
+    The regex-based grammar engine succeeds if:
+
+    - All grammar rules are explicit, declarative data structures
+    - Patterns map directly to docs/specs/core/grammar.txxt specifications
+    - No manual token position management in rule definitions
+    - All existing tests pass without modification
+    - New element types can be added by adding rules, not refactoring
+    - Code is easier to understand and maintain than procedural approach
+
+9. Open Questions
+
+    9.1. Pattern Language
+
+        Should we use raw Rust regex syntax, or create a higher-level pattern DSL that compiles to regex? Raw regex is simpler to start with, but a DSL might improve readability.
+
+    9.2. Performance Optimization
+
+        If regex matching proves too slow, we could cache serialized token strings or use more efficient pattern matching. Start simple, optimize only if needed.
+
+    9.3. Error Recovery
+
+        How should the engine handle malformed patterns that partially match? Current plan: Use graceful degradation (fallback to paragraph), but we may need more sophisticated recovery for better error messages.
+
+10. Conclusion
+
+    The regex-based grammar engine is a pragmatic solution tailored to txxt's specific constraints. It won't work for general-purpose parsing, but it doesn't need to - it only needs to work for txxt.
+
+    By keeping grammar rules declarative and separate from parsing mechanics, we avoid the repeated cycle of procedural code collapse. The approach is testable, maintainable, and directly aligned with specifications.
+
+    The key insight: Use the right tool for the problem at hand. For txxt's simple, well-defined grammar, regex pattern matching is sufficient and preferable to more complex parser architectures.

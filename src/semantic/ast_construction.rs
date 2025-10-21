@@ -80,6 +80,13 @@ impl<'a> AstConstructor<'a> {
 
             // Try to match patterns in precedence order
 
+            // Annotation pattern (standalone token, no indented content for now)
+            // Pattern: <Annotation>
+            if let Some(node) = self.try_parse_annotation()? {
+                ast_nodes.push(node);
+                continue;
+            }
+
             // Definition pattern (check before sessions as both can have similar structure)
             // Pattern: <Definition> <Indent> <Content>* <Dedent>
             if let Some((node, _tokens_consumed)) = self.try_parse_definition()? {
@@ -264,7 +271,13 @@ impl<'a> AstConstructor<'a> {
 
             // Try to match patterns in precedence order
 
-            // Try definition pattern first (explicit marker)
+            // Try annotation pattern first (standalone token)
+            if let Some(node) = self.try_parse_annotation()? {
+                content_nodes.push(node);
+                continue;
+            }
+
+            // Try definition pattern (explicit marker)
             if let Some((node, _tokens_consumed)) = self.try_parse_definition()? {
                 content_nodes.push(node);
                 continue;
@@ -355,6 +368,37 @@ impl<'a> AstConstructor<'a> {
             AstNode::Definition(definition_block),
             tokens_consumed,
         )))
+    }
+
+    /// Try to parse an annotation pattern
+    ///
+    /// Annotations are standalone tokens - they don't have indented content.
+    /// For now, we only support inline annotations.
+    ///
+    /// Pattern: <Annotation>
+    ///
+    /// Returns: AnnotationBlock if matched, None otherwise
+    fn try_parse_annotation(&mut self) -> Result<Option<AstNode>, BlockParseError> {
+        if self.position >= self.tokens.len() {
+            return Ok(None);
+        }
+
+        // Check if current token is an Annotation
+        let token = &self.tokens[self.position];
+        if !matches!(token, HighLevelToken::Annotation { .. }) {
+            return Ok(None);
+        }
+
+        // Clone the annotation token before advancing position
+        let annotation_token_clone = token.clone();
+        self.position += 1; // Consume annotation token
+
+        // Delegate to annotation element constructor
+        let annotation_block = crate::semantic::elements::annotation::create_annotation_element(
+            &annotation_token_clone,
+        )?;
+
+        Ok(Some(AstNode::Annotation(annotation_block)))
     }
 
     /// Try to parse a list pattern
@@ -474,9 +518,7 @@ impl<'a> Default for AstConstructor<'a> {
 
 /// AST node types that can be constructed from semantic tokens
 ///
-/// Currently supports only the core three elements: Paragraph, Session, List.
-/// Other elements (Definition, Annotation, Verbatim) will be added after mastering
-/// the core three.
+/// Currently supports: Paragraph, Session, List, Definition, Annotation.
 #[derive(Debug, Clone, PartialEq)]
 pub enum AstNode {
     /// Paragraph block node
@@ -487,6 +529,8 @@ pub enum AstNode {
     List(crate::ast::elements::list::ListBlock),
     /// Definition block node
     Definition(crate::ast::elements::definition::DefinitionBlock),
+    /// Annotation block node
+    Annotation(crate::ast::elements::annotation::annotation_block::AnnotationBlock),
 }
 
 impl AstNode {
@@ -504,6 +548,9 @@ impl AstNode {
             }
             AstNode::Definition(block) => {
                 crate::ast::elements::core::ElementNode::DefinitionBlock(block.clone())
+            }
+            AstNode::Annotation(block) => {
+                crate::ast::elements::core::ElementNode::AnnotationBlock(block.clone())
             }
         }
     }

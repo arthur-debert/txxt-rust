@@ -49,6 +49,21 @@ fn create_code_delimiter(start: usize, end: usize) -> ScannerToken {
     }
 }
 
+fn create_math_delimiter(start: usize, end: usize) -> ScannerToken {
+    ScannerToken::MathDelimiter {
+        span: SourceSpan {
+            start: Position {
+                row: 0,
+                column: start,
+            },
+            end: Position {
+                row: 0,
+                column: end,
+            },
+        },
+    }
+}
+
 fn create_text(content: &str, start: usize, end: usize) -> ScannerToken {
     ScannerToken::Text {
         content: content.to_string(),
@@ -248,5 +263,26 @@ fn test_same_type_nesting_prevented_italic() {
     // Third: Emphasis(" text")
     if let TextTransform::Emphasis(inner) = &result[2] {
         assert_eq!(inner.len(), 1);
+    }
+}
+
+#[test]
+fn test_simple_math() {
+    // Math expression: #x = y + 2#
+    let tokens = vec![
+        create_math_delimiter(0, 1),
+        create_text("x = y + 2", 1, 10),
+        create_math_delimiter(10, 11),
+    ];
+    let result = parse_formatting_elements(&tokens).unwrap();
+
+    // Verify structure and content
+    assert_eq!(result.len(), 1);
+    if let TextTransform::Math(text) = &result[0] {
+        assert_eq!(text.content(), "x = y + 2");
+        // Verify tokens preserve original positions
+        assert_eq!(text.tokens.tokens.len(), 1);
+    } else {
+        panic!("Expected Math transform");
     }
 }

@@ -162,7 +162,7 @@ impl<'a> AstConstructor<'a> {
             return Ok(None);
         }
 
-        // Check for blank line after title
+        // Check for blank line(s) after title (1 or more)
         let blank_after_title_pos = title_pos + 1;
         if !matches!(
             self.tokens[blank_after_title_pos],
@@ -171,9 +171,18 @@ impl<'a> AstConstructor<'a> {
             return Ok(None);
         }
 
-        // Check for Indent token
-        let indent_pos = blank_after_title_pos + 1;
-        if !matches!(self.tokens[indent_pos], HighLevelToken::Indent { .. }) {
+        // Skip any additional blank lines (txxt allows multiple blanks)
+        let mut indent_pos = blank_after_title_pos + 1;
+        while indent_pos < self.tokens.len()
+            && matches!(self.tokens[indent_pos], HighLevelToken::BlankLine { .. })
+        {
+            indent_pos += 1;
+        }
+
+        // Check for Indent token after blank line(s)
+        if indent_pos >= self.tokens.len()
+            || !matches!(self.tokens[indent_pos], HighLevelToken::Indent { .. })
+        {
             return Ok(None);
         }
 
@@ -185,7 +194,14 @@ impl<'a> AstConstructor<'a> {
         // Clone/capture the title token before advancing position
         let title_token_clone = self.tokens[self.position].clone();
         self.position += 1; // Consume title
-        self.position += 1; // Skip BlankLine after title
+
+        // Skip all blank lines after title (we already validated there's at least one)
+        while self.position < self.tokens.len()
+            && matches!(self.tokens[self.position], HighLevelToken::BlankLine { .. })
+        {
+            self.position += 1;
+        }
+
         self.position += 1; // Skip Indent
 
         // Now recursively parse the content until we hit Dedent

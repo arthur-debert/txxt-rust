@@ -3,18 +3,17 @@ The indentation itself is not the problem, but the lack of explicit syntax for m
 
 This document aggregates most of these issues, both for reference and tests. Do not add cases to it.
 
-1. Sources {{session-title}}
+1. Sources 
 
     There are three elements that cannot be identified by themselves, that is, by only looking at the line they are in. These are: 
 
-    - Session titles , hence sessions {{list-item}}
+    - Session titles , hence sessions 
     - List items
     - Paragraphs
 
-    All these can have similar forms. While list items do require a list marker (- or 1.), session titles and paragraphs do not and can contain them. Hence, for some variants you can write list items off these three as consistently intertwined.  {{paragraph}}
+    All these can have similar forms. While list items do require a list marker (- or 1.), session titles and paragraphs do not and can contain them. Hence, for some variants you can write list items off these three as consistently intertwined.  
 
 2. General idea {{session-title}}
-{{session-title}}
 
     The general idea is that sessions create a new , deeper level, thus +1 indented. 
     Like here, the "2. General Idea" line itself could be any one of the three. How do you tell them apart? 

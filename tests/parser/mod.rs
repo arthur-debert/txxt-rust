@@ -12,3 +12,4 @@ mod parser_tests;
 // Ensemble document tests (regex-based grammar engine)
 mod ensemble_01_two_paragraphs;
 mod ensemble_02_session_one_paragraph;
+mod ensemble_03_session_multiple_paragraphs;

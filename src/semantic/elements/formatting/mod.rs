@@ -42,17 +42,6 @@
 //! - **AST Nodes**: [`src/ast/elements/formatting/`]
 //! - **Tokenizer**: [`src/lexer/elements/formatting/`]
 
-pub mod code;
-pub mod emphasis;
-pub mod math;
-pub mod strong;
-
-// Re-export formatting parsing functions
-pub use code::*;
-pub use emphasis::*;
-pub use math::*;
-pub use strong::*;
-
 use crate::ast::elements::formatting::inlines::{Inline, TextTransform};
 use crate::cst::ScannerToken;
 use crate::semantic::elements::inlines::InlineParseError;

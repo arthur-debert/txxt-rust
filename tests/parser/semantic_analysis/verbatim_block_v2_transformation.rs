@@ -263,17 +263,15 @@ fn test_verbatim_block_v2_empty_block() {
 
     let semantic_token = result.unwrap();
     match semantic_token {
-        HighLevelToken::VerbatimBlock { content, .. } => {
-            match content.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: content_text,
-                    ..
-                } => {
-                    assert_eq!(content_text, "");
-                }
-                _ => panic!("Expected TextSpan content"),
+        HighLevelToken::VerbatimBlock { content, .. } => match content.as_ref() {
+            HighLevelToken::TextSpan {
+                content: content_text,
+                ..
+            } => {
+                assert_eq!(content_text, "");
             }
-        }
+            _ => panic!("Expected TextSpan content"),
+        },
         _ => panic!("Expected VerbatimBlock token"),
     }
 }
@@ -387,9 +385,7 @@ fn test_verbatim_block_v2_stretched_mode() {
     let semantic_token = result.unwrap();
     match semantic_token {
         HighLevelToken::VerbatimBlock {
-            content,
-            wall_type,
-            ..
+            content, wall_type, ..
         } => {
             assert_eq!(wall_type, WallType::Stretched);
 
@@ -576,17 +572,15 @@ fn test_verbatim_block_v2_integration_with_analyzer() {
     assert_eq!(high_level_tokens.tokens.len(), 1);
 
     match &high_level_tokens.tokens[0] {
-        HighLevelToken::VerbatimBlock { title, .. } => {
-            match title.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: title_content,
-                    ..
-                } => {
-                    assert_eq!(title_content, "Example");
-                }
-                _ => panic!("Expected TextSpan title"),
+        HighLevelToken::VerbatimBlock { title, .. } => match title.as_ref() {
+            HighLevelToken::TextSpan {
+                content: title_content,
+                ..
+            } => {
+                assert_eq!(title_content, "Example");
             }
-        }
+            _ => panic!("Expected TextSpan title"),
+        },
         _ => panic!("Expected VerbatimBlock token"),
     }
 }

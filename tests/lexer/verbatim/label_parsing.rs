@@ -108,7 +108,10 @@ mod verbatim_label_tests {
                 .iter()
                 .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
                 .unwrap_or_else(|| {
-                    panic!("Should find VerbatimBlockEnd token for: {}", terminator_line)
+                    panic!(
+                        "Should find VerbatimBlockEnd token for: {}",
+                        terminator_line
+                    )
                 });
 
             if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {

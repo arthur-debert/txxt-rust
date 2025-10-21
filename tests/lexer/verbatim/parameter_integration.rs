@@ -25,8 +25,14 @@ mod verbatim_parameter_integration_tests {
             .expect("Should find VerbatimBlockEnd token");
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
-            assert_eq!(label_raw, "python", "VerbatimBlockEnd label_raw should be just the label");
-            assert!(!label_raw.contains(':'), "label_raw should not contain parameters");
+            assert_eq!(
+                label_raw, "python",
+                "VerbatimBlockEnd label_raw should be just the label"
+            );
+            assert!(
+                !label_raw.contains(':'),
+                "label_raw should not contain parameters"
+            );
         }
     }
 
@@ -52,7 +58,11 @@ mod verbatim_parameter_integration_tests {
 
             // Verify the format
             let parts: Vec<&str> = label_raw.split(':').collect();
-            assert_eq!(parts.len(), 2, "Should have label and params separated by colon");
+            assert_eq!(
+                parts.len(),
+                2,
+                "Should have label and params separated by colon"
+            );
             assert_eq!(parts[0], "python", "First part should be label");
             assert_eq!(parts[1], "version=3.9", "Second part should be parameters");
         }
@@ -82,8 +92,14 @@ mod verbatim_parameter_integration_tests {
 
             // Verify structure
             assert!(label_raw.starts_with("python:"), "Should start with label:");
-            assert!(label_raw.contains("version=3.9"), "Should contain version parameter");
-            assert!(label_raw.contains("syntax=true"), "Should contain syntax parameter");
+            assert!(
+                label_raw.contains("version=3.9"),
+                "Should contain version parameter"
+            );
+            assert!(
+                label_raw.contains("syntax=true"),
+                "Should contain syntax parameter"
+            );
         }
     }
 

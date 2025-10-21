@@ -371,14 +371,14 @@ fn parse_parameters_with_position(input: &str, start_position: Position) -> Vec<
                 column: param_start.column + consumed,
             };
 
-            tokens.push(ScannerToken::Parameter {
-                key,
-                value,
-                span: SourceSpan {
-                    start: param_start,
-                    end: param_end,
-                },
-            });
+            // tokens.push(ScannerToken::Parameter {
+            //     key,
+            //     value,
+            //     span: SourceSpan {
+            //         start: param_start,
+            //         end: param_end,
+            //     },
+            // });
 
             pos += consumed;
             current_position.column += consumed;

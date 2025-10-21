@@ -73,7 +73,10 @@ mod tests {
                 label_raw, "python:version=3.9,syntax_highlight=true",
                 "VerbatimBlockEnd label_raw should contain full label:params"
             );
-            println!("\n✅ VerbatimBlockEnd token correctly captured: {}", label_raw);
+            println!(
+                "\n✅ VerbatimBlockEnd token correctly captured: {}",
+                label_raw
+            );
         }
 
         // Note: Parameter parsing happens at semantic analysis level, not scanner level

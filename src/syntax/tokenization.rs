@@ -6,9 +6,9 @@
 use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::syntax::core::indentation::IndentationTracker;
 use crate::syntax::elements::components::{
-    parameter_integration_v2::{
-        integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
-    },
+    // parameter_integration_v2::{
+    //     integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
+    // },
     sequence::read_sequence_marker,
 };
 use crate::syntax::elements::formatting::read_inline_delimiter;
@@ -191,8 +191,8 @@ impl Lexer {
         }
 
         // Use new parameter integration that preserves positions and whitespace
-        tokens = integrate_annotation_parameters_v2(tokens);
-        tokens = integrate_definition_parameters_v2(tokens);
+        // tokens = integrate_annotation_parameters_v2(tokens);
+        // tokens = integrate_definition_parameters_v2(tokens);
 
         // Finalize indentation processing (emit remaining dedents)
         let final_indent_tokens = self.indent_tracker.finalize();

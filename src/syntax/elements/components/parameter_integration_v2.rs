@@ -122,14 +122,14 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
             ScannerToken::Text { content, span } => {
                 // Check if this contains an equals sign (legacy case)
                 if let Some(eq_pos) = content.find('=') {
-                    let key = &content[..eq_pos];
-                    let value = &content[eq_pos + 1..];
+                    let _key = &content[..eq_pos];
+                    let _value = &content[eq_pos + 1..];
 
-                    result.push(ScannerToken::Parameter {
-                        key: key.to_string(),
-                        value: value.to_string(),
-                        span: span.clone(),
-                    });
+                    // result.push(ScannerToken::Parameter {
+                    //     key: key.to_string(),
+                    //     value: value.to_string(),
+                    //     span: span.clone(),
+                    // });
                 } else if is_valid_param_key(content) && peek_equals(&tokens[i + 1..]) {
                     // This is a key, and equals follows (new token structure)
                     let key_span = span.clone();
@@ -207,14 +207,14 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                                 value = value[1..value.len() - 1].to_string();
                             }
 
-                            result.push(ScannerToken::Parameter {
-                                key,
-                                value,
-                                span: SourceSpan {
-                                    start: key_span.start,
-                                    end: value_end_span.end,
-                                },
-                            });
+                            // result.push(ScannerToken::Parameter {
+                            //     key,
+                            //     value,
+                            //     span: SourceSpan {
+                            //         start: key_span.start,
+                            //         end: value_end_span.end,
+                            //     },
+                            // });
                         } else {
                             // Not a valid value token, just push the key as text
                             result.push(ScannerToken::Text {
@@ -231,11 +231,11 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                     }
                 } else if is_valid_param_key(content) {
                     // Boolean parameter (key without value) - only in parameter context
-                    result.push(ScannerToken::Parameter {
-                        key: content.clone(),
-                        value: "true".to_string(),
-                        span: span.clone(),
-                    });
+                    // result.push(ScannerToken::Parameter {
+                    //     key: content.clone(),
+                    //     value: "true".to_string(),
+                    //     span: span.clone(),
+                    // });
                 } else {
                     // Regular text
                     result.push(tokens[i].clone());
@@ -270,16 +270,16 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
 
                     // Get value
                     if i < tokens.len() {
-                        if let Some(value) = get_token_text(&tokens[i]) {
-                            let value_span = get_token_span(&tokens[i]);
-                            result.push(ScannerToken::Parameter {
-                                key,
-                                value,
-                                span: SourceSpan {
-                                    start: key_span.start,
-                                    end: value_span.end,
-                                },
-                            });
+                        if let Some(_value) = get_token_text(&tokens[i]) {
+                            let _value_span = get_token_span(&tokens[i]);
+                            // result.push(ScannerToken::Parameter {
+                            //     key,
+                            //     value,
+                            //     span: SourceSpan {
+                            //         start: key_span.start,
+                            //         end: value_span.end,
+                            //     },
+                            // });
                         } else {
                             // Not a valid value token, just push the key as text
                             result.push(ScannerToken::Text {
@@ -296,11 +296,11 @@ fn process_parameter_tokens(tokens: &[ScannerToken]) -> Vec<ScannerToken> {
                     }
                 } else {
                     // Boolean parameter (key without value) - only in parameter context
-                    result.push(ScannerToken::Parameter {
-                        key: content.clone(),
-                        value: "true".to_string(),
-                        span: span.clone(),
-                    });
+                    // result.push(ScannerToken::Parameter {
+                    //     key: content.clone(),
+                    //     value: "true".to_string(),
+                    //     span: span.clone(),
+                    // });
                 }
             }
             ScannerToken::Comma { .. } => {

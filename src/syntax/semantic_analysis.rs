@@ -1378,9 +1378,7 @@ impl SemanticAnalyzer {
 
         // Extract start token
         let (title, wall_type) = if let ScannerToken::VerbatimBlockStart {
-            title,
-            wall_type,
-            ..
+            title, wall_type, ..
         } = &tokens[0]
         {
             (title.clone(), wall_type.clone())
@@ -1391,15 +1389,14 @@ impl SemanticAnalyzer {
         };
 
         // Extract end token
-        let label_raw = if let ScannerToken::VerbatimBlockEnd { label_raw, .. } =
-            &tokens[tokens.len() - 1]
-        {
-            label_raw.clone()
-        } else {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "VerbatimBlock must end with VerbatimBlockEnd".to_string(),
-            ));
-        };
+        let label_raw =
+            if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = &tokens[tokens.len() - 1] {
+                label_raw.clone()
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must end with VerbatimBlockEnd".to_string(),
+                ));
+            };
 
         // Create title token
         let title_token = HighLevelTokenBuilder::text_span_with_tokens(

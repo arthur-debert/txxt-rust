@@ -189,9 +189,10 @@ impl<'a> AstConstructor<'a> {
 
         // Consume the Dedent token
         if self.position < self.tokens.len()
-            && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. }) {
-                self.position += 1;
-            }
+            && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. })
+        {
+            self.position += 1;
+        }
 
         // Delegate to session element constructor
         let session_block = crate::semantic::elements::session::create_session_element(

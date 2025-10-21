@@ -13,3 +13,4 @@ mod parser_tests;
 mod ensemble_01_two_paragraphs;
 mod ensemble_02_session_one_paragraph;
 mod ensemble_03_session_multiple_paragraphs;
+mod ensemble_04_multiple_sessions_flat;

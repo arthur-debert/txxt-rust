@@ -5,7 +5,3 @@
 
 // Tree visualization tool for AST inspection and debugging
 pub mod treeviz;
-
-// Detokenizer for round-trip verification
-// TODO: Update to work with Vec<ScannerToken> instead of removed ScannerTokenTree
-// pub mod detokenizer;

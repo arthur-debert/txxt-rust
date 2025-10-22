@@ -8,6 +8,7 @@
 
 use crate::ast::elements::verbatim::block::{VerbatimBlock, VerbatimType};
 use crate::cst::{HighLevelToken, ScannerTokenSequence, WallType};
+use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
 /// Create a verbatim block element from a VerbatimBlock token
@@ -23,6 +24,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             title,
             content,
             label,
+            parameters,
             wall_type,
             ..
         } => {
@@ -77,6 +79,9 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 ]
             };
 
+            // Extract parameters using unified constructor
+            let extracted_params = create_parameters_ast(parameters.as_deref())?;
+
             // Create IgnoreContainer with the verbatim content
             let ignore_container =
                 crate::ast::elements::verbatim::ignore_container::IgnoreContainer::new(
@@ -85,8 +90,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                     vec![],
                     // FIXME: post-parser - Parse container-level annotations
                     vec![],
-                    // FIXME: post-parser - Extract parameters from verbatim block
-                    crate::ast::elements::components::parameters::Parameters::new(),
+                    extracted_params.clone(),
                     ScannerTokenSequence::new(),
                 );
 
@@ -101,8 +105,8 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 content: ignore_container,
                 label: label_text,
                 verbatim_type,
-                // FIXME: post-parser - Extract parameters from verbatim block token
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                // Parameters extracted using unified constructor
+                parameters: extracted_params,
                 // FIXME: post-parser - Parse block-level annotations
                 annotations: Vec::new(),
                 tokens: ScannerTokenSequence::new(),

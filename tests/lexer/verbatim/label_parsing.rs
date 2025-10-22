@@ -36,7 +36,6 @@ mod verbatim_label_tests {
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_simple_parameters() {
         let input = r#"Code:
     print("hello")
@@ -68,7 +67,6 @@ mod verbatim_label_tests {
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_parameter_separation() {
         let input = r#"Example:
     content here

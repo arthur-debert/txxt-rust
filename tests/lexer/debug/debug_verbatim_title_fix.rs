@@ -1,6 +1,6 @@
-//! Debug test for VerbatimTitle title content fix
+//! Debug test for VerbatimBlockStart title content
 //!
-//! This test verifies that VerbatimTitle tokens contain only the title content
+//! This test verifies that VerbatimBlockStart tokens contain only the title content
 //! without the trailing colon structural marker.
 
 use txxt::cst::ScannerToken;
@@ -23,32 +23,30 @@ mod tests {
         println!("\nTokens:");
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                ScannerToken::VerbatimTitle { content, span } => {
-                    println!(
-                        "  {}: VerbatimTitle {{ content: {:?}, span: {:?} }}",
-                        i, content, span
-                    );
-                }
-                ScannerToken::IndentationWall {
-                    level,
+                ScannerToken::VerbatimBlockStart {
+                    title,
                     wall_type,
                     span,
                 } => {
                     println!(
-                        "  {}: IndentationWall {{ level: {}, wall_type: {:?}, span: {:?} }}",
-                        i, level, wall_type, span
+                        "  {}: VerbatimBlockStart {{ title: {:?}, wall_type: {:?}, span: {:?} }}",
+                        i, title, wall_type, span
                     );
                 }
-                ScannerToken::IgnoreTextSpan { content, span } => {
+                ScannerToken::VerbatimContentLine {
+                    content,
+                    indentation,
+                    span,
+                } => {
                     println!(
-                        "  {}: IgnoreText {{ content: {:?}, span: {:?} }}",
-                        i, content, span
+                        "  {}: VerbatimContentLine {{ content: {:?}, indentation: {:?}, span: {:?} }}",
+                        i, content, indentation, span
                     );
                 }
-                ScannerToken::VerbatimLabel { content, span } => {
+                ScannerToken::VerbatimBlockEnd { label_raw, span } => {
                     println!(
-                        "  {}: VerbatimLabel {{ content: {:?}, span: {:?} }}",
-                        i, content, span
+                        "  {}: VerbatimBlockEnd {{ label_raw: {:?}, span: {:?} }}",
+                        i, label_raw, span
                     );
                 }
                 _ => {
@@ -57,24 +55,24 @@ mod tests {
             }
         }
 
-        // Find VerbatimTitle token
+        // Find VerbatimBlockStart token
         let verbatim_start = tokens
             .iter()
-            .find(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
-            .expect("Should find VerbatimTitle token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockStart { .. }))
+            .expect("Should find VerbatimBlockStart token");
 
-        if let ScannerToken::VerbatimTitle { content, .. } = verbatim_start {
+        if let ScannerToken::VerbatimBlockStart { title, .. } = verbatim_start {
             assert_eq!(
-                content, "My Code Title",
-                "VerbatimTitle should contain title without colon"
+                title, "My Code Title",
+                "VerbatimBlockStart should contain title without colon"
             );
             assert!(
-                !content.ends_with(':'),
-                "VerbatimTitle content should not end with colon"
+                !title.ends_with(':'),
+                "VerbatimBlockStart title should not end with colon"
             );
             println!(
-                "✅ VerbatimTitle correctly contains title without colon: '{}'",
-                content
+                "✅ VerbatimBlockStart correctly contains title without colon: '{}'",
+                title
             );
         }
     }
@@ -96,17 +94,17 @@ mod tests {
 
             let verbatim_start = tokens
                 .iter()
-                .find(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
-                .expect("Should find VerbatimTitle token");
+                .find(|token| matches!(token, ScannerToken::VerbatimBlockStart { .. }))
+                .expect("Should find VerbatimBlockStart token");
 
-            if let ScannerToken::VerbatimTitle { content, .. } = verbatim_start {
+            if let ScannerToken::VerbatimBlockStart { title, .. } = verbatim_start {
                 assert_eq!(
-                    content, expected_title,
+                    title, expected_title,
                     "Title '{}' should become '{}'",
                     input_title, expected_title
                 );
-                assert!(!content.ends_with(':'), "Content should not end with colon");
-                println!("  ✅ '{}' -> '{}'", input_title, content);
+                assert!(!title.ends_with(':'), "Title should not end with colon");
+                println!("  ✅ '{}' -> '{}'", input_title, title);
             }
         }
     }

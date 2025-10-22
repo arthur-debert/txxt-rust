@@ -58,34 +58,22 @@ fn verify_sequence_marker_after_unicode() {
 }
 
 #[test]
+#[ignore = "Parameters no longer exist as scanner tokens - handled at semantic analysis level via scan_parameter_string"]
 fn verify_the_real_bug_is_in_parameters() {
-    // The REAL bug is that parameters create tokens at position (0,0)
+    // NOTE: This test is obsolete after parameter unification (#135)
+    // Parameters are now handled at semantic analysis level using scan_parameter_string
+    // The scanner emits basic tokens (Text, Colon, Equals) and semantic analysis parses them
     let input = ":: label:key=value ::";
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
 
-    println!("\nTokens for parameter test:");
+    println!("\nTokens for parameter test (now shows basic tokens):");
     for (i, token) in tokens.iter().enumerate() {
         println!("  Token {}: {:?}", i, token);
     }
 
-    // Parameters should be there but with wrong position
-    let param = tokens
-        .iter()
-        .find(|t| matches!(t, txxt::cst::ScannerToken::Parameter { .. }));
-
-    if let Some(txxt::cst::ScannerToken::Parameter { span, key, value }) = param {
-        println!(
-            "Parameter '{}={}' span: start=({},{}), end=({},{})",
-            key, value, span.start.row, span.start.column, span.end.row, span.end.column
-        );
-        // The bug has been fixed - parameter spans now have correct width!
-        assert_eq!(
-            span.end.column - span.start.column,
-            9,
-            "Parameter span should have width 9 for 'key=value'"
-        );
-    }
+    // Parameters are now parsed at semantic level, not scanner level
+    // See: tests/parser/semantic_analysis/parameter_transformation.rs for parameter tests
 }
 
 #[test]

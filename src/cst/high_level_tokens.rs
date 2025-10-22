@@ -246,8 +246,9 @@ pub enum HighLevelToken {
         title: Box<HighLevelToken>,
         /// The indentation wall marker
         wall: Box<HighLevelToken>,
-        /// The verbatim content (preserved exactly)
-        content: Box<HighLevelToken>,
+        /// The verbatim content as a vector of IgnoreLine/BlankLine tokens
+        /// This preserves line-level structure for wall-stripping at AST level
+        content: Vec<HighLevelToken>,
         /// The verbatim label
         label: Box<HighLevelToken>,
         /// Optional parameters in key=value format
@@ -952,7 +953,7 @@ impl HighLevelTokenBuilder {
     pub fn verbatim_block(
         title: HighLevelToken,
         wall: HighLevelToken,
-        content: HighLevelToken,
+        content: Vec<HighLevelToken>,
         label: HighLevelToken,
         parameters: Option<HighLevelToken>,
         wall_type: WallType,
@@ -975,7 +976,7 @@ impl HighLevelTokenBuilder {
     pub fn verbatim_block_with_tokens(
         title: HighLevelToken,
         wall: HighLevelToken,
-        content: HighLevelToken,
+        content: Vec<HighLevelToken>,
         label: HighLevelToken,
         parameters: Option<HighLevelToken>,
         wall_type: WallType,
@@ -985,7 +986,7 @@ impl HighLevelTokenBuilder {
         HighLevelToken::VerbatimBlock {
             title: Box::new(title),
             wall: Box::new(wall),
-            content: Box::new(content),
+            content,
             label: Box::new(label),
             parameters: parameters.map(Box::new),
             wall_type,

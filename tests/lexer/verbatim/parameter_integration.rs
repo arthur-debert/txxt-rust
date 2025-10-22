@@ -1,12 +1,8 @@
 //! Tests for verbatim label parameter integration
 //!
-//! These tests verify that verbatim labels with parameters are correctly split into:
-//! - Clean VerbatimLabel tokens (without parameters)
-//! - Parameter components as basic tokens (Identifier, Equals, Text/QuotedString)
+//! These tests verify that verbatim labels with parameters are correctly stored in
+//! VerbatimBlockEnd's label_raw field. Parameter parsing happens at semantic analysis level.
 
-use crate::infrastructure::parameter_fixtures::{
-    assert_parameters_match, extract_parameters_from_verbatim_label,
-};
 use txxt::cst::ScannerToken;
 use txxt::syntax::tokenize;
 
@@ -22,31 +18,25 @@ mod verbatim_parameter_integration_tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
-        let label_raw = tokens
+        // Find VerbatimBlockEnd token
+        let label_token = tokens
             .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        assert_eq!(
-            label_raw, "python",
-            "VerbatimLabel should contain just the label"
-        );
-
-        // Should not have any parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
-        assert_eq!(
-            params.len(),
-            0,
-            "Should not have parameters when none specified"
-        );
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, "python",
+                "VerbatimBlockEnd label_raw should be just the label"
+            );
+            assert!(
+                !label_raw.contains(':'),
+                "label_raw should not contain parameters"
+            );
+        }
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_single_parameter() {
         let input = r#"Code:
     print("hello")
@@ -54,202 +44,146 @@ mod verbatim_parameter_integration_tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
-        let label_raw = tokens
+        // Find VerbatimBlockEnd token
+        let label_token = tokens
             .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        assert_eq!(
-            label_raw, "python:version=3.9",
-            "VerbatimBlockEnd should contain label and parameters"
-        );
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, "python:version=3.9",
+                "VerbatimBlockEnd label_raw should contain label and parameters"
+            );
 
-        // Extract label (before first colon)
-        let label = label_raw.split(':').next().unwrap();
-        assert_eq!(label, "python", "Label should be just 'python'");
+            // Verify the format
+            let parts: Vec<&str> = label_raw.split(':').collect();
+            assert_eq!(
+                parts.len(),
+                2,
+                "Should have label and params separated by colon"
+            );
+            assert_eq!(parts[0], "python", "First part should be label");
+            assert_eq!(parts[1], "version=3.9", "Second part should be parameters");
+        }
 
-        // Extract and check parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
-        assert_eq!(params.len(), 1, "Should have exactly one parameter");
-        assert_eq!(
-            params.get("version"),
-            Some(&"3.9".to_string()),
-            "Should contain version=3.9"
-        );
+        // Note: Parameter tokens are NOT created at scanner level.
+        // They are parsed at semantic analysis level.
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_multiple_parameters() {
         let input = r#"Code:
     print("hello")
-:: python:version=3.9,syntax=true,style=pep8"#;
+:: python:version=3.9,syntax=true"#;
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
-        let label_raw = tokens
+        let label_token = tokens
             .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        // Extract label (before first colon)
-        let label = label_raw.split(':').next().unwrap();
-        assert_eq!(label, "python", "Label should be just 'python'");
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, "python:version=3.9,syntax=true",
+                "VerbatimBlockEnd label_raw should contain all parameters"
+            );
 
-        // Extract and check parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
-
-        assert_eq!(params.len(), 3, "Should have exactly three parameters");
-
-        // Check parameters using assert helper
-        let expected_params = vec![("version", "3.9"), ("syntax", "true"), ("style", "pep8")];
-
-        assert_parameters_match(&params, &expected_params);
+            // Verify structure
+            assert!(label_raw.starts_with("python:"), "Should start with label:");
+            assert!(
+                label_raw.contains("version=3.9"),
+                "Should contain version parameter"
+            );
+            assert!(
+                label_raw.contains("syntax=true"),
+                "Should contain syntax parameter"
+            );
+        }
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
-    fn test_verbatim_label_with_quoted_parameters() {
-        let input = r#"Example:
-    content here
-:: mylabel:title="My Document",author="Jane Doe""#;
-
-        let tokens = tokenize(input);
-
-        // Find VerbatimLabel token
-        let label_raw = tokens
-            .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
-
-        // Extract label (before first colon)
-        let label = label_raw.split(':').next().unwrap();
-        assert_eq!(label, "mylabel", "Label should be just 'mylabel'");
-
-        // Extract and check parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
-
-        assert_eq!(params.len(), 2, "Should have exactly two parameters");
-
-        let expected_params = vec![("title", "My Document"), ("author", "Jane Doe")];
-
-        assert_parameters_match(&params, &expected_params);
-    }
-
-    #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_boolean_parameters() {
-        let input = r#"Example:
-    content here
-:: mylabel:debug,version=2.0,verbose"#;
+        let input = r#"Code:
+    example
+:: label:flag=true,debug=false"#;
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
-        let label_raw = tokens
+        let label_token = tokens
             .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        // Extract label (before first colon)
-        let label = label_raw.split(':').next().unwrap();
-        assert_eq!(label, "mylabel", "Label should be just 'mylabel'");
-
-        // Extract and check parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
-
-        assert_eq!(params.len(), 3, "Should have exactly three parameters");
-
-        let expected_params = vec![
-            ("debug", "true"), // Boolean shorthand
-            ("version", "2.0"),
-            ("verbose", "true"), // Boolean shorthand
-        ];
-
-        assert_parameters_match(&params, &expected_params);
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, "label:flag=true,debug=false",
+                "VerbatimBlockEnd label_raw should preserve boolean parameter values"
+            );
+        }
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
-    fn test_verbatim_label_with_namespaced_parameters() {
-        let input = r#"Example:
-    content here
-:: mylabel:org.example.version=2.0,company.auth.enabled=true"#;
+    fn test_verbatim_label_with_quoted_parameters() {
+        let input = r#"Code:
+    example
+:: label:message="hello world",name="test""#;
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
-        let label_raw = tokens
+        let label_token = tokens
             .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        // Extract label (before first colon)
-        let label = label_raw.split(':').next().unwrap();
-        assert_eq!(label, "mylabel", "Label should be just 'mylabel'");
-
-        // Extract and check parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
-
-        assert_eq!(params.len(), 2, "Should have exactly two parameters");
-
-        let expected_params = vec![
-            ("org.example.version", "2.0"),
-            ("company.auth.enabled", "true"),
-        ];
-
-        assert_parameters_match(&params, &expected_params);
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, r#"label:message="hello world",name="test""#,
+                "VerbatimBlockEnd label_raw should preserve quoted parameter values"
+            );
+        }
     }
 
     #[test]
-    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_escaped_parameters() {
-        let input = r#"Example:
-    content here
-:: mylabel:message="She said, \"Hello!\"",path="C:\\Users\\Name""#;
+        let input = r#"Code:
+    example
+:: label:path="C:\folder\file.txt""#;
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
-        let label_raw = tokens
+        let label_token = tokens
             .iter()
-            .find_map(|token| match token {
-                ScannerToken::VerbatimLabel { content, .. } => Some(content.as_str()),
-                _ => None,
-            })
-            .expect("Should find VerbatimLabel token");
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        // Extract label (before first colon)
-        let label = label_raw.split(':').next().unwrap();
-        assert_eq!(label, "mylabel", "Label should be just 'mylabel'");
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, r#"label:path="C:\folder\file.txt""#,
+                "VerbatimBlockEnd label_raw should preserve escaped characters"
+            );
+        }
+    }
 
-        // Extract and check parameters
-        let params = extract_parameters_from_verbatim_label(label_raw);
+    #[test]
+    fn test_verbatim_label_with_namespaced_parameters() {
+        let input = r#"Code:
+    example
+:: label:custom.namespace.key=value"#;
 
-        assert_eq!(params.len(), 2, "Should have exactly two parameters");
+        let tokens = tokenize(input);
 
-        let expected_params = vec![
-            ("message", r#"She said, "Hello!""#),
-            ("path", r"C:\Users\Name"),
-        ];
+        let label_token = tokens
+            .iter()
+            .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+            .expect("Should find VerbatimBlockEnd token");
 
-        assert_parameters_match(&params, &expected_params);
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
+            assert_eq!(
+                label_raw, "label:custom.namespace.key=value",
+                "VerbatimBlockEnd label_raw should preserve namespaced parameter keys"
+            );
+        }
     }
 }

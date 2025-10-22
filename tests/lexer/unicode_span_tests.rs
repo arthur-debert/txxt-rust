@@ -661,7 +661,6 @@ fn get_token_span(token: &ScannerToken) -> &txxt::cst::SourceSpan {
         | ScannerToken::Newline { span }
         | ScannerToken::BlankLine { span, .. }
         | ScannerToken::Whitespace { span, .. }
-        | ScannerToken::Parameter { span, .. }
         | ScannerToken::RefMarker { span, .. }
         | ScannerToken::CitationRef { span, .. }
         | ScannerToken::PageRef { span, .. }
@@ -672,10 +671,6 @@ fn get_token_span(token: &ScannerToken) -> &txxt::cst::SourceSpan {
         | ScannerToken::VerbatimBlockStart { span, .. }
         | ScannerToken::VerbatimContentLine { span, .. }
         | ScannerToken::VerbatimBlockEnd { span, .. }
-        | ScannerToken::VerbatimTitle { span, .. }
-        | ScannerToken::VerbatimLabel { span, .. }
-        | ScannerToken::IndentationWall { span, .. }
-        | ScannerToken::IgnoreTextSpan { span, .. }
         | ScannerToken::Eof { span }
         | ScannerToken::QuotedString { span, .. } => span,
     }
@@ -695,7 +690,6 @@ fn token_contains_text(token: &ScannerToken, text: &str) -> bool {
     match token {
         ScannerToken::Text { content, .. } => content.contains(text),
         ScannerToken::Identifier { content, .. } => content.contains(text),
-        ScannerToken::Parameter { key, value, .. } => key.contains(text) || value.contains(text),
         _ => false,
     }
 }

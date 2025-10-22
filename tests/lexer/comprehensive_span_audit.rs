@@ -258,7 +258,6 @@ fn get_span(token: &ScannerToken) -> &SourceSpan {
         | ScannerToken::Whitespace { span, .. }
         | ScannerToken::SequenceMarker { span, .. }
         | ScannerToken::TxxtMarker { span, .. }
-        | ScannerToken::Parameter { span, .. }
         | ScannerToken::BoldDelimiter { span }
         | ScannerToken::ItalicDelimiter { span }
         | ScannerToken::CodeDelimiter { span }

@@ -43,7 +43,7 @@ fn test_verbatim_block_v2_simple_in_flow() {
         end: Position { row: 3, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span.clone());
+    let result = analyzer.transform_verbatim_block(tokens, span.clone());
     assert!(result.is_ok(), "Should successfully transform v2 tokens");
 
     let semantic_token = result.unwrap();
@@ -139,7 +139,7 @@ fn test_verbatim_block_v2_multiple_content_lines() {
         end: Position { row: 4, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -210,7 +210,7 @@ fn test_verbatim_block_v2_with_blank_lines() {
         end: Position { row: 5, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -258,7 +258,7 @@ fn test_verbatim_block_v2_empty_block() {
         end: Position { row: 2, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -311,7 +311,7 @@ fn test_verbatim_block_v2_with_parameters() {
         end: Position { row: 3, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -379,7 +379,7 @@ fn test_verbatim_block_v2_stretched_mode() {
         end: Position { row: 3, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -439,7 +439,7 @@ fn test_verbatim_block_v2_indented_block() {
         end: Position { row: 3, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_ok());
 
     let semantic_token = result.unwrap();
@@ -478,7 +478,7 @@ fn test_verbatim_block_v2_error_no_start() {
         end: Position { row: 2, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_err());
 
     match result.unwrap_err() {
@@ -517,7 +517,7 @@ fn test_verbatim_block_v2_error_no_end() {
         end: Position { row: 2, column: 0 },
     };
 
-    let result = analyzer.transform_verbatim_block_v2(tokens, span);
+    let result = analyzer.transform_verbatim_block(tokens, span);
     assert!(result.is_err());
 
     match result.unwrap_err() {

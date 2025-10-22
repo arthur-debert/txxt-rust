@@ -102,7 +102,7 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::cst::{Position, ScannerToken, SourceSpan, WallType};
+use crate::cst::{Position, WallType};
 // Parameters now handled via cst::parameter_scanner::scan_parameter_string
 use regex::Regex;
 

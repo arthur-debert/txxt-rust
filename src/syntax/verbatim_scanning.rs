@@ -103,7 +103,7 @@
 //! 5. **Terminator indent must match title indent exactly**
 
 use crate::cst::{Position, ScannerToken, SourceSpan, WallType};
-use crate::syntax::elements::components::parameters::{parse_parameters, ParameterLexer};
+// Parameters now handled via cst::scan_parameter_string
 use regex::Regex;
 
 /// Standard indentation level in spaces
@@ -544,7 +544,16 @@ impl VerbatimScanner {
 }
 
 /// Trait for verbatim block tokenization
-pub trait VerbatimLexer: ParameterLexer + Sized {
+pub trait VerbatimLexer: Sized {
+    /// Get current position in source
+    fn current_position(&self) -> Position;
+    
+    /// Peek at current character without advancing
+    fn peek(&self) -> Option<char>;
+    
+    /// Advance to next character
+    fn advance(&mut self) -> Option<char>;
+
     /// Get current row (line number)
     fn row(&self) -> usize;
 
@@ -773,9 +782,10 @@ pub trait VerbatimLexer: ParameterLexer + Sized {
                             },
                         });
 
-                        // Parse and add individual parameter tokens
-                        let mut param_tokens = parse_parameters(self, params_str);
-                        tokens.append(&mut param_tokens);
+                        // Parameters are now handled at semantic analysis phase via
+                        // scan_parameter_string and parameters_from_scanner_tokens
+                        // Store the parameter text as part of the label for now
+                        // (semantic analysis will extract it later)
                     } else {
                         // No parameters - just the label
                         tokens.push(ScannerToken::VerbatimLabel {

@@ -1871,6 +1871,8 @@ impl SemanticAnalyzer {
 pub enum SemanticAnalysisError {
     /// Invalid token type encountered
     InvalidTokenType { expected: String, actual: String },
+    /// Invalid parameter syntax
+    InvalidParameterSyntax(String),
     /// General semantic analysis error
     AnalysisError(String),
 }
@@ -1884,6 +1886,9 @@ impl std::fmt::Display for SemanticAnalysisError {
                     "Invalid token type: expected {}, got {}",
                     expected, actual
                 )
+            }
+            SemanticAnalysisError::InvalidParameterSyntax(msg) => {
+                write!(f, "Invalid parameter syntax: {}", msg)
             }
             SemanticAnalysisError::AnalysisError(msg) => {
                 write!(f, "Semantic analysis error: {}", msg)

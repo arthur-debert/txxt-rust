@@ -5,12 +5,7 @@
 
 use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::syntax::core::indentation::IndentationTracker;
-use crate::syntax::elements::components::{
-    parameter_integration_v2::{
-        integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
-    },
-    sequence::read_sequence_marker,
-};
+use crate::syntax::elements::components::sequence::read_sequence_marker;
 use crate::syntax::elements::formatting::read_inline_delimiter;
 use crate::syntax::elements::references::{
     citations::read_citation_ref, footnote_ref::read_footnote_ref, page_ref::read_page_ref,
@@ -182,9 +177,8 @@ impl Lexer {
             }
         }
 
-        // Use new parameter integration that preserves positions and whitespace
-        tokens = integrate_annotation_parameters_v2(tokens);
-        tokens = integrate_definition_parameters_v2(tokens);
+        // Parameters are now handled at the semantic analysis phase using
+        // scan_parameter_string and parameters_from_scanner_tokens
 
         // Finalize indentation processing (emit remaining dedents)
         let final_indent_tokens = self.indent_tracker.finalize();
@@ -884,12 +878,38 @@ impl Lexer {
 }
 
 impl VerbatimLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
     fn row(&self) -> usize {
         self.row
     }
 
     fn column(&self) -> usize {
         self.column
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
     }
 
     fn get_absolute_position(&self) -> usize {

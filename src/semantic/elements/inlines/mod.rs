@@ -179,16 +179,7 @@ pub use references::*;
 /// # Returns
 /// * `Result<Vec<crate::ast::elements::formatting::inlines::Inline>, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// use txxt::parser::elements::inlines::parse_inlines;
-/// use txxt::lexer::tokenize;
-///
-/// let tokens = tokenize("*bold* and _italic_ text");
-/// let inlines = parse_inlines(&tokens)?;
-/// // Returns: [Strong(vec![Text("bold")]), Identity(Text(" and ")), Emphasis(vec![Text("italic")]), Identity(Text(" text"))]
-/// ```
+/// See tests/parser/elements/inlines/test_formatting.rs for examples
 use crate::semantic::elements::formatting::parse_formatting_inlines;
 
 pub fn parse_inlines(

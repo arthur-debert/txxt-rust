@@ -57,24 +57,9 @@ fn verify_sequence_marker_after_unicode() {
     }
 }
 
-#[test]
-#[ignore = "Parameters no longer exist as scanner tokens - handled at semantic analysis level via scan_parameter_string"]
-fn verify_the_real_bug_is_in_parameters() {
-    // NOTE: This test is obsolete after parameter unification (#135)
-    // Parameters are now handled at semantic analysis level using scan_parameter_string
-    // The scanner emits basic tokens (Text, Colon, Equals) and semantic analysis parses them
-    let input = ":: label:key=value ::";
-    let mut lexer = Lexer::new(input);
-    let tokens = lexer.tokenize();
-
-    println!("\nTokens for parameter test (now shows basic tokens):");
-    for (i, token) in tokens.iter().enumerate() {
-        println!("  Token {}: {:?}", i, token);
-    }
-
-    // Parameters are now parsed at semantic level, not scanner level
-    // See: tests/parser/semantic_analysis/parameter_transformation.rs for parameter tests
-}
+// REMOVED: Test was obsolete after parameter unification (#135)
+// Parameters are now tested at semantic level in:
+// tests/parser/semantic_analysis/parameter_transformation.rs
 
 #[test]
 fn verify_sequence_marker_roman_numeral_calculation() {

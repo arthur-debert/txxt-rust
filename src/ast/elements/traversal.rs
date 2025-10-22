@@ -13,23 +13,7 @@
 //!
 //! # Usage
 //!
-//! ```rust,ignore
-//! use crate::ast::traversal::TraversableDocument;
-//!
-//! let doc = parse_document("# Hello\nThis is a paragraph.");
-//! let traversable = TraversableDocument::from_document(&doc);
-//!
-//! // Find all paragraphs
-//! let paragraphs = traversable.query()
-//!     .find_by_type(ElementType::Block)
-//!     .filter_blocks(|block| matches!(block, BlockElement::Paragraph(_)))
-//!     .collect();
-//!
-//! // Text search
-//! let matches = traversable.query()
-//!     .text_contains("Hello")
-//!     .collect();
-//! ```
+//! See tests/ast/traversal_tests.rs for usage examples.
 
 use std::collections::HashMap;
 

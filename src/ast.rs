@@ -120,16 +120,8 @@
 //! - Test cases via `TxxtCorpora` extraction
 //!
 //! ## Testing Integration
-//! All AST nodes integrate with the specification-driven testing framework:
-//! ```rust,ignore
-//! use tests::corpora::{TxxtCorpora, ProcessingStage};
-//!
-//! let corpus = TxxtCorpora::load_with_processing(
-//!     "txxt.core.spec.paragraph.valid.simple",
-//!     ProcessingStage::AstFull
-//! )?;
-//! let output = corpus.output().unwrap();
-//! ```
+//! All AST nodes integrate with the specification-driven testing framework.
+//! See tests/infrastructure/corpora.rs for TxxtCorpora usage examples.
 
 // ============================================================================
 // NEW AST SYSTEM - Modern typed AST with token-level precision

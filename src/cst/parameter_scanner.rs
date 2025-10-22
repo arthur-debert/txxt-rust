@@ -242,10 +242,11 @@ fn scan_quoted_string(chars: &[char], start: usize) -> Option<(String, usize)> {
 fn scan_unquoted_value(chars: &[char], start: usize) -> (String, usize) {
     let mut pos = start;
 
-    // Read until comma, equals, or end
+    // Read until comma, equals, colon, or end
+    // Colons should not appear in unquoted values (use quoted strings for that)
     while pos < chars.len() {
         let ch = chars[pos];
-        if ch == ',' || ch == '=' {
+        if ch == ',' || ch == '=' || ch == ':' {
             break;
         }
         pos += 1;

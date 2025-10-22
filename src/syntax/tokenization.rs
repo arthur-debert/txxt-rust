@@ -177,8 +177,9 @@ impl Lexer {
             }
         }
 
-        // Parameters are now handled at the semantic analysis phase using
-        // scan_parameter_string and parameters_from_scanner_tokens
+        // Parameters are now handled at the semantic analysis phase
+        // The scanner emits basic tokens (Text, Colon, Equals, etc.) and
+        // semantic analysis uses scan_parameter_string to parse parameter regions
 
         // Finalize indentation processing (emit remaining dedents)
         let final_indent_tokens = self.indent_tracker.finalize();

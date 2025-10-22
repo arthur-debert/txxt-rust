@@ -771,7 +771,7 @@ pub trait VerbatimLexer: Sized {
                     if let Some(colon_pos) = label_and_params_str.find(':') {
                         // There are parameters - split them
                         let label = &label_and_params_str[..colon_pos];
-                        let params_str = &label_and_params_str[colon_pos + 1..];
+                        let _params_str = &label_and_params_str[colon_pos + 1..];
 
                         // Add the clean verbatim label
                         tokens.push(ScannerToken::VerbatimLabel {

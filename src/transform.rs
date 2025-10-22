@@ -200,18 +200,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
-    fn test_process_parser_placeholder() {
-        let tokens = vec![];
-
-        let result = run_parser(tokens);
-        assert!(result.is_ok());
-
-        let elements = result.unwrap();
-        assert!(elements.is_empty()); // Placeholder returns empty
-    }
-
-    #[test]
     fn test_process_assembler_placeholder() {
         let elements = vec![];
         let result = run_assembler(elements, Some("test.txxt".to_string()));
@@ -221,24 +209,6 @@ mod tests {
         assert_eq!(
             document.assembly_info.source_path,
             Some("test.txxt".to_string())
-        );
-    }
-
-    #[test]
-    #[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
-    fn test_run_all_placeholder() {
-        let source = "Hello, world!";
-        let result = run_all(source, Some("test.txxt".to_string()));
-        assert!(result.is_ok());
-
-        let document = result.unwrap();
-        assert_eq!(
-            document.assembly_info.source_path,
-            Some("test.txxt".to_string())
-        );
-        assert_eq!(
-            document.assembly_info.parser_version,
-            env!("CARGO_PKG_VERSION")
         );
     }
 }

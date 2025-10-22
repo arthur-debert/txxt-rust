@@ -46,56 +46,6 @@ fn test_semantic_tokens_format() {
     assert!(json["tokens"].is_array());
 }
 
-#[test]
-#[ignore] // Disabled: Parser being reimplemented with regex-based grammar engine
-fn test_ast_full_json_format() {
-    let output =
-        process_unified("Hello world", Stage::AstFull, Some("test.txxt".to_string())).unwrap();
-
-    let result = format_output_unified(&output, Format::Json, Some("test.txxt")).unwrap();
-
-    // Verify JSON structure
-    assert!(result.contains("\"document\""));
-    assert!(result.contains("\"source\": \"test.txxt\""));
-
-    // Parse as JSON to verify it's valid
-    let json: serde_json::Value = serde_json::from_str(&result).unwrap();
-    assert!(json["document"].is_object());
-}
-
-#[test]
-#[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
-fn test_ast_full_treeviz_format() {
-    let output =
-        process_unified("Hello world", Stage::AstFull, Some("test.txxt".to_string())).unwrap();
-
-    let result = format_output_unified(&output, Format::TreeViz, Some("test.txxt")).unwrap();
-
-    // Verify treeviz structure
-    assert!(result.contains("⧉ Document: test.txxt"));
-}
-
-#[test]
-#[ignore = "Depends on Phase 2.b AST Construction which is not yet implemented"]
-fn test_phase_2_formats_implemented() {
-    let test_cases = vec![
-        (Stage::AstBlock, Format::Json),
-        (Stage::AstBlock, Format::TreeViz),
-        (Stage::AstInlines, Format::Json),
-        (Stage::AstInlines, Format::TreeViz),
-    ];
-
-    for (stage, format) in test_cases {
-        let output = process_unified("test", stage, Some("test.txxt".to_string())).unwrap();
-
-        let result = format_output_unified(&output, format, Some("test.txxt"));
-        assert!(
-            result.is_ok(),
-            "Combination {:?} should be implemented",
-            (stage, format)
-        );
-    }
-}
 
 #[test]
 fn test_empty_content() {

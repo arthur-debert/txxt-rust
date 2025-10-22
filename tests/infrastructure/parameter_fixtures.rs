@@ -57,6 +57,93 @@ pub fn extract_parameters_from_scanner_tokens(
     }
 }
 
+/// Extract parameters from any token sequence by finding parameter-like patterns
+///
+/// This scans through tokens looking for Identifier-Equals-Value patterns and
+/// extracts them into a parameter HashMap. Useful for integration tests.
+pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String, String> {
+    // Look for sequences: Identifier, Equals, (Text|QuotedString|Identifier)
+    let mut params = HashMap::new();
+    let mut i = 0;
+    
+    while i < tokens.len() {
+        // Skip non-parameter tokens
+        while i < tokens.len() {
+            match &tokens[i] {
+                ScannerToken::Identifier { .. } => break,
+                ScannerToken::Colon { .. } => {
+                    // Colon might precede parameters, skip it
+                    i += 1;
+                    continue;
+                }
+                _ => i += 1,
+            }
+        }
+        
+        if i >= tokens.len() {
+            break;
+        }
+        
+        // Try to parse Identifier = Value pattern
+        if let ScannerToken::Identifier { content: key, .. } = &tokens[i] {
+            let key = key.clone();
+            i += 1;
+            
+            // Skip whitespace
+            while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
+                i += 1;
+            }
+            
+            // Look for equals
+            if i < tokens.len() && matches!(&tokens[i], ScannerToken::Equals { .. }) {
+                i += 1;
+                
+                // Skip whitespace
+                while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
+                    i += 1;
+                }
+                
+                // Get value
+                if i < tokens.len() {
+                    let value = match &tokens[i] {
+                        ScannerToken::Text { content, .. } => content.clone(),
+                        ScannerToken::QuotedString { content, .. } => content.clone(),
+                        ScannerToken::Identifier { content, .. } => content.clone(),
+                        _ => continue,
+                    };
+                    
+                    params.insert(key, value);
+                    i += 1;
+                }
+            } else {
+                // Boolean shorthand - key without value
+                params.insert(key, "true".to_string());
+            }
+        } else {
+            i += 1;
+        }
+    }
+    
+    params
+}
+
+/// Check if tokens contain a specific parameter key-value pair
+///
+/// Convenience function for assertions in tests.
+pub fn tokens_contain_parameter(
+    tokens: &[ScannerToken],
+    expected_key: &str,
+    expected_value: &str,
+) -> bool {
+    let params = extract_parameters_from_tokens(tokens);
+    params.get(expected_key) == Some(&expected_value.to_string())
+}
+
+/// Count parameter key-value pairs in token sequence
+pub fn count_parameters_in_tokens(tokens: &[ScannerToken]) -> usize {
+    extract_parameters_from_tokens(tokens).len()
+}
+
 /// Parse parameter string and extract HashMap (test helper)
 ///
 /// Convenience function that scans a parameter string and extracts the HashMap.

@@ -402,25 +402,47 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + Whitespace + TxxtMarker
-        if matches!(
+        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + ... + TxxtMarker
+        // The "..." can include parameters (Colon, Identifier, Equals, Text, Comma, etc.)
+        if !matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::Whitespace { .. }
-        ) && matches!(
+        ) {
+            return Ok(None);
+        }
+
+        if !matches!(
             scanner_tokens[start_index + 2],
             ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
-        ) && matches!(
-            scanner_tokens[start_index + 3],
-            ScannerToken::Whitespace { .. }
-        ) && matches!(
-            scanner_tokens[start_index + 4],
-            ScannerToken::TxxtMarker { .. }
         ) {
-            // Extract tokens up to the closing TxxtMarker (minimum 5 tokens)
-            let mut consumed = 5;
+            return Ok(None);
+        }
+
+        // Scan forward to find closing TxxtMarker
+        let mut closing_marker_pos = None;
+        for (i, token) in scanner_tokens.iter().enumerate().skip(start_index + 3) {
+            if matches!(token, ScannerToken::TxxtMarker { .. }) {
+                closing_marker_pos = Some(i);
+                break;
+            }
+            // Stop if we hit structural tokens before finding closing marker
+            if matches!(
+                token,
+                ScannerToken::Newline { .. }
+                    | ScannerToken::BlankLine { .. }
+                    | ScannerToken::Indent { .. }
+                    | ScannerToken::Dedent { .. }
+            ) {
+                break;
+            }
+        }
+
+        if let Some(closing_pos) = closing_marker_pos {
+            // Extract tokens up to and including the closing TxxtMarker
+            let mut consumed = closing_pos - start_index + 1;
 
             // Look for optional content after the closing TxxtMarker
-            let mut i = start_index + 5;
+            let mut i = closing_pos + 1;
             while i < scanner_tokens.len() {
                 let token = &scanner_tokens[i];
                 match token {
@@ -442,10 +464,11 @@ impl SemanticAnalyzer {
             }
 
             let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
-            return Ok(Some((pattern_tokens, consumed)));
+            Ok(Some((pattern_tokens, consumed)))
+        } else {
+            // No closing TxxtMarker found
+            Ok(None)
         }
-
-        Ok(None)
     }
 
     /// Recognize verbatim block pattern (Issue #132)
@@ -539,7 +562,8 @@ impl SemanticAnalyzer {
                 }
             }
 
-            // Annotation pattern: TxxtMarker + ... + TxxtMarker
+            // Annotation pattern: TxxtMarker + Whitespace + (Identifier|Text) + ... + TxxtMarker
+            // The middle can include parameters: Colon + Identifier + Equals + Text/QuotedString + Comma + ...
             ScannerToken::TxxtMarker { .. } => {
                 if pattern_tokens.len() >= 5
                     && matches!(pattern_tokens[1], ScannerToken::Whitespace { .. })
@@ -547,14 +571,20 @@ impl SemanticAnalyzer {
                         pattern_tokens[2],
                         ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
                     )
-                    && matches!(pattern_tokens[3], ScannerToken::Whitespace { .. })
-                    && matches!(pattern_tokens[4], ScannerToken::TxxtMarker { .. })
                 {
-                    let span = SourceSpan {
-                        start: pattern_tokens[0].span().start,
-                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
-                    };
-                    return self.transform_annotation(pattern_tokens, span);
+                    // Find closing TxxtMarker
+                    let has_closing_marker = pattern_tokens
+                        .iter()
+                        .skip(3)
+                        .any(|t| matches!(t, ScannerToken::TxxtMarker { .. }));
+
+                    if has_closing_marker {
+                        let span = SourceSpan {
+                            start: pattern_tokens[0].span().start,
+                            end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                        };
+                        return self.transform_annotation(pattern_tokens, span);
+                    }
                 }
             }
 
@@ -1361,8 +1391,9 @@ impl SemanticAnalyzer {
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
-
+    ///
     /// Transform verbatim block pattern into VerbatimBlock semantic token (Issue #132)
+    ///
     /// Pattern: VerbatimBlockStart → (VerbatimContentLine | BlankLine)* → VerbatimBlockEnd
     pub fn transform_verbatim_block(
         &self,
@@ -1643,49 +1674,23 @@ impl SemanticAnalyzer {
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The parameters semantic token
+    ///
+    /// # Parameter Processing
+    ///
+    /// See [`crate::cst::parameter_scanner`] for the complete three-level parameter flow.
+    /// This function uses the high-level token builder (Step 2 of the flow).
     fn parse_parameters(
         &self,
         tokens: &[ScannerToken],
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // For now, create a simple parameters token with the raw content
-        // This will be enhanced in future iterations to properly parse key=value pairs
-        // Filter out whitespace for parameters to create clean key=value pairs
-        let content = tokens
-            .iter()
-            .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
-            .map(|token| token.content())
-            .collect::<Vec<&str>>()
-            .join("");
-
-        // Create a simple parameters map (placeholder implementation)
-        let mut params = std::collections::HashMap::new();
-        params.insert("raw".to_string(), content);
-
-        // Calculate span for the parameters
-        let span = if tokens.is_empty() {
-            SourceSpan {
-                start: Position { row: 0, column: 0 },
-                end: Position { row: 0, column: 0 },
-            }
-        } else {
-            SourceSpan {
-                start: tokens[0].span().start,
-                end: tokens[tokens.len() - 1].span().end,
-            }
-        };
-
-        // Aggregate source tokens for preservation
-        let aggregated_tokens = if !tokens.is_empty() {
-            ScannerTokenSequence::from_tokens(tokens.to_vec())
-        } else {
-            ScannerTokenSequence::new()
-        };
-
-        Ok(HighLevelTokenBuilder::parameters_with_tokens(
-            params,
-            span,
-            aggregated_tokens,
-        ))
+        // Use the unified parameter builder from high-level tokens
+        // See: crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens
+        // for the parameter processing flow documentation
+        HighLevelTokenBuilder::parameters_from_scanner_tokens(tokens).ok_or_else(|| {
+            SemanticAnalysisError::InvalidParameterSyntax(
+                "Failed to parse parameters from scanner tokens".to_string(),
+            )
+        })
     }
 
     /// Parse annotation content tokens into a semantic token
@@ -1758,6 +1763,7 @@ impl SemanticAnalyzer {
 
     /// Convert a sequence of tokens to a TextSpan semantic token preserving exact whitespace
     /// It preserves all whitespace exactly as written (no trimming).
+    #[allow(dead_code)]
     fn tokens_to_text_span_exact(
         &self,
         tokens: &[ScannerToken],
@@ -1822,6 +1828,8 @@ impl SemanticAnalyzer {
 pub enum SemanticAnalysisError {
     /// Invalid token type encountered
     InvalidTokenType { expected: String, actual: String },
+    /// Invalid parameter syntax
+    InvalidParameterSyntax(String),
     /// General semantic analysis error
     AnalysisError(String),
 }
@@ -1835,6 +1843,9 @@ impl std::fmt::Display for SemanticAnalysisError {
                     "Invalid token type: expected {}, got {}",
                     expected, actual
                 )
+            }
+            SemanticAnalysisError::InvalidParameterSyntax(msg) => {
+                write!(f, "Invalid parameter syntax: {}", msg)
             }
             SemanticAnalysisError::AnalysisError(msg) => {
                 write!(f, "Semantic analysis error: {}", msg)

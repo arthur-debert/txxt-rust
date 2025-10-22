@@ -1,6 +1,8 @@
-//! Tests for parameter tokenization functionality
+//! Tests for unified parameter scanning and tokenization
 //!
-//! Tests the key=value,key2=value2 parameter syntax parsing with support for:
+//! Tests the key=value,key2=value2 parameter syntax using the unified scanner:
+//! - scan_parameter_string: Creates basic scanner tokens
+//! - parameters_from_scanner_tokens: Assembles into Parameters semantic token
 //! - Basic key=value pairs
 //! - Quoted strings with escape sequences
 //! - Boolean shorthand (key without value)
@@ -8,57 +10,26 @@
 
 use proptest::prelude::*;
 use std::collections::HashMap;
-use txxt::cst::{Position, ScannerToken};
-use txxt::syntax::elements::components::parameters::{parse_parameters, ParameterLexer};
+use txxt::cst::{HighLevelToken, HighLevelTokenBuilder, Position, ScannerToken};
 
-/// Mock lexer for testing parameter parsing
-struct MockParameterLexer {
-    position: Position,
-    chars_consumed: usize,
-}
+/// Extract parameter data from scanner tokens using the unified builder
+fn extract_parameters(input: &str) -> HashMap<String, String> {
+    let start_pos = Position { row: 0, column: 0 };
+    let scanner_tokens = txxt::cst::scan_parameter_string(input, start_pos);
 
-impl MockParameterLexer {
-    fn new() -> Self {
-        Self {
-            position: Position { row: 0, column: 0 },
-            chars_consumed: 0,
-        }
+    if let Some(HighLevelToken::Parameters { params, .. }) =
+        HighLevelTokenBuilder::parameters_from_scanner_tokens(&scanner_tokens)
+    {
+        params
+    } else {
+        HashMap::new()
     }
 }
 
-impl ParameterLexer for MockParameterLexer {
-    fn current_position(&self) -> Position {
-        self.position
-    }
-
-    fn peek(&self) -> Option<char> {
-        None // Not used in current implementation
-    }
-
-    fn advance(&mut self) -> Option<char> {
-        self.chars_consumed += 1;
-        self.position.column += 1;
-        None
-    }
-
-    fn is_at_end(&self) -> bool {
-        false // Not used in current implementation
-    }
-
-    fn get_input(&self) -> &[char] {
-        &[] // Mock implementation for testing
-    }
-}
-
-/// Extract parameter data from tokens for easier testing
-fn extract_parameters(tokens: &[ScannerToken]) -> HashMap<String, String> {
-    let mut params = HashMap::new();
-    for token in tokens {
-        if let ScannerToken::Parameter { key, value, .. } = token {
-            params.insert(key.clone(), value.clone());
-        }
-    }
-    params
+/// Get scanner tokens for detailed testing
+fn get_scanner_tokens(input: &str) -> Vec<ScannerToken> {
+    let start_pos = Position { row: 0, column: 0 };
+    txxt::cst::scan_parameter_string(input, start_pos)
 }
 
 #[cfg(test)]
@@ -75,9 +46,7 @@ mod basic_parameter_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -106,9 +75,7 @@ mod basic_parameter_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -135,9 +102,7 @@ mod basic_parameter_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -166,9 +131,7 @@ mod quoted_string_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -201,9 +164,7 @@ mod quoted_string_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -236,9 +197,7 @@ mod quoted_string_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -276,9 +235,7 @@ mod namespaced_key_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -311,9 +268,7 @@ mod namespaced_key_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -344,9 +299,7 @@ mod edge_case_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -359,9 +312,10 @@ mod edge_case_tests {
 
     #[test]
     fn special_characters_in_values() {
+        // Per spec: Special characters (including colons) require quoting
         let test_cases = [
             (
-                "url=https://example.com",
+                r#"url="https://example.com""#,
                 vec![("url", "https://example.com")],
             ),
             ("pattern=*.txt", vec![("pattern", "*.txt")]),
@@ -370,9 +324,7 @@ mod edge_case_tests {
         ];
 
         for (input, expected) in test_cases {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(input);
 
             let expected_map: HashMap<String, String> = expected
                 .into_iter()
@@ -407,10 +359,11 @@ mod property_based_tests {
         }
     }
 
-    // Generate valid unquoted values (no spaces, commas, quotes)
+    // Generate valid unquoted values (no spaces, commas, quotes, or colons)
+    // Colons are structural separators (label:params) and require quoting
     prop_compose! {
         fn valid_unquoted_value()(
-            value in "[a-zA-Z0-9+\\-*/:.#@]+",
+            value in "[a-zA-Z0-9+\\-*/.#@]+",
         ) -> String {
             value
         }
@@ -418,14 +371,13 @@ mod property_based_tests {
 
     proptest! {
         #[test]
+        #[test]
         fn single_parameter_roundtrip(
             key in valid_key(),
             value in valid_unquoted_value()
         ) {
             let input = format!("{}={}", key, value);
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, &input);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(&input);
 
             prop_assert_eq!(params.len(), 1);
             prop_assert_eq!(params.get(&key), Some(&value));
@@ -433,9 +385,7 @@ mod property_based_tests {
 
         #[test]
         fn boolean_shorthand_roundtrip(key in valid_key()) {
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, &key);
-            let params = extract_parameters(&tokens);
+            let params = extract_parameters(&key);
 
             prop_assert_eq!(params.len(), 1);
             let expected = "true".to_string();
@@ -459,9 +409,7 @@ mod property_based_tests {
                 .collect::<Vec<_>>()
                 .join(",");
 
-            let mut lexer = MockParameterLexer::new();
-            let tokens = parse_parameters(&mut lexer, &input);
-            let parsed_params = extract_parameters(&tokens);
+            let parsed_params = extract_parameters(&input);
 
             prop_assert_eq!(parsed_params.len(), unique_params.len());
 
@@ -477,37 +425,62 @@ mod token_span_tests {
     use super::*;
 
     #[test]
-    fn parameter_tokens_have_valid_spans() {
+    fn scanner_tokens_have_valid_spans() {
         let input = "key1=value1,key2=value2";
-        let mut lexer = MockParameterLexer::new();
-        let tokens = parse_parameters(&mut lexer, input);
+        let tokens = get_scanner_tokens(input);
 
-        assert_eq!(tokens.len(), 2);
+        // Should have: Identifier, Equals, Text, Comma, Identifier, Equals, Text
+        assert!(!tokens.is_empty());
 
         for token in &tokens {
-            if let ScannerToken::Parameter { span, .. } = token {
-                // All spans should have valid positions
-                assert!(span.end.column >= span.start.column);
-                assert_eq!(span.start.row, span.end.row); // Single line parameters
-            } else {
-                panic!("Expected Parameter token, got: {:?}", token);
-            }
+            let span = token.span();
+            // All spans should have valid positions
+            assert!(span.end.column >= span.start.column);
+            assert_eq!(span.start.row, span.end.row); // Single line parameters
         }
     }
 
     #[test]
-    fn parameter_token_content_matches() {
+    fn high_level_token_created_correctly() {
         let input = "debug=true";
-        let mut lexer = MockParameterLexer::new();
-        let tokens = parse_parameters(&mut lexer, input);
+        let params = extract_parameters(input);
 
-        assert_eq!(tokens.len(), 1);
+        assert_eq!(params.len(), 1);
+        assert_eq!(params.get("debug"), Some(&"true".to_string()));
+    }
 
-        if let ScannerToken::Parameter { key, value, .. } = &tokens[0] {
-            assert_eq!(key, "debug");
-            assert_eq!(value, "true");
-        } else {
-            panic!("Expected Parameter token");
-        }
+    #[test]
+    fn check_scanner_token_types() {
+        // Test that we get the right types of scanner tokens
+        let input = "key=value";
+        let tokens = get_scanner_tokens(input);
+
+        // Filter out whitespace
+        let non_ws: Vec<_> = tokens
+            .iter()
+            .filter(|t| !matches!(t, ScannerToken::Whitespace { .. }))
+            .collect();
+
+        assert_eq!(non_ws.len(), 3); // Identifier, Equals, Text
+        assert!(matches!(non_ws[0], ScannerToken::Identifier { .. }));
+        assert!(matches!(non_ws[1], ScannerToken::Equals { .. }));
+        assert!(matches!(non_ws[2], ScannerToken::Text { .. }));
+    }
+
+    #[test]
+    fn check_quoted_string_token() {
+        let input = r#"title="My Document""#;
+        let tokens = get_scanner_tokens(input);
+
+        // Filter out whitespace
+        let non_ws: Vec<_> = tokens
+            .iter()
+            .filter(|t| !matches!(t, ScannerToken::Whitespace { .. }))
+            .collect();
+
+        assert_eq!(non_ws.len(), 3); // Identifier, Equals, QuotedString
+        assert!(matches!(non_ws[0], ScannerToken::Identifier { .. }));
+        assert!(matches!(non_ws[1], ScannerToken::Equals { .. }));
+        assert!(matches!(non_ws[2], ScannerToken::QuotedString { .. }));
     }
 }

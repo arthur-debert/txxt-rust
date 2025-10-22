@@ -1,11 +1,16 @@
 //! Test for issue #23: Parameter tokens have incorrect spans
 //!
-//! The bug: When parameters are parsed from annotations or definitions,
-//! the resulting Parameter tokens have zero-width spans at incorrect positions,
-//! making it impossible to track where they came from in the source.
+//! Migrated to unified parameter system: Parameters are now represented as
+//! Identifier/Text + Equals + Text/QuotedString + Comma tokens at scanner level,
+//! which are then assembled into Parameters high-level token.
 
 use txxt::cst::ScannerToken;
 use txxt::syntax::Lexer;
+
+// Use the shared test infrastructure from tests/infrastructure/
+use crate::infrastructure::parameter_fixtures::{
+    extract_parameters_from_tokens, tokens_contain_parameter,
+};
 
 #[test]
 fn test_parameter_spans_in_annotation() {
@@ -19,52 +24,62 @@ fn test_parameter_spans_in_annotation() {
         println!("  {:?}", token);
     }
 
-    // Find parameter tokens
-    let param_tokens: Vec<&ScannerToken> = tokens
+    // Extract parameters using unified system
+    let params = extract_parameters_from_tokens(&tokens);
+
+    assert_eq!(params.len(), 2, "Should have 2 parameters");
+    assert!(
+        tokens_contain_parameter(&tokens, "key", "value"),
+        "Should have key=value parameter"
+    );
+    assert!(
+        tokens_contain_parameter(&tokens, "flag", "true"),
+        "Should have flag parameter with implicit true"
+    );
+
+    // Verify individual token spans for parameter components
+    // Check "key" identifier span
+    let key_token = tokens
         .iter()
-        .filter(|t| matches!(t, ScannerToken::Parameter { .. }))
-        .collect();
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "key"))
+        .expect("Should find 'key' text token");
 
-    assert_eq!(param_tokens.len(), 2, "Should have 2 parameter tokens");
-
-    // Check first parameter (key=value)
-    if let ScannerToken::Parameter { key, value, span } = param_tokens[0] {
-        assert_eq!(key, "key");
-        assert_eq!(value, "value");
-
-        // The span should cover "key=value" starting at position 8
-        assert_eq!(
-            span.start.column, 8,
-            "First parameter should start at column 8"
-        );
-        assert_eq!(
-            span.end.column, 17,
-            "First parameter should end at column 17"
-        );
-        assert!(
-            span.end.column > span.start.column,
-            "Parameter span should have non-zero width"
-        );
+    if let ScannerToken::Text { span, .. } = key_token {
+        assert_eq!(span.start.column, 8, "key should start at column 8");
+        assert_eq!(span.end.column, 11, "key should end at column 11");
     }
 
-    // Check second parameter (flag)
-    if let ScannerToken::Parameter { key, value, span } = param_tokens[1] {
-        assert_eq!(key, "flag");
-        assert_eq!(value, "true");
+    // Check equals sign span
+    let equals_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Equals { .. }))
+        .expect("Should find equals token");
 
-        // The span should cover "flag" starting at position 18
-        assert_eq!(
-            span.start.column, 18,
-            "Second parameter should start at column 18"
-        );
-        assert_eq!(
-            span.end.column, 22,
-            "Second parameter should end at column 22"
-        );
-        assert!(
-            span.end.column > span.start.column,
-            "Parameter span should have non-zero width"
-        );
+    if let ScannerToken::Equals { span } = equals_token {
+        assert_eq!(span.start.column, 11, "equals should start at column 11");
+        assert_eq!(span.end.column, 12, "equals should end at column 12");
+    }
+
+    // Check "value" text span
+    let value_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "value"))
+        .expect("Should find 'value' text token");
+
+    if let ScannerToken::Text { span, .. } = value_token {
+        assert_eq!(span.start.column, 12, "value should start at column 12");
+        assert_eq!(span.end.column, 17, "value should end at column 17");
+    }
+
+    // Check "flag" identifier span
+    let flag_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "flag"))
+        .expect("Should find 'flag' text token");
+
+    if let ScannerToken::Text { span, .. } = flag_token {
+        assert_eq!(span.start.column, 18, "flag should start at column 18");
+        assert_eq!(span.end.column, 22, "flag should end at column 22");
     }
 }
 
@@ -80,52 +95,62 @@ fn test_parameter_spans_in_definition() {
         println!("  {:?}", token);
     }
 
-    // Find parameter tokens
-    let param_tokens: Vec<&ScannerToken> = tokens
+    // Extract parameters using unified system
+    let params = extract_parameters_from_tokens(&tokens);
+
+    assert_eq!(params.len(), 2, "Should have 2 parameters");
+    assert!(
+        tokens_contain_parameter(&tokens, "width", "100"),
+        "Should have width=100 parameter"
+    );
+    assert!(
+        tokens_contain_parameter(&tokens, "height", "50"),
+        "Should have height=50 parameter"
+    );
+
+    // Verify individual token spans for parameter components
+    // Check "width" identifier span
+    let width_token = tokens
         .iter()
-        .filter(|t| matches!(t, ScannerToken::Parameter { .. }))
-        .collect();
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "width"))
+        .expect("Should find 'width' text token");
 
-    assert_eq!(param_tokens.len(), 2, "Should have 2 parameter tokens");
-
-    // Check first parameter (width=100)
-    if let ScannerToken::Parameter { key, value, span } = param_tokens[0] {
-        assert_eq!(key, "width");
-        assert_eq!(value, "100");
-
-        // The span should cover "width=100" starting at position 5
-        assert_eq!(
-            span.start.column, 5,
-            "First parameter should start at column 5"
-        );
-        assert_eq!(
-            span.end.column, 14,
-            "First parameter should end at column 14"
-        );
-        assert!(
-            span.end.column > span.start.column,
-            "Parameter span should have non-zero width"
-        );
+    if let ScannerToken::Text { span, .. } = width_token {
+        assert_eq!(span.start.column, 5, "width should start at column 5");
+        assert_eq!(span.end.column, 10, "width should end at column 10");
     }
 
-    // Check second parameter (height=50)
-    if let ScannerToken::Parameter { key, value, span } = param_tokens[1] {
-        assert_eq!(key, "height");
-        assert_eq!(value, "50");
+    // Check "100" value span
+    let value_100_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "100"))
+        .expect("Should find '100' text token");
 
-        // The span should cover "height=50" starting at position 15
-        assert_eq!(
-            span.start.column, 15,
-            "Second parameter should start at column 15"
-        );
-        assert_eq!(
-            span.end.column, 24,
-            "Second parameter should end at column 24"
-        );
-        assert!(
-            span.end.column > span.start.column,
-            "Parameter span should have non-zero width"
-        );
+    if let ScannerToken::Text { span, .. } = value_100_token {
+        assert_eq!(span.start.column, 11, "100 should start at column 11");
+        assert_eq!(span.end.column, 14, "100 should end at column 14");
+    }
+
+    // Check "height" identifier span
+    let height_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "height"))
+        .expect("Should find 'height' text token");
+
+    if let ScannerToken::Text { span, .. } = height_token {
+        assert_eq!(span.start.column, 15, "height should start at column 15");
+        assert_eq!(span.end.column, 21, "height should end at column 21");
+    }
+
+    // Check "50" value span
+    let value_50_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "50"))
+        .expect("Should find '50' text token");
+
+    if let ScannerToken::Text { span, .. } = value_50_token {
+        assert_eq!(span.start.column, 22, "50 should start at column 22");
+        assert_eq!(span.end.column, 24, "50 should end at column 24");
     }
 }
 

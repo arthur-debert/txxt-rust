@@ -22,8 +22,17 @@ Complete specification for definitions - structured term-definition pairs that p
                 This term uses inline formatting in the term itself.
                 The definition can span multiple paragraphs and include rich content.
         :: txxt.core.spec.definition.valid.formatted-term ::
+    
+    2.2. Parameterized Definitions
+    
+        Definition with parameters:
+            API : type=acronym,domain=software ::
+                Application Programming Interface - a set of protocols and tools for building software applications.
+        :: txxt.core.spec.definition.valid.with-parameters ::
+        
+        For complete parameter syntax and usage, see [parameters.txxt].
 
-    2.2. Syntax Rules
+    2.3. Syntax Rules
 
         Definition recognition:
         - Term line ends with txxt marker (`::`)
@@ -36,7 +45,7 @@ Complete specification for definitions - structured term-definition pairs that p
                 <indented-definition-content>
         :: pattern
 
-    2.3. Content Structure
+    2.4. Content Structure
 
         Rich definition content:
             Recursion ::
@@ -100,7 +109,7 @@ Complete specification for definitions - structured term-definition pairs that p
         │   │   └── tokens: TokenSequence
         │   ├── content: ContentContainer
         │   │   └── blocks: Vec<Block>
-        │   ├── parameters: Parameters (future extension)
+        │   ├── parameters: Parameters
         │   ├── annotations: Vec<Annotation>
         │   └── tokens: TokenSequence
     :: tree
@@ -108,7 +117,7 @@ Complete specification for definitions - structured term-definition pairs that p
     Key structural properties:
     - Term stored as inline content (supports formatting)
     - Content stored in ContentContainer (consistent with architecture)
-    - Parameters support planned for future extensions
+    - Parameters follow same syntax as annotations (see [parameters.txxt])
     - Annotations can be attached to definitions
 
 5. Processing Rules

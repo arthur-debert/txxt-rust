@@ -90,10 +90,24 @@ fn test_definition_with_parameters() {
                 end: Position { row: 1, column: 5 },
             },
         },
-        ScannerToken::Text {
-            content: "ref=important".to_string(),
+        // Parameters now scanned as basic tokens
+        ScannerToken::Identifier {
+            content: "ref".to_string(),
             span: SourceSpan {
                 start: Position { row: 1, column: 5 },
+                end: Position { row: 1, column: 8 },
+            },
+        },
+        ScannerToken::Equals {
+            span: SourceSpan {
+                start: Position { row: 1, column: 8 },
+                end: Position { row: 1, column: 9 },
+            },
+        },
+        ScannerToken::Text {
+            content: "important".to_string(),
+            span: SourceSpan {
+                start: Position { row: 1, column: 9 },
                 end: Position { row: 1, column: 18 },
             },
         },
@@ -145,8 +159,8 @@ fn test_definition_with_parameters() {
             // Check that the parameters are correct
             match parameters.as_ref().unwrap().as_ref() {
                 HighLevelToken::Parameters { params, .. } => {
-                    assert!(params.contains_key("raw"));
-                    assert_eq!(params.get("raw").unwrap(), "ref=important");
+                    // With unified parameter scanner, we get actual parsed parameters
+                    assert_eq!(params.get("ref"), Some(&"important".to_string()));
                 }
                 _ => panic!("Expected Parameters, got {:?}", parameters.as_ref()),
             }
@@ -494,10 +508,24 @@ fn test_definition_with_multiple_parameters() {
                 end: Position { row: 1, column: 10 },
             },
         },
-        ScannerToken::Text {
-            content: "type=sorting".to_string(),
+        // First parameter: type=sorting
+        ScannerToken::Identifier {
+            content: "type".to_string(),
             span: SourceSpan {
                 start: Position { row: 1, column: 10 },
+                end: Position { row: 1, column: 14 },
+            },
+        },
+        ScannerToken::Equals {
+            span: SourceSpan {
+                start: Position { row: 1, column: 14 },
+                end: Position { row: 1, column: 15 },
+            },
+        },
+        ScannerToken::Text {
+            content: "sorting".to_string(),
+            span: SourceSpan {
+                start: Position { row: 1, column: 15 },
                 end: Position { row: 1, column: 22 },
             },
         },
@@ -507,31 +535,45 @@ fn test_definition_with_multiple_parameters() {
                 end: Position { row: 1, column: 23 },
             },
         },
-        ScannerToken::Text {
-            content: "complexity=O(n log n)".to_string(),
+        // Second parameter: complexity=O(n log n)
+        ScannerToken::Identifier {
+            content: "complexity".to_string(),
             span: SourceSpan {
                 start: Position { row: 1, column: 23 },
-                end: Position { row: 1, column: 43 },
+                end: Position { row: 1, column: 33 },
+            },
+        },
+        ScannerToken::Equals {
+            span: SourceSpan {
+                start: Position { row: 1, column: 33 },
+                end: Position { row: 1, column: 34 },
+            },
+        },
+        ScannerToken::Text {
+            content: "O(n log n)".to_string(),
+            span: SourceSpan {
+                start: Position { row: 1, column: 34 },
+                end: Position { row: 1, column: 44 },
             },
         },
         ScannerToken::Whitespace {
             content: " ".to_string(),
             span: SourceSpan {
-                start: Position { row: 1, column: 43 },
-                end: Position { row: 1, column: 44 },
+                start: Position { row: 1, column: 44 },
+                end: Position { row: 1, column: 45 },
             },
         },
         ScannerToken::TxxtMarker {
             span: SourceSpan {
-                start: Position { row: 1, column: 44 },
-                end: Position { row: 1, column: 46 },
+                start: Position { row: 1, column: 45 },
+                end: Position { row: 1, column: 47 },
             },
         },
     ];
 
     let span = SourceSpan {
         start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 46 },
+        end: Position { row: 1, column: 47 },
     };
 
     let result = analyzer.transform_definition(tokens, span.clone());
@@ -560,11 +602,9 @@ fn test_definition_with_multiple_parameters() {
 
             match parameters.as_ref().unwrap().as_ref() {
                 HighLevelToken::Parameters { params, .. } => {
-                    assert!(params.contains_key("raw"));
-                    assert_eq!(
-                        params.get("raw").unwrap(),
-                        "type=sorting,complexity=O(n log n)"
-                    );
+                    // With unified parameter scanner, we get actual parsed parameters
+                    assert_eq!(params.get("type"), Some(&"sorting".to_string()));
+                    assert_eq!(params.get("complexity"), Some(&"O(n log n)".to_string()));
                 }
                 _ => panic!("Expected Parameters, got {:?}", parameters.as_ref()),
             }

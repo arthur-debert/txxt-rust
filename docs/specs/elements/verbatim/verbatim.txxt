@@ -40,16 +40,18 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
         Labels use the txxt marker and follow identifier rules:
 
         Simple label:
-            :: javascript
-            :: python
-            :: configuration
+            :: javascript ::
+            :: python ::
+            :: configuration ::
         :: grammar
 
         Label with parameters:
-            :: python:version=3.11
-            :: sql:dialect=postgresql,version=15
-            :: image:src=diagram.png,alt="System architecture"
+            :: python:version=3.11 ::
+            :: sql:dialect=postgresql,version=15 ::
+            :: image:src=diagram.png,alt="System architecture" ::
         :: grammar
+        
+        For complete parameter syntax and usage, see [parameters.txxt].
 
     2.3. Content Positioning
 
@@ -58,19 +60,19 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
         In-flow mode (content indented +1 from title):
             Database schema:
                 CREATE TABLE users (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL
-                );
-            :: sql
-        :: txxt.core.spec.verbatim.valid.inflow-basic ::
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+        :: sql ::
+    :: txxt.core.spec.verbatim.valid.inflow-basic ::
 
         Stretched mode (content at absolute column 2):
             Wide table example:
-             | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
-             |----------|----------|----------|----------|----------|
-             | Data     | Data     | Data     | Data     | Data     |
-            :: markdown
-        :: txxt.core.spec.verbatim.valid.stretched-basic ::
+         | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
+         |----------|----------|----------|----------|----------|
+         | Data     | Data     | Data     | Data     | Data     |
+        :: markdown ::
+    :: txxt.core.spec.verbatim.valid.stretched-basic ::
 
         Mode determination is automatic:
         - First non-blank content line at title+4 spaces → In-flow
@@ -186,8 +188,8 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
                     middle = [x for x in arr if x == pivot]
                     right = [x for x in arr if x > pivot]
                     return quicksort(left) + middle + quicksort(right)
-            :: python:style=functional
-        :: txxt.core.spec.verbatim.valid.with-parameters ::
+        :: python:style=functional ::
+    :: txxt.core.spec.verbatim.valid.with-parameters ::
 
     6.2. Configuration Files
 
@@ -201,37 +203,37 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
                 server {
                     listen 80;
                     location / {
-                        proxy_pass http://backend;
-                    }
+                    proxy_pass http://backend;
                 }
-            :: nginx
+            }
+        :: nginx ::
 
     6.3. Wide Content
 
         Tables and diagrams requiring full width:
-            System architecture:
+        System architecture:
 | Frontend | Load Balancer | Application Server | Database | Cache |
 |----------|---------------|-------------------|----------|-------|
 | React    | nginx         | Django            | PostgreSQL| Redis |
 | Vue      | HAProxy       | Express           | MySQL    | Memcached |
-            :: architecture
+        :: architecture ::
 
     6.4. Media References
 
-        External binary content:
-            Network topology diagram:
-            :: image:src=network-topology.png,alt="Network diagram showing server connections"
-        :: txxt.core.spec.verbatim.valid.empty-content ::
+    External binary content:
+        Network topology diagram:
+        :: image:src=network-topology.png,alt="Network diagram showing server connections" ::
+    :: txxt.core.spec.verbatim.valid.empty-content ::
 
     6.5. Multi-format Documents
 
         Embedding other markup formats:
             HTML snippet:
                 <div class="notification">
-                    <p>This is <strong>important</strong> information.</p>
-                    <button onclick="dismiss()">Dismiss</button>
-                </div>
-            :: html
+                <p>This is <strong>important</strong> information.</p>
+                <button onclick="dismiss()">Dismiss</button>
+            </div>
+        :: html ::
 
 7. Implementation Notes
 
@@ -269,29 +271,29 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
         The label must be at exact title indentation level:
 
-        Valid (label at title level):
-            Code:
-                print("hello")
-            :: python
+    Valid (label at title level):
+        Code:
+            print("hello")
+        :: python ::
 
-        Invalid (label at content level):
-            Code:
-                print("hello")
-                :: python  # This would be parsed as content
+    Invalid (label at content level):
+        Code:
+            print("hello")
+            :: python ::  # This would be parsed as content
 
     8.2. Empty Content
 
         Blocks with no content lines are valid:
 
-        Binary file reference:
-            System diagram:
-            :: image:src=diagram.svg
-        :: txxt.core.spec.verbatim.valid.empty-content-with-media ::
+    Binary file reference:
+        System diagram:
+        :: image:src=diagram.svg ::
+    :: txxt.core.spec.verbatim.valid.empty-content-with-media ::
 
-        Template placeholder:
-            Code will go here:
-            :: python
-        :: txxt.core.spec.verbatim.valid.empty-content-placeholder ::
+    Template placeholder:
+        Code will go here:
+        :: python ::
+    :: txxt.core.spec.verbatim.valid.empty-content-placeholder ::
 
     8.3. Complex Indentation
 
@@ -299,10 +301,10 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
         Within a list item:
             - Example code:
-                Algorithm:
-                    def example():
-                        return "hello"
-                :: python
+            Algorithm:
+                def example():
+                    return "hello"
+            :: python ::
 
         The verbatim title is indented +1 from list item, content is +1 from title.
 

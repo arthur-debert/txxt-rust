@@ -534,53 +534,38 @@ fn test_parameter_spans_unicode() {
         (
             ":: label:café=value ::",
             "café",
-            false, // is_text
+            false, // is_text (now always treated as text in unified system)
             9,
-            19, // The whole parameter token span, not just the key
+            13, // Just the "café" text token span
             "parameter with accented key",
         ),
         // Parameter with accented value
         (
             ":: label:key=café ::",
             "café",
-            false, // is_text
-            9,
-            17, // The whole parameter token span
+            false, // is_text (now always treated as text in unified system)
+            13,
+            17, // Just the "café" text token span
             "parameter with accented value",
         ),
     ];
 
-    for (input, unicode_content, is_text, expected_start, expected_end, description) in test_cases {
+    for (input, unicode_content, _is_text, expected_start, expected_end, description) in test_cases
+    {
         let mut lexer = Lexer::new(input);
         let tokens = lexer.tokenize();
 
         // Find the token containing the Unicode content
-        let token = if is_text {
-            tokens
-                .iter()
-                .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == unicode_content))
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Should find Text token with '{}' in: {}",
-                        unicode_content, description
-                    )
-                })
-        } else {
-            tokens
-                .iter()
-                .find(|t| match t {
-                    ScannerToken::Parameter { key, value, .. } => {
-                        key == unicode_content || value == unicode_content
-                    }
-                    _ => false,
-                })
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Should find Parameter token with '{}' in: {}",
-                        unicode_content, description
-                    )
-                })
-        };
+        // In unified parameter system, both text and parameters use Text tokens
+        let token = tokens
+            .iter()
+            .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == unicode_content))
+            .unwrap_or_else(|| {
+                panic!(
+                    "Should find Text token with '{}' in: {}",
+                    unicode_content, description
+                )
+            });
 
         let span = get_token_span(token);
         assert_eq!(
@@ -691,7 +676,8 @@ fn get_token_span(token: &ScannerToken) -> &txxt::cst::SourceSpan {
         | ScannerToken::VerbatimLabel { span, .. }
         | ScannerToken::IndentationWall { span, .. }
         | ScannerToken::IgnoreTextSpan { span, .. }
-        | ScannerToken::Eof { span } => span,
+        | ScannerToken::Eof { span }
+        | ScannerToken::QuotedString { span, .. } => span,
     }
 }
 

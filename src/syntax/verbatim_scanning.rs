@@ -102,8 +102,8 @@
 //! 4. **Content type determined by first non-blank line** after title
 //! 5. **Terminator indent must match title indent exactly**
 
-use crate::cst::WallType;
-use crate::syntax::elements::components::parameters::ParameterLexer;
+use crate::cst::{Position, ScannerToken, SourceSpan, WallType};
+// Parameters now handled via cst::parameter_scanner::scan_parameter_string
 use regex::Regex;
 
 /// Standard indentation level in spaces
@@ -955,7 +955,16 @@ impl VerbatimScanner {
 }
 
 /// Trait for verbatim block tokenization
-pub trait VerbatimLexer: ParameterLexer + Sized {
+pub trait VerbatimLexer: Sized {
+    /// Get current position in source
+    fn current_position(&self) -> Position;
+
+    /// Peek at current character without advancing
+    fn peek(&self) -> Option<char>;
+
+    /// Advance to next character
+    fn advance(&mut self) -> Option<char>;
+
     /// Get current row (line number)
     fn row(&self) -> usize;
 

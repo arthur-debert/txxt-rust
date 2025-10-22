@@ -136,6 +136,9 @@ pub enum ScannerToken {
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
+    /// Quoted string with escape sequences processed (for parameter values)
+    QuotedString { content: String, span: SourceSpan },
+
     /// Reference markers ([text], [@citation], [#section])
     RefMarker { content: String, span: SourceSpan },
 
@@ -219,6 +222,7 @@ impl ScannerToken {
             ScannerToken::Equals { span } => span,
             ScannerToken::Comma { span } => span,
             ScannerToken::Identifier { span, .. } => span,
+            ScannerToken::QuotedString { span, .. } => span,
             ScannerToken::RefMarker { span, .. } => span,
             ScannerToken::FootnoteRef { span, .. } => span,
             ScannerToken::VerbatimBlockStart { span, .. } => span,
@@ -243,6 +247,7 @@ impl ScannerToken {
             ScannerToken::SequenceMarker { marker_type, .. } => marker_type.content(),
             ScannerToken::TxxtMarker { .. } => "::",
             ScannerToken::Identifier { content, .. } => content,
+            ScannerToken::QuotedString { content, .. } => content,
             ScannerToken::RefMarker { content, .. } => content,
             ScannerToken::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
             ScannerToken::VerbatimBlockStart { title, .. } => title,

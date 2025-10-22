@@ -56,30 +56,47 @@ pub fn parse_parameter_string(input: &str) -> HashMap<String, String> {
 ///
 /// This scans through tokens looking for Identifier-Equals-Value patterns and
 /// extracts them into a parameter HashMap. Useful for integration tests.
+/// Parameters are extracted only after a Colon token to avoid picking up labels.
 pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String, String> {
     let mut params = HashMap::new();
     let mut i = 0;
 
+    // First, find the colon separator (parameters come after it)
     while i < tokens.len() {
-        // Skip to potential parameter tokens
-        while i < tokens.len() {
-            match &tokens[i] {
-                ScannerToken::Identifier { .. } => break,
-                ScannerToken::Colon { .. } => {
-                    i += 1;
-                    continue;
-                }
-                _ => i += 1,
-            }
-        }
-
-        if i >= tokens.len() {
+        if matches!(&tokens[i], ScannerToken::Colon { .. }) {
+            i += 1; // Skip past the colon
             break;
         }
+        i += 1;
+    }
 
-        // Try to parse Identifier = Value pattern
-        if let ScannerToken::Identifier { content: key, .. } = &tokens[i] {
-            let key = key.clone();
+    // Now extract parameters after the colon
+    while i < tokens.len() {
+        // Stop at structural tokens
+        match &tokens[i] {
+            ScannerToken::TxxtMarker { .. } | ScannerToken::Newline { .. } => break,
+            _ => {}
+        }
+
+        // Try to find Identifier/Text tokens
+        let key = match &tokens[i] {
+            ScannerToken::Identifier { content, .. } | ScannerToken::Text { content, .. } => {
+                content.clone()
+            }
+            _ => {
+                i += 1;
+                continue;
+            }
+        };
+        i += 1;
+
+        // Skip whitespace
+        while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
+            i += 1;
+        }
+
+        // Look for equals
+        if i < tokens.len() && matches!(&tokens[i], ScannerToken::Equals { .. }) {
             i += 1;
 
             // Skip whitespace
@@ -87,33 +104,36 @@ pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String
                 i += 1;
             }
 
-            // Look for equals
-            if i < tokens.len() && matches!(&tokens[i], ScannerToken::Equals { .. }) {
+            // Get value
+            if i < tokens.len() {
+                let value = match &tokens[i] {
+                    ScannerToken::Text { content, .. } => content.clone(),
+                    ScannerToken::QuotedString { content, .. } => content.clone(),
+                    ScannerToken::Identifier { content, .. } => content.clone(),
+                    _ => {
+                        i += 1;
+                        continue;
+                    }
+                };
+
+                params.insert(key, value);
                 i += 1;
-
-                // Skip whitespace
-                while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
-                    i += 1;
-                }
-
-                // Get value
-                if i < tokens.len() {
-                    let value = match &tokens[i] {
-                        ScannerToken::Text { content, .. } => content.clone(),
-                        ScannerToken::QuotedString { content, .. } => content.clone(),
-                        ScannerToken::Identifier { content, .. } => content.clone(),
-                        _ => continue,
-                    };
-
-                    params.insert(key, value);
-                    i += 1;
-                }
-            } else {
-                // Boolean shorthand - key without value
-                params.insert(key, "true".to_string());
             }
         } else {
-            i += 1;
+            // Boolean shorthand - key without value (only if next is comma or structural token)
+            if i < tokens.len() {
+                match &tokens[i] {
+                    ScannerToken::Comma { .. }
+                    | ScannerToken::TxxtMarker { .. }
+                    | ScannerToken::Whitespace { .. } => {
+                        params.insert(key, "true".to_string());
+                    }
+                    _ => {}
+                }
+            } else {
+                // End of tokens - treat as boolean
+                params.insert(key, "true".to_string());
+            }
         }
     }
 

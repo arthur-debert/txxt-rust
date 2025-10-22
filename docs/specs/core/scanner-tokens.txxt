@@ -95,8 +95,9 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
     1.8. Verbatim Tokens
 
         Tokens specific to verbatim blocks:
-        - `VerbatimTitle`: Title line ending with colon
-        - `VerbatimLabel`: Label line with txxt marker
+        - `VerbatimBlockStart`: Title line with wall type info
+        - `VerbatimContentLine`: Raw content lines
+        - `VerbatimBlockEnd`: Terminator with label and parameters
 
 2. Token Recognition Rules
 
@@ -153,10 +154,9 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
     3.3. Verbatim Block Structure
 
         Complete verbatim block token sequence:
-        1. `VerbatimTitle`: Title line ending with colon
-        2. `IndentationWall`: Wall position and type
-        3. `IgnoreTextSpan`: Raw content lines
-        4. `VerbatimLabel`: Label line with txxt marker
+        1. `VerbatimBlockStart`: Title and wall type (InFlow or Stretched)
+        2. `VerbatimContentLine`: Raw content lines (multiple)
+        3. `VerbatimBlockEnd`: Terminator with label_raw (includes parameters)
 
 4. File Organization Structure
 
@@ -201,7 +201,7 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
             def hello():
                 print("Hello!")
         :: python
-        Tokens: `VerbatimTitle` `IndentationWall` `IgnoreTextSpan` `VerbatimLabel`
+        Tokens: `VerbatimBlockStart` → `VerbatimContentLine` (×2) → `VerbatimBlockEnd`
 
     5.4. Reference Tokens
 

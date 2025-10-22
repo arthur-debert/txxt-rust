@@ -119,7 +119,8 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
     Verbatim Block::
         Verbatim block semantic token using wall architecture.
-        Composition: VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+        Composition: title + wall + content (IgnoreLine/BlankLine) + label + parameters
+        Built from scanner tokens: VerbatimBlockStart, VerbatimContentLine, VerbatimBlockEnd
         Used for content that preserves exact formatting and spacing.
 
 3. The Wall Concept for Indentation
@@ -169,7 +170,7 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
         The wall concept originated in verbatim blocks (see @verbatim.txxt section 5.2).
         It has been extended to ALL line-level content for consistency:
-        - Verbatim blocks: Use IndentationWall scanner token
+        - Verbatim blocks: Wall type calculated from title indentation
         - Regular content: Use indentation_chars field in line tokens
 
         This ensures uniform handling of indented content throughout the parser.
@@ -191,8 +192,10 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
     4.3. Verbatim Composition
 
-        Verbatim blocks use wall architecture:
-        `VerbatimTitle` + `IndentationWall` + `IgnoreTextSpan` + `VerbatimLabel`
+        Verbatim blocks use wall architecture at scanner level:
+        `VerbatimBlockStart` → `VerbatimContentLine`* → `VerbatimBlockEnd`
+
+        At semantic level: title + wall + content + label + parameters
 
     4.4. Parameter Composition
 

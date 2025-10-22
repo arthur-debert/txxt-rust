@@ -6,7 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ast::elements::{
-    annotation::annotation_content::Annotation, components::parameters::Parameters,
+    annotation::annotation_content::Annotation,
+    components::{parameters::Parameters, ParsedLabel},
 };
 use crate::cst::ScannerTokenSequence;
 
@@ -28,7 +29,7 @@ use super::super::{
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AnnotationBlock {
     /// Annotation label/type (e.g., "note", "author", "spec")
-    pub label: String,
+    pub name: String,
 
     /// Annotation content (inline or block)
     pub content: AnnotationContent,
@@ -87,13 +88,13 @@ impl TxxtElement for AnnotationBlock {
 
 impl BlockElement for AnnotationBlock {
     fn content_summary(&self) -> String {
-        format!("Annotation: {}", self.label)
+        format!("Annotation: {}", self.name)
     }
 }
 
 impl HeaderedBlock for AnnotationBlock {
     fn header_text(&self) -> String {
-        self.label.clone()
+        self.name.clone()
     }
 
     fn tail_container(&self) -> Option<&dyn ContainerElement> {
@@ -107,40 +108,27 @@ impl HeaderedBlock for AnnotationBlock {
 impl AnnotationBlock {
     /// Create a new annotation block
     pub fn new(
-        label: String,
+        raw_label: String,
         content: AnnotationContent,
         parameters: Parameters,
         annotations: Vec<Annotation>,
         tokens: ScannerTokenSequence,
     ) -> Self {
-        let namespace = if label.contains('.') {
-            let parts: Vec<&str> = label.rsplitn(2, '.').collect();
-            if parts.len() == 2 {
-                Some(parts[1].to_string())
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let parsed_label = ParsedLabel::from_raw(&raw_label);
 
         Self {
-            label,
+            name: parsed_label.name,
             content,
             parameters,
             annotations,
             tokens,
-            namespace,
+            namespace: parsed_label.namespace,
         }
     }
 
     /// Get the local label (without namespace)
     pub fn local_label(&self) -> &str {
-        if self.namespace.is_some() {
-            self.label.rsplit('.').next().unwrap_or(&self.label)
-        } else {
-            &self.label
-        }
+        &self.name
     }
 
     /// Check if this annotation has a namespace

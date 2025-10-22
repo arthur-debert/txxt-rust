@@ -80,15 +80,12 @@ fn test_verbatim_block_v2_simple_in_flow() {
                 _ => panic!("Expected IgnoreLine high-level token"),
             }
 
-            // Check label
+            // Check label (now Label token from unified parser)
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "python");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "python");
                 }
-                _ => panic!("Expected TextSpan label"),
+                _ => panic!("Expected Label token"),
             }
 
             assert!(parameters.is_none());
@@ -354,15 +351,12 @@ fn test_verbatim_block_v2_with_parameters() {
         HighLevelToken::VerbatimBlock {
             label, parameters, ..
         } => {
-            // Label should be just "python"
+            // Label should be just "python" (now Label token from unified parser)
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "python");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "python");
                 }
-                _ => panic!("Expected TextSpan label"),
+                _ => panic!("Expected Label token"),
             }
 
             // Parameters should be parsed into individual key-value pairs (Phase 4.1)

@@ -41,7 +41,7 @@ fn test_create_annotation_element() {
 
     assert!(result.is_ok());
     let annotation_block = result.unwrap();
-    assert_eq!(annotation_block.label, "note");
+    assert_eq!(annotation_block.name, "note");
     // TODO: Check annotation content when properly implemented
 }
 

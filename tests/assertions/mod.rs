@@ -878,13 +878,13 @@ pub fn assert_annotation<'a>(
     // Label validation
     if let Some(expected_label) = expected.label {
         assert_eq!(
-            annotation.label.trim(),
+            annotation.name.trim(),
             expected_label.trim(),
             "Label mismatch\n\
              Expected: '{}'\n\
              Actual: '{}'",
             expected_label,
-            annotation.label
+            annotation.name
         );
     }
 

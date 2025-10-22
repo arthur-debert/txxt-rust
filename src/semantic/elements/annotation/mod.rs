@@ -75,15 +75,13 @@ pub fn create_annotation_element(
                 ))
             };
 
-            Ok(AnnotationBlock {
-                label: label_text,
+            Ok(AnnotationBlock::new(
+                label_text,
                 content,
-                annotations: nested_annotations,
-                parameters: extracted_params,
-                tokens: tokens.clone(),
-                // FIXME: post-parser - Extract namespace from label (e.g., "org.example.custom")
-                namespace: None,
-            })
+                extracted_params,
+                nested_annotations,
+                tokens.clone(),
+            ))
         }
         _ => Err(BlockParseError::InvalidStructure(
             "Expected Annotation token for annotation".to_string(),

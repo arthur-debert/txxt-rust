@@ -203,7 +203,29 @@ Complete specification for annotations - metadata elements that attach informati
 
 8. Edge Cases
 
-    8.1. Empty Labels
+    8.1. Label and Namespace Tests
+
+        No namespace:
+            :: note :: Simple note
+        :: txxt.core.spec.annotation.valid.no-namespace ::
+
+        Single-level namespace:
+            :: custom.note :: Note with a single-level namespace
+        :: txxt.core.spec.annotation.valid.single-level-namespace ::
+
+        Multi-level namespace:
+            :: org.example.custom :: Note with a multi-level namespace
+        :: txxt.core.spec.annotation.valid.multi-level-namespace ::
+
+        Leading dot:
+            :: .note :: Note with a leading dot
+        :: txxt.core.spec.annotation.valid.leading-dot-namespace ::
+
+        Trailing dot:
+            :: note. :: Note with a trailing dot
+        :: txxt.core.spec.annotation.valid.trailing-dot-namespace ::
+
+    8.2. Empty Labels
 
         Invalid annotation (empty label):
             :: :: Content here

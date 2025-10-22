@@ -46,7 +46,6 @@ fn test_semantic_tokens_format() {
     assert!(json["tokens"].is_array());
 }
 
-
 #[test]
 fn test_empty_content() {
     let output = process_unified("", Stage::ScannerTokens, Some("empty.txxt".to_string())).unwrap();

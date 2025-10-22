@@ -10,7 +10,6 @@ use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenList,
 };
-use crate::cst::parameter_scanner::scan_parameter_string;
 use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
@@ -871,49 +870,6 @@ impl SemanticAnalyzer {
         ))
     }
 
-    /// Convert a list of scanner tokens into a single TextSpan semantic token (for individual processing)
-    fn tokens_to_text_span(
-        &self,
-        tokens: Vec<ScannerToken>,
-    ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        let mut content = String::new();
-        let mut start_span = None;
-        let mut end_span = None;
-        let token_sequence = tokens.clone();
-
-        for token in tokens {
-            if start_span.is_none() {
-                start_span = Some(token.span().start);
-            }
-            end_span = Some(token.span().end);
-
-            // Convert token to text content, but filter out whitespace tokens
-            match &token {
-                ScannerToken::Whitespace { .. } => {
-                    // Skip whitespace tokens when combining
-                    continue;
-                }
-                _ => {
-                    let token_content = self.token_to_text_content(&token);
-                    content.push_str(&token_content);
-                }
-            }
-        }
-
-        let span = SourceSpan {
-            start: start_span.unwrap_or(Position { row: 0, column: 0 }),
-            end: end_span.unwrap_or(Position { row: 0, column: 0 }),
-        };
-
-        Ok(HighLevelTokenBuilder::text_span_with_tokens(
-            content,
-            span,
-            ScannerTokenSequence {
-                tokens: token_sequence,
-            },
-        ))
-    }
-
     /// Transform TxxtMarker scanner token to semantic token
     ///
     /// This implements the TxxtMarker transformation as specified in Issue #81.
@@ -1483,50 +1439,25 @@ impl SemanticAnalyzer {
             }
         }
 
-        // Parse label and parameters from label_raw
-        // Format: "label:param1=val1,param2=val2" or just "label"
-        let (label, parameters) = if let Some(colon_pos) = label_raw.find(':') {
-            let label_part = &label_raw[..colon_pos];
-            let params_part = &label_raw[colon_pos + 1..];
-
-            let label_token = HighLevelTokenBuilder::text_span_with_tokens(
-                label_part.to_string(),
-                tokens[tokens.len() - 1].span().clone(),
-                ScannerTokenSequence {
-                    tokens: vec![tokens[tokens.len() - 1].clone()],
-                },
-            );
-
-            let parameters = if params_part.is_empty() {
-                None
-            } else {
-                // Use unified parameter scanner (Phase 4.1)
-                // Calculate start position for parameter string (after "label:")
-                let param_start = Position {
-                    row: tokens[tokens.len() - 1].span().start.row,
-                    column: tokens[tokens.len() - 1].span().start.column + colon_pos + 1,
-                };
-
-                // Scan parameter string into tokens
-                let param_scanner_tokens = scan_parameter_string(params_part, param_start);
-
-                // Convert scanner tokens to high-level Parameters token
-                HighLevelTokenBuilder::parameters_from_scanner_tokens(&param_scanner_tokens)
-            };
-
-            (label_token, parameters)
-        } else {
-            (
-                HighLevelTokenBuilder::text_span_with_tokens(
-                    label_raw,
-                    tokens[tokens.len() - 1].span().clone(),
-                    ScannerTokenSequence {
-                        tokens: vec![tokens[tokens.len() - 1].clone()],
-                    },
-                ),
-                None,
-            )
-        };
+        // Parse label and parameters from label_raw using UNIFIED parser
+        //
+        // ARCHITECTURE: Verbatim vs Annotations
+        // - Verbatim scanner: Produces VerbatimBlockEnd { label_raw: "python:version=3.11" }
+        //   → Semantic layer: Already has string, calls unified parser directly
+        //
+        // - Annotation scanner: Produces [Identifier("python"), Colon, Identifier("version"), ...]
+        //   → Semantic layer: Extracts string from tokens, calls unified parser
+        //
+        // Both converge at parse_label_and_parameters_from_string() for:
+        // - Namespace-aware label validation (e.g., "org.example.python")
+        // - Unified parameter parsing
+        // - Consistent Label + Parameters token creation
+        //
+        // See: parse_label_and_parameters_from_string() for unified implementation
+        let (label, parameters) = self.parse_label_and_parameters_from_string(
+            &label_raw,
+            tokens[tokens.len() - 1].span().clone(),
+        )?;
 
         // Aggregate all source tokens
         let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
@@ -1572,50 +1503,176 @@ impl SemanticAnalyzer {
         ))
     }
 
-    /// Parse label tokens and extract parameters if present
+    /// **UNIFIED LABEL PARSING** - Used by both annotations and verbatim blocks
     ///
-    /// This helper method processes label tokens and separates the main label
-    /// from any parameters (key=value pairs).
+    /// Parse a label string (with optional parameters) into validated Label and Parameters tokens.
+    /// This is the single source of truth for label+parameter parsing across the semantic layer.
+    ///
+    /// # Architecture Decision
+    ///
+    /// The scanner layer intentionally produces different formats:
+    /// - **Annotations**: Fine-grained tokens [TxxtMarker, Identifier, Colon, ...]
+    ///   - Scanner: `:: python:version=3.11 ::` → individual tokens
+    ///   - Semantic: Extracts string from tokens → calls this method
+    ///
+    /// - **Verbatim**: Pre-combined string in VerbatimBlockEnd
+    ///   - Scanner: `:: python:version=3.11` → label_raw: "python:version=3.11"
+    ///   - Semantic: Already has string → calls this method directly
+    ///
+    /// Both converge at this unified method for consistent validation and Label creation.
+    ///
+    /// # Format
+    /// - Simple label: `"python"` → Label token, no parameters
+    /// - With parameters: `"python:version=3.11,syntax=true"` → Label + Parameters tokens
     ///
     /// # Arguments
-    /// * `tokens` - The tokens representing the label (may include parameters)
+    /// * `label_raw` - Raw label string (may include `:params` suffix)
+    /// * `base_span` - Source span for the entire label_raw string
     ///
     /// # Returns
-    /// * `Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError>` - (label, parameters)
-    fn parse_label_with_parameters(
+    /// * `Result<(Label token, Optional Parameters token), Error>`
+    ///
+    /// # See Also
+    /// - Scanner tokens: `src/cst/scanner_tokens.rs` - VerbatimBlockEnd, Identifier
+    /// - Label validation: `src/syntax/elements/components/label.rs` - parse_label()
+    /// - Parameter parsing: `src/cst/parameter_scanner.rs` - scan_parameter_string()
+    fn parse_label_and_parameters_from_string(
         &self,
-        tokens: &[ScannerToken],
+        label_raw: &str,
+        base_span: SourceSpan,
     ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
-        // Look for colon separator to identify parameters
-        let colon_pos = tokens
-            .iter()
-            .position(|token| matches!(token, ScannerToken::Colon { .. }));
+        // Split on first ':' to separate label from parameters
+        if let Some(colon_pos) = label_raw.find(':') {
+            let label_part = &label_raw[..colon_pos];
+            let params_part = &label_raw[colon_pos + 1..];
 
-        if let Some(pos) = colon_pos {
-            // Split into label and parameters
-            let label_tokens = &tokens[..pos];
-            let param_tokens = &tokens[pos + 1..];
+            // Calculate span for label portion only
+            let label_span = SourceSpan {
+                start: base_span.start,
+                end: Position {
+                    row: base_span.start.row,
+                    column: base_span.start.column + colon_pos,
+                },
+            };
 
-            // Create label semantic token
-            let label_token = self.tokens_to_text_span(label_tokens.to_vec())?;
+            // Create validated Label token with namespace support
+            let label_token = self.create_validated_label(label_part, label_span)?;
 
-            // Create parameters semantic token if there are parameter tokens
-            let parameters = if param_tokens.is_empty()
-                || param_tokens
-                    .iter()
-                    .all(|token| matches!(token, ScannerToken::Whitespace { .. }))
-            {
+            // Parse parameters using unified parameter scanner
+            let parameters = if params_part.is_empty() {
                 None
             } else {
-                Some(self.parse_parameters(param_tokens)?)
+                let param_start = Position {
+                    row: base_span.start.row,
+                    column: base_span.start.column + colon_pos + 1,
+                };
+
+                // Use unified parameter scanner from Issue #135
+                let param_scanner_tokens =
+                    crate::cst::parameter_scanner::scan_parameter_string(params_part, param_start);
+
+                // Convert scanner tokens to high-level Parameters token
+                crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
+                    &param_scanner_tokens,
+                )
             };
 
             Ok((label_token, parameters))
         } else {
-            // No parameters, just create label
-            let label_token = self.tokens_to_text_span(tokens.to_vec())?;
+            // No parameters, just validate and create label
+            let label_token = self.create_validated_label(label_raw, base_span)?;
             Ok((label_token, None))
         }
+    }
+
+    /// Create a validated Label token with namespace support
+    ///
+    /// This helper validates label syntax including:
+    /// - Must start with letter (a-z, A-Z)
+    /// - Valid characters: letters, digits, underscore, dash
+    /// - Namespace separator: period (.) - e.g., "org.example.python"
+    /// - No consecutive periods, no leading/trailing periods
+    ///
+    /// # Arguments
+    /// * `label_text` - The label string to validate
+    /// * `span` - Source span for this label
+    ///
+    /// # Returns
+    /// * `Result<HighLevelToken::Label, Error>`
+    ///
+    /// # See Also
+    /// - `src/syntax/elements/components/label.rs` - validate_label(), parse_label()
+    fn create_validated_label(
+        &self,
+        label_text: &str,
+        span: SourceSpan,
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
+        // Use namespace-aware label validation from Issue #124
+        crate::syntax::elements::components::label::validate_label(label_text)
+            .map_err(|e| SemanticAnalysisError::AnalysisError(format!("Invalid label: {}", e)))?;
+
+        // Create Label token (not TextSpan)
+        Ok(crate::cst::high_level_tokens::HighLevelToken::Label {
+            text: label_text.to_string(),
+            span,
+            tokens: crate::cst::ScannerTokenSequence::new(),
+        })
+    }
+
+    /// Parse label tokens and extract parameters if present (ANNOTATIONS)
+    ///
+    /// This method is used by annotations to convert scanner tokens into label+parameters.
+    /// It extracts a string from the tokens, then delegates to the unified
+    /// `parse_label_and_parameters_from_string()` method.
+    ///
+    /// # Architecture
+    /// - Annotations receive fine-grained scanner tokens
+    /// - This method extracts string representation
+    /// - Delegates to unified string-based parser for consistent validation
+    ///
+    /// # Arguments
+    /// * `tokens` - Scanner tokens representing the label (may include Colon and parameter tokens)
+    ///
+    /// # Returns
+    /// * `Result<(Label token, Optional Parameters token), Error>`
+    ///
+    /// # See Also
+    /// - Unified parser: `parse_label_and_parameters_from_string()`
+    /// - Verbatim parsing: `transform_verbatim_block()` - uses same unified parser
+    fn parse_label_with_parameters(
+        &self,
+        tokens: &[ScannerToken],
+    ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
+        if tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Cannot parse label from empty tokens".to_string(),
+            ));
+        }
+
+        // Extract string from tokens (filter whitespace, combine content)
+        let mut label_raw = String::new();
+        for token in tokens {
+            match token {
+                ScannerToken::Whitespace { .. } => {
+                    // Skip whitespace when combining into string
+                    continue;
+                }
+                _ => {
+                    label_raw.push_str(token.content());
+                }
+            }
+        }
+
+        // Calculate span from first to last token
+        let span = SourceSpan {
+            start: tokens[0].span().start,
+            end: tokens[tokens.len() - 1].span().end,
+        };
+
+        // Delegate to unified string-based parser
+        // This ensures consistent label validation and parameter parsing
+        // for both annotations and verbatim blocks
+        self.parse_label_and_parameters_from_string(&label_raw, span)
     }
 
     /// Parse definition term tokens and extract parameters if present

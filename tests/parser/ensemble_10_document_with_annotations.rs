@@ -90,9 +90,9 @@ fn test_ensemble_10_document_with_annotations() {
         if let SessionContainerElement::Annotation(ann) = element {
             println!(
                 "\nAnnotation: label='{}', content={:?}",
-                ann.label, ann.content
+                ann.name, ann.content
             );
-            match ann.label.as_str() {
+            match ann.name.as_str() {
                 "title" => found_title = true,
                 "author" => found_author = true,
                 "version" => found_version = true,
@@ -139,7 +139,7 @@ fn test_ensemble_10_document_with_annotations() {
 
             for element in &session.content.content {
                 if let SessionContainerElement::Annotation(ann) = element {
-                    if ann.label == "note" {
+                    if ann.name == "note" {
                         has_note_annotation = true;
                         println!("Found 'note' annotation in session 1");
                     }
@@ -164,7 +164,7 @@ fn test_ensemble_10_document_with_annotations() {
 
             for element in &session.content.content {
                 if let SessionContainerElement::Annotation(ann) = element {
-                    if ann.label == "status" {
+                    if ann.name == "status" {
                         has_status_annotation = true;
                         println!("Found 'status' annotation in session 2");
                     }

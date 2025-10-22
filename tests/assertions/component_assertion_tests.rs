@@ -9,7 +9,6 @@ use txxt::ast::{
     elements::annotation::annotation_content::Annotation,
     elements::components::parameters::Parameters,
 };
-use txxt::cst::ScannerTokenSequence;
 
 use super::elements::components::component_assertions::*;
 
@@ -149,13 +148,7 @@ fn test_assert_label_not_empty_fails() {
 fn make_test_annotation(label: &str) -> Annotation {
     use txxt::ast::elements::annotation::annotation_content::AnnotationContent;
 
-    Annotation {
-        label: label.to_string(),
-        namespace: None,
-        content: AnnotationContent::Empty,
-        tokens: ScannerTokenSequence { tokens: vec![] },
-        parameters: Parameters::new(),
-    }
+    Annotation::new(label.to_string(), AnnotationContent::Empty)
 }
 
 #[test]

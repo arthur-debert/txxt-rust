@@ -168,8 +168,31 @@ pub enum ScannerToken {
     },
 
     /// Verbatim block end boundary (NEW - Issue #132)
+    ///
+    /// **ARCHITECTURE DECISION**: Pre-combined string vs fine-grained tokens
+    ///
+    /// Verbatim terminators use a pre-combined `label_raw` string instead of
+    /// individual tokens (unlike annotations). This is intentional:
+    ///
+    /// - **Verbatim**: Simple terminator syntax `:: label:params`
+    ///   - Scanner: Combines into single string for efficiency
+    ///   - Semantic: Parses string using unified parser
+    ///   - Result: `VerbatimBlockEnd { label_raw: "python:version=3.11" }`
+    ///
+    /// - **Annotations**: Complex inline syntax `:: label:params :: content`
+    ///   - Scanner: Emits fine-grained tokens for flexibility
+    ///   - Semantic: Extracts string from tokens, uses same unified parser
+    ///   - Result: `[TxxtMarker, Identifier, Colon, Identifier, ...]`
+    ///
+    /// Both converge at semantic layer's `parse_label_and_parameters_from_string()`
+    /// for consistent label validation (namespace support) and parameter parsing.
+    ///
+    /// See: `src/syntax/semantic_analysis.rs::parse_label_and_parameters_from_string()`
     VerbatimBlockEnd {
         /// Raw label and parameters string (e.g., "python:version=3.11")
+        ///
+        /// Format: "label" or "label:param1=val1,param2=val2"
+        /// Supports namespaced labels: "org.example.python:version=3.11"
         label_raw: String,
         span: SourceSpan,
     },

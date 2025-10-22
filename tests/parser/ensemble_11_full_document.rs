@@ -72,7 +72,7 @@ fn test_ensemble_11_full_document() {
         .iter()
         .filter_map(|e| {
             if let SessionContainerElement::Annotation(ann) = e {
-                Some(ann.label.clone())
+                Some(ann.name.clone())
             } else {
                 None
             }
@@ -201,7 +201,7 @@ fn test_ensemble_11_full_document() {
     // Check for tip annotation
     let has_tip_annotation = best_practices_session.content.content.iter().any(|e| {
         if let SessionContainerElement::Annotation(ann) = e {
-            ann.label == "tip"
+            ann.name == "tip"
         } else {
             false
         }

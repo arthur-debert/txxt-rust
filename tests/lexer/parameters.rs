@@ -16,9 +16,9 @@ use txxt::cst::{HighLevelToken, HighLevelTokenBuilder, Position, ScannerToken};
 fn extract_parameters(input: &str) -> HashMap<String, String> {
     let start_pos = Position { row: 0, column: 0 };
     let scanner_tokens = txxt::cst::scan_parameter_string(input, start_pos);
-    
-    if let Some(HighLevelToken::Parameters { params, .. }) = 
-        HighLevelTokenBuilder::parameters_from_scanner_tokens(&scanner_tokens) 
+
+    if let Some(HighLevelToken::Parameters { params, .. }) =
+        HighLevelTokenBuilder::parameters_from_scanner_tokens(&scanner_tokens)
     {
         params
     } else {
@@ -446,34 +446,36 @@ mod token_span_tests {
         assert_eq!(params.len(), 1);
         assert_eq!(params.get("debug"), Some(&"true".to_string()));
     }
-    
+
     #[test]
     fn check_scanner_token_types() {
         // Test that we get the right types of scanner tokens
         let input = "key=value";
         let tokens = get_scanner_tokens(input);
-        
+
         // Filter out whitespace
-        let non_ws: Vec<_> = tokens.iter()
+        let non_ws: Vec<_> = tokens
+            .iter()
             .filter(|t| !matches!(t, ScannerToken::Whitespace { .. }))
             .collect();
-        
+
         assert_eq!(non_ws.len(), 3); // Identifier, Equals, Text
         assert!(matches!(non_ws[0], ScannerToken::Identifier { .. }));
         assert!(matches!(non_ws[1], ScannerToken::Equals { .. }));
         assert!(matches!(non_ws[2], ScannerToken::Text { .. }));
     }
-    
+
     #[test]
     fn check_quoted_string_token() {
         let input = r#"title="My Document""#;
         let tokens = get_scanner_tokens(input);
-        
+
         // Filter out whitespace
-        let non_ws: Vec<_> = tokens.iter()
+        let non_ws: Vec<_> = tokens
+            .iter()
             .filter(|t| !matches!(t, ScannerToken::Whitespace { .. }))
             .collect();
-        
+
         assert_eq!(non_ws.len(), 3); // Identifier, Equals, QuotedString
         assert!(matches!(non_ws[0], ScannerToken::Identifier { .. }));
         assert!(matches!(non_ws[1], ScannerToken::Equals { .. }));

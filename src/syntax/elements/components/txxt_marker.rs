@@ -242,18 +242,14 @@ pub fn is_start_of_annotation_pattern<L: TxxtMarkerLexer>(lexer: &L, start_pos: 
 
 /// DEPRECATED: Parameter integration now handled by unified parameter scanner
 /// This function is kept for backwards compatibility but returns tokens as-is.
-pub fn integrate_annotation_parameters(
-    tokens: Vec<ScannerToken>,
-) -> Vec<ScannerToken> {
+pub fn integrate_annotation_parameters(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
     // Parameters are now handled at semantic analysis phase
     tokens
 }
 
 /// DEPRECATED: Parameter integration now handled by unified parameter scanner
 /// This function is kept for backwards compatibility but returns tokens as-is.
-pub fn integrate_definition_parameters(
-    tokens: Vec<ScannerToken>,
-) -> Vec<ScannerToken> {
+pub fn integrate_definition_parameters(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
     // Parameters are now handled at semantic analysis phase
     tokens
 }
@@ -289,10 +285,7 @@ fn find_annotation_content(
 
 /// Find definition content before marker by extracting raw text
 #[allow(dead_code)]
-fn find_definition_content(
-    tokens: &[ScannerToken],
-    def_idx: usize,
-) -> Option<(String, usize)> {
+fn find_definition_content(tokens: &[ScannerToken], def_idx: usize) -> Option<(String, usize)> {
     let mut term_start_idx = def_idx;
 
     // Look backwards for the start of term content

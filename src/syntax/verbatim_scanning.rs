@@ -547,10 +547,10 @@ impl VerbatimScanner {
 pub trait VerbatimLexer: Sized {
     /// Get current position in source
     fn current_position(&self) -> Position;
-    
+
     /// Peek at current character without advancing
     fn peek(&self) -> Option<char>;
-    
+
     /// Advance to next character
     fn advance(&mut self) -> Option<char>;
 

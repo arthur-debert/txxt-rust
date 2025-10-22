@@ -38,7 +38,7 @@ pub fn scan_parameter_string(input: &str, start_pos: Position) -> Vec<ScannerTok
             let start = current_pos;
             current_pos = advance_position(current_pos, chars[pos]);
             pos += 1;
-            
+
             tokens.push(ScannerToken::Whitespace {
                 content: " ".to_string(),
                 span: SourceSpan {
@@ -96,7 +96,7 @@ pub fn scan_parameter_string(input: &str, start_pos: Position) -> Vec<ScannerTok
             });
         } else if ch == '"' {
             after_equals = false; // We're reading a value
-            // Quoted string
+                                  // Quoted string
             match scan_quoted_string(&chars, pos) {
                 Some((content, consumed)) => {
                     let start = current_pos;
@@ -285,7 +285,7 @@ mod tests {
     fn test_scan_simple_parameter() {
         let start_pos = Position { row: 0, column: 0 };
         let tokens = scan_parameter_string("key=value", start_pos);
-        
+
         // Should have: Identifier("key"), Equals, Text("value")
         assert_eq!(tokens.len(), 3);
         assert!(matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "key"));
@@ -297,24 +297,29 @@ mod tests {
     fn test_scan_quoted_parameter() {
         let start_pos = Position { row: 0, column: 0 };
         let tokens = scan_parameter_string("title=\"My Document\"", start_pos);
-        
+
         // Should have: Identifier("title"), Equals, QuotedString("My Document")
         assert_eq!(tokens.len(), 3);
-        assert!(matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "title"));
+        assert!(
+            matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "title")
+        );
         assert!(matches!(&tokens[1], ScannerToken::Equals { .. }));
-        assert!(matches!(&tokens[2], ScannerToken::QuotedString { content, .. } if content == "My Document"));
+        assert!(
+            matches!(&tokens[2], ScannerToken::QuotedString { content, .. } if content == "My Document")
+        );
     }
 
     #[test]
     fn test_scan_multiple_parameters() {
         let start_pos = Position { row: 0, column: 0 };
         let tokens = scan_parameter_string("key1=value1,key2=value2", start_pos);
-        
+
         // Filter out whitespace for easier testing
-        let non_ws_tokens: Vec<&ScannerToken> = tokens.iter()
+        let non_ws_tokens: Vec<&ScannerToken> = tokens
+            .iter()
             .filter(|t| !matches!(t, ScannerToken::Whitespace { .. }))
             .collect();
-        
+
         // Should have: key1, =, value1, comma, key2, =, value2
         assert_eq!(non_ws_tokens.len(), 7);
     }
@@ -323,7 +328,7 @@ mod tests {
     fn test_scan_escaped_quotes() {
         let start_pos = Position { row: 0, column: 0 };
         let tokens = scan_parameter_string("message=\"She said, \\\"Hello!\\\"\"", start_pos);
-        
+
         // Check that the quoted string has escape sequences processed
         if let ScannerToken::QuotedString { content, .. } = &tokens[2] {
             assert_eq!(content, "She said, \"Hello!\"");
@@ -336,17 +341,21 @@ mod tests {
     fn test_scan_namespaced_key() {
         let start_pos = Position { row: 0, column: 0 };
         let tokens = scan_parameter_string("org.example.key=value", start_pos);
-        
-        assert!(matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "org.example.key"));
+
+        assert!(
+            matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "org.example.key")
+        );
     }
 
     #[test]
     fn test_scan_boolean_shorthand() {
         let start_pos = Position { row: 0, column: 0 };
         let tokens = scan_parameter_string("debug", start_pos);
-        
+
         // Should just have: Identifier("debug")
         assert_eq!(tokens.len(), 1);
-        assert!(matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "debug"));
+        assert!(
+            matches!(&tokens[0], ScannerToken::Identifier { content, .. } if content == "debug")
+        );
     }
 }

@@ -417,25 +417,47 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + Whitespace + TxxtMarker
-        if matches!(
+        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + ... + TxxtMarker
+        // The "..." can include parameters (Colon, Identifier, Equals, Text, Comma, etc.)
+        if !matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::Whitespace { .. }
-        ) && matches!(
+        ) {
+            return Ok(None);
+        }
+
+        if !matches!(
             scanner_tokens[start_index + 2],
             ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
-        ) && matches!(
-            scanner_tokens[start_index + 3],
-            ScannerToken::Whitespace { .. }
-        ) && matches!(
-            scanner_tokens[start_index + 4],
-            ScannerToken::TxxtMarker { .. }
         ) {
-            // Extract tokens up to the closing TxxtMarker (minimum 5 tokens)
-            let mut consumed = 5;
+            return Ok(None);
+        }
+
+        // Scan forward to find closing TxxtMarker
+        let mut closing_marker_pos = None;
+        for (i, token) in scanner_tokens.iter().enumerate().skip(start_index + 3) {
+            if matches!(token, ScannerToken::TxxtMarker { .. }) {
+                closing_marker_pos = Some(i);
+                break;
+            }
+            // Stop if we hit structural tokens before finding closing marker
+            if matches!(
+                token,
+                ScannerToken::Newline { .. }
+                    | ScannerToken::BlankLine { .. }
+                    | ScannerToken::Indent { .. }
+                    | ScannerToken::Dedent { .. }
+            ) {
+                break;
+            }
+        }
+
+        if let Some(closing_pos) = closing_marker_pos {
+            // Extract tokens up to and including the closing TxxtMarker
+            let mut consumed = closing_pos - start_index + 1;
 
             // Look for optional content after the closing TxxtMarker
-            let mut i = start_index + 5;
+            let mut i = closing_pos + 1;
             while i < scanner_tokens.len() {
                 let token = &scanner_tokens[i];
                 match token {
@@ -457,10 +479,11 @@ impl SemanticAnalyzer {
             }
 
             let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
-            return Ok(Some((pattern_tokens, consumed)));
+            Ok(Some((pattern_tokens, consumed)))
+        } else {
+            // No closing TxxtMarker found
+            Ok(None)
         }
-
-        Ok(None)
     }
 
     /// Recognize verbatim block pattern: VerbatimTitle + IndentationWall + ... + VerbatimLabel
@@ -562,7 +585,8 @@ impl SemanticAnalyzer {
                 }
             }
 
-            // Annotation pattern: TxxtMarker + ... + TxxtMarker
+            // Annotation pattern: TxxtMarker + Whitespace + (Identifier|Text) + ... + TxxtMarker
+            // The middle can include parameters: Colon + Identifier + Equals + Text/QuotedString + Comma + ...
             ScannerToken::TxxtMarker { .. } => {
                 if pattern_tokens.len() >= 5
                     && matches!(pattern_tokens[1], ScannerToken::Whitespace { .. })
@@ -570,14 +594,20 @@ impl SemanticAnalyzer {
                         pattern_tokens[2],
                         ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
                     )
-                    && matches!(pattern_tokens[3], ScannerToken::Whitespace { .. })
-                    && matches!(pattern_tokens[4], ScannerToken::TxxtMarker { .. })
                 {
-                    let span = SourceSpan {
-                        start: pattern_tokens[0].span().start,
-                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
-                    };
-                    return self.transform_annotation(pattern_tokens, span);
+                    // Find closing TxxtMarker
+                    let has_closing_marker = pattern_tokens
+                        .iter()
+                        .skip(3)
+                        .any(|t| matches!(t, ScannerToken::TxxtMarker { .. }));
+
+                    if has_closing_marker {
+                        let span = SourceSpan {
+                            start: pattern_tokens[0].span().start,
+                            end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                        };
+                        return self.transform_annotation(pattern_tokens, span);
+                    }
                 }
             }
 

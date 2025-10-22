@@ -4,9 +4,13 @@
 //! test suites. This ensures that parameter format changes only require updates
 //! in one place.
 
+#![allow(dead_code)] // Functions will be used when tests are migrated (Task 9)
+
 use std::collections::HashMap;
 use txxt::ast::elements::components::parameters::Parameters as AstParameters;
-use txxt::cst::{HighLevelToken, HighLevelTokenBuilder, Position, ScannerToken, ScannerTokenSequence};
+use txxt::cst::{
+    HighLevelToken, HighLevelTokenBuilder, Position, ScannerToken, ScannerTokenSequence,
+};
 
 /// Create AST Parameters node from a map (test fixture)
 pub fn create_ast_parameters(map: HashMap<String, String>) -> AstParameters {
@@ -55,7 +59,7 @@ pub fn parse_parameter_string(input: &str) -> HashMap<String, String> {
 pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String, String> {
     let mut params = HashMap::new();
     let mut i = 0;
-    
+
     while i < tokens.len() {
         // Skip to potential parameter tokens
         while i < tokens.len() {
@@ -68,30 +72,30 @@ pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String
                 _ => i += 1,
             }
         }
-        
+
         if i >= tokens.len() {
             break;
         }
-        
+
         // Try to parse Identifier = Value pattern
         if let ScannerToken::Identifier { content: key, .. } = &tokens[i] {
             let key = key.clone();
             i += 1;
-            
+
             // Skip whitespace
             while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
                 i += 1;
             }
-            
+
             // Look for equals
             if i < tokens.len() && matches!(&tokens[i], ScannerToken::Equals { .. }) {
                 i += 1;
-                
+
                 // Skip whitespace
                 while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
                     i += 1;
                 }
-                
+
                 // Get value
                 if i < tokens.len() {
                     let value = match &tokens[i] {
@@ -100,7 +104,7 @@ pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String
                         ScannerToken::Identifier { content, .. } => content.clone(),
                         _ => continue,
                     };
-                    
+
                     params.insert(key, value);
                     i += 1;
                 }
@@ -112,7 +116,7 @@ pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String
             i += 1;
         }
     }
-    
+
     params
 }
 
@@ -132,10 +136,7 @@ pub fn count_parameters_in_tokens(tokens: &[ScannerToken]) -> usize {
 }
 
 /// Assert that parameters match expected values (test helper)
-pub fn assert_parameters_match(
-    actual: &HashMap<String, String>,
-    expected: &[(&str, &str)],
-) {
+pub fn assert_parameters_match(actual: &HashMap<String, String>, expected: &[(&str, &str)]) {
     assert_eq!(
         actual.len(),
         expected.len(),
@@ -143,7 +144,7 @@ pub fn assert_parameters_match(
         actual,
         expected
     );
-    
+
     for (key, value) in expected {
         assert_eq!(
             actual.get(*key),
@@ -153,5 +154,19 @@ pub fn assert_parameters_match(
             actual,
             value
         );
+    }
+}
+
+/// Extract parameters from a verbatim label string (e.g., "python:version=3.9,style=pep8")
+///
+/// At the scanner level, verbatim labels include parameters in the label string.
+/// This function splits the label at the first colon and parses the parameter portion.
+pub fn extract_parameters_from_verbatim_label(label_raw: &str) -> HashMap<String, String> {
+    // Find the first colon to split label from parameters
+    if let Some(colon_pos) = label_raw.find(':') {
+        let param_string = &label_raw[colon_pos + 1..];
+        parse_parameter_string(param_string)
+    } else {
+        HashMap::new()
     }
 }

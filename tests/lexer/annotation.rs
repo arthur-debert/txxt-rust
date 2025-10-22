@@ -353,14 +353,18 @@ fn test_simple_annotation_parameter() {
     // With new unified parameter scanning, parameters appear as regular text tokens
     // at the scanner level. They are parsed during semantic analysis phase.
     // For now, just verify that the annotation structure is preserved.
-    
+
     // Should have txxt markers
     let txxt_markers: Vec<_> = tokens
         .iter()
         .filter(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
         .collect();
-    assert_eq!(txxt_markers.len(), 2, "Expected 2 txxt markers for annotation");
-    
+    assert_eq!(
+        txxt_markers.len(),
+        2,
+        "Expected 2 txxt markers for annotation"
+    );
+
     // Should have text content (annotation label with parameters as text, and content)
     let text_tokens: Vec<_> = tokens
         .iter()
@@ -374,7 +378,10 @@ fn test_simple_annotation_parameter() {
         .collect();
 
     // The label+parameters appears as text between markers
-    assert!(!text_tokens.is_empty(), "Expected text tokens for annotation content");
+    assert!(
+        !text_tokens.is_empty(),
+        "Expected text tokens for annotation content"
+    );
 }
 
 #[test]
@@ -385,14 +392,18 @@ fn test_simple_definition_parameter() {
     // With new unified parameter scanning, parameters appear as regular text/colon tokens
     // at the scanner level. They are parsed during semantic analysis phase.
     // For now, just verify that the definition structure is preserved.
-    
+
     // Should have a txxt marker (definition terminator)
     let txxt_markers: Vec<_> = tokens
         .iter()
         .filter(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
         .collect();
-    assert_eq!(txxt_markers.len(), 1, "Expected 1 txxt marker for definition");
-    
+    assert_eq!(
+        txxt_markers.len(),
+        1,
+        "Expected 1 txxt marker for definition"
+    );
+
     // Should have colon tokens
     let colons: Vec<_> = tokens
         .iter()

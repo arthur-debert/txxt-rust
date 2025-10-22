@@ -569,7 +569,14 @@ impl HighLevelTokenBuilder {
             }
 
             // Parse key=value pair or boolean shorthand
-            if let ScannerToken::Identifier { content: key, .. } = &scanner_tokens[i] {
+            // Accept both Identifier (from scan_parameter_string) and Text (from main tokenizer)
+            let key = match &scanner_tokens[i] {
+                ScannerToken::Identifier { content, .. } => Some(content.clone()),
+                ScannerToken::Text { content, .. } => Some(content.clone()),
+                _ => None,
+            };
+
+            if let Some(key) = key {
                 i += 1;
 
                 // Skip whitespace after key

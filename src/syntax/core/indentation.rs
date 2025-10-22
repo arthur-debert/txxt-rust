@@ -217,7 +217,7 @@ pub fn is_valid_indentation_level(level: usize) -> bool {
             "INDENT_SIZE must be greater than zero to avoid division by zero"
         );
     }
-    level % INDENT_SIZE == 0
+    level.is_multiple_of(INDENT_SIZE)
 }
 
 #[cfg(test)]

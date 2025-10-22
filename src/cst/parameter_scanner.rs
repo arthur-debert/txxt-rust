@@ -8,8 +8,33 @@
 //! - Comma (,)
 //! - Colon (:) (separator between label and parameters)
 //!
-//! The scanner produces basic tokens that are later assembled into a Parameters
-//! semantic token by the high-level tokenizer.
+//! # Parameter Processing Flow
+//!
+//! Parameters are processed through three levels:
+//!
+//! ## Scanner Level (this module)
+//! ```text
+//! "key=value,key2=val2"
+//! → [Identifier("key"), Equals, Text("value"), Comma, Identifier("key2"), Equals, Text("val2")]
+//! ```
+//! See: [`scan_parameter_string`]
+//!
+//! ## High-Level Token Level
+//! ```text
+//! [Identifier("key"), Equals, Text("value"), Comma, ...]
+//! → Parameters { map: {key: "value", key2: "val2"} }
+//! ```
+//! See: [`crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens`]
+//!
+//! ## AST Level
+//! ```text
+//! Parameters { map: {...} }
+//! → AstParameters { map: {...}, tokens: ... }
+//! ```
+//! See: `crate::ast::elements::components::parameters`
+//!
+//! This three-level architecture ensures consistent parameter handling across
+//! all element types (annotations, definitions, verbatim blocks).
 
 use super::primitives::{Position, SourceSpan};
 use super::scanner_tokens::ScannerToken;

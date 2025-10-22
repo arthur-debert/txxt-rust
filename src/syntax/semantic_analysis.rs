@@ -1754,12 +1754,18 @@ impl SemanticAnalyzer {
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The parameters semantic token
+    ///
+    /// # Parameter Processing
+    ///
+    /// See [`crate::cst::parameter_scanner`] for the complete three-level parameter flow.
+    /// This function uses the high-level token builder (Step 2 of the flow).
     fn parse_parameters(
         &self,
         tokens: &[ScannerToken],
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
         // Use the unified parameter builder from high-level tokens
-        // This properly parses key=value pairs from scanner tokens
+        // See: crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens
+        // for the parameter processing flow documentation
         HighLevelTokenBuilder::parameters_from_scanner_tokens(tokens).ok_or_else(|| {
             SemanticAnalysisError::InvalidParameterSyntax(
                 "Failed to parse parameters from scanner tokens".to_string(),

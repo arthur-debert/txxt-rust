@@ -532,6 +532,23 @@ impl HighLevelTokenBuilder {
     /// Takes a sequence of scanner tokens (Identifier, Equals, Text/QuotedString, Comma)
     /// and assembles them into a Parameters high-level token.
     ///
+    /// # Parameter Processing Flow
+    ///
+    /// This is **Step 2** of the three-level parameter processing:
+    ///
+    /// ```text
+    /// Step 1 (Scanner): "key=value,key2=val2"
+    ///        → [Identifier("key"), Equals, Text("value"), Comma, ...]
+    ///
+    /// Step 2 (This function): [Identifier("key"), Equals, Text("value"), ...]
+    ///        → Parameters { map: {key: "value", key2: "val2"} }
+    ///
+    /// Step 3 (AST): Parameters { map: {...} }
+    ///        → AstParameters { map: {...}, tokens: ... }
+    /// ```
+    ///
+    /// See: [`crate::cst::parameter_scanner`] for Scanner level (Step 1)
+    ///
     /// # Arguments
     /// * `scanner_tokens` - Slice of scanner tokens representing parameters
     ///

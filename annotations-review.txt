@@ -1,0 +1,39 @@
+With time, it's become clear that annotations are a fundamental part of the TXXT format, and that we can leverage them more consistenly in various contexts.
+In order to do so, help me review my mental model on annotations.
+
+Here's is my understanding: 
+
+- annotations have a label, an indetifier like "note", "warning", "example", etc, which supports namespaces (txxt.foo)
+- annotatins have an optional parameters, which are key-value pairs like "severity=high", "ref=123", "id=456", etc.
+- annotatins have an optional content, which can be a simple text string, or a block of text, or a list of text strings, or a list of blocks, etc.
+- annotations have two forms single lines or multi-line
+
+Task: review the annotations, from specs to tokenization and final parsing, and present how they work and what about my mental model does not match the reality
+
+
+specs: 
+docs/specs/elements/annotation/examples
+docs/specs/elements/annotation/examples/01-simple-nosession-single-annotation.txxt
+docs/specs/elements/annotation/examples/02-simple-nosession-multiple-annotation.txxt
+docs/specs/elements/annotation/examples/03-simple-flat-single-annotation.txxt
+docs/specs/elements/annotation/examples/04-simple-flat-multiple-annotation.txxt
+docs/specs/elements/annotation/examples/05-simple-nested-multiple-annotation.txxt
+docs/specs/elements/annotation/annotation.txxt
+
+tokens: 
+src/cst/high_level_tokens.rs
+src/cst/mod.rs
+src/cst/parameter_scanner.rs
+src/cst/primitives.rs
+src/cst/scanner_tokens.rs
+
+
+ast: 
+src/ast/elements/annotation/annotation_block.rs
+src/ast/elements/annotation/annotation_content.rs
+src/ast/elements/annotation/mod.rs
+
+
+parsing : 
+src/semantic/ast_construction.rs
+src/semantic/elements/annotation/mod.rs

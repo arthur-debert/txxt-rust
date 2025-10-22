@@ -69,15 +69,12 @@ fn test_annotation_basic_transformation() {
             assert!(parameters.is_none());
             assert!(content.is_none());
 
-            // Check that the label is a TextSpan
+            // Check that the label is a Label token (unified label parsing)
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "note");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "note");
                 }
-                _ => panic!("Expected TextSpan label, got {:?}", label.as_ref()),
+                _ => panic!("Expected Label token, got {:?}", label.as_ref()),
             }
         }
         _ => panic!(
@@ -164,13 +161,10 @@ fn test_annotation_with_content() {
 
             // Check that the label is correct
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "warning");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "warning");
                 }
-                _ => panic!("Expected TextSpan label, got {:?}", label.as_ref()),
+                _ => panic!("Expected Label token, got {:?}", label.as_ref()),
             }
 
             // Check that the content is correct
@@ -281,13 +275,10 @@ fn test_annotation_with_parameters() {
 
             // Check that the label is correct
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "meta");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "meta");
                 }
-                _ => panic!("Expected TextSpan label, got {:?}", label.as_ref()),
+                _ => panic!("Expected Label token, got {:?}", label.as_ref()),
             }
 
             // Check that the parameters are correct
@@ -459,7 +450,8 @@ fn test_annotation_no_closing_marker() {
 
 #[test]
 fn test_annotation_builder() {
-    let label_token = HighLevelTokenBuilder::text_span(
+    // Create Label token (not TextSpan) for unified label parsing
+    let label_token = HighLevelTokenBuilder::label(
         "note".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 3 },
@@ -496,13 +488,10 @@ fn test_annotation_builder() {
             assert!(content.is_some());
 
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "note");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "note");
                 }
-                _ => panic!("Expected TextSpan label, got {:?}", label.as_ref()),
+                _ => panic!("Expected Label token, got {:?}", label.as_ref()),
             }
 
             match content.as_ref().unwrap().as_ref() {
@@ -524,7 +513,8 @@ fn test_annotation_builder() {
 
 #[test]
 fn test_annotation_span_trait() {
-    let label_token = HighLevelTokenBuilder::text_span(
+    // Create Label token (not TextSpan) for unified label parsing
+    let label_token = HighLevelTokenBuilder::label(
         "note".to_string(),
         SourceSpan {
             start: Position { row: 1, column: 3 },
@@ -626,13 +616,10 @@ fn test_annotation_different_labels() {
                 assert!(content.is_none());
 
                 match label.as_ref() {
-                    HighLevelToken::TextSpan {
-                        content: actual_label,
-                        ..
-                    } => {
-                        assert_eq!(actual_label, *label_text);
+                    HighLevelToken::Label { text, .. } => {
+                        assert_eq!(text, *label_text);
                     }
-                    _ => panic!("Expected TextSpan label, got {:?}", label.as_ref()),
+                    _ => panic!("Expected Label token, got {:?}", label.as_ref()),
                 }
             }
             _ => panic!(
@@ -747,13 +734,10 @@ fn test_annotation_complex_content() {
             assert!(content.is_some());
 
             match label.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: label_content,
-                    ..
-                } => {
-                    assert_eq!(label_content, "description");
+                HighLevelToken::Label { text, .. } => {
+                    assert_eq!(text, "description");
                 }
-                _ => panic!("Expected TextSpan label, got {:?}", label.as_ref()),
+                _ => panic!("Expected Label token, got {:?}", label.as_ref()),
             }
 
             match content.as_ref().unwrap().as_ref() {

@@ -228,15 +228,13 @@ mod framework_tests {
             },
         });
 
-        SessionContainerElement::Annotation(
-            AnnotationBlock::new(
-                label.to_string(),
-                AnnotationContent::Inline(vec![text_transform]),
-                Parameters::new(),
-                Vec::new(),
-                ScannerTokenSequence::new()
-            )
-        )
+        SessionContainerElement::Annotation(AnnotationBlock::new(
+            label.to_string(),
+            AnnotationContent::Inline(vec![text_transform]),
+            Parameters::new(),
+            Vec::new(),
+            ScannerTokenSequence::new(),
+        ))
     }
 
     #[test]
@@ -686,15 +684,13 @@ mod framework_tests {
             parameters: Parameters::new(),
         };
 
-        let element = SessionContainerElement::Annotation(
-            AnnotationBlock::new(
-                "note".to_string(),
-                AnnotationContent::Block(block_content),
-                Parameters::new(),
-                Vec::new(),
-                ScannerTokenSequence::new()
-            )
-        );
+        let element = SessionContainerElement::Annotation(AnnotationBlock::new(
+            "note".to_string(),
+            AnnotationContent::Block(block_content),
+            Parameters::new(),
+            Vec::new(),
+            ScannerTokenSequence::new(),
+        ));
 
         assert_annotation(
             &element,

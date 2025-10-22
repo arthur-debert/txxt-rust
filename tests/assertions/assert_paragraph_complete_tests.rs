@@ -55,9 +55,7 @@ fn make_paragraph(
     // Field 2: annotations (Vec<Annotation>)
     let annotation_vec = annotations
         .iter()
-        .map(|label| {
-            Annotation::new(label.to_string(), AnnotationContent::Empty)
-        })
+        .map(|label| Annotation::new(label.to_string(), AnnotationContent::Empty))
         .collect();
 
     // Field 3: parameters (Parameters)

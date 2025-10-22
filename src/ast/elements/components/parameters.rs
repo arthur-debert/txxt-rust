@@ -6,6 +6,24 @@
 //!
 //! src/parser/mod.rs has the full architecture overview.
 //!
+//! # Parameter Processing Flow
+//!
+//! This is **Step 3** (AST Level) of the three-level parameter processing:
+//!
+//! ```text
+//! Step 1 (Scanner): "key=value,key2=val2"
+//!        → [Identifier("key"), Equals, Text("value"), Comma, ...]
+//!        See: crate::cst::parameter_scanner
+//!
+//! Step 2 (High-Level): [Identifier("key"), Equals, Text("value"), ...]
+//!        → Parameters { map: {key: "value", key2: "val2"} }
+//!        See: crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens
+//!
+//! Step 3 (AST - THIS MODULE): Parameters { map: {...} }
+//!        → AstParameters { map: {...}, tokens: ... }
+//!        See: Parameters::from_high_level_token
+//! ```
+//!
 //! ## Parameter Syntax Examples
 //!
 //! Verbatim blocks:

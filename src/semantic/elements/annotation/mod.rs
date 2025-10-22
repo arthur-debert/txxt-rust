@@ -9,7 +9,7 @@
 use crate::ast::elements::annotation::annotation_block::{AnnotationBlock, AnnotationContent};
 use crate::ast::elements::containers::content::ContentContainerElement;
 use crate::ast::elements::containers::ContentContainer;
-use crate::cst::{HighLevelToken, ScannerTokenSequence};
+use crate::cst::HighLevelToken;
 use crate::semantic::ast_construction::AstNode;
 use crate::semantic::BlockParseError;
 
@@ -26,12 +26,27 @@ pub fn create_annotation_element(
     content_nodes: &[AstNode],
 ) -> Result<AnnotationBlock, BlockParseError> {
     match token {
-        HighLevelToken::Annotation { label, .. } => {
+        HighLevelToken::Annotation {
+            label,
+            parameters,
+            tokens,
+            ..
+        } => {
             // Extract label text
             let label_text = match label.as_ref() {
                 HighLevelToken::Label { text, .. } => text.clone(),
                 HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
+            };
+
+            // Extract parameters using unified constructor
+            // See: crate::ast::elements::components::parameters for parameter flow
+            let extracted_params = if let Some(params_token) = parameters {
+                crate::ast::elements::components::parameters::Parameters::from_high_level_token(
+                    params_token.as_ref(),
+                )
+            } else {
+                crate::ast::elements::components::parameters::Parameters::new()
             };
 
             // Separate nested annotations from other content
@@ -69,9 +84,8 @@ pub fn create_annotation_element(
                 label: label_text,
                 content,
                 annotations: nested_annotations,
-                // FIXME: post-parser - Extract parameters from token instead of empty Parameters
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
-                tokens: ScannerTokenSequence::new(),
+                parameters: extracted_params,
+                tokens: tokens.clone(),
                 // FIXME: post-parser - Extract namespace from label (e.g., "org.example.custom")
                 namespace: None,
             })

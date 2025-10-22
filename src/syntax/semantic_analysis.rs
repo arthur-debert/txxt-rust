@@ -1728,45 +1728,13 @@ impl SemanticAnalyzer {
         &self,
         tokens: &[ScannerToken],
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // For now, create a simple parameters token with the raw content
-        // This will be enhanced in future iterations to properly parse key=value pairs
-        // Filter out whitespace for parameters to create clean key=value pairs
-        let content = tokens
-            .iter()
-            .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
-            .map(|token| token.content())
-            .collect::<Vec<&str>>()
-            .join("");
-
-        // Create a simple parameters map (placeholder implementation)
-        let mut params = std::collections::HashMap::new();
-        params.insert("raw".to_string(), content);
-
-        // Calculate span for the parameters
-        let span = if tokens.is_empty() {
-            SourceSpan {
-                start: Position { row: 0, column: 0 },
-                end: Position { row: 0, column: 0 },
-            }
-        } else {
-            SourceSpan {
-                start: tokens[0].span().start,
-                end: tokens[tokens.len() - 1].span().end,
-            }
-        };
-
-        // Aggregate source tokens for preservation
-        let aggregated_tokens = if !tokens.is_empty() {
-            ScannerTokenSequence::from_tokens(tokens.to_vec())
-        } else {
-            ScannerTokenSequence::new()
-        };
-
-        Ok(HighLevelTokenBuilder::parameters_with_tokens(
-            params,
-            span,
-            aggregated_tokens,
-        ))
+        // Use the unified parameter builder from high-level tokens
+        // This properly parses key=value pairs from scanner tokens
+        HighLevelTokenBuilder::parameters_from_scanner_tokens(tokens).ok_or_else(|| {
+            SemanticAnalysisError::InvalidParameterSyntax(
+                "Failed to parse parameters from scanner tokens".to_string(),
+            )
+        })
     }
 
     /// Parse annotation content tokens into a semantic token

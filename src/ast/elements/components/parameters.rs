@@ -83,6 +83,29 @@ impl Parameters {
         }
     }
 
+    /// Create parameters from a Parameters high-level token
+    ///
+    /// This is the unified constructor that all element parsers should use.
+    /// It extracts the key-value pairs and scanner tokens from the Parameters
+    /// semantic token and creates the AST Parameters node.
+    ///
+    /// # Arguments
+    /// * `params_token` - The Parameters high-level token
+    ///
+    /// # Returns
+    /// An AST Parameters node with the extracted key-value pairs
+    pub fn from_high_level_token(params_token: &crate::cst::HighLevelToken) -> Self {
+        if let crate::cst::HighLevelToken::Parameters { params, tokens, .. } = params_token {
+            Self {
+                map: params.clone(),
+                tokens: tokens.clone(),
+            }
+        } else {
+            // Should never happen if called correctly, but provide empty fallback
+            Self::new()
+        }
+    }
+
     /// Get parameter value by key
     pub fn get(&self, key: &str) -> Option<&String> {
         self.map.get(key)

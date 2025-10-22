@@ -312,9 +312,10 @@ mod edge_case_tests {
 
     #[test]
     fn special_characters_in_values() {
+        // Per spec: Special characters (including colons) require quoting
         let test_cases = [
             (
-                "url=https://example.com",
+                r#"url="https://example.com""#,
                 vec![("url", "https://example.com")],
             ),
             ("pattern=*.txt", vec![("pattern", "*.txt")]),

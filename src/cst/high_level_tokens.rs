@@ -616,20 +616,28 @@ impl HighLevelTokenBuilder {
                         i += 1;
                     }
 
-                    // Get value
-                    if i < scanner_tokens.len() {
-                        let value = match &scanner_tokens[i] {
-                            ScannerToken::Text { content, .. } => content.clone(),
-                            ScannerToken::QuotedString { content, .. } => content.clone(),
-                            ScannerToken::Identifier { content, .. } => content.clone(),
-                            _ => String::new(),
-                        };
-
-                        if !value.is_empty() {
-                            params.insert(key.clone(), value);
+                    // Get value (empty values are allowed per spec)
+                    let value = if i < scanner_tokens.len() {
+                        match &scanner_tokens[i] {
+                            ScannerToken::Text { content, .. } => {
+                                i += 1;
+                                content.clone()
+                            }
+                            ScannerToken::QuotedString { content, .. } => {
+                                i += 1;
+                                content.clone()
+                            }
+                            ScannerToken::Identifier { content, .. } => {
+                                i += 1;
+                                content.clone()
+                            }
+                            _ => String::new(), // Empty value (key= with nothing after)
                         }
-                        i += 1;
-                    }
+                    } else {
+                        String::new() // Empty value (key= at end of input)
+                    };
+
+                    params.insert(key.clone(), value);
                 } else {
                     // Boolean shorthand - key without value means true
                     params.insert(key.clone(), "true".to_string());

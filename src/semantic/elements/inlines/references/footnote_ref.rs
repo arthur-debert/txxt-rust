@@ -118,21 +118,7 @@ use crate::semantic::elements::inlines::InlineParseError;
 /// # Returns
 /// * `Result<Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Naked footnote
-/// let tokens = tokenize("[1]");
-/// let footnote = parse_footnote_ref(&tokens)?;
-///
-/// // Labeled footnote
-/// let tokens = tokenize("[^note-label]");
-/// let footnote = parse_footnote_ref(&tokens)?;
-///
-/// // Auto-generated footnote
-/// let tokens = tokenize("[^]");
-/// let footnote = parse_footnote_ref(&tokens)?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_footnote_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement footnote reference parsing logic
     // For now, return a placeholder
@@ -186,18 +172,6 @@ pub fn parse_footnote_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline,
 ///
 /// # Returns
 /// * `Result<Option<u32>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid naked footnote
-/// let number = parse_naked_footnote("1")?;
-/// // Returns: Some(1)
-///
-/// // Invalid naked footnote
-/// let number = parse_naked_footnote("abc")?;
-/// // Returns: None
-/// ```
 pub fn parse_naked_footnote(content: &str) -> Result<Option<u32>, InlineParseError> {
     // TODO: Implement naked footnote parsing logic
     // For now, return a placeholder
@@ -222,18 +196,6 @@ pub fn parse_naked_footnote(content: &str) -> Result<Option<u32>, InlineParseErr
 ///
 /// # Returns
 /// * `Result<Option<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid labeled footnote
-/// let label = parse_labeled_footnote("^note-label")?;
-/// // Returns: Some("note-label")
-///
-/// // Auto-generated footnote
-/// let label = parse_labeled_footnote("^")?;
-/// // Returns: Some("") (indicates auto-generation)
-/// ```
 pub fn parse_labeled_footnote(content: &str) -> Result<Option<String>, InlineParseError> {
     // TODO: Implement labeled footnote parsing logic
     // For now, return a placeholder
@@ -267,18 +229,6 @@ pub fn parse_labeled_footnote(content: &str) -> Result<Option<String>, InlinePar
 ///
 /// # Returns
 /// * `bool`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid footnote label
-/// let valid = is_valid_footnote_label("note-label");
-/// // Returns: true
-///
-/// // Invalid footnote label
-/// let valid = is_valid_footnote_label("note label");
-/// // Returns: false (contains space)
-/// ```
 pub fn is_valid_footnote_label(label: &str) -> bool {
     // TODO: Implement footnote label validation logic
     // For now, return a placeholder
@@ -302,18 +252,6 @@ pub fn is_valid_footnote_label(label: &str) -> bool {
 ///
 /// # Returns
 /// * `Result<FootnoteRefType, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Naked footnote
-/// let ref_type = determine_footnote_type("1")?;
-/// // Returns: FootnoteRefType::Naked(1)
-///
-/// // Labeled footnote
-/// let ref_type = determine_footnote_type("^note-label")?;
-/// // Returns: FootnoteRefType::Labeled("note-label")
-/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum FootnoteRefType {
     /// Naked footnote with numerical reference

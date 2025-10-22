@@ -129,21 +129,7 @@ use crate::semantic::elements::inlines::InlineParseError;
 /// # Returns
 /// * `Result<Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Numbered session
-/// let tokens = tokenize("[#3]");
-/// let session_ref = parse_session_ref(&tokens)?;
-///
-/// // Hierarchical session
-/// let tokens = tokenize("[#2.1]");
-/// let session_ref = parse_session_ref(&tokens)?;
-///
-/// // Named session
-/// let tokens = tokenize("[local-section]");
-/// let session_ref = parse_session_ref(&tokens)?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_session_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement session reference parsing logic
     // For now, return a placeholder
@@ -197,18 +183,6 @@ pub fn parse_session_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, 
 ///
 /// # Returns
 /// * `Result<Option<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Simple numbered session
-/// let number = parse_numbered_session("#3")?;
-/// // Returns: Some("3")
-///
-/// // Hierarchical numbered session
-/// let number = parse_numbered_session("#2.1")?;
-/// // Returns: Some("2.1")
-/// ```
 pub fn parse_numbered_session(content: &str) -> Result<Option<String>, InlineParseError> {
     // TODO: Implement numbered session parsing logic
     // For now, return a placeholder
@@ -236,18 +210,6 @@ pub fn parse_numbered_session(content: &str) -> Result<Option<String>, InlinePar
 ///
 /// # Returns
 /// * `Result<Option<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid named session
-/// let name = parse_named_session("local-section")?;
-/// // Returns: Some("local-section")
-///
-/// // Invalid named session
-/// let name = parse_named_session("123")?;
-/// // Returns: None (starts with number)
-/// ```
 pub fn parse_named_session(content: &str) -> Result<Option<String>, InlineParseError> {
     // TODO: Implement named session parsing logic
     // For now, return a placeholder
@@ -273,18 +235,6 @@ pub fn parse_named_session(content: &str) -> Result<Option<String>, InlineParseE
 ///
 /// # Returns
 /// * `Result<Option<i32>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid negative session
-/// let index = parse_negative_session("#-1")?;
-/// // Returns: Some(-1)
-///
-/// // Valid negative session
-/// let index = parse_negative_session("#-2")?;
-/// // Returns: Some(-2)
-/// ```
 pub fn parse_negative_session(content: &str) -> Result<Option<i32>, InlineParseError> {
     // TODO: Implement negative session parsing logic
     // For now, return a placeholder
@@ -314,18 +264,6 @@ pub fn parse_negative_session(content: &str) -> Result<Option<i32>, InlineParseE
 ///
 /// # Returns
 /// * `bool`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid session number
-/// let valid = is_valid_session_number("3");
-/// // Returns: true
-///
-/// // Valid hierarchical number
-/// let valid = is_valid_session_number("2.1");
-/// // Returns: true
-/// ```
 pub fn is_valid_session_number(number: &str) -> bool {
     // TODO: Implement session number validation logic
     // For now, return a placeholder
@@ -350,18 +288,6 @@ pub fn is_valid_session_number(number: &str) -> bool {
 ///
 /// # Returns
 /// * `bool`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid session name
-/// let valid = is_valid_session_name("local-section");
-/// // Returns: true
-///
-/// // Invalid session name
-/// let valid = is_valid_session_name("123section");
-/// // Returns: false (starts with number)
-/// ```
 pub fn is_valid_session_name(name: &str) -> bool {
     // TODO: Implement session name validation logic
     // For now, return a placeholder
@@ -390,18 +316,6 @@ pub fn is_valid_session_name(name: &str) -> bool {
 ///
 /// # Returns
 /// * `Result<SessionRefType, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Numbered session
-/// let ref_type = determine_session_ref_type("#3")?;
-/// // Returns: SessionRefType::Numbered("3")
-///
-/// // Named session
-/// let ref_type = determine_session_ref_type("local-section")?;
-/// // Returns: SessionRefType::Named("local-section")
-/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum SessionRefType {
     /// Numbered session with hierarchical reference

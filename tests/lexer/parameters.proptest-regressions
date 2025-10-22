@@ -6,3 +6,5 @@
 # everyone who runs the test benefits from these saved cases.
 cc f4c8385af1ef0d262576103825b2de28edf00c6573d6bb3ba9a4791995d769e8 # shrinks to params = [("A", "A")]
 cc ba1529264596a1df6f2e2ba24fe97bdca4e10f2a7dc113035c17b4e745b0c9ea # shrinks to key = "_"
+cc dd3a8307c3547fda5c27fc5b5325f11b6a6bccddddc53fab481748688b098927 # shrinks to params = [("A", ":")]
+cc c78c8a920863bf634d8455eabb4b4ef1d9828b6e5552903851be9b3e21d3bd0f # shrinks to key = "A", value = ":"

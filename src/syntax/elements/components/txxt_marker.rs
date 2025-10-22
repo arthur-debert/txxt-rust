@@ -6,9 +6,7 @@
 //! - Standalone: isolated :: tokens
 
 use crate::cst::{Position, ScannerToken, SourceSpan};
-use crate::syntax::core::patterns::{
-    extract_raw_content_before_span, extract_raw_content_between_spans, get_current_line,
-};
+use crate::syntax::core::patterns::get_current_line;
 // Parameter parsing now done via cst::scan_parameter_string and
 // HighLevelTokenBuilder::parameters_from_scanner_tokens
 use crate::syntax::tokenization::{Lexer, LexerState};
@@ -278,10 +276,7 @@ fn find_annotation_content(
 
     if let Some(end) = end_idx {
         // Get the raw text between the markers by extracting from source
-        if let (Some(start_token), Some(end_token)) = (tokens.get(start_idx), tokens.get(end)) {
-            let start_span = start_token.span();
-            let end_span = end_token.span();
-
+        if tokens.get(start_idx).is_some() && tokens.get(end).is_some() {
             // Deprecated - just return dummy values
             Some((start_idx, end, String::new()))
         } else {
@@ -313,12 +308,7 @@ fn find_definition_content(
 
     if term_start_idx < def_idx {
         // Extract raw content from source between term start and definition marker
-        if let (Some(start_token), Some(def_token)) =
-            (tokens.get(term_start_idx), tokens.get(def_idx))
-        {
-            let start_span = start_token.span();
-            let def_span = def_token.span();
-
+        if tokens.get(term_start_idx).is_some() && tokens.get(def_idx).is_some() {
             // Deprecated - just return dummy values
             Some((String::new(), term_start_idx))
         } else {

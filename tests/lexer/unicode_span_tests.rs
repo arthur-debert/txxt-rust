@@ -688,7 +688,8 @@ fn get_token_span(token: &ScannerToken) -> &txxt::cst::SourceSpan {
         | ScannerToken::VerbatimLabel { span, .. }
         | ScannerToken::IndentationWall { span, .. }
         | ScannerToken::IgnoreTextSpan { span, .. }
-        | ScannerToken::Eof { span } => span,
+        | ScannerToken::Eof { span }
+        | ScannerToken::QuotedString { span, .. } => span,
     }
 }
 

@@ -53,12 +53,23 @@ The grammar is represented using compositional rules that combine scanner tokens
 
     1.5. Parameters Pattern
 
-        Parameters combine identifiers, equals signs, and values:
-        <Parameter> = <Identifier> <Equals> <Value>
-        <ParameterList> = <Parameter> (<Comma> <Whitespace> <Parameter>)*
+        Parameters are scanned as basic tokens and assembled into Parameters semantic token:
+        
+        Scanner-level pattern (per parameter):
+        <Parameter> = <Identifier> <Equals> (<Text> | <QuotedString>)
+        <BooleanParam> = <Identifier>
+        <ParameterList> = (<Parameter> | <BooleanParam>) (<Comma> <Whitespace>? (<Parameter> | <BooleanParam>))*
         :: grammar
 
-        Example: `version=3.11,style=functional`
+        Semantic-level representation:
+        <Parameters> = Parameters { params: HashMap<String, String>, span, tokens }
+        :: grammar
+
+        Scanner tokens are assembled by HighLevelTokenBuilder::parameters_from_scanner_tokens()
+        which extracts key-value pairs from the token sequence.
+
+        Example scanner tokens: `Identifier("version")`, `Equals`, `Text("3.11")`, `Comma`, `Identifier("debug")`
+        Example semantic token: `Parameters { params: {"version": "3.11", "debug": "true"} }`
 
     1.6. Verbatim Wall Structure
 

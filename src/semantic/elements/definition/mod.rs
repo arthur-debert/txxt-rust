@@ -8,6 +8,7 @@
 
 use crate::ast::elements::definition::block::{DefinitionBlock, DefinitionTerm};
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
+use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
 /// Create a definition element from a Definition token and content nodes
@@ -42,14 +43,8 @@ pub fn create_definition_element(
             };
 
             // Extract parameters using unified constructor
-            // See: crate::ast::elements::components::parameters for parameter flow
-            let extracted_params = if let Some(params_token) = parameters {
-                crate::ast::elements::components::parameters::Parameters::from_high_level_token(
-                    params_token.as_ref(),
-                )
-            } else {
-                crate::ast::elements::components::parameters::Parameters::new()
-            };
+            // See: crate::semantic::elements::parameters::create_parameters_ast for single source of truth
+            let extracted_params = create_parameters_ast(parameters.as_deref())?;
 
             // Create text transform for the term, preserving source tokens
             let term_content = vec![crate::ast::elements::inlines::TextTransform::Identity(

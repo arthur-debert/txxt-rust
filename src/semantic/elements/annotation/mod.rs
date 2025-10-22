@@ -11,6 +11,7 @@ use crate::ast::elements::containers::content::ContentContainerElement;
 use crate::ast::elements::containers::ContentContainer;
 use crate::cst::HighLevelToken;
 use crate::semantic::ast_construction::AstNode;
+use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
 /// Create an annotation element from an Annotation token and its parsed content
@@ -40,14 +41,8 @@ pub fn create_annotation_element(
             };
 
             // Extract parameters using unified constructor
-            // See: crate::ast::elements::components::parameters for parameter flow
-            let extracted_params = if let Some(params_token) = parameters {
-                crate::ast::elements::components::parameters::Parameters::from_high_level_token(
-                    params_token.as_ref(),
-                )
-            } else {
-                crate::ast::elements::components::parameters::Parameters::new()
-            };
+            // See: crate::semantic::elements::parameters::create_parameters_ast for single source of truth
+            let extracted_params = create_parameters_ast(parameters.as_deref())?;
 
             // Separate nested annotations from other content
             let mut nested_annotations = Vec::new();

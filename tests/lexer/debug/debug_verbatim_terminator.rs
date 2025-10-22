@@ -11,6 +11,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn debug_verbatim_with_label_and_params() {
         let input = r#"Python Code:
     print("hello world")

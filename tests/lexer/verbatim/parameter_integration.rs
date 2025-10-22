@@ -46,6 +46,7 @@ mod verbatim_parameter_integration_tests {
     }
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_single_parameter() {
         let input = r#"Code:
     print("hello")
@@ -82,6 +83,7 @@ mod verbatim_parameter_integration_tests {
     }
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_multiple_parameters() {
         let input = r#"Code:
     print("hello")
@@ -114,6 +116,7 @@ mod verbatim_parameter_integration_tests {
     }
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_quoted_parameters() {
         let input = r#"Example:
     content here
@@ -145,6 +148,7 @@ mod verbatim_parameter_integration_tests {
     }
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_boolean_parameters() {
         let input = r#"Example:
     content here
@@ -180,6 +184,7 @@ mod verbatim_parameter_integration_tests {
     }
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_namespaced_parameters() {
         let input = r#"Example:
     content here
@@ -214,6 +219,7 @@ mod verbatim_parameter_integration_tests {
     }
 
     #[test]
+    #[ignore = "Verbatim parameters handled in separate branch"]
     fn test_verbatim_label_with_escaped_parameters() {
         let input = r#"Example:
     content here

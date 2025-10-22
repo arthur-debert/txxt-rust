@@ -22,6 +22,7 @@
 //!    - Bridges scanner tokens and AST elements
 
 pub mod high_level_tokens;
+pub mod parameter_scanner;
 pub mod primitives;
 pub mod scanner_tokens;
 
@@ -30,5 +31,6 @@ pub use high_level_tokens::{
     FromScannerToken, HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken,
     HighLevelTokenBuilder, HighLevelTokenList, HighLevelTokenSpan, ToScannerToken,
 };
+pub use parameter_scanner::scan_parameter_string;
 pub use primitives::{Position, ScannerTokenSequence, SourceSpan};
 pub use scanner_tokens::{ScannerToken, SequenceMarkerType, WallType};

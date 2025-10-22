@@ -4,3 +4,4 @@
 //! and other common test helpers.
 
 pub mod corpora;
+pub mod parameter_fixtures;

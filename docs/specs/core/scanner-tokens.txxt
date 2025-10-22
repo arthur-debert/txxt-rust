@@ -20,6 +20,7 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
         - `Text`: Plain text content
         - `Whitespace`: Space and tab characters
         - `Identifier`: Structured identifiers (letters, numbers, dots, underscores, hyphens)
+        - `QuotedString`: Quoted text with escape sequences processed (for parameter values)
 
     1.2. Structural Tokens
 
@@ -206,6 +207,21 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
 
         Input: `See [@smith2023] for details`
         Tokens: `Text` `Whitespace` `LeftBracket` `AtSign` `Text` `RightBracket` `Whitespace` `Text`
+
+    5.5. Parameter Tokens
+
+        Input: `key=value,title="My Doc"`
+        Tokens: `Identifier` `Equals` `Text` `Comma` `Identifier` `Equals` `QuotedString`
+
+        Parameters are scanned as sequences of basic tokens:
+        - Parameter keys: `Identifier` tokens (support namespacing with dots)
+        - Assignment: `Equals` token
+        - Unquoted values: `Text` tokens
+        - Quoted values: `QuotedString` tokens (with escape sequences processed)
+        - Separators: `Comma` tokens
+
+        These basic tokens are later assembled into a Parameters semantic token
+        by the high-level tokenizer.
 
 6. Error Handling
 

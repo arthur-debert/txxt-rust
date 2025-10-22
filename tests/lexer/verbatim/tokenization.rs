@@ -1,54 +1,84 @@
-//! Tests for VerbatimTitle and IgnoreTextSpan token recognition
+//! Tests for VerbatimBlockStart, VerbatimContentLine, and VerbatimBlockEnd token recognition
 //!
 //! Tests the integration between verbatim scanner and tokenizer to ensure
-//! verbatim blocks are correctly identified and tokenized.
+//! verbatim blocks are correctly identified and tokenized with the new token structure.
 
 use rstest::rstest;
 use txxt::cst::ScannerToken;
 use txxt::syntax::tokenize;
 
 // =============================================================================
-// VerbatimTitle and IgnoreTextSpan Token Tests
+// VerbatimBlockStart, VerbatimContentLine, and VerbatimBlockEnd Token Tests
 // =============================================================================
 
 #[rstest]
 #[case(
     "simple title:\n    content line\n:: label\n",
     "simple title",
-    "content line"
+    vec!["    content line"]
 )]
-#[case("test:\n    line 1\n    line 2\n:: block\n", "test", "line 1\nline 2")]
+#[case(
+    "test:\n    line 1\n    line 2\n:: block\n",
+    "test",
+    vec!["    line 1", "    line 2"]
+)]
 fn test_verbatim_block_basic(
     #[case] input: &str,
     #[case] expected_title: &str,
-    #[case] expected_content: &str,
+    #[case] expected_content_lines: Vec<&str>,
 ) {
     let tokens = tokenize(input);
 
-    // Find VerbatimTitle token
+    // Find VerbatimBlockStart token
     let verbatim_start = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
-        .expect("Should find VerbatimTitle token");
+        .find(|token| matches!(token, ScannerToken::VerbatimBlockStart { .. }))
+        .expect("Should find VerbatimBlockStart token");
 
     match verbatim_start {
-        ScannerToken::VerbatimTitle { content, span } => {
-            assert_eq!(content, expected_title);
-            assert_eq!(span.start.row, 0);
-            assert_eq!(span.start.column, 0);
+        ScannerToken::VerbatimBlockStart { title, .. } => {
+            assert_eq!(title, expected_title);
         }
         _ => unreachable!(),
     }
 
-    // Find IgnoreTextSpan token
-    let verbatim_content = tokens
+    // Find all VerbatimContentLine tokens
+    let content_lines: Vec<_> = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::IgnoreTextSpan { .. }))
-        .expect("Should find IgnoreTextSpan token");
+        .filter_map(|token| match token {
+            ScannerToken::VerbatimContentLine {
+                content,
+                indentation,
+                ..
+            } => Some(format!("{}{}", indentation, content)),
+            _ => None,
+        })
+        .collect();
 
-    match verbatim_content {
-        ScannerToken::IgnoreTextSpan { content, .. } => {
-            assert_eq!(content, expected_content);
+    assert_eq!(
+        content_lines.len(),
+        expected_content_lines.len(),
+        "Should have {} content lines",
+        expected_content_lines.len()
+    );
+
+    for (i, expected) in expected_content_lines.iter().enumerate() {
+        assert_eq!(
+            &content_lines[i], expected,
+            "Content line {} should match",
+            i
+        );
+    }
+
+    // Find VerbatimBlockEnd token
+    let verbatim_end = tokens
+        .iter()
+        .find(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
+        .expect("Should find VerbatimBlockEnd token");
+
+    match verbatim_end {
+        ScannerToken::VerbatimBlockEnd { .. } => {
+            // Token exists, test passes
         }
         _ => unreachable!(),
     }
@@ -60,26 +90,36 @@ fn test_verbatim_block_basic(
 fn test_verbatim_block_empty(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should have VerbatimTitle but no IgnoreTextSpan
+    // Should have VerbatimBlockStart and VerbatimBlockEnd but no VerbatimContentLine
     let verbatim_starts: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
+        .filter(|token| matches!(token, ScannerToken::VerbatimBlockStart { .. }))
         .collect();
 
     let verbatim_contents: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, ScannerToken::IgnoreTextSpan { .. }))
+        .filter(|token| matches!(token, ScannerToken::VerbatimContentLine { .. }))
+        .collect();
+
+    let verbatim_ends: Vec<_> = tokens
+        .iter()
+        .filter(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
         .collect();
 
     assert_eq!(
         verbatim_starts.len(),
         1,
-        "Should have one VerbatimTitle token"
+        "Should have one VerbatimBlockStart token"
     );
     assert_eq!(
         verbatim_contents.len(),
         0,
-        "Should have no IgnoreTextSpan tokens for empty block"
+        "Should have no VerbatimContentLine tokens for empty block"
+    );
+    assert_eq!(
+        verbatim_ends.len(),
+        1,
+        "Should have one VerbatimBlockEnd token"
     );
 }
 
@@ -87,44 +127,59 @@ fn test_verbatim_block_empty(#[case] input: &str) {
 #[case(
     "stretched:\ncontent at column 0\n:: label\n",
     "stretched",
-    "content at column 0"
+    vec!["content at column 0"]
 )]
 #[case(
     "stretched block:\nline 1\nline 2\n:: label\n",
     "stretched block",
-    "line 1\nline 2"
+    vec!["line 1", "line 2"]
 )]
 fn test_verbatim_block_stretched(
     #[case] input: &str,
     #[case] expected_title: &str,
-    #[case] expected_content: &str,
+    #[case] expected_content_lines: Vec<&str>,
 ) {
     let tokens = tokenize(input);
 
-    // Find VerbatimTitle token
+    // Find VerbatimBlockStart token
     let verbatim_start = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
-        .expect("Should find VerbatimTitle token");
+        .find(|token| matches!(token, ScannerToken::VerbatimBlockStart { .. }))
+        .expect("Should find VerbatimBlockStart token");
 
     match verbatim_start {
-        ScannerToken::VerbatimTitle { content, .. } => {
-            assert_eq!(content, expected_title);
+        ScannerToken::VerbatimBlockStart { title, .. } => {
+            assert_eq!(title, expected_title);
         }
         _ => unreachable!(),
     }
 
-    // Find IgnoreTextSpan token
-    let verbatim_content = tokens
+    // Find all VerbatimContentLine tokens and reconstruct content
+    let content_lines: Vec<_> = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::IgnoreTextSpan { .. }))
-        .expect("Should find IgnoreTextSpan token");
+        .filter_map(|token| match token {
+            ScannerToken::VerbatimContentLine {
+                content,
+                indentation,
+                ..
+            } => Some(format!("{}{}", indentation, content)),
+            _ => None,
+        })
+        .collect();
 
-    match verbatim_content {
-        ScannerToken::IgnoreTextSpan { content, .. } => {
-            assert_eq!(content, expected_content);
-        }
-        _ => unreachable!(),
+    assert_eq!(
+        content_lines.len(),
+        expected_content_lines.len(),
+        "Should have {} content lines",
+        expected_content_lines.len()
+    );
+
+    for (i, expected) in expected_content_lines.iter().enumerate() {
+        assert_eq!(
+            &content_lines[i], expected,
+            "Content line {} should match",
+            i
+        );
     }
 }
 
@@ -139,23 +194,33 @@ fn test_non_verbatim_content(#[case] input: &str) {
     // Should not contain any verbatim tokens
     let verbatim_starts: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, ScannerToken::VerbatimTitle { .. }))
+        .filter(|token| matches!(token, ScannerToken::VerbatimBlockStart { .. }))
         .collect();
 
     let verbatim_contents: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, ScannerToken::IgnoreTextSpan { .. }))
+        .filter(|token| matches!(token, ScannerToken::VerbatimContentLine { .. }))
+        .collect();
+
+    let verbatim_ends: Vec<_> = tokens
+        .iter()
+        .filter(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
         .collect();
 
     assert_eq!(
         verbatim_starts.len(),
         0,
-        "Should not have VerbatimTitle tokens for non-verbatim content"
+        "Should not have VerbatimBlockStart tokens for non-verbatim content"
     );
     assert_eq!(
         verbatim_contents.len(),
         0,
-        "Should not have IgnoreTextSpan tokens for non-verbatim content"
+        "Should not have VerbatimContentLine tokens for non-verbatim content"
+    );
+    assert_eq!(
+        verbatim_ends.len(),
+        0,
+        "Should not have VerbatimBlockEnd tokens for non-verbatim content"
     );
 }
 

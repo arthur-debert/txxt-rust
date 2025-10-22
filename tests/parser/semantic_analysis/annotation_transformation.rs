@@ -222,10 +222,24 @@ fn test_annotation_with_parameters() {
                 end: Position { row: 1, column: 8 },
             },
         },
-        ScannerToken::Text {
-            content: "version=2.0".to_string(),
+        // Parameters are now scanned as basic tokens (Identifier, Equals, Text)
+        ScannerToken::Identifier {
+            content: "version".to_string(),
             span: SourceSpan {
                 start: Position { row: 1, column: 8 },
+                end: Position { row: 1, column: 15 },
+            },
+        },
+        ScannerToken::Equals {
+            span: SourceSpan {
+                start: Position { row: 1, column: 15 },
+                end: Position { row: 1, column: 16 },
+            },
+        },
+        ScannerToken::Text {
+            content: "2.0".to_string(),
+            span: SourceSpan {
+                start: Position { row: 1, column: 16 },
                 end: Position { row: 1, column: 19 },
             },
         },
@@ -279,8 +293,8 @@ fn test_annotation_with_parameters() {
             // Check that the parameters are correct
             match parameters.as_ref().unwrap().as_ref() {
                 HighLevelToken::Parameters { params, .. } => {
-                    assert!(params.contains_key("raw"));
-                    assert_eq!(params.get("raw").unwrap(), "version=2.0");
+                    // With unified parameter scanner, we get actual parsed parameters
+                    assert_eq!(params.get("version"), Some(&"2.0".to_string()));
                 }
                 _ => panic!("Expected Parameters, got {:?}", parameters.as_ref()),
             }

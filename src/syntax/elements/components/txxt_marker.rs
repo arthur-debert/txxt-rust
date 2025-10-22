@@ -6,10 +6,9 @@
 //! - Standalone: isolated :: tokens
 
 use crate::cst::{Position, ScannerToken, SourceSpan};
-use crate::syntax::core::patterns::{
-    extract_raw_content_before_span, extract_raw_content_between_spans, get_current_line,
-};
-use crate::syntax::elements::components::parameters::{parse_parameters, ParameterLexer};
+use crate::syntax::core::patterns::get_current_line;
+// Parameter parsing now done via cst::scan_parameter_string and
+// HighLevelTokenBuilder::parameters_from_scanner_tokens
 use crate::syntax::tokenization::{Lexer, LexerState};
 use regex::Regex;
 
@@ -241,93 +240,25 @@ pub fn is_start_of_annotation_pattern<L: TxxtMarkerLexer>(lexer: &L, start_pos: 
     content_before.trim().is_empty()
 }
 
-/// Simple annotation parameter integration - find :: label:params :: and split
-pub fn integrate_annotation_parameters<L: ParameterLexer>(
-    tokens: Vec<ScannerToken>,
-    lexer: &mut L,
-) -> Vec<ScannerToken> {
-    let mut result = Vec::new();
-    let mut i = 0;
-
-    while i < tokens.len() {
-        if let Some(ScannerToken::TxxtMarker { .. }) = tokens.get(i) {
-            // Look for content between annotation markers
-            if let Some((start_idx, end_idx, content)) = find_annotation_content(&tokens, i, lexer)
-            {
-                // Add opening marker
-                result.push(tokens[start_idx].clone());
-
-                // Split content at first colon for parameters
-                if let Some(colon_pos) = content.find(':') {
-                    let label = &content[..colon_pos];
-                    let params_str = &content[colon_pos + 1..];
-
-                    // Add clean label token
-                    if let Some(first_token) = tokens.get(start_idx + 1) {
-                        result.push(ScannerToken::Text {
-                            content: label.to_string(),
-                            span: first_token.span().clone(),
-                        });
-                    }
-
-                    // Add colon token to separate label from parameters
-                    result.push(ScannerToken::Colon {
-                        span: SourceSpan {
-                            start: Position {
-                                row: 0, // This is a synthetic token, position isn't exact
-                                column: 0,
-                            },
-                            end: Position { row: 0, column: 0 },
-                        },
-                    });
-
-                    // Add parameter tokens using existing parse_parameters
-                    if !params_str.trim().is_empty() {
-                        let param_tokens = parse_parameters(lexer, params_str);
-                        result.extend(param_tokens);
-                    }
-                } else {
-                    // No parameters, create a clean TEXT token with the raw content
-                    if let Some(first_token) = tokens.get(start_idx + 1) {
-                        result.push(ScannerToken::Text {
-                            content: content.clone(),
-                            span: first_token.span().clone(),
-                        });
-                    }
-                }
-
-                // Add closing marker
-                result.push(tokens[end_idx].clone());
-                i = end_idx + 1;
-            } else {
-                result.push(tokens[i].clone());
-                i += 1;
-            }
-        } else {
-            result.push(tokens[i].clone());
-            i += 1;
-        }
-    }
-
-    result
-}
-
-/// Simple definition parameter integration - find term:params :: and split
-pub fn integrate_definition_parameters<L: ParameterLexer>(
-    tokens: Vec<ScannerToken>,
-    _lexer: &mut L,
-) -> Vec<ScannerToken> {
-    // For now, disable parameter integration to fix duplication issue
-    // TODO: Implement proper parameter parsing without token duplication
+/// DEPRECATED: Parameter integration now handled by unified parameter scanner
+/// This function is kept for backwards compatibility but returns tokens as-is.
+pub fn integrate_annotation_parameters(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
+    // Parameters are now handled at semantic analysis phase
     tokens
 }
 
-/// Find annotation content between markers by extracting raw text
+/// DEPRECATED: Parameter integration now handled by unified parameter scanner
+/// This function is kept for backwards compatibility but returns tokens as-is.
+pub fn integrate_definition_parameters(tokens: Vec<ScannerToken>) -> Vec<ScannerToken> {
+    // Parameters are now handled at semantic analysis phase
+    tokens
+}
+
+/// DEPRECATED: No longer used - parameters handled at semantic analysis phase
 #[allow(dead_code)]
-fn find_annotation_content<L: ParameterLexer>(
+fn find_annotation_content(
     tokens: &[ScannerToken],
     start_idx: usize,
-    lexer: &L,
 ) -> Option<(usize, usize, String)> {
     let mut end_idx = None;
 
@@ -341,14 +272,9 @@ fn find_annotation_content<L: ParameterLexer>(
 
     if let Some(end) = end_idx {
         // Get the raw text between the markers by extracting from source
-        if let (Some(start_token), Some(end_token)) = (tokens.get(start_idx), tokens.get(end)) {
-            let start_span = start_token.span();
-            let end_span = end_token.span();
-
-            // Extract raw content between markers from input source
-            let input = lexer.get_input();
-            let content = extract_raw_content_between_spans(start_span, end_span, input);
-            Some((start_idx, end, content))
+        if tokens.get(start_idx).is_some() && tokens.get(end).is_some() {
+            // Deprecated - just return dummy values
+            Some((start_idx, end, String::new()))
         } else {
             None
         }
@@ -359,11 +285,7 @@ fn find_annotation_content<L: ParameterLexer>(
 
 /// Find definition content before marker by extracting raw text
 #[allow(dead_code)]
-fn find_definition_content<L: ParameterLexer>(
-    tokens: &[ScannerToken],
-    def_idx: usize,
-    lexer: &L,
-) -> Option<(String, usize)> {
+fn find_definition_content(tokens: &[ScannerToken], def_idx: usize) -> Option<(String, usize)> {
     let mut term_start_idx = def_idx;
 
     // Look backwards for the start of term content
@@ -379,16 +301,9 @@ fn find_definition_content<L: ParameterLexer>(
 
     if term_start_idx < def_idx {
         // Extract raw content from source between term start and definition marker
-        if let (Some(start_token), Some(def_token)) =
-            (tokens.get(term_start_idx), tokens.get(def_idx))
-        {
-            let start_span = start_token.span();
-            let def_span = def_token.span();
-
-            // Extract raw content from start of term to before the :: marker
-            let input = lexer.get_input();
-            let content = extract_raw_content_before_span(start_span, def_span, input);
-            Some((content, term_start_idx))
+        if tokens.get(term_start_idx).is_some() && tokens.get(def_idx).is_some() {
+            // Deprecated - just return dummy values
+            Some((String::new(), term_start_idx))
         } else {
             None
         }

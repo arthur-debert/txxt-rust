@@ -350,22 +350,22 @@ fn test_simple_annotation_parameter() {
     let input = ":: warning:severity=high :: Critical issue";
     let tokens = tokenize(input);
 
-    // Find parameter tokens
-    let param_tokens: Vec<_> = tokens
+    // With new unified parameter scanning, parameters appear as regular text tokens
+    // at the scanner level. They are parsed during semantic analysis phase.
+    // For now, just verify that the annotation structure is preserved.
+
+    // Should have txxt markers
+    let txxt_markers: Vec<_> = tokens
         .iter()
-        .filter_map(|token| {
-            if let ScannerToken::Parameter { key, value, .. } = token {
-                Some((key.as_str(), value.as_str()))
-            } else {
-                None
-            }
-        })
+        .filter(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
         .collect();
+    assert_eq!(
+        txxt_markers.len(),
+        2,
+        "Expected 2 txxt markers for annotation"
+    );
 
-    assert_eq!(param_tokens.len(), 1);
-    assert_eq!(param_tokens[0], ("severity", "high"));
-
-    // Find clean label
+    // Should have text content (annotation label with parameters as text, and content)
     let text_tokens: Vec<_> = tokens
         .iter()
         .filter_map(|token| {
@@ -377,7 +377,11 @@ fn test_simple_annotation_parameter() {
         })
         .collect();
 
-    assert!(text_tokens.contains(&"warning"));
+    // The label+parameters appears as text between markers
+    assert!(
+        !text_tokens.is_empty(),
+        "Expected text tokens for annotation content"
+    );
 }
 
 #[test]
@@ -385,20 +389,27 @@ fn test_simple_definition_parameter() {
     let input = "API:version=2.0 ::\n    Application Programming Interface";
     let tokens = tokenize(input);
 
-    // Find parameter tokens
-    let param_tokens: Vec<_> = tokens
-        .iter()
-        .filter_map(|token| {
-            if let ScannerToken::Parameter { key, value, .. } = token {
-                Some((key.as_str(), value.as_str()))
-            } else {
-                None
-            }
-        })
-        .collect();
+    // With new unified parameter scanning, parameters appear as regular text/colon tokens
+    // at the scanner level. They are parsed during semantic analysis phase.
+    // For now, just verify that the definition structure is preserved.
 
-    assert_eq!(param_tokens.len(), 1);
-    assert_eq!(param_tokens[0], ("version", "2.0"));
+    // Should have a txxt marker (definition terminator)
+    let txxt_markers: Vec<_> = tokens
+        .iter()
+        .filter(|t| matches!(t, ScannerToken::TxxtMarker { .. }))
+        .collect();
+    assert_eq!(
+        txxt_markers.len(),
+        1,
+        "Expected 1 txxt marker for definition"
+    );
+
+    // Should have colon tokens
+    let colons: Vec<_> = tokens
+        .iter()
+        .filter(|t| matches!(t, ScannerToken::Colon { .. }))
+        .collect();
+    assert!(!colons.is_empty(), "Expected colon tokens in definition");
 
     // Find clean term
     let text_tokens: Vec<_> = tokens

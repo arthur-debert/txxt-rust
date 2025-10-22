@@ -169,12 +169,27 @@ fn audit_parameter_spans() {
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
 
-    let param = tokens
+    // In unified parameter system, check individual token spans
+    // key token
+    let key_token = tokens
         .iter()
-        .find(|t| matches!(t, ScannerToken::Parameter { .. }))
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "key"))
         .unwrap();
-    // This will fail because parameters are created at (0,0)
-    assert_span_equals(get_span(param), 0, 9, 0, 18, "Parameter key=value");
+    assert_span_equals(get_span(key_token), 0, 9, 0, 12, "Parameter key");
+
+    // equals token
+    let equals_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Equals { .. }))
+        .unwrap();
+    assert_span_equals(get_span(equals_token), 0, 12, 0, 13, "Equals sign");
+
+    // value token
+    let value_token = tokens
+        .iter()
+        .find(|t| matches!(t, ScannerToken::Text { content, .. } if content == "value"))
+        .unwrap();
+    assert_span_equals(get_span(value_token), 0, 13, 0, 18, "Parameter value");
 }
 
 // The real Unicode test - this is where bugs will show up
@@ -243,7 +258,6 @@ fn get_span(token: &ScannerToken) -> &SourceSpan {
         | ScannerToken::Whitespace { span, .. }
         | ScannerToken::SequenceMarker { span, .. }
         | ScannerToken::TxxtMarker { span, .. }
-        | ScannerToken::Parameter { span, .. }
         | ScannerToken::BoldDelimiter { span }
         | ScannerToken::ItalicDelimiter { span }
         | ScannerToken::CodeDelimiter { span }
@@ -253,6 +267,7 @@ fn get_span(token: &ScannerToken) -> &SourceSpan {
         | ScannerToken::LeftBracket { span }
         | ScannerToken::RightBracket { span }
         | ScannerToken::Colon { span }
+        | ScannerToken::Equals { span }
         | ScannerToken::Eof { span } => span,
         _ => panic!("Token variant not handled in get_span()"),
     }

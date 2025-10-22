@@ -24,6 +24,9 @@ Complete specification for the txxt parameter system used across annotations, ve
             version=3.11,style=functional,author="Jane Doe"
         :: txxt.core.spec.parameter.valid.multiple-params ::
 
+        Note: Whitespace after the separator colon is optional.
+        Both `label:key=value` and `label : key=value` are valid.
+
     2.2. Integration Patterns
 
         Annotation parameters:
@@ -31,11 +34,11 @@ Complete specification for the txxt parameter system used across annotations, ve
         (integration)
 
         Verbatim parameters:
-            :: label:key=value,key2=value2
+            :: label:key=value,key2=value2 ::
         (integration)
 
-        Definition parameters (future):
-            Term:key=value,key2=value2 ::
+        Definition parameters:
+            term : key=value,key2=value2 ::
         (integration)
 
 3. Grammar
@@ -255,9 +258,9 @@ Complete specification for the txxt parameter system used across annotations, ve
     10.2. Verbatim Parameters
 
         Code blocks with metadata:
-            :: python:version=3.11,style=pep8
-            :: sql:dialect=postgresql,version=15
-            :: config:format=yaml,validated=true
+            :: python:version=3.11,style=pep8 ::
+            :: sql:dialect=postgresql,version=15 ::
+            :: config:format=yaml,validated=true ::
         (verbatim-examples)
 
     10.3. Complex Parameter Examples

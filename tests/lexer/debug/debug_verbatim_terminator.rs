@@ -1,7 +1,7 @@
 //! Debug test for verbatim block terminator parsing
 //!
-//! This test verifies that the tokenizer correctly captures VerbatimLabel tokens
-//! with label and parameter information instead of skipping the terminator line.
+//! This test verifies that the tokenizer correctly captures VerbatimBlockEnd tokens
+//! with label_raw information.
 
 use txxt::cst::ScannerToken;
 use txxt::syntax::tokenize;
@@ -24,32 +24,30 @@ mod tests {
         println!("\nTokens:");
         for (i, token) in tokens.iter().enumerate() {
             match token {
-                ScannerToken::VerbatimTitle { content, span } => {
-                    println!(
-                        "  {}: VerbatimTitle {{ content: {:?}, span: {:?} }}",
-                        i, content, span
-                    );
-                }
-                ScannerToken::IndentationWall {
-                    level,
+                ScannerToken::VerbatimBlockStart {
+                    title,
                     wall_type,
                     span,
                 } => {
                     println!(
-                        "  {}: IndentationWall {{ level: {}, wall_type: {:?}, span: {:?} }}",
-                        i, level, wall_type, span
+                        "  {}: VerbatimBlockStart {{ title: {:?}, wall_type: {:?}, span: {:?} }}",
+                        i, title, wall_type, span
                     );
                 }
-                ScannerToken::IgnoreTextSpan { content, span } => {
+                ScannerToken::VerbatimContentLine {
+                    content,
+                    indentation,
+                    span,
+                } => {
                     println!(
-                        "  {}: IgnoreText {{ content: {:?}, span: {:?} }}",
-                        i, content, span
+                        "  {}: VerbatimContentLine {{ content: {:?}, indentation: {:?}, span: {:?} }}",
+                        i, content, indentation, span
                     );
                 }
-                ScannerToken::VerbatimLabel { content, span } => {
+                ScannerToken::VerbatimBlockEnd { label_raw, span } => {
                     println!(
-                        "  {}: VerbatimLabel {{ content: {:?}, span: {:?} }}",
-                        i, content, span
+                        "  {}: VerbatimBlockEnd {{ label_raw: {:?}, span: {:?} }}",
+                        i, label_raw, span
                     );
                 }
                 _ => {
@@ -58,63 +56,30 @@ mod tests {
             }
         }
 
-        // Verify we have a VerbatimLabel token with the terminator content
+        // Verify we have a VerbatimBlockEnd token with the terminator content
         let verbatim_end_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
+            .filter(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
             .collect();
 
         assert_eq!(
             verbatim_end_tokens.len(),
             1,
-            "Should have exactly 1 VerbatimLabel token"
+            "Should have exactly 1 VerbatimBlockEnd token"
         );
 
-        if let ScannerToken::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = &verbatim_end_tokens[0] {
             assert_eq!(
-                content, "python",
-                "VerbatimLabel should contain ONLY the label 'python'"
+                label_raw, "python:version=3.9,syntax_highlight=true",
+                "VerbatimBlockEnd label_raw should contain full label:params"
             );
-            assert!(
-                !content.contains("version=3.9"),
-                "VerbatimLabel should NOT contain parameters (now separate tokens)"
+            println!(
+                "\n✅ VerbatimBlockEnd token correctly captured: {}",
+                label_raw
             );
-            assert!(
-                !content.contains("syntax_highlight=true"),
-                "VerbatimLabel should NOT contain parameters (now separate tokens)"
-            );
-            println!("\n✅ VerbatimLabel token correctly captured: {}", content);
         }
 
-        // UPDATED: Check that parameters were extracted as separate Parameter tokens
-        let param_tokens: Vec<_> = tokens
-            .iter()
-            .filter_map(|token| {
-                if let ScannerToken::Parameter { key, value, .. } = token {
-                    Some((key.clone(), value.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        assert_eq!(
-            param_tokens.len(),
-            2,
-            "Should have extracted 2 Parameter tokens"
-        );
-        assert!(
-            param_tokens.contains(&("version".to_string(), "3.9".to_string())),
-            "Should have version=3.9 parameter"
-        );
-        assert!(
-            param_tokens.contains(&("syntax_highlight".to_string(), "true".to_string())),
-            "Should have syntax_highlight=true parameter"
-        );
-        println!(
-            "✅ Parameter tokens correctly extracted: {:?}",
-            param_tokens
-        );
+        // Note: Parameter parsing happens at semantic analysis level, not scanner level
     }
 
     #[test]
@@ -127,24 +92,24 @@ mod tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
+        // Find VerbatimBlockEnd token
         let verbatim_end_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
+            .filter(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
             .collect();
 
         assert_eq!(
             verbatim_end_tokens.len(),
             1,
-            "Should have exactly 1 VerbatimLabel token"
+            "Should have exactly 1 VerbatimBlockEnd token"
         );
 
-        if let ScannerToken::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
-            assert!(
-                content.contains("mylabel"),
-                "VerbatimLabel should contain full terminator"
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = &verbatim_end_tokens[0] {
+            assert_eq!(
+                label_raw, "mylabel",
+                "VerbatimBlockEnd label_raw should contain simple label"
             );
-            println!("✅ Simple label correctly captured: {}", content);
+            println!("✅ Simple label correctly captured: {}", label_raw);
         }
     }
 
@@ -158,24 +123,24 @@ mod tests {
 
         let tokens = tokenize(input);
 
-        // Find VerbatimLabel token
+        // Find VerbatimBlockEnd token
         let verbatim_end_tokens: Vec<_> = tokens
             .iter()
-            .filter(|token| matches!(token, ScannerToken::VerbatimLabel { .. }))
+            .filter(|token| matches!(token, ScannerToken::VerbatimBlockEnd { .. }))
             .collect();
 
         assert_eq!(
             verbatim_end_tokens.len(),
             1,
-            "Should have exactly 1 VerbatimLabel token"
+            "Should have exactly 1 VerbatimBlockEnd token"
         );
 
-        if let ScannerToken::VerbatimLabel { content, .. } = &verbatim_end_tokens[0] {
-            assert!(
-                content.contains("empty"),
-                "VerbatimLabel should contain empty terminator"
+        if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = &verbatim_end_tokens[0] {
+            assert_eq!(
+                label_raw, "empty",
+                "VerbatimBlockEnd label_raw should contain empty label"
             );
-            println!("✅ Empty terminator correctly captured: {}", content);
+            println!("✅ Empty terminator correctly captured: {}", label_raw);
         }
     }
 }

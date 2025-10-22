@@ -34,9 +34,18 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Reusable across annotation labels and verbatim labels.
 
     Parameters::
-        Key-value metadata component used in annotations and verbatim elements.
-        Structured parameter list with proper key-value pair parsing.
-        Example: "version=3.11,style=functional,author=\"Jane Doe\""
+        Key-value metadata component used in annotations, verbatim blocks, and definitions.
+        Built from scanner tokens (Identifier, Equals, Text/QuotedString, Comma) into a
+        structured HashMap of key-value pairs.
+        
+        Scanner-level representation: Basic tokens (Identifier, Equals, Text/QuotedString, Comma)
+        Semantic-level representation: Parameters token with HashMap<String, String>
+        
+        Example scanner tokens: `Identifier("version")`, `Equals`, `Text("3.11")`, `Comma`
+        Example semantic token: `Parameters { params: {"version": "3.11", ...} }`
+        
+        Supports quoted values with escape sequences, boolean shorthand (key without value),
+        and namespaced keys (org.example.key).
 
     Sequence Marker::
         List and session numbering component.
@@ -187,8 +196,19 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
     4.4. Parameter Composition
 
-        Parameters combine identifiers, equals signs, and values:
-        `Identifier` + `Equals` + `Value` + `Comma`?
+        Parameters are built from basic scanner tokens:
+        
+        Scanner-level pattern (repeating):
+        `Identifier` + `Equals` + (`Text` | `QuotedString`) + `Comma`?
+        
+        Or for boolean shorthand:
+        `Identifier` + `Comma`?
+        
+        These scanner tokens are assembled into a Parameters semantic token:
+        `Parameters { params: HashMap<String, String>, span, tokens }`
+        
+        The assembly is performed by HighLevelTokenBuilder::parameters_from_scanner_tokens(),
+        which parses the token sequence and extracts key-value pairs.
 
     4.5. Structural Token Composition
 

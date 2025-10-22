@@ -8,6 +8,7 @@
 
 use crate::ast::elements::verbatim::block::{VerbatimBlock, VerbatimType};
 use crate::cst::{HighLevelToken, ScannerTokenSequence, WallType};
+use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
 /// Create a verbatim block element from a VerbatimBlock token
@@ -23,6 +24,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
             title,
             content,
             label,
+            parameters,
             wall_type,
             ..
         } => {
@@ -52,12 +54,6 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 ]
             };
 
-            // Extract content text (verbatim content is already extracted by scanner)
-            let content_text = match content.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => String::new(),
-            };
-
             // Extract label text
             let label_text = match label.as_ref() {
                 HighLevelToken::TextSpan { content, .. } => content.clone(),
@@ -65,17 +61,61 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 _ => "unknown".to_string(),
             };
 
-            // Create IgnoreLine from the verbatim content
-            let ignore_lines = if content_text.is_empty() {
-                vec![]
-            } else {
-                vec![
-                    crate::ast::elements::verbatim::ignore_container::IgnoreLine {
-                        content: content_text,
-                        tokens: ScannerTokenSequence::new(),
-                    },
-                ]
+            // Determine wall indentation level for stripping
+            let wall_indent = match wall_type {
+                WallType::InFlow(indent) => indent + 4, // Content at indent + 4
+                WallType::Stretched => 0,               // No wall stripping for stretched
             };
+
+            // Create AST IgnoreLine nodes from high-level IgnoreLine/BlankLine tokens
+            // Apply wall-stripping based on wall_type
+            let mut ignore_lines = Vec::new();
+            for high_level_token in content {
+                match high_level_token {
+                    HighLevelToken::IgnoreLine {
+                        content: line_content,
+                        tokens,
+                        ..
+                    } => {
+                        // Wall-stripping: remove wall indentation from IgnoreLine content
+                        let stripped_content = if *wall_type == WallType::Stretched {
+                            // Stretched: keep everything as-is
+                            line_content.clone()
+                        } else {
+                            // InFlow: strip wall indentation
+                            if line_content.len() >= wall_indent {
+                                // Strip the wall indent
+                                line_content[wall_indent..].to_string()
+                            } else {
+                                // Line has less indentation than wall - keep as-is
+                                line_content.clone()
+                            }
+                        };
+
+                        ignore_lines.push(
+                            crate::ast::elements::verbatim::ignore_container::IgnoreLine {
+                                content: stripped_content,
+                                tokens: tokens.clone(),
+                            },
+                        );
+                    }
+                    HighLevelToken::BlankLine { tokens, .. } => {
+                        // Preserve blank lines
+                        ignore_lines.push(
+                            crate::ast::elements::verbatim::ignore_container::IgnoreLine {
+                                content: String::new(),
+                                tokens: tokens.clone(),
+                            },
+                        );
+                    }
+                    _ => {
+                        // Unexpected token type in content - skip it
+                    }
+                }
+            }
+
+            // Extract parameters using unified constructor
+            let extracted_params = create_parameters_ast(parameters.as_deref())?;
 
             // Create IgnoreContainer with the verbatim content
             let ignore_container =
@@ -85,8 +125,7 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                     vec![],
                     // FIXME: post-parser - Parse container-level annotations
                     vec![],
-                    // FIXME: post-parser - Extract parameters from verbatim block
-                    crate::ast::elements::components::parameters::Parameters::new(),
+                    extracted_params.clone(),
                     ScannerTokenSequence::new(),
                 );
 
@@ -101,8 +140,8 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 content: ignore_container,
                 label: label_text,
                 verbatim_type,
-                // FIXME: post-parser - Extract parameters from verbatim block token
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                // Parameters extracted using unified constructor
+                parameters: extracted_params,
                 // FIXME: post-parser - Parse block-level annotations
                 annotations: Vec::new(),
                 tokens: ScannerTokenSequence::new(),

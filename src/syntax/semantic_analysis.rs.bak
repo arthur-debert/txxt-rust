@@ -10,7 +10,6 @@ use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenList,
 };
-use crate::cst::parameter_scanner::scan_parameter_string;
 use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
@@ -286,7 +285,7 @@ impl SemanticAnalyzer {
             // Pattern: VerbatimBlockStart → (VerbatimContentLine | BlankLine)* → VerbatimBlockEnd
             ScannerToken::VerbatimBlockStart { .. } => {
                 if let Some((tokens, consumed)) =
-                    self.recognize_verbatim_block_pattern(scanner_tokens, start_index)?
+                    self.recognize_verbatim_block_pattern_v2(scanner_tokens, start_index)?
                 {
                     return Ok(Some((tokens, consumed)));
                 }
@@ -403,47 +402,25 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + ... + TxxtMarker
-        // The "..." can include parameters (Colon, Identifier, Equals, Text, Comma, etc.)
-        if !matches!(
+        // Look for pattern: TxxtMarker + Whitespace + (Identifier|Text) + Whitespace + TxxtMarker
+        if matches!(
             scanner_tokens[start_index + 1],
             ScannerToken::Whitespace { .. }
-        ) {
-            return Ok(None);
-        }
-
-        if !matches!(
+        ) && matches!(
             scanner_tokens[start_index + 2],
             ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 3],
+            ScannerToken::Whitespace { .. }
+        ) && matches!(
+            scanner_tokens[start_index + 4],
+            ScannerToken::TxxtMarker { .. }
         ) {
-            return Ok(None);
-        }
-
-        // Scan forward to find closing TxxtMarker
-        let mut closing_marker_pos = None;
-        for (i, token) in scanner_tokens.iter().enumerate().skip(start_index + 3) {
-            if matches!(token, ScannerToken::TxxtMarker { .. }) {
-                closing_marker_pos = Some(i);
-                break;
-            }
-            // Stop if we hit structural tokens before finding closing marker
-            if matches!(
-                token,
-                ScannerToken::Newline { .. }
-                    | ScannerToken::BlankLine { .. }
-                    | ScannerToken::Indent { .. }
-                    | ScannerToken::Dedent { .. }
-            ) {
-                break;
-            }
-        }
-
-        if let Some(closing_pos) = closing_marker_pos {
-            // Extract tokens up to and including the closing TxxtMarker
-            let mut consumed = closing_pos - start_index + 1;
+            // Extract tokens up to the closing TxxtMarker (minimum 5 tokens)
+            let mut consumed = 5;
 
             // Look for optional content after the closing TxxtMarker
-            let mut i = closing_pos + 1;
+            let mut i = start_index + 5;
             while i < scanner_tokens.len() {
                 let token = &scanner_tokens[i];
                 match token {
@@ -465,16 +442,15 @@ impl SemanticAnalyzer {
             }
 
             let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
-            Ok(Some((pattern_tokens, consumed)))
-        } else {
-            // No closing TxxtMarker found
-            Ok(None)
+            return Ok(Some((pattern_tokens, consumed)));
         }
+
+        Ok(None)
     }
 
     /// Recognize verbatim block pattern (Issue #132)
     /// Pattern: VerbatimBlockStart → (VerbatimContentLine | BlankLine)* → VerbatimBlockEnd
-    fn recognize_verbatim_block_pattern(
+    fn recognize_verbatim_block_pattern_v2(
         &self,
         scanner_tokens: &[ScannerToken],
         start_index: usize,
@@ -563,8 +539,7 @@ impl SemanticAnalyzer {
                 }
             }
 
-            // Annotation pattern: TxxtMarker + Whitespace + (Identifier|Text) + ... + TxxtMarker
-            // The middle can include parameters: Colon + Identifier + Equals + Text/QuotedString + Comma + ...
+            // Annotation pattern: TxxtMarker + ... + TxxtMarker
             ScannerToken::TxxtMarker { .. } => {
                 if pattern_tokens.len() >= 5
                     && matches!(pattern_tokens[1], ScannerToken::Whitespace { .. })
@@ -572,20 +547,14 @@ impl SemanticAnalyzer {
                         pattern_tokens[2],
                         ScannerToken::Identifier { .. } | ScannerToken::Text { .. }
                     )
+                    && matches!(pattern_tokens[3], ScannerToken::Whitespace { .. })
+                    && matches!(pattern_tokens[4], ScannerToken::TxxtMarker { .. })
                 {
-                    // Find closing TxxtMarker
-                    let has_closing_marker = pattern_tokens
-                        .iter()
-                        .skip(3)
-                        .any(|t| matches!(t, ScannerToken::TxxtMarker { .. }));
-
-                    if has_closing_marker {
-                        let span = SourceSpan {
-                            start: pattern_tokens[0].span().start,
-                            end: pattern_tokens[pattern_tokens.len() - 1].span().end,
-                        };
-                        return self.transform_annotation(pattern_tokens, span);
-                    }
+                    let span = SourceSpan {
+                        start: pattern_tokens[0].span().start,
+                        end: pattern_tokens[pattern_tokens.len() - 1].span().end,
+                    };
+                    return self.transform_annotation(pattern_tokens, span);
                 }
             }
 
@@ -602,7 +571,7 @@ impl SemanticAnalyzer {
                         start: pattern_tokens[0].span().start,
                         end: pattern_tokens[pattern_tokens.len() - 1].span().end,
                     };
-                    return self.transform_verbatim_block(pattern_tokens, span);
+                    return self.transform_verbatim_block_v2(pattern_tokens, span);
                 }
             }
 
@@ -1392,11 +1361,201 @@ impl SemanticAnalyzer {
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The semantic token
-    ///
-    /// Transform verbatim block pattern into VerbatimBlock semantic token (Issue #132)
-    ///
-    /// Pattern: VerbatimBlockStart → (VerbatimContentLine | BlankLine)* → VerbatimBlockEnd
     pub fn transform_verbatim_block(
+        &self,
+        tokens: Vec<ScannerToken>,
+        span: SourceSpan,
+    ) -> Result<HighLevelToken, SemanticAnalysisError> {
+        // Validate minimum verbatim block structure: VerbatimTitle + IndentationWall + VerbatimLabel (empty blocks allowed)
+        if tokens.len() < 3 {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must have at least 3 tokens: VerbatimTitle + IndentationWall + VerbatimLabel".to_string(),
+            ));
+        }
+
+        // Extract components - handle both orderings:
+        // 1. VerbatimTitle + IndentationWall
+        // 2. IndentationWall + VerbatimTitle
+        let mut i = 0;
+        let title_token;
+        let wall_token;
+        let wall_type;
+
+        if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+            // Order 1: VerbatimTitle first
+            title_token = HighLevelTokenBuilder::text_span_with_tokens(
+                tokens[i].content().to_string(),
+                tokens[i].span().clone(),
+                ScannerTokenSequence {
+                    tokens: vec![tokens[i].clone()],
+                },
+            );
+            i += 1;
+
+            if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
+                wall_token = HighLevelTokenBuilder::text_span_with_tokens(
+                    "".to_string(), // Wall is structural, no content
+                    tokens[i].span().clone(),
+                    ScannerTokenSequence {
+                        tokens: vec![tokens[i].clone()],
+                    },
+                );
+                wall_type = wt.clone();
+                i += 1;
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must have IndentationWall after VerbatimTitle".to_string(),
+                ));
+            }
+        } else if let ScannerToken::IndentationWall { wall_type: wt, .. } = &tokens[i] {
+            // Order 2: IndentationWall first
+            wall_token = HighLevelTokenBuilder::text_span_with_tokens(
+                "".to_string(), // Wall is structural, no content
+                tokens[i].span().clone(),
+                ScannerTokenSequence {
+                    tokens: vec![tokens[i].clone()],
+                },
+            );
+            wall_type = wt.clone();
+            i += 1;
+
+            if let ScannerToken::VerbatimTitle { .. } = &tokens[i] {
+                title_token = HighLevelTokenBuilder::text_span_with_tokens(
+                    tokens[i].content().to_string(),
+                    tokens[i].span().clone(),
+                    ScannerTokenSequence {
+                        tokens: vec![tokens[i].clone()],
+                    },
+                );
+                i += 1;
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must have VerbatimTitle after IndentationWall".to_string(),
+                ));
+            }
+        } else {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must start with VerbatimTitle or IndentationWall".to_string(),
+            ));
+        }
+
+        // 3. IgnoreTextSpan (may be multiple tokens, or empty for empty verbatim blocks)
+        let mut content_tokens = Vec::new();
+        while i < tokens.len() && matches!(tokens[i], ScannerToken::IgnoreTextSpan { .. }) {
+            content_tokens.push(tokens[i].clone());
+            i += 1;
+        }
+
+        // Create content token (empty verbatim blocks are allowed per specification)
+        let content_token = if content_tokens.is_empty() {
+            // Create empty content token for empty verbatim blocks
+            let span = SourceSpan {
+                start: tokens[i - 1].span().end, // Start after the wall
+                end: tokens[i - 1].span().end,   // Same position (empty)
+            };
+            HighLevelTokenBuilder::text_span_with_tokens(
+                "".to_string(),
+                span.clone(),
+                ScannerTokenSequence { tokens: vec![] }, // Empty tokens for empty content
+            )
+        } else {
+            // Combine all content tokens into a single TextSpan (preserve exact whitespace for verbatim)
+            self.tokens_to_text_span_exact(&content_tokens)?
+        };
+
+        // 4. VerbatimLabel (should be the last token)
+        let (label_token, parameters) = if i < tokens.len() {
+            if let ScannerToken::VerbatimLabel { .. } = &tokens[i] {
+                // For verbatim labels, check if they contain parameters (colon separator)
+                let label_content = tokens[i].content();
+                if label_content.contains(':') {
+                    // Split by colon to separate label from parameters
+                    let parts: Vec<&str> = label_content.splitn(2, ':').collect();
+                    if parts.len() == 2 {
+                        let label_text = parts[0];
+                        let param_text = parts[1];
+
+                        let label_semantic_token = HighLevelTokenBuilder::text_span_with_tokens(
+                            label_text.to_string(),
+                            tokens[i].span().clone(),
+                            ScannerTokenSequence {
+                                tokens: vec![tokens[i].clone()],
+                            },
+                        );
+
+                        let parameters = if param_text.is_empty() {
+                            None
+                        } else {
+                            // Create parameters from the parameter text
+                            let mut params = std::collections::HashMap::new();
+                            params.insert("raw".to_string(), param_text.to_string());
+                            // Preserve the verbatim label token as source for parameters
+                            let param_tokens =
+                                ScannerTokenSequence::from_tokens(vec![tokens[i].clone()]);
+                            Some(HighLevelTokenBuilder::parameters_with_tokens(
+                                params,
+                                tokens[i].span().clone(),
+                                param_tokens,
+                            ))
+                        };
+
+                        (label_semantic_token, parameters)
+                    } else {
+                        // No colon found, treat as simple label
+                        (
+                            HighLevelTokenBuilder::text_span_with_tokens(
+                                label_content.to_string(),
+                                tokens[i].span().clone(),
+                                ScannerTokenSequence {
+                                    tokens: vec![tokens[i].clone()],
+                                },
+                            ),
+                            None,
+                        )
+                    }
+                } else {
+                    // No colon found, treat as simple label
+                    (
+                        HighLevelTokenBuilder::text_span_with_tokens(
+                            label_content.to_string(),
+                            tokens[i].span().clone(),
+                            ScannerTokenSequence {
+                                tokens: vec![tokens[i].clone()],
+                            },
+                        ),
+                        None,
+                    )
+                }
+            } else {
+                return Err(SemanticAnalysisError::AnalysisError(
+                    "VerbatimBlock must end with VerbatimLabel".to_string(),
+                ));
+            }
+        } else {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must have VerbatimLabel".to_string(),
+            ));
+        };
+
+        // Aggregate all source tokens for preservation
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
+
+        // Transform to VerbatimBlock semantic token with aggregated tokens
+        Ok(HighLevelTokenBuilder::verbatim_block_with_tokens(
+            title_token,
+            wall_token,
+            content_token,
+            label_token,
+            parameters,
+            wall_type,
+            span,
+            aggregated_tokens,
+        ))
+    }
+
+    /// Transform NEW verbatim block pattern into VerbatimBlock semantic token (Issue #132)
+    /// Pattern: VerbatimBlockStart → (VerbatimContentLine | BlankLine)* → VerbatimBlockEnd
+    pub fn transform_verbatim_block_v2(
         &self,
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
@@ -1410,7 +1569,9 @@ impl SemanticAnalyzer {
 
         // Extract start token
         let (title, wall_type) = if let ScannerToken::VerbatimBlockStart {
-            title, wall_type, ..
+            title,
+            wall_type,
+            ..
         } = &tokens[0]
         {
             (title.clone(), wall_type.clone())
@@ -1421,14 +1582,15 @@ impl SemanticAnalyzer {
         };
 
         // Extract end token
-        let label_raw =
-            if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = &tokens[tokens.len() - 1] {
-                label_raw.clone()
-            } else {
-                return Err(SemanticAnalysisError::AnalysisError(
-                    "VerbatimBlock must end with VerbatimBlockEnd".to_string(),
-                ));
-            };
+        let label_raw = if let ScannerToken::VerbatimBlockEnd { label_raw, .. } =
+            &tokens[tokens.len() - 1]
+        {
+            label_raw.clone()
+        } else {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "VerbatimBlock must end with VerbatimBlockEnd".to_string(),
+            ));
+        };
 
         // Create title token
         let title_token = HighLevelTokenBuilder::text_span_with_tokens(
@@ -1448,40 +1610,42 @@ impl SemanticAnalyzer {
             },
         );
 
-        // Create Vec<HighLevelToken> from VerbatimContentLine and BlankLine scanner tokens
-        // Each scanner token becomes a proper high-level token (IgnoreLine or BlankLine)
-        // Content preserves full indentation+content; wall-stripping happens at AST level
-        let mut content_lines = Vec::new();
-        for token in &tokens[1..tokens.len() - 1] {
+        // Create content token from VerbatimContentLine tokens
+        // For now, join all content lines with newlines
+        let mut content_text = String::new();
+        for (i, token) in tokens[1..tokens.len() - 1].iter().enumerate() {
             match token {
                 ScannerToken::VerbatimContentLine {
-                    content,
                     indentation,
-                    span,
+                    content,
+                    ..
                 } => {
-                    // Create IgnoreLine with full indentation + content preserved
-                    // AST layer will handle wall-stripping based on wall_type
-                    content_lines.push(HighLevelToken::IgnoreLine {
-                        content: format!("{}{}", indentation, content),
-                        span: span.clone(),
-                        tokens: ScannerTokenSequence {
-                            tokens: vec![token.clone()],
-                        },
-                    });
+                    if i > 0 {
+                        content_text.push('\n');
+                    }
+                    content_text.push_str(indentation);
+                    content_text.push_str(content);
                 }
-                ScannerToken::BlankLine { span, .. } => {
-                    content_lines.push(HighLevelToken::BlankLine {
-                        span: span.clone(),
-                        tokens: ScannerTokenSequence {
-                            tokens: vec![token.clone()],
-                        },
-                    });
+                ScannerToken::BlankLine { .. } => {
+                    if i > 0 {
+                        content_text.push('\n');
+                    }
                 }
-                _ => {
-                    // Ignore other tokens (shouldn't happen in well-formed verbatim blocks)
-                }
+                _ => {}
             }
         }
+
+        let content_token = HighLevelTokenBuilder::text_span_with_tokens(
+            content_text,
+            if tokens.len() > 2 {
+                tokens[1].span().clone()
+            } else {
+                tokens[0].span().clone()
+            },
+            ScannerTokenSequence {
+                tokens: tokens[1..tokens.len() - 1].to_vec(),
+            },
+        );
 
         // Parse label and parameters from label_raw
         // Format: "label:param1=val1,param2=val2" or just "label"
@@ -1500,18 +1664,16 @@ impl SemanticAnalyzer {
             let parameters = if params_part.is_empty() {
                 None
             } else {
-                // Use unified parameter scanner (Phase 4.1)
-                // Calculate start position for parameter string (after "label:")
-                let param_start = Position {
-                    row: tokens[tokens.len() - 1].span().start.row,
-                    column: tokens[tokens.len() - 1].span().start.column + colon_pos + 1,
-                };
-
-                // Scan parameter string into tokens
-                let param_scanner_tokens = scan_parameter_string(params_part, param_start);
-
-                // Convert scanner tokens to high-level Parameters token
-                HighLevelTokenBuilder::parameters_from_scanner_tokens(&param_scanner_tokens)
+                // Create parameters from the parameter text
+                let mut params = std::collections::HashMap::new();
+                params.insert("raw".to_string(), params_part.to_string());
+                Some(HighLevelTokenBuilder::parameters_with_tokens(
+                    params,
+                    tokens[tokens.len() - 1].span().clone(),
+                    ScannerTokenSequence {
+                        tokens: vec![tokens[tokens.len() - 1].clone()],
+                    },
+                ))
             };
 
             (label_token, parameters)
@@ -1531,11 +1693,11 @@ impl SemanticAnalyzer {
         // Aggregate all source tokens
         let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
 
-        // Build VerbatimBlock high-level token with Vec<HighLevelToken> content
+        // Build VerbatimBlock high-level token
         Ok(HighLevelTokenBuilder::verbatim_block_with_tokens(
             title_token,
             wall_token,
-            content_lines,
+            content_token,
             label,
             parameters,
             wall_type,
@@ -1675,23 +1837,49 @@ impl SemanticAnalyzer {
     ///
     /// # Returns
     /// * `Result<HighLevelToken, SemanticAnalysisError>` - The parameters semantic token
-    ///
-    /// # Parameter Processing
-    ///
-    /// See [`crate::cst::parameter_scanner`] for the complete three-level parameter flow.
-    /// This function uses the high-level token builder (Step 2 of the flow).
     fn parse_parameters(
         &self,
         tokens: &[ScannerToken],
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // Use the unified parameter builder from high-level tokens
-        // See: crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens
-        // for the parameter processing flow documentation
-        HighLevelTokenBuilder::parameters_from_scanner_tokens(tokens).ok_or_else(|| {
-            SemanticAnalysisError::InvalidParameterSyntax(
-                "Failed to parse parameters from scanner tokens".to_string(),
-            )
-        })
+        // For now, create a simple parameters token with the raw content
+        // This will be enhanced in future iterations to properly parse key=value pairs
+        // Filter out whitespace for parameters to create clean key=value pairs
+        let content = tokens
+            .iter()
+            .filter(|token| !matches!(token, ScannerToken::Whitespace { .. }))
+            .map(|token| token.content())
+            .collect::<Vec<&str>>()
+            .join("");
+
+        // Create a simple parameters map (placeholder implementation)
+        let mut params = std::collections::HashMap::new();
+        params.insert("raw".to_string(), content);
+
+        // Calculate span for the parameters
+        let span = if tokens.is_empty() {
+            SourceSpan {
+                start: Position { row: 0, column: 0 },
+                end: Position { row: 0, column: 0 },
+            }
+        } else {
+            SourceSpan {
+                start: tokens[0].span().start,
+                end: tokens[tokens.len() - 1].span().end,
+            }
+        };
+
+        // Aggregate source tokens for preservation
+        let aggregated_tokens = if !tokens.is_empty() {
+            ScannerTokenSequence::from_tokens(tokens.to_vec())
+        } else {
+            ScannerTokenSequence::new()
+        };
+
+        Ok(HighLevelTokenBuilder::parameters_with_tokens(
+            params,
+            span,
+            aggregated_tokens,
+        ))
     }
 
     /// Parse annotation content tokens into a semantic token
@@ -1764,7 +1952,6 @@ impl SemanticAnalyzer {
 
     /// Convert a sequence of tokens to a TextSpan semantic token preserving exact whitespace
     /// It preserves all whitespace exactly as written (no trimming).
-    #[allow(dead_code)]
     fn tokens_to_text_span_exact(
         &self,
         tokens: &[ScannerToken],
@@ -1829,8 +2016,6 @@ impl SemanticAnalyzer {
 pub enum SemanticAnalysisError {
     /// Invalid token type encountered
     InvalidTokenType { expected: String, actual: String },
-    /// Invalid parameter syntax
-    InvalidParameterSyntax(String),
     /// General semantic analysis error
     AnalysisError(String),
 }
@@ -1844,9 +2029,6 @@ impl std::fmt::Display for SemanticAnalysisError {
                     "Invalid token type: expected {}, got {}",
                     expected, actual
                 )
-            }
-            SemanticAnalysisError::InvalidParameterSyntax(msg) => {
-                write!(f, "Invalid parameter syntax: {}", msg)
             }
             SemanticAnalysisError::AnalysisError(msg) => {
                 write!(f, "Semantic analysis error: {}", msg)

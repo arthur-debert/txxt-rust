@@ -9,8 +9,9 @@
 use crate::ast::elements::annotation::annotation_block::{AnnotationBlock, AnnotationContent};
 use crate::ast::elements::containers::content::ContentContainerElement;
 use crate::ast::elements::containers::ContentContainer;
-use crate::cst::{HighLevelToken, ScannerTokenSequence};
+use crate::cst::HighLevelToken;
 use crate::semantic::ast_construction::AstNode;
+use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
 /// Create an annotation element from an Annotation token and its parsed content
@@ -26,13 +27,22 @@ pub fn create_annotation_element(
     content_nodes: &[AstNode],
 ) -> Result<AnnotationBlock, BlockParseError> {
     match token {
-        HighLevelToken::Annotation { label, .. } => {
+        HighLevelToken::Annotation {
+            label,
+            parameters,
+            tokens,
+            ..
+        } => {
             // Extract label text
             let label_text = match label.as_ref() {
                 HighLevelToken::Label { text, .. } => text.clone(),
                 HighLevelToken::TextSpan { content, .. } => content.clone(),
                 _ => "unknown".to_string(),
             };
+
+            // Extract parameters using unified constructor
+            // See: crate::semantic::elements::parameters::create_parameters_ast for single source of truth
+            let extracted_params = create_parameters_ast(parameters.as_deref())?;
 
             // Separate nested annotations from other content
             let mut nested_annotations = Vec::new();
@@ -68,10 +78,9 @@ pub fn create_annotation_element(
             Ok(AnnotationBlock::new(
                 label_text,
                 content,
-                // FIXME: post-parser - Extract parameters from token instead of empty Parameters
-                crate::ast::elements::components::parameters::Parameters::new(),
+                extracted_params,
                 nested_annotations,
-                ScannerTokenSequence::new(),
+                tokens.clone(),
             ))
         }
         _ => Err(BlockParseError::InvalidStructure(

@@ -89,7 +89,7 @@ fn looks_like_other_element(tokens: &[ScannerToken]) -> bool {
                 // Annotation or definition block
                 true
             }
-            ScannerToken::VerbatimTitle { .. } => {
+            ScannerToken::VerbatimBlockStart { .. } => {
                 // Verbatim block
                 true
             }

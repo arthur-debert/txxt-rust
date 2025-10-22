@@ -24,6 +24,9 @@ Complete specification for the txxt parameter system used across annotations, ve
             version=3.11,style=functional,author="Jane Doe"
         :: txxt.core.spec.parameter.valid.multiple-params ::
 
+        Note: Whitespace after the separator colon is optional.
+        Both `label:key=value` and `label : key=value` are valid.
+
     2.2. Integration Patterns
 
         Annotation parameters:

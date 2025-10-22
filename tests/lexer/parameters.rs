@@ -359,10 +359,11 @@ mod property_based_tests {
         }
     }
 
-    // Generate valid unquoted values (no spaces, commas, quotes)
+    // Generate valid unquoted values (no spaces, commas, quotes, or colons)
+    // Colons are structural separators (label:params) and require quoting
     prop_compose! {
         fn valid_unquoted_value()(
-            value in "[a-zA-Z0-9+\\-*/:.#@]+",
+            value in "[a-zA-Z0-9+\\-*/.#@]+",
         ) -> String {
             value
         }

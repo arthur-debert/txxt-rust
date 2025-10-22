@@ -5,12 +5,7 @@
 
 use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::syntax::core::indentation::IndentationTracker;
-use crate::syntax::elements::components::{
-    parameter_integration_v2::{
-        integrate_annotation_parameters_v2, integrate_definition_parameters_v2,
-    },
-    sequence::read_sequence_marker,
-};
+use crate::syntax::elements::components::sequence::read_sequence_marker;
 use crate::syntax::elements::formatting::read_inline_delimiter;
 use crate::syntax::elements::references::{
     citations::read_citation_ref, footnote_ref::read_footnote_ref, page_ref::read_page_ref,
@@ -59,28 +54,36 @@ impl Lexer {
     pub fn tokenize(&mut self) -> Vec<ScannerToken> {
         let mut tokens = Vec::new();
 
-        // First, pre-scan for verbatim blocks
+        // First, pre-scan for verbatim block boundaries (NEW - Issue #132)
         let input_text: String = self.input.iter().collect();
         let verbatim_scanner = VerbatimScanner::new();
-        let verbatim_blocks = verbatim_scanner.scan(&input_text);
+        let verbatim_boundaries = verbatim_scanner.scan_boundaries(&input_text);
 
         while !self.is_at_end() {
-            // Check if we're at the start of a verbatim block
-            if let Some(verbatim_tokens) =
-                VerbatimLexer::read_verbatim_block(self, &verbatim_blocks)
+            // NEW: Check if we're at a verbatim boundary (title or terminator line)
+            let current_line = self.row + 1; // 1-based line numbers
+            if let Some(boundary_token) =
+                self.try_read_verbatim_boundary(current_line, &verbatim_boundaries)
             {
-                tokens.extend(verbatim_tokens);
+                tokens.push(boundary_token);
+                continue;
+            }
+
+            // NEW: Check if we're on a verbatim content line
+            if let Some(content_token) =
+                self.try_read_verbatim_content_line(current_line, &verbatim_boundaries)
+            {
+                tokens.push(content_token);
                 continue;
             }
 
             // Process indentation at column 0 (start of line), but skip verbatim content lines
             if self.column == 0 {
                 // Check if this line is part of verbatim content that should be skipped
-                let current_line = self.row + 1; // Convert to 1-based line numbers for verbatim scanner
-                let is_verbatim_content =
-                    verbatim_scanner.is_verbatim_content(current_line, &verbatim_blocks);
+                let is_verbatim_line =
+                    self.is_inside_verbatim_block(current_line, &verbatim_boundaries);
 
-                if !is_verbatim_content {
+                if !is_verbatim_line {
                     // Get the current line for indentation processing
                     if let Some(line) = self.get_current_line() {
                         // Update indentation tracker position
@@ -182,9 +185,9 @@ impl Lexer {
             }
         }
 
-        // Use new parameter integration that preserves positions and whitespace
-        tokens = integrate_annotation_parameters_v2(tokens);
-        tokens = integrate_definition_parameters_v2(tokens);
+        // Parameters are now handled at the semantic analysis phase
+        // The scanner emits basic tokens (Text, Colon, Equals, etc.) and
+        // semantic analysis uses scan_parameter_string to parse parameter regions
 
         // Finalize indentation processing (emit remaining dedents)
         let final_indent_tokens = self.indent_tracker.finalize();
@@ -200,6 +203,192 @@ impl Lexer {
 
         tokens
     }
+
+    // ========== NEW VERBATIM BOUNDARY METHODS (Issue #132) ==========
+
+    /// Check if we're at a verbatim boundary line (title or terminator) and emit appropriate token
+    fn try_read_verbatim_boundary(
+        &mut self,
+        current_line: usize,
+        boundaries: &[crate::syntax::verbatim_scanning::VerbatimBoundary],
+    ) -> Option<ScannerToken> {
+        // Must be at start of line
+        if self.column != 0 {
+            return None;
+        }
+
+        // Find boundary that matches current line
+        for boundary in boundaries {
+            // Check if this is the title line
+            if boundary.title_line == current_line {
+                return self.read_verbatim_block_start(boundary);
+            }
+
+            // Check if this is the terminator line
+            if boundary.terminator_line == current_line {
+                return self.read_verbatim_block_end(boundary);
+            }
+        }
+
+        None
+    }
+
+    /// Read VerbatimBlockStart token for title line
+    fn read_verbatim_block_start(
+        &mut self,
+        boundary: &crate::syntax::verbatim_scanning::VerbatimBoundary,
+    ) -> Option<ScannerToken> {
+        let start_pos = self.current_position();
+
+        // Advance through the entire title line
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance(); // Consume newline
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+                break;
+            }
+            self.advance();
+        }
+
+        let end_pos = self.current_position();
+
+        Some(ScannerToken::VerbatimBlockStart {
+            title: boundary.title.clone(),
+            wall_type: boundary.wall_type.clone(),
+            span: SourceSpan {
+                start: start_pos,
+                end: end_pos,
+            },
+        })
+    }
+
+    /// Read VerbatimBlockEnd token for terminator line
+    fn read_verbatim_block_end(
+        &mut self,
+        boundary: &crate::syntax::verbatim_scanning::VerbatimBoundary,
+    ) -> Option<ScannerToken> {
+        let start_pos = self.current_position();
+
+        // Advance through the entire terminator line
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance(); // Consume newline
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+                break;
+            }
+            self.advance();
+        }
+
+        let end_pos = self.current_position();
+
+        Some(ScannerToken::VerbatimBlockEnd {
+            label_raw: boundary.label_raw.clone(),
+            span: SourceSpan {
+                start: start_pos,
+                end: end_pos,
+            },
+        })
+    }
+
+    /// Read VerbatimContentLine token for content line
+    fn try_read_verbatim_content_line(
+        &mut self,
+        current_line: usize,
+        boundaries: &[crate::syntax::verbatim_scanning::VerbatimBoundary],
+    ) -> Option<ScannerToken> {
+        // Must be at start of line
+        if self.column != 0 {
+            return None;
+        }
+
+        // Check if this line is verbatim content
+        for boundary in boundaries {
+            if let (Some(start), Some(end)) = (boundary.content_start, boundary.content_end) {
+                if current_line >= start && current_line <= end {
+                    return self.read_verbatim_content_line(boundary);
+                }
+            }
+        }
+
+        None
+    }
+
+    /// Read a single verbatim content line
+    fn read_verbatim_content_line(
+        &mut self,
+        _boundary: &crate::syntax::verbatim_scanning::VerbatimBoundary,
+    ) -> Option<ScannerToken> {
+        let start_pos = self.current_position();
+
+        // Capture leading indentation
+        let mut indentation = String::new();
+        while let Some(ch) = self.peek() {
+            if ch == ' ' || ch == '\t' {
+                indentation.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        // Capture rest of line as content
+        let mut content = String::new();
+        while let Some(ch) = self.peek() {
+            if ch == '\n' || ch == '\r' {
+                self.advance(); // Consume newline
+                if ch == '\r' && self.peek() == Some('\n') {
+                    self.advance(); // Handle CRLF
+                }
+                break;
+            }
+            content.push(ch);
+            self.advance();
+        }
+
+        let end_pos = self.current_position();
+
+        Some(ScannerToken::VerbatimContentLine {
+            content,
+            indentation,
+            span: SourceSpan {
+                start: start_pos,
+                end: end_pos,
+            },
+        })
+    }
+
+    /// Check if current line is inside a verbatim block (title, content, or terminator)
+    fn is_inside_verbatim_block(
+        &self,
+        current_line: usize,
+        boundaries: &[crate::syntax::verbatim_scanning::VerbatimBoundary],
+    ) -> bool {
+        for boundary in boundaries {
+            // Check if on title line
+            if boundary.title_line == current_line {
+                return true;
+            }
+
+            // Check if on terminator line
+            if boundary.terminator_line == current_line {
+                return true;
+            }
+
+            // Check if on content line
+            if let (Some(start), Some(end)) = (boundary.content_start, boundary.content_end) {
+                if current_line >= start && current_line <= end {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    // ========== END NEW VERBATIM BOUNDARY METHODS ==========
 
     /// Read a text token (any non-whitespace, non-delimiter characters)
     fn read_text(&mut self) -> Option<ScannerToken> {
@@ -884,12 +1073,38 @@ impl Lexer {
 }
 
 impl VerbatimLexer for Lexer {
+    fn current_position(&self) -> Position {
+        Position {
+            row: self.row,
+            column: self.column,
+        }
+    }
+
     fn row(&self) -> usize {
         self.row
     }
 
     fn column(&self) -> usize {
         self.column
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.position).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        if let Some(ch) = self.input.get(self.position).copied() {
+            self.position += 1;
+            if ch == '\n' {
+                self.row += 1;
+                self.column = 0;
+            } else {
+                self.column += 1;
+            }
+            Some(ch)
+        } else {
+            None
+        }
     }
 
     fn get_absolute_position(&self) -> usize {

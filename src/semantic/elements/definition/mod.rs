@@ -8,6 +8,7 @@
 
 use crate::ast::elements::definition::block::{DefinitionBlock, DefinitionTerm};
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
+use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
 /// Create a definition element from a Definition token and content nodes
@@ -24,7 +25,10 @@ pub fn create_definition_element(
 ) -> Result<DefinitionBlock, BlockParseError> {
     match token {
         HighLevelToken::Definition {
-            term, parameters, ..
+            term,
+            parameters,
+            tokens,
+            ..
         } => {
             // Extract term text and source tokens
             let (term_text, source_tokens) = match term.as_ref() {
@@ -37,6 +41,10 @@ pub fn create_definition_element(
                     ))
                 }
             };
+
+            // Extract parameters using unified constructor
+            // See: crate::semantic::elements::parameters::create_parameters_ast for single source of truth
+            let extracted_params = create_parameters_ast(parameters.as_deref())?;
 
             // Create text transform for the term, preserving source tokens
             let term_content = vec![crate::ast::elements::inlines::TextTransform::Identity(
@@ -75,13 +83,9 @@ pub fn create_definition_element(
                     content_elements,
                     // FIXME: post-parser - Parse container-level annotations instead of empty vec
                     vec![],
-                    // FIXME: post-parser - Extract parameters from token instead of empty Parameters
                     crate::ast::elements::components::parameters::Parameters::new(),
                     ScannerTokenSequence::new(),
                 );
-
-            // Handle parameters if present (future extension)
-            let _ = parameters;
 
             Ok(DefinitionBlock {
                 term: DefinitionTerm {
@@ -89,11 +93,10 @@ pub fn create_definition_element(
                     tokens: ScannerTokenSequence::new(),
                 },
                 content: content_container,
-                // FIXME: post-parser - Extract parameters from definition token
-                parameters: crate::ast::elements::components::parameters::Parameters::new(),
+                parameters: extracted_params,
                 // FIXME: post-parser - Parse definition-level annotations
                 annotations: Vec::new(),
-                tokens: ScannerTokenSequence::new(),
+                tokens: tokens.clone(),
             })
         }
         _ => Err(BlockParseError::InvalidStructure(

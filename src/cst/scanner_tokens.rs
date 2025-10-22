@@ -136,6 +136,9 @@ pub enum ScannerToken {
     /// Identifier (variable names, labels)
     Identifier { content: String, span: SourceSpan },
 
+    /// Quoted string with escape sequences processed (for parameter values)
+    QuotedString { content: String, span: SourceSpan },
+
     /// Reference markers ([text], [@citation], [#section])
     RefMarker { content: String, span: SourceSpan },
 
@@ -145,26 +148,29 @@ pub enum ScannerToken {
         span: SourceSpan,
     },
 
-    /// Verbatim block title (title:)
-    VerbatimTitle { content: String, span: SourceSpan },
-
-    /// Indentation wall marker for verbatim blocks
-    IndentationWall {
-        level: usize,
+    /// Verbatim block start boundary (NEW - Issue #132)
+    VerbatimBlockStart {
+        /// Title text (without trailing colon)
+        title: String,
+        /// Wall type for content indentation
         wall_type: WallType,
         span: SourceSpan,
     },
 
-    /// Raw content after indentation wall (preserved exactly)
-    IgnoreTextSpan { content: String, span: SourceSpan },
+    /// Verbatim content line (NEW - Issue #132)
+    /// Raw content line inside verbatim block, unparsed
+    VerbatimContentLine {
+        /// Raw content of the line
+        content: String,
+        /// Full indentation before content (for wall calculation)
+        indentation: String,
+        span: SourceSpan,
+    },
 
-    /// Verbatim block label (:: label syntax)
-    VerbatimLabel { content: String, span: SourceSpan },
-
-    /// Parameter key-value pair (key=value)
-    Parameter {
-        key: String,
-        value: String,
+    /// Verbatim block end boundary (NEW - Issue #132)
+    VerbatimBlockEnd {
+        /// Raw label and parameters string (e.g., "python:version=3.11")
+        label_raw: String,
         span: SourceSpan,
     },
 
@@ -216,13 +222,12 @@ impl ScannerToken {
             ScannerToken::Equals { span } => span,
             ScannerToken::Comma { span } => span,
             ScannerToken::Identifier { span, .. } => span,
+            ScannerToken::QuotedString { span, .. } => span,
             ScannerToken::RefMarker { span, .. } => span,
             ScannerToken::FootnoteRef { span, .. } => span,
-            ScannerToken::VerbatimTitle { span, .. } => span,
-            ScannerToken::IndentationWall { span, .. } => span,
-            ScannerToken::IgnoreTextSpan { span, .. } => span,
-            ScannerToken::VerbatimLabel { span, .. } => span,
-            ScannerToken::Parameter { span, .. } => span,
+            ScannerToken::VerbatimBlockStart { span, .. } => span,
+            ScannerToken::VerbatimContentLine { span, .. } => span,
+            ScannerToken::VerbatimBlockEnd { span, .. } => span,
             ScannerToken::BoldDelimiter { span } => span,
             ScannerToken::ItalicDelimiter { span } => span,
             ScannerToken::CodeDelimiter { span } => span,
@@ -242,13 +247,12 @@ impl ScannerToken {
             ScannerToken::SequenceMarker { marker_type, .. } => marker_type.content(),
             ScannerToken::TxxtMarker { .. } => "::",
             ScannerToken::Identifier { content, .. } => content,
+            ScannerToken::QuotedString { content, .. } => content,
             ScannerToken::RefMarker { content, .. } => content,
             ScannerToken::FootnoteRef { .. } => "", // Use footnote_type() method for structured access
-            ScannerToken::VerbatimTitle { content, .. } => content,
-            ScannerToken::IndentationWall { .. } => "", // Structural token, no content
-            ScannerToken::IgnoreTextSpan { content, .. } => content,
-            ScannerToken::VerbatimLabel { content, .. } => content,
-            ScannerToken::Parameter { key, .. } => key, // Return key for content (value accessible separately)
+            ScannerToken::VerbatimBlockStart { title, .. } => title,
+            ScannerToken::VerbatimContentLine { content, .. } => content,
+            ScannerToken::VerbatimBlockEnd { label_raw, .. } => label_raw,
             ScannerToken::BoldDelimiter { .. } => "*",
             ScannerToken::ItalicDelimiter { .. } => "_",
             ScannerToken::CodeDelimiter { .. } => "`",
@@ -271,14 +275,6 @@ impl ScannerToken {
             ScannerToken::Equals { .. } => "=",
             ScannerToken::Comma { .. } => ",",
             ScannerToken::Eof { .. } => "",
-        }
-    }
-
-    /// Get the parameter value (only valid for Parameter scanner tokens)
-    pub fn parameter_value(&self) -> Option<&str> {
-        match self {
-            ScannerToken::Parameter { value, .. } => Some(value),
-            _ => None,
         }
     }
 

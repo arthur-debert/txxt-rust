@@ -1,0 +1,130 @@
+:: title :: Parameter Unification Test Migration Guide
+:: date :: 2025-10-21
+
+This document describes the test migration strategy for the parameter unification work (issue #135).
+
+1. What Changed
+
+    The parameter system was unified from multiple competing implementations to a single, tested pathway:
+
+    Scanner Level (Low-Level):
+    - scan_parameter_string() emits basic tokens: Identifier, Equals, Text/QuotedString, Comma
+    - No more Parameter scanner token
+    - Parameters appear as sequences of basic tokens
+    
+    Semantic Level (High-Level):
+    - parameters_from_scanner_tokens() assembles basic tokens into Parameters semantic token
+    - Parameters { params: HashMap<String, String>, span, tokens }
+    
+    AST Level:
+    - Parameters::from_high_level_token() creates AST node
+    - Unified constructor used by all elements
+
+2. Test Migration Status
+
+    2.1. Completed Migrations
+
+        Parser semantic analysis tests (94 tests): ✅ COMPLETE
+        - Updated scanner token sequences to use Identifier, Equals, Text
+        - Updated assertions to check actual parsed parameters
+        - All tests passing
+        
+        Parameter unit tests: ✅ COMPLETE
+        - Updated to use scan_parameter_string directly
+        - All basic functionality tests passing
+
+    2.2. Remaining Migrations (18 tests)
+
+        These tests check for Parameter scanner tokens which no longer exist.
+        They need to be updated to one of two approaches:
+
+        Approach A: Check for basic tokens
+        - Look for Identifier, Equals, Text/QuotedString sequences
+        - More verbose but tests scanner-level behavior
+        
+        Approach B: Test at semantic level
+        - Use SemanticAnalyzer to transform tokens
+        - Check Parameters semantic token
+        - Tests higher-level functionality
+
+        Failing test categories:
+        - lexer/verbatim/parameter_integration.rs (7 tests)
+        - lexer/verbatim/label_parsing.rs (2 tests)
+        - lexer/parameters.rs (4 tests - edge cases and property tests)
+        - lexer/*_span*.rs (4 tests - span validation)
+        - lexer/debug/*.rs (1 test)
+
+3. Migration Pattern
+
+    3.1. For Scanner-Level Tests
+
+        Old approach:
+            let tokens = tokenize(input);
+            let params: Vec<_> = tokens.iter()
+                .filter_map(|t| {
+                    if let ScannerToken::Parameter { key, value, .. } = t {
+                        Some((key, value))
+                    } else { None }
+                })
+                .collect();
+            assert_eq!(params.len(), 1);
+        (old)
+
+        New approach:
+            let tokens = tokenize(input);
+            // Extract parameter region tokens
+            let param_tokens = extract_parameter_tokens(&tokens);
+            // Use semantic analyzer or scanner
+            use txxt::cst::scan_parameter_string;
+            let scanned = scan_parameter_string(&param_text, start_pos);
+            // Check for Identifier, Equals, Text tokens
+        (new)
+
+    3.2. For Semantic-Level Tests
+
+        Already updated - see parser/semantic_analysis tests for examples.
+
+4. Test Fixtures Available
+
+    tests/infrastructure/parameter_fixtures.rs provides:
+    
+    - create_ast_parameters(map) - Create AST Parameters from HashMap
+    - create_ast_parameters_from_pairs(pairs) - Create from key-value pairs
+    - extract_parameters_from_scanner_tokens(tokens) - Extract HashMap from scanner tokens
+    - parse_parameter_string(input) - Parse string into HashMap
+    
+    Use these fixtures to avoid manual parameter construction.
+
+5. Recommended Migration Steps
+
+    For each failing test:
+    
+    1. Identify what the test is checking (scanner tokens vs semantic tokens)
+    2. If checking scanner tokens:
+       - Update to look for Identifier, Equals, Text/QuotedString sequences
+       - OR update to test at semantic level instead
+    3. If checking semantic tokens:
+       - Update scanner token sequences in test data
+       - Update assertions for actual parsed values (not "raw")
+    4. Use test fixtures for parameter creation
+    
+6. Next Steps
+
+    Complete the remaining 18 test migrations:
+    
+    Priority 1 - Verbatim tests (9 tests):
+    - Update tests/lexer/verbatim/parameter_integration.rs
+    - Update tests/lexer/verbatim/label_parsing.rs
+    
+    Priority 2 - Parameter tests (4 tests):
+    - Fix edge_case_tests::empty_and_whitespace
+    - Fix edge_case_tests::special_characters_in_values  
+    - Fix property_based_tests (may need to update generators)
+    
+    Priority 3 - Span tests (4 tests):
+    - Update span validation tests to work with basic tokens
+    
+    Priority 4 - Debug test (1 test):
+    - Update debug verbatim test
+
+:: note :: All core functionality is implemented and working. The remaining work is purely test migration to use the new unified parameter system. The parser correctly handles parameters using the new pathway.

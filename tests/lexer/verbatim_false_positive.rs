@@ -14,10 +14,9 @@ fn test_colon_followed_by_annotation_not_verbatim() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::IndentationWall { .. }
-                | ScannerToken::IgnoreTextSpan { .. }
-                | ScannerToken::VerbatimLabel { .. }
+            ScannerToken::VerbatimBlockStart { .. }
+                | ScannerToken::VerbatimContentLine { .. }
+                | ScannerToken::VerbatimBlockEnd { .. }
         )
     });
 
@@ -42,10 +41,9 @@ fn test_multiple_colons_followed_by_annotation() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::IndentationWall { .. }
-                | ScannerToken::IgnoreTextSpan { .. }
-                | ScannerToken::VerbatimLabel { .. }
+            ScannerToken::VerbatimBlockStart { .. }
+                | ScannerToken::VerbatimContentLine { .. }
+                | ScannerToken::VerbatimBlockEnd { .. }
         )
     });
 
@@ -70,10 +68,9 @@ fn test_definition_followed_by_annotation() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::IndentationWall { .. }
-                | ScannerToken::IgnoreTextSpan { .. }
-                | ScannerToken::VerbatimLabel { .. }
+            ScannerToken::VerbatimBlockStart { .. }
+                | ScannerToken::VerbatimContentLine { .. }
+                | ScannerToken::VerbatimBlockEnd { .. }
         )
     });
 
@@ -93,10 +90,9 @@ fn test_real_verbatim_still_works() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::IndentationWall { .. }
-                | ScannerToken::IgnoreTextSpan { .. }
-                | ScannerToken::VerbatimLabel { .. }
+            ScannerToken::VerbatimBlockStart { .. }
+                | ScannerToken::VerbatimContentLine { .. }
+                | ScannerToken::VerbatimBlockEnd { .. }
         )
     });
 
@@ -114,10 +110,9 @@ fn test_colon_with_indented_annotation() {
     let has_verbatim = tokens.iter().any(|t| {
         matches!(
             t,
-            ScannerToken::VerbatimTitle { .. }
-                | ScannerToken::IndentationWall { .. }
-                | ScannerToken::IgnoreTextSpan { .. }
-                | ScannerToken::VerbatimLabel { .. }
+            ScannerToken::VerbatimBlockStart { .. }
+                | ScannerToken::VerbatimContentLine { .. }
+                | ScannerToken::VerbatimBlockEnd { .. }
         )
     });
 

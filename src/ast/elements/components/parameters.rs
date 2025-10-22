@@ -6,6 +6,24 @@
 //!
 //! src/parser/mod.rs has the full architecture overview.
 //!
+//! # Parameter Processing Flow
+//!
+//! This is **Step 3** (AST Level) of the three-level parameter processing:
+//!
+//! ```text
+//! Step 1 (Scanner): "key=value,key2=val2"
+//!        → [Identifier("key"), Equals, Text("value"), Comma, ...]
+//!        See: crate::cst::parameter_scanner
+//!
+//! Step 2 (High-Level): [Identifier("key"), Equals, Text("value"), ...]
+//!        → Parameters { map: {key: "value", key2: "val2"} }
+//!        See: crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens
+//!
+//! Step 3 (AST - THIS MODULE): Parameters { map: {...} }
+//!        → AstParameters { map: {...}, tokens: ... }
+//!        See: Parameters::from_high_level_token
+//! ```
+//!
 //! ## Parameter Syntax Examples
 //!
 //! Verbatim blocks:
@@ -80,6 +98,29 @@ impl Parameters {
         Self {
             map,
             tokens: ScannerTokenSequence::new(),
+        }
+    }
+
+    /// Create parameters from a Parameters high-level token
+    ///
+    /// This is the unified constructor that all element parsers should use.
+    /// It extracts the key-value pairs and scanner tokens from the Parameters
+    /// semantic token and creates the AST Parameters node.
+    ///
+    /// # Arguments
+    /// * `params_token` - The Parameters high-level token
+    ///
+    /// # Returns
+    /// An AST Parameters node with the extracted key-value pairs
+    pub fn from_high_level_token(params_token: &crate::cst::HighLevelToken) -> Self {
+        if let crate::cst::HighLevelToken::Parameters { params, tokens, .. } = params_token {
+            Self {
+                map: params.clone(),
+                tokens: tokens.clone(),
+            }
+        } else {
+            // Should never happen if called correctly, but provide empty fallback
+            Self::new()
         }
     }
 

@@ -2,8 +2,11 @@
 //!
 //! These tests verify that verbatim labels with parameters are correctly split into:
 //! - Clean VerbatimLabel tokens (without parameters)
-//! - Individual Parameter tokens for each key=value pair
+//! - Parameter components as basic tokens (Identifier, Equals, Text/QuotedString)
 
+use crate::infrastructure::parameter_fixtures::{
+    count_parameters_in_tokens, extract_parameters_from_tokens, tokens_contain_parameter,
+};
 use txxt::cst::ScannerToken;
 use txxt::syntax::tokenize;
 
@@ -29,16 +32,11 @@ mod verbatim_parameter_integration_tests {
             assert_eq!(content, "python", "VerbatimLabel should be just the label");
         }
 
-        // Should not have any Parameter tokens
-        let param_tokens: Vec<_> = tokens
-            .iter()
-            .filter(|token| matches!(token, ScannerToken::Parameter { .. }))
-            .collect();
-
+        // Should not have any parameters
         assert_eq!(
-            param_tokens.len(),
+            count_parameters_in_tokens(&tokens),
             0,
-            "Should not have Parameter tokens when no parameters"
+            "Should not have parameters when none specified"
         );
     }
 
@@ -63,24 +61,16 @@ mod verbatim_parameter_integration_tests {
             );
         }
 
-        // Find Parameter tokens
-        let param_tokens: Vec<_> = tokens
-            .iter()
-            .filter_map(|token| {
-                if let ScannerToken::Parameter { key, value, .. } = token {
-                    Some((key.clone(), value.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
+        // Check parameters using unified utilities
         assert_eq!(
-            param_tokens.len(),
+            count_parameters_in_tokens(&tokens),
             1,
-            "Should have exactly one Parameter token"
+            "Should have exactly one parameter"
         );
-        assert_eq!(param_tokens[0], ("version".to_string(), "3.9".to_string()));
+        assert!(
+            tokens_contain_parameter(&tokens, "version", "3.9"),
+            "Should contain version=3.9 parameter"
+        );
     }
 
     #[test]

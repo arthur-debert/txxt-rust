@@ -10,6 +10,7 @@ use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
     HighLevelTokenList,
 };
+use crate::cst::parameter_scanner::scan_parameter_string;
 use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
@@ -1447,40 +1448,23 @@ impl SemanticAnalyzer {
             },
         );
 
-        // Create content token from VerbatimContentLine tokens
-        // For now, join all content lines with newlines
-        let mut content_text = String::new();
-        for (i, token) in tokens[1..tokens.len() - 1].iter().enumerate() {
-            match token {
-                ScannerToken::VerbatimContentLine {
-                    indentation,
-                    content,
-                    ..
-                } => {
-                    if i > 0 {
-                        content_text.push('\n');
-                    }
-                    content_text.push_str(indentation);
-                    content_text.push_str(content);
-                }
-                ScannerToken::BlankLine { .. } => {
-                    if i > 0 {
-                        content_text.push('\n');
-                    }
-                }
-                _ => {}
+        // Create placeholder content token (Phase 4.2)
+        // The actual line-level content will be extracted from scanner tokens in AST constructor
+        // This preserves the VerbatimContentLine tokens for wall-stripping at AST level
+        let content_span = if tokens.len() > 2 {
+            SourceSpan {
+                start: tokens[1].span().start,
+                end: tokens[tokens.len() - 2].span().end,
             }
-        }
+        } else {
+            tokens[0].span().clone()
+        };
 
         let content_token = HighLevelTokenBuilder::text_span_with_tokens(
-            content_text,
-            if tokens.len() > 2 {
-                tokens[1].span().clone()
-            } else {
-                tokens[0].span().clone()
-            },
+            String::new(), // Empty placeholder - AST will extract from scanner tokens
+            content_span,
             ScannerTokenSequence {
-                tokens: tokens[1..tokens.len() - 1].to_vec(),
+                tokens: tokens[1..tokens.len() - 1].to_vec(), // Preserve VerbatimContentLine tokens
             },
         );
 
@@ -1501,16 +1485,18 @@ impl SemanticAnalyzer {
             let parameters = if params_part.is_empty() {
                 None
             } else {
-                // Create parameters from the parameter text
-                let mut params = std::collections::HashMap::new();
-                params.insert("raw".to_string(), params_part.to_string());
-                Some(HighLevelTokenBuilder::parameters_with_tokens(
-                    params,
-                    tokens[tokens.len() - 1].span().clone(),
-                    ScannerTokenSequence {
-                        tokens: vec![tokens[tokens.len() - 1].clone()],
-                    },
-                ))
+                // Use unified parameter scanner (Phase 4.1)
+                // Calculate start position for parameter string (after "label:")
+                let param_start = Position {
+                    row: tokens[tokens.len() - 1].span().start.row,
+                    column: tokens[tokens.len() - 1].span().start.column + colon_pos + 1,
+                };
+
+                // Scan parameter string into tokens
+                let param_scanner_tokens = scan_parameter_string(params_part, param_start);
+
+                // Convert scanner tokens to high-level Parameters token
+                HighLevelTokenBuilder::parameters_from_scanner_tokens(&param_scanner_tokens)
             };
 
             (label_token, parameters)

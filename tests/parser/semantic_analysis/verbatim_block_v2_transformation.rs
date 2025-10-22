@@ -67,13 +67,22 @@ fn test_verbatim_block_v2_simple_in_flow() {
                 _ => panic!("Expected TextSpan title"),
             }
 
-            // Check content (should include indentation)
+            // Check content (Phase 4: content is in scanner tokens, not TextSpan content)
             match content.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: content_text,
-                    ..
-                } => {
-                    assert_eq!(content_text, "    print('hello')");
+                HighLevelToken::TextSpan { tokens, .. } => {
+                    // Content should be in VerbatimContentLine scanner tokens
+                    assert_eq!(tokens.tokens.len(), 1, "Should have 1 content line");
+                    match &tokens.tokens[0] {
+                        ScannerToken::VerbatimContentLine {
+                            indentation,
+                            content: line_content,
+                            ..
+                        } => {
+                            assert_eq!(indentation, "    ");
+                            assert_eq!(line_content, "print('hello')");
+                        }
+                        _ => panic!("Expected VerbatimContentLine scanner token"),
+                    }
                 }
                 _ => panic!("Expected TextSpan content"),
             }
@@ -146,12 +155,35 @@ fn test_verbatim_block_v2_multiple_content_lines() {
     match semantic_token {
         HighLevelToken::VerbatimBlock { content, .. } => {
             match content.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: content_text,
-                    ..
-                } => {
-                    // Content should preserve all indentation
-                    assert_eq!(content_text, "    def hello():\n        print('hi')");
+                HighLevelToken::TextSpan { tokens, .. } => {
+                    // Content should be in VerbatimContentLine scanner tokens
+                    assert_eq!(tokens.tokens.len(), 2, "Should have 2 content lines");
+
+                    // First line
+                    match &tokens.tokens[0] {
+                        ScannerToken::VerbatimContentLine {
+                            indentation,
+                            content: line_content,
+                            ..
+                        } => {
+                            assert_eq!(indentation, "    ");
+                            assert_eq!(line_content, "def hello():");
+                        }
+                        _ => panic!("Expected VerbatimContentLine scanner token"),
+                    }
+
+                    // Second line
+                    match &tokens.tokens[1] {
+                        ScannerToken::VerbatimContentLine {
+                            indentation,
+                            content: line_content,
+                            ..
+                        } => {
+                            assert_eq!(indentation, "        ");
+                            assert_eq!(line_content, "print('hi')");
+                        }
+                        _ => panic!("Expected VerbatimContentLine scanner token"),
+                    }
                 }
                 _ => panic!("Expected TextSpan content"),
             }
@@ -217,12 +249,41 @@ fn test_verbatim_block_v2_with_blank_lines() {
     match semantic_token {
         HighLevelToken::VerbatimBlock { content, .. } => {
             match content.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: content_text,
-                    ..
-                } => {
-                    // Blank lines should be preserved
-                    assert_eq!(content_text, "    line1\n\n    line3");
+                HighLevelToken::TextSpan { tokens, .. } => {
+                    // Should have 3 scanner tokens: line, blank, line
+                    assert_eq!(tokens.tokens.len(), 3, "Should have 3 tokens");
+
+                    // First line
+                    match &tokens.tokens[0] {
+                        ScannerToken::VerbatimContentLine {
+                            indentation,
+                            content: line_content,
+                            ..
+                        } => {
+                            assert_eq!(indentation, "    ");
+                            assert_eq!(line_content, "line1");
+                        }
+                        _ => panic!("Expected VerbatimContentLine scanner token"),
+                    }
+
+                    // Blank line
+                    assert!(
+                        matches!(&tokens.tokens[1], ScannerToken::BlankLine { .. }),
+                        "Expected BlankLine scanner token"
+                    );
+
+                    // Third line
+                    match &tokens.tokens[2] {
+                        ScannerToken::VerbatimContentLine {
+                            indentation,
+                            content: line_content,
+                            ..
+                        } => {
+                            assert_eq!(indentation, "    ");
+                            assert_eq!(line_content, "line3");
+                        }
+                        _ => panic!("Expected VerbatimContentLine scanner token"),
+                    }
                 }
                 _ => panic!("Expected TextSpan content"),
             }
@@ -330,12 +391,15 @@ fn test_verbatim_block_v2_with_parameters() {
                 _ => panic!("Expected TextSpan label"),
             }
 
-            // Parameters should be parsed
+            // Parameters should be parsed into individual key-value pairs (Phase 4.1)
             assert!(parameters.is_some());
             match parameters.as_ref().unwrap().as_ref() {
                 HighLevelToken::Parameters { params, .. } => {
-                    assert!(params.contains_key("raw"));
-                    assert_eq!(params.get("raw").unwrap(), "version=3.11,style=pep8");
+                    // After Phase 4.1, parameters are parsed using scan_parameter_string()
+                    // which extracts individual key-value pairs
+                    assert_eq!(params.len(), 2, "Should have 2 parameters");
+                    assert_eq!(params.get("version").unwrap(), "3.11");
+                    assert_eq!(params.get("style").unwrap(), "pep8");
                 }
                 _ => panic!("Expected Parameters"),
             }
@@ -390,12 +454,21 @@ fn test_verbatim_block_v2_stretched_mode() {
             assert_eq!(wall_type, WallType::Stretched);
 
             match content.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: content_text,
-                    ..
-                } => {
-                    // Stretched mode has no indentation
-                    assert_eq!(content_text, "content at column 0");
+                HighLevelToken::TextSpan { tokens, .. } => {
+                    // Content should be in VerbatimContentLine scanner tokens
+                    assert_eq!(tokens.tokens.len(), 1, "Should have 1 content line");
+                    match &tokens.tokens[0] {
+                        ScannerToken::VerbatimContentLine {
+                            indentation,
+                            content: line_content,
+                            ..
+                        } => {
+                            // Stretched mode has no indentation
+                            assert_eq!(indentation, "");
+                            assert_eq!(line_content, "content at column 0");
+                        }
+                        _ => panic!("Expected VerbatimContentLine scanner token"),
+                    }
                 }
                 _ => panic!("Expected TextSpan content"),
             }

@@ -7,7 +7,7 @@
 //! - **AST Node**: `src/ast/elements/verbatim/block.rs`
 
 use crate::ast::elements::verbatim::block::{VerbatimBlock, VerbatimType};
-use crate::cst::{HighLevelToken, ScannerTokenSequence, WallType};
+use crate::cst::{HighLevelToken, ScannerToken, ScannerTokenSequence, WallType};
 use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
@@ -54,10 +54,11 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 ]
             };
 
-            // Extract content text (verbatim content is already extracted by scanner)
-            let content_text = match content.as_ref() {
-                HighLevelToken::TextSpan { content, .. } => content.clone(),
-                _ => String::new(),
+            // Extract line-level content from scanner tokens (Phase 4.3)
+            // Get scanner tokens from the content high-level token
+            let content_scanner_tokens = match content.as_ref() {
+                HighLevelToken::TextSpan { tokens, .. } => &tokens.tokens,
+                _ => &vec![],
             };
 
             // Extract label text
@@ -67,17 +68,60 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 _ => "unknown".to_string(),
             };
 
-            // Create IgnoreLine from the verbatim content
-            let ignore_lines = if content_text.is_empty() {
-                vec![]
-            } else {
-                vec![
-                    crate::ast::elements::verbatim::ignore_container::IgnoreLine {
-                        content: content_text,
-                        tokens: ScannerTokenSequence::new(),
-                    },
-                ]
+            // Determine wall indentation level for stripping (Phase 4.4)
+            let wall_indent = match wall_type {
+                WallType::InFlow(indent) => indent + 4, // Content at indent + 4
+                WallType::Stretched => 0,               // No wall stripping for stretched
             };
+
+            // Create IgnoreLine from VerbatimContentLine scanner tokens (Phase 4.3 & 4.4)
+            let mut ignore_lines = Vec::new();
+            for scanner_token in content_scanner_tokens {
+                match scanner_token {
+                    ScannerToken::VerbatimContentLine {
+                        indentation,
+                        content: line_content,
+                        ..
+                    } => {
+                        // Wall-stripping: remove wall indentation (Phase 4.4)
+                        let stripped_content = if *wall_type == WallType::Stretched {
+                            // Stretched: keep everything as-is
+                            format!("{}{}", indentation, line_content)
+                        } else {
+                            // InFlow: strip wall indentation
+                            let full_line = format!("{}{}", indentation, line_content);
+                            if indentation.len() >= wall_indent {
+                                // Strip the wall indent
+                                full_line[wall_indent..].to_string()
+                            } else {
+                                // Line has less indentation than wall - keep as-is
+                                full_line
+                            }
+                        };
+
+                        ignore_lines.push(
+                            crate::ast::elements::verbatim::ignore_container::IgnoreLine {
+                                content: stripped_content,
+                                tokens: ScannerTokenSequence {
+                                    tokens: vec![scanner_token.clone()],
+                                },
+                            },
+                        );
+                    }
+                    ScannerToken::BlankLine { .. } => {
+                        // Preserve blank lines
+                        ignore_lines.push(
+                            crate::ast::elements::verbatim::ignore_container::IgnoreLine {
+                                content: String::new(),
+                                tokens: ScannerTokenSequence {
+                                    tokens: vec![scanner_token.clone()],
+                                },
+                            },
+                        );
+                    }
+                    _ => {}
+                }
+            }
 
             // Extract parameters using unified constructor
             let extracted_params = create_parameters_ast(parameters.as_deref())?;

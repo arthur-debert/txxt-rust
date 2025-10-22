@@ -36,10 +36,14 @@ fn test_create_verbatim_element() {
     };
 
     // Create a verbatim block semantic token
+    // Content is now Vec<HighLevelToken> with IgnoreLine tokens
     let verbatim_token = HighLevelTokenBuilder::verbatim_block(
         HighLevelTokenBuilder::text_span("Code Example".to_string(), title_span),
         HighLevelTokenBuilder::text_span("```".to_string(), wall_span.clone()),
-        HighLevelTokenBuilder::text_span("print('hello')".to_string(), content_span),
+        vec![HighLevelTokenBuilder::ignore_line(
+            "    print('hello')".to_string(),
+            content_span,
+        )],
         HighLevelTokenBuilder::label("python".to_string(), label_span),
         None,
         txxt::cst::WallType::InFlow(0),

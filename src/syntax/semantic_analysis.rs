@@ -1448,25 +1448,40 @@ impl SemanticAnalyzer {
             },
         );
 
-        // Create placeholder content token (Phase 4.2)
-        // The actual line-level content will be extracted from scanner tokens in AST constructor
-        // This preserves the VerbatimContentLine tokens for wall-stripping at AST level
-        let content_span = if tokens.len() > 2 {
-            SourceSpan {
-                start: tokens[1].span().start,
-                end: tokens[tokens.len() - 2].span().end,
+        // Create Vec<HighLevelToken> from VerbatimContentLine and BlankLine scanner tokens
+        // Each scanner token becomes a proper high-level token (IgnoreLine or BlankLine)
+        // Content preserves full indentation+content; wall-stripping happens at AST level
+        let mut content_lines = Vec::new();
+        for token in &tokens[1..tokens.len() - 1] {
+            match token {
+                ScannerToken::VerbatimContentLine {
+                    content,
+                    indentation,
+                    span,
+                } => {
+                    // Create IgnoreLine with full indentation + content preserved
+                    // AST layer will handle wall-stripping based on wall_type
+                    content_lines.push(HighLevelToken::IgnoreLine {
+                        content: format!("{}{}", indentation, content),
+                        span: span.clone(),
+                        tokens: ScannerTokenSequence {
+                            tokens: vec![token.clone()],
+                        },
+                    });
+                }
+                ScannerToken::BlankLine { span, .. } => {
+                    content_lines.push(HighLevelToken::BlankLine {
+                        span: span.clone(),
+                        tokens: ScannerTokenSequence {
+                            tokens: vec![token.clone()],
+                        },
+                    });
+                }
+                _ => {
+                    // Ignore other tokens (shouldn't happen in well-formed verbatim blocks)
+                }
             }
-        } else {
-            tokens[0].span().clone()
-        };
-
-        let content_token = HighLevelTokenBuilder::text_span_with_tokens(
-            String::new(), // Empty placeholder - AST will extract from scanner tokens
-            content_span,
-            ScannerTokenSequence {
-                tokens: tokens[1..tokens.len() - 1].to_vec(), // Preserve VerbatimContentLine tokens
-            },
-        );
+        }
 
         // Parse label and parameters from label_raw
         // Format: "label:param1=val1,param2=val2" or just "label"
@@ -1516,11 +1531,11 @@ impl SemanticAnalyzer {
         // Aggregate all source tokens
         let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
 
-        // Build VerbatimBlock high-level token
+        // Build VerbatimBlock high-level token with Vec<HighLevelToken> content
         Ok(HighLevelTokenBuilder::verbatim_block_with_tokens(
             title_token,
             wall_token,
-            content_token,
+            content_lines,
             label,
             parameters,
             wall_type,

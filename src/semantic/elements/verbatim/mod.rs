@@ -7,7 +7,7 @@
 //! - **AST Node**: `src/ast/elements/verbatim/block.rs`
 
 use crate::ast::elements::verbatim::block::{VerbatimBlock, VerbatimType};
-use crate::cst::{HighLevelToken, ScannerToken, ScannerTokenSequence, WallType};
+use crate::cst::{HighLevelToken, ScannerTokenSequence, WallType};
 use crate::semantic::elements::parameters::create_parameters_ast;
 use crate::semantic::BlockParseError;
 
@@ -54,13 +54,6 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 ]
             };
 
-            // Extract line-level content from scanner tokens (Phase 4.3)
-            // Get scanner tokens from the content high-level token
-            let content_scanner_tokens = match content.as_ref() {
-                HighLevelToken::TextSpan { tokens, .. } => &tokens.tokens,
-                _ => &vec![],
-            };
-
             // Extract label text
             let label_text = match label.as_ref() {
                 HighLevelToken::TextSpan { content, .. } => content.clone(),
@@ -68,58 +61,56 @@ pub fn create_verbatim_element(token: &HighLevelToken) -> Result<VerbatimBlock, 
                 _ => "unknown".to_string(),
             };
 
-            // Determine wall indentation level for stripping (Phase 4.4)
+            // Determine wall indentation level for stripping
             let wall_indent = match wall_type {
                 WallType::InFlow(indent) => indent + 4, // Content at indent + 4
                 WallType::Stretched => 0,               // No wall stripping for stretched
             };
 
-            // Create IgnoreLine from VerbatimContentLine scanner tokens (Phase 4.3 & 4.4)
+            // Create AST IgnoreLine nodes from high-level IgnoreLine/BlankLine tokens
+            // Apply wall-stripping based on wall_type
             let mut ignore_lines = Vec::new();
-            for scanner_token in content_scanner_tokens {
-                match scanner_token {
-                    ScannerToken::VerbatimContentLine {
-                        indentation,
+            for high_level_token in content {
+                match high_level_token {
+                    HighLevelToken::IgnoreLine {
                         content: line_content,
+                        tokens,
                         ..
                     } => {
-                        // Wall-stripping: remove wall indentation (Phase 4.4)
+                        // Wall-stripping: remove wall indentation from IgnoreLine content
                         let stripped_content = if *wall_type == WallType::Stretched {
                             // Stretched: keep everything as-is
-                            format!("{}{}", indentation, line_content)
+                            line_content.clone()
                         } else {
                             // InFlow: strip wall indentation
-                            let full_line = format!("{}{}", indentation, line_content);
-                            if indentation.len() >= wall_indent {
+                            if line_content.len() >= wall_indent {
                                 // Strip the wall indent
-                                full_line[wall_indent..].to_string()
+                                line_content[wall_indent..].to_string()
                             } else {
                                 // Line has less indentation than wall - keep as-is
-                                full_line
+                                line_content.clone()
                             }
                         };
 
                         ignore_lines.push(
                             crate::ast::elements::verbatim::ignore_container::IgnoreLine {
                                 content: stripped_content,
-                                tokens: ScannerTokenSequence {
-                                    tokens: vec![scanner_token.clone()],
-                                },
+                                tokens: tokens.clone(),
                             },
                         );
                     }
-                    ScannerToken::BlankLine { .. } => {
+                    HighLevelToken::BlankLine { tokens, .. } => {
                         // Preserve blank lines
                         ignore_lines.push(
                             crate::ast::elements::verbatim::ignore_container::IgnoreLine {
                                 content: String::new(),
-                                tokens: ScannerTokenSequence {
-                                    tokens: vec![scanner_token.clone()],
-                                },
+                                tokens: tokens.clone(),
                             },
                         );
                     }
-                    _ => {}
+                    _ => {
+                        // Unexpected token type in content - skip it
+                    }
                 }
             }
 

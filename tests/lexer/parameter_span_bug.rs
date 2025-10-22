@@ -8,7 +8,9 @@ use txxt::cst::ScannerToken;
 use txxt::syntax::Lexer;
 
 // Use the shared test infrastructure from tests/infrastructure/
-use crate::infrastructure::parameter_fixtures::{extract_parameters_from_tokens, tokens_contain_parameter};
+use crate::infrastructure::parameter_fixtures::{
+    extract_parameters_from_tokens, tokens_contain_parameter,
+};
 
 #[test]
 fn test_parameter_spans_in_annotation() {
@@ -26,8 +28,14 @@ fn test_parameter_spans_in_annotation() {
     let params = extract_parameters_from_tokens(&tokens);
 
     assert_eq!(params.len(), 2, "Should have 2 parameters");
-    assert!(tokens_contain_parameter(&tokens, "key", "value"), "Should have key=value parameter");
-    assert!(tokens_contain_parameter(&tokens, "flag", "true"), "Should have flag parameter with implicit true");
+    assert!(
+        tokens_contain_parameter(&tokens, "key", "value"),
+        "Should have key=value parameter"
+    );
+    assert!(
+        tokens_contain_parameter(&tokens, "flag", "true"),
+        "Should have flag parameter with implicit true"
+    );
 
     // Verify individual token spans for parameter components
     // Check "key" identifier span
@@ -91,8 +99,14 @@ fn test_parameter_spans_in_definition() {
     let params = extract_parameters_from_tokens(&tokens);
 
     assert_eq!(params.len(), 2, "Should have 2 parameters");
-    assert!(tokens_contain_parameter(&tokens, "width", "100"), "Should have width=100 parameter");
-    assert!(tokens_contain_parameter(&tokens, "height", "50"), "Should have height=50 parameter");
+    assert!(
+        tokens_contain_parameter(&tokens, "width", "100"),
+        "Should have width=100 parameter"
+    );
+    assert!(
+        tokens_contain_parameter(&tokens, "height", "50"),
+        "Should have height=50 parameter"
+    );
 
     // Verify individual token spans for parameter components
     // Check "width" identifier span

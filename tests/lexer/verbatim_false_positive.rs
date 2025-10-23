@@ -52,17 +52,18 @@ fn test_multiple_colons_followed_by_annotation() {
 
 #[test]
 fn test_definition_followed_by_annotation() {
-    let input = r#"Some definition ::
+    // New syntax: single colon for definitions
+    let input = r#"Some definition:
 :: note :: This is an annotation, not verbatim content"#;
 
     let tokens = tokenize(input);
 
-    // Should have definition marker
-    let has_definition = tokens
+    // Should have definition marker (Colon)
+    let has_colon = tokens
         .iter()
-        .any(|t| matches!(t, ScannerToken::TxxtMarker { .. }));
+        .any(|t| matches!(t, ScannerToken::Colon { .. }));
 
-    assert!(has_definition, "Should have definition marker");
+    assert!(has_colon, "Should have colon marker for definition");
 
     // Should not be verbatim
     let has_verbatim = tokens.iter().any(|t| {

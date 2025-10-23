@@ -8,8 +8,8 @@ use txxt::transform::run_all;
 
 #[test]
 fn test_definition_simple() {
-    // Simple definition from spec
-    let source = r#"Parser ::
+    // Simple definition from spec (new syntax: single colon)
+    let source = r#"Parser:
     A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
 "#;
 

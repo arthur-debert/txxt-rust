@@ -22,7 +22,7 @@ Complete specification for the txxt parameter system used across annotations, ve
 
         Multiple parameters:
             version=3.11,style=functional,author="Jane Doe"
-        :: txxt.core.spec.parameter.valid.multiple-params ::
+        :: txxt.core.spec.parameter.valid.multiple-params :
 
         Note: Whitespace after the separator colon is optional.
         Both `label:key=value` and `label : key=value` are valid.
@@ -34,11 +34,11 @@ Complete specification for the txxt parameter system used across annotations, ve
         (integration)
 
         Verbatim parameters:
-            :: label:key=value,key2=value2 ::
+            :: label:key=value,key2=value2 :
         (integration)
 
         Definition parameters:
-            term : key=value,key2=value2 ::
+            term : key=value,key2=value2 :
         (integration)
 
 3. Grammar
@@ -80,7 +80,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             message="She said, \"Hello!\""
             path="C:\\Users\\Name\\Documents"
             multiline="Line 1\nLine 2"
-        :: txxt.core.spec.parameter.valid.escaped-quotes ::
+        :: txxt.core.spec.parameter.valid.escaped-quotes :
 
     4.3. Boolean Values
 
@@ -252,22 +252,22 @@ Complete specification for the txxt parameter system used across annotations, ve
         Document metadata:
             :: title:lang=en,type=research :: Advanced Parsing Techniques
             :: author:affiliation="University",email="prof@example.edu" :: Dr. Smith
-            :: license:type=MIT,year=2025 :: 
+            :: license:type=MIT,year=2025 :
         (annotation-examples)
 
     10.2. Verbatim Parameters
 
         Code blocks with metadata:
-            :: python:version=3.11,style=pep8 ::
-            :: sql:dialect=postgresql,version=15 ::
-            :: config:format=yaml,validated=true ::
+            :: python:version=3.11,style=pep8 :
+            :: sql:dialect=postgresql,version=15 :
+            :: config:format=yaml,validated=true :
         (verbatim-examples)
 
     10.3. Complex Parameter Examples
 
         Rich metadata:
-            :: media:type=image,src="diagram.svg",alt="System architecture",width=800,height=600 ::
-            :: citation:type=article,doi="10.1000/example",year=2025,pages="1-20" ::
+            :: media:type=image,src="diagram.svg",alt="System architecture",width=800,height=600 :
+            :: citation:type=article,doi="10.1000/example",year=2025,pages="1-20" :
         (complex-examples)
 
 :: note :: Parameters provide consistent metadata capabilities across all txxt elements. Their flexible syntax supports both simple flags and complex structured data while maintaining readability and parseability.

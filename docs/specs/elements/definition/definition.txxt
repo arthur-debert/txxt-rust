@@ -13,22 +13,22 @@ Complete specification for definitions - structured term-definition pairs that p
     2.1. Basic Definition Form
 
         Simple term definition:
-            Parser ::
+            Parser :
                 A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
-        :: txxt.core.spec.definition.valid.simple-term ::
+        :: txxt.core.spec.definition.valid.simple-term :
 
         Complex term with inline formatting:
-            *Important Concept* ::
+            *Important Concept* :
                 This term uses inline formatting in the term itself.
                 The definition can span multiple paragraphs and include rich content.
-        :: txxt.core.spec.definition.valid.formatted-term ::
+        :: txxt.core.spec.definition.valid.formatted-term :
     
     2.2. Parameterized Definitions
     
         Definition with parameters:
-            API : type=acronym,domain=software ::
+            API : type=acronym,domain=software :
                 Application Programming Interface - a set of protocols and tools for building software applications.
-        :: txxt.core.spec.definition.valid.with-parameters ::
+        :: txxt.core.spec.definition.valid.with-parameters :
         
         For complete parameter syntax and usage, see [parameters.txxt].
 
@@ -41,14 +41,14 @@ Complete specification for definitions - structured term-definition pairs that p
         - Content follows through ContentContainer
 
         Essential pattern:
-            <term-content> ::
+            <term-content> :
                 <indented-definition-content>
         :: pattern
 
     2.4. Content Structure
 
         Rich definition content:
-            Recursion ::
+            Recursion :
                 A programming technique where a function calls itself.
                 
                 Key characteristics:
@@ -62,7 +62,7 @@ Complete specification for definitions - structured term-definition pairs that p
                             return 1
                         return n * factorial(n - 1)
                 :: python
-        :: txxt.core.spec.definition.valid.rich-content ::
+        :: txxt.core.spec.definition.valid.rich-content :
 
 3. Grammar
 
@@ -84,10 +84,10 @@ Complete specification for definitions - structured term-definition pairs that p
         - Cannot be empty (must have term content)
 
         Valid term examples:
-            API ::
-            *Machine Learning* ::
-            `async/await` ::
-            HTTP Response Code ::
+            API :
+            *Machine Learning* :
+            `async/await` :
+            HTTP Response Code :
         :: valid-terms
 
     3.3. Content Rules
@@ -154,19 +154,19 @@ Complete specification for definitions - structured term-definition pairs that p
     6.1. Empty Terms
 
         Invalid (empty term):
-            ::
+            :
                 This definition has no term.
-        :: txxt.core.spec.definition.invalid.empty-term:error="EmptyTerm" ::
+        :: txxt.core.spec.definition.invalid.empty-term:error="EmptyTerm" :
 
         This is parsed as an annotation, not a definition.
 
     6.2. Missing Content
 
         Invalid (no indented content):
-            Term with no definition ::
+            Term with no definition :
             
             Next paragraph here.
-        :: txxt.core.spec.definition.invalid.no-content:error="MissingContent" ::
+        :: txxt.core.spec.definition.invalid.no-content:error="MissingContent" :
 
         This should cause a parse error as definitions require content.
 
@@ -174,22 +174,22 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Invalid (definition content must be indented):
             Inline Term :: Definition content on same line
-        :: txxt.core.spec.definition.invalid.inline-content:error="InlineContent" ::
+        :: txxt.core.spec.definition.invalid.inline-content:error="InlineContent" :
 
         Definitions require indented content; inline content is not supported.
 
     6.4. Nested Same-Level Definitions
 
         Valid (definitions can contain other definitions):
-            Programming ::
+            Programming :
                 The process of creating computer programs.
                 
-                Algorithm ::
+                Algorithm :
                     A step-by-step procedure for solving a problem.
                 
-                Data Structure ::
+                Data Structure :
                     A way of organizing and storing data efficiently.
-        :: txxt.core.spec.definition.valid.nested-definitions ::
+        :: txxt.core.spec.definition.valid.nested-definitions :
 
 7. Implementation Notes
 

@@ -911,12 +911,12 @@ impl SemanticAnalyzer {
         let first_token = &pattern_tokens[0];
 
         match first_token {
-            // Definition pattern: Text + ... + TxxtMarker
+            // Definition pattern: Text + ... + Colon (new syntax after grammar simplification)
             ScannerToken::Text { .. } => {
-                if pattern_tokens.len() >= 3
+                if pattern_tokens.len() >= 2
                     && matches!(
                         pattern_tokens[pattern_tokens.len() - 1],
-                        ScannerToken::TxxtMarker { .. }
+                        ScannerToken::Colon { .. }
                     )
                 {
                     let span = SourceSpan {
@@ -1635,10 +1635,10 @@ impl SemanticAnalyzer {
 
     /// Transform scanner tokens into a Definition semantic token
     ///
-    /// This implements the Definition transformation as specified in Issue #88.
+    /// This implements the Definition transformation after grammar simplification.
     /// Definition tokens represent structured elements that define terms, concepts,
-    /// and entities. They follow the pattern:
-    /// Text + Whitespace + TxxtMarker
+    /// and entities. They follow the new simplified pattern:
+    /// Text + Colon (parameters come from optional trailing annotations)
     ///
     /// # Arguments
     /// * `tokens` - Vector of scanner tokens that form a definition
@@ -1651,32 +1651,34 @@ impl SemanticAnalyzer {
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // Validate minimum definition structure: term ::
-        if tokens.len() < 3 {
+        // Validate minimum definition structure: term :
+        if tokens.len() < 2 {
             return Err(SemanticAnalysisError::AnalysisError(
-                "Definition must have at least 3 tokens: term ::".to_string(),
+                "Definition must have at least 2 tokens: term :".to_string(),
             ));
         }
 
-        // Check for closing TxxtMarker (should be at the end)
-        let txxt_marker_pos = tokens.len() - 1;
-        if !matches!(tokens[txxt_marker_pos], ScannerToken::TxxtMarker { .. }) {
+        // Check for closing Colon (should be at the end)
+        let colon_pos = tokens.len() - 1;
+        if !matches!(tokens[colon_pos], ScannerToken::Colon { .. }) {
             return Err(SemanticAnalysisError::AnalysisError(
-                "Definition must end with TxxtMarker".to_string(),
+                "Definition must end with Colon".to_string(),
             ));
         }
 
-        // Extract term (everything before the final TxxtMarker)
-        let term_tokens = &tokens[..txxt_marker_pos];
-        let (term_token, parameters) = self.parse_definition_term_with_parameters(term_tokens)?;
+        // Extract term (everything before the final Colon)
+        // In the new syntax, there are NO inline parameters - they come from trailing annotations
+        let term_tokens = &tokens[..colon_pos];
+        let term_token = self.tokens_to_text_span_preserve_whitespace(term_tokens)?;
 
         // Aggregate all source tokens for preservation
         let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
 
         // Transform to Definition semantic token with aggregated tokens
+        // Parameters are None - they come from optional trailing annotations in AST construction
         Ok(HighLevelTokenBuilder::definition_with_tokens(
             term_token,
-            parameters,
+            None, // No inline parameters in new syntax
             span,
             aggregated_tokens,
         ))
@@ -2033,82 +2035,9 @@ impl SemanticAnalyzer {
         // for both annotations and verbatim blocks
         self.parse_label_and_parameters_from_string(&label_raw, span)
     }
-
-    /// Parse definition term tokens and extract parameters if present
-    ///
-    /// This helper method processes definition term tokens and separates the main term
-    /// from any parameters (key=value pairs). Unlike labels, definition terms preserve
-    /// whitespace to maintain formatting like verbatim titles.
-    ///
-    /// # Arguments
-    /// * `tokens` - The tokens representing the definition term (may include parameters)
-    ///
-    /// # Returns
-    /// * `Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError>` - (term, parameters)
-    fn parse_definition_term_with_parameters(
-        &self,
-        tokens: &[ScannerToken],
-    ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
-        // Look for colon separator to identify parameters
-        let colon_pos = tokens
-            .iter()
-            .position(|token| matches!(token, ScannerToken::Colon { .. }));
-
-        if let Some(pos) = colon_pos {
-            // Split into term and parameters
-            let term_tokens = &tokens[..pos];
-            let param_tokens = &tokens[pos + 1..];
-
-            // Create term semantic token (preserve whitespace)
-            let term_token = self.tokens_to_text_span_preserve_whitespace(term_tokens)?;
-
-            // Create parameters semantic token if there are parameter tokens
-            let parameters = if param_tokens.is_empty()
-                || param_tokens
-                    .iter()
-                    .all(|token| matches!(token, ScannerToken::Whitespace { .. }))
-            {
-                None
-            } else {
-                Some(self.parse_parameters(param_tokens)?)
-            };
-
-            Ok((term_token, parameters))
-        } else {
-            // No parameters, just create term (preserve whitespace)
-            let term_token = self.tokens_to_text_span_preserve_whitespace(tokens)?;
-            Ok((term_token, None))
-        }
-    }
-
-    /// Parse parameter tokens into a Parameters semantic token
-    ///
-    /// This helper method processes parameter tokens and creates a structured
-    /// Parameters semantic token with key-value pairs.
-    ///
-    /// # Arguments
-    /// * `tokens` - The tokens representing parameters
-    ///
-    /// # Returns
-    /// * `Result<HighLevelToken, SemanticAnalysisError>` - The parameters semantic token
-    ///
-    /// # Parameter Processing
-    ///
-    /// See [`crate::cst::parameter_scanner`] for the complete three-level parameter flow.
-    /// This function uses the high-level token builder (Step 2 of the flow).
-    fn parse_parameters(
-        &self,
-        tokens: &[ScannerToken],
-    ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // Use the unified parameter builder from high-level tokens
-        // See: crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens
-        // for the parameter processing flow documentation
-        HighLevelTokenBuilder::parameters_from_scanner_tokens(tokens).ok_or_else(|| {
-            SemanticAnalysisError::InvalidParameterSyntax(
-                "Failed to parse parameters from scanner tokens".to_string(),
-            )
-        })
-    }
+    // NOTE: parse_definition_term_with_parameters() and parse_parameters() removed
+    // After grammar simplification, definitions no longer have inline parameters.
+    // Parameters come from optional trailing annotations in AST construction.
 
     /// Parse annotation content tokens into a semantic token
     ///

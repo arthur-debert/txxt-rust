@@ -2,12 +2,12 @@
 
     This section defines important terms used throughout the document.
     
-    Parser ::
+    Parser :
         A program that analyzes text according to formal grammar rules to create a structured representation.
         
-    Tokenizer ::
+    Tokenizer :
         A component that breaks input text into meaningful units called tokens. The tokenizer is the first stage in the parsing pipeline.
         
-    AST ::
+    AST :
         Abstract Syntax Tree. A tree representation of the syntactic structure of the source text.
 

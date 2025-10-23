@@ -2,7 +2,10 @@
 //! Tests for Definition semantic token transformation
 //!
 //! This module tests the transformation of scanner tokens into
-//! Definition semantic tokens as specified in Issue #88.
+//! Definition semantic tokens after grammar simplification.
+//!
+//! New syntax: Term: (single colon, no inline parameters)
+//! Parameters come from optional trailing annotations in AST construction.
 
 use txxt::cst::high_level_tokens::{HighLevelToken, HighLevelTokenBuilder, HighLevelTokenSpan};
 use txxt::cst::{Position, ScannerToken, SourceSpan};
@@ -12,70 +15,7 @@ use txxt::syntax::semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 fn test_definition_basic_transformation() {
     let analyzer = SemanticAnalyzer::new();
 
-    let tokens = vec![
-        ScannerToken::Text {
-            content: "Term".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 0 },
-                end: Position { row: 1, column: 4 },
-            },
-        },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 4 },
-                end: Position { row: 1, column: 5 },
-            },
-        },
-        ScannerToken::TxxtMarker {
-            span: SourceSpan {
-                start: Position { row: 1, column: 5 },
-                end: Position { row: 1, column: 7 },
-            },
-        },
-    ];
-
-    let span = SourceSpan {
-        start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 7 },
-    };
-
-    let result = analyzer.transform_definition(tokens, span.clone());
-    assert!(result.is_ok());
-
-    let semantic_token = result.unwrap();
-    match semantic_token {
-        HighLevelToken::Definition {
-            term,
-            parameters,
-            span: token_span,
-            ..
-        } => {
-            assert_eq!(token_span, span);
-            assert!(parameters.is_none());
-
-            // Check that the term is a TextSpan
-            match term.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: term_content,
-                    ..
-                } => {
-                    assert_eq!(term_content, "Term");
-                }
-                _ => panic!("Expected TextSpan term, got {:?}", term.as_ref()),
-            }
-        }
-        _ => panic!(
-            "Expected Definition semantic token, got {:?}",
-            semantic_token
-        ),
-    }
-}
-
-#[test]
-fn test_definition_with_parameters() {
-    let analyzer = SemanticAnalyzer::new();
-
+    // New syntax: Term: (just text + colon, no TxxtMarker)
     let tokens = vec![
         ScannerToken::Text {
             content: "Term".to_string(),
@@ -90,45 +30,11 @@ fn test_definition_with_parameters() {
                 end: Position { row: 1, column: 5 },
             },
         },
-        // Parameters now scanned as basic tokens
-        ScannerToken::Identifier {
-            content: "ref".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 5 },
-                end: Position { row: 1, column: 8 },
-            },
-        },
-        ScannerToken::Equals {
-            span: SourceSpan {
-                start: Position { row: 1, column: 8 },
-                end: Position { row: 1, column: 9 },
-            },
-        },
-        ScannerToken::Text {
-            content: "important".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 9 },
-                end: Position { row: 1, column: 18 },
-            },
-        },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 18 },
-                end: Position { row: 1, column: 19 },
-            },
-        },
-        ScannerToken::TxxtMarker {
-            span: SourceSpan {
-                start: Position { row: 1, column: 19 },
-                end: Position { row: 1, column: 21 },
-            },
-        },
     ];
 
     let span = SourceSpan {
         start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 21 },
+        end: Position { row: 1, column: 5 },
     };
 
     let result = analyzer.transform_definition(tokens, span.clone());
@@ -143,9 +49,10 @@ fn test_definition_with_parameters() {
             ..
         } => {
             assert_eq!(token_span, span);
-            assert!(parameters.is_some());
+            // In new syntax, parameters are always None (come from trailing annotations)
+            assert!(parameters.is_none());
 
-            // Check that the term is correct
+            // Check that the term is a TextSpan
             match term.as_ref() {
                 HighLevelToken::TextSpan {
                     content: term_content,
@@ -154,15 +61,6 @@ fn test_definition_with_parameters() {
                     assert_eq!(term_content, "Term");
                 }
                 _ => panic!("Expected TextSpan term, got {:?}", term.as_ref()),
-            }
-
-            // Check that the parameters are correct
-            match parameters.as_ref().unwrap().as_ref() {
-                HighLevelToken::Parameters { params, .. } => {
-                    // With unified parameter scanner, we get actual parsed parameters
-                    assert_eq!(params.get("ref"), Some(&"important".to_string()));
-                }
-                _ => panic!("Expected Parameters, got {:?}", parameters.as_ref()),
             }
         }
         _ => panic!(
@@ -198,24 +96,17 @@ fn test_definition_complex_term() {
                 end: Position { row: 1, column: 16 },
             },
         },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
+        ScannerToken::Colon {
             span: SourceSpan {
                 start: Position { row: 1, column: 16 },
                 end: Position { row: 1, column: 17 },
-            },
-        },
-        ScannerToken::TxxtMarker {
-            span: SourceSpan {
-                start: Position { row: 1, column: 17 },
-                end: Position { row: 1, column: 19 },
             },
         },
     ];
 
     let span = SourceSpan {
         start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 19 },
+        end: Position { row: 1, column: 17 },
     };
 
     let result = analyzer.transform_definition(tokens, span.clone());
@@ -232,7 +123,6 @@ fn test_definition_complex_term() {
             assert_eq!(token_span, span);
             assert!(parameters.is_none());
 
-            // Check that the term combines multiple text tokens
             match term.as_ref() {
                 HighLevelToken::TextSpan {
                     content: term_content,
@@ -254,7 +144,7 @@ fn test_definition_complex_term() {
 fn test_definition_invalid_structure() {
     let analyzer = SemanticAnalyzer::new();
 
-    // Test with too few tokens
+    // Only one token - not enough for definition
     let tokens = vec![ScannerToken::Text {
         content: "Term".to_string(),
         span: SourceSpan {
@@ -271,11 +161,10 @@ fn test_definition_invalid_structure() {
     let result = analyzer.transform_definition(tokens, span);
     assert!(result.is_err());
 
-    match result.unwrap_err() {
-        SemanticAnalysisError::AnalysisError(msg) => {
-            assert!(msg.contains("Definition must have at least 3 tokens"));
-        }
-        _ => panic!("Expected AnalysisError for invalid structure"),
+    if let Err(SemanticAnalysisError::AnalysisError(msg)) = result {
+        assert!(msg.contains("Definition must have at least 2 tokens"));
+    } else {
+        panic!("Expected AnalysisError");
     }
 }
 
@@ -283,6 +172,7 @@ fn test_definition_invalid_structure() {
 fn test_definition_no_closing_marker() {
     let analyzer = SemanticAnalyzer::new();
 
+    // Text but no closing colon
     let tokens = vec![
         ScannerToken::Text {
             content: "Term".to_string(),
@@ -298,389 +188,158 @@ fn test_definition_no_closing_marker() {
                 end: Position { row: 1, column: 5 },
             },
         },
-        ScannerToken::Text {
-            content: "content".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 5 },
-                end: Position { row: 1, column: 12 },
-            },
-        },
     ];
 
     let span = SourceSpan {
         start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 12 },
+        end: Position { row: 1, column: 5 },
     };
 
     let result = analyzer.transform_definition(tokens, span);
     assert!(result.is_err());
 
-    match result.unwrap_err() {
-        SemanticAnalysisError::AnalysisError(msg) => {
-            assert!(msg.contains("Definition must end with TxxtMarker"));
-        }
-        _ => panic!("Expected AnalysisError for no closing marker"),
+    if let Err(SemanticAnalysisError::AnalysisError(msg)) = result {
+        assert!(msg.contains("Definition must end with Colon"));
+    } else {
+        panic!("Expected AnalysisError with Colon message");
     }
 }
 
 #[test]
 fn test_definition_builder() {
-    let term_token = HighLevelTokenBuilder::text_span(
-        "Term".to_string(),
-        SourceSpan {
-            start: Position { row: 1, column: 0 },
-            end: Position { row: 1, column: 4 },
-        },
-    );
-
-    let parameters_token = HighLevelTokenBuilder::parameters(
-        std::collections::HashMap::from([("ref".to_string(), "important".to_string())]),
-        SourceSpan {
-            start: Position { row: 1, column: 5 },
-            end: Position { row: 1, column: 18 },
-        },
-    );
-
-    let span = SourceSpan {
+    let term_span = SourceSpan {
         start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 21 },
+        end: Position { row: 1, column: 6 },
     };
+    let term = HighLevelTokenBuilder::text_span("Parser".to_string(), term_span.clone());
 
-    let semantic_token =
-        HighLevelTokenBuilder::definition(term_token, Some(parameters_token), span.clone());
+    let def_span = SourceSpan {
+        start: Position { row: 1, column: 0 },
+        end: Position { row: 1, column: 7 },
+    };
+    let definition = HighLevelTokenBuilder::definition(term.clone(), None, def_span.clone());
 
-    match semantic_token {
+    match definition {
         HighLevelToken::Definition {
-            term,
+            term: def_term,
             parameters,
-            span: token_span,
             ..
         } => {
-            assert_eq!(token_span, span);
-            assert!(parameters.is_some());
-
-            match term.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: term_content,
-                    ..
-                } => {
-                    assert_eq!(term_content, "Term");
-                }
-                _ => panic!("Expected TextSpan term, got {:?}", term.as_ref()),
-            }
-
-            match parameters.as_ref().unwrap().as_ref() {
-                HighLevelToken::Parameters { params, .. } => {
-                    assert!(params.contains_key("ref"));
-                    assert_eq!(params.get("ref").unwrap(), "important");
-                }
-                _ => panic!("Expected Parameters, got {:?}", parameters.as_ref()),
-            }
+            assert_eq!(*def_term, term);
+            assert!(parameters.is_none());
         }
-        _ => panic!(
-            "Expected Definition semantic token, got {:?}",
-            semantic_token
-        ),
+        _ => panic!("Expected Definition token"),
     }
 }
 
 #[test]
 fn test_definition_span_trait() {
-    let term_token = HighLevelTokenBuilder::text_span(
-        "Term".to_string(),
-        SourceSpan {
-            start: Position { row: 1, column: 0 },
-            end: Position { row: 1, column: 4 },
-        },
-    );
-
+    let term_span = SourceSpan {
+        start: Position { row: 1, column: 0 },
+        end: Position { row: 1, column: 4 },
+    };
     let span = SourceSpan {
         start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 7 },
+        end: Position { row: 1, column: 10 },
     };
 
-    let semantic_token = HighLevelTokenBuilder::definition(term_token, None, span.clone());
-    let token_span = semantic_token.span();
+    let term = HighLevelTokenBuilder::text_span("Term".to_string(), term_span);
+    let definition = HighLevelTokenBuilder::definition(term, None, span.clone());
 
-    assert_eq!(token_span, &span);
+    assert_eq!(definition.span(), &span);
 }
 
 #[test]
 fn test_definition_different_terms() {
     let analyzer = SemanticAnalyzer::new();
 
-    let test_cases = ["Term", "Algorithm", "Data Structure", "API", "Function"];
+    let test_cases = vec![
+        ("API", "API"),
+        ("REST", "REST"),
+        ("HTTP", "HTTP"),
+        ("Parser Component", "Parser Component"),
+    ];
 
-    for term_text in test_cases.iter() {
-        let tokens = vec![
-            ScannerToken::Text {
-                content: term_text.to_string(),
-                span: SourceSpan {
-                    start: Position { row: 1, column: 0 },
-                    end: Position {
-                        row: 1,
-                        column: term_text.len(),
+    for (input, expected) in test_cases {
+        let mut tokens = vec![];
+        let mut col = 0;
+
+        // Split on whitespace and create tokens
+        for (i, word) in input.split_whitespace().enumerate() {
+            if i > 0 {
+                tokens.push(ScannerToken::Whitespace {
+                    content: " ".to_string(),
+                    span: SourceSpan {
+                        start: Position {
+                            row: 1,
+                            column: col,
+                        },
+                        end: Position {
+                            row: 1,
+                            column: col + 1,
+                        },
                     },
-                },
-            },
-            ScannerToken::Whitespace {
-                content: " ".to_string(),
+                });
+                col += 1;
+            }
+
+            tokens.push(ScannerToken::Text {
+                content: word.to_string(),
                 span: SourceSpan {
                     start: Position {
                         row: 1,
-                        column: term_text.len(),
+                        column: col,
                     },
                     end: Position {
                         row: 1,
-                        column: term_text.len() + 1,
+                        column: col + word.len(),
                     },
                 },
-            },
-            ScannerToken::TxxtMarker {
-                span: SourceSpan {
-                    start: Position {
-                        row: 1,
-                        column: term_text.len() + 1,
-                    },
-                    end: Position {
-                        row: 1,
-                        column: term_text.len() + 3,
-                    },
+            });
+            col += word.len();
+        }
+
+        // Add closing colon
+        tokens.push(ScannerToken::Colon {
+            span: SourceSpan {
+                start: Position {
+                    row: 1,
+                    column: col,
+                },
+                end: Position {
+                    row: 1,
+                    column: col + 1,
                 },
             },
-        ];
+        });
 
         let span = SourceSpan {
             start: Position { row: 1, column: 0 },
             end: Position {
                 row: 1,
-                column: term_text.len() + 3,
+                column: col + 1,
             },
         };
 
-        let result = analyzer.transform_definition(tokens, span.clone());
-        assert!(result.is_ok(), "Should succeed for term: {}", term_text);
+        let result = analyzer.transform_definition(tokens, span);
+        assert!(result.is_ok(), "Failed to transform term: {}", input);
 
         let semantic_token = result.unwrap();
         match semantic_token {
-            HighLevelToken::Definition {
-                term,
-                parameters,
-                span: token_span,
-                ..
-            } => {
-                assert_eq!(token_span, span);
-                assert!(parameters.is_none());
-
-                match term.as_ref() {
-                    HighLevelToken::TextSpan {
-                        content: actual_term,
-                        ..
-                    } => {
-                        assert_eq!(actual_term, *term_text);
-                    }
-                    _ => panic!("Expected TextSpan term, got {:?}", term.as_ref()),
-                }
-            }
-            _ => panic!(
-                "Expected Definition semantic token, got {:?}",
-                semantic_token
-            ),
-        }
-    }
-}
-
-#[test]
-fn test_definition_with_multiple_parameters() {
-    let analyzer = SemanticAnalyzer::new();
-
-    let tokens = vec![
-        ScannerToken::Text {
-            content: "Algorithm".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 0 },
-                end: Position { row: 1, column: 9 },
-            },
-        },
-        ScannerToken::Colon {
-            span: SourceSpan {
-                start: Position { row: 1, column: 9 },
-                end: Position { row: 1, column: 10 },
-            },
-        },
-        // First parameter: type=sorting
-        ScannerToken::Identifier {
-            content: "type".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 10 },
-                end: Position { row: 1, column: 14 },
-            },
-        },
-        ScannerToken::Equals {
-            span: SourceSpan {
-                start: Position { row: 1, column: 14 },
-                end: Position { row: 1, column: 15 },
-            },
-        },
-        ScannerToken::Text {
-            content: "sorting".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 15 },
-                end: Position { row: 1, column: 22 },
-            },
-        },
-        ScannerToken::Comma {
-            span: SourceSpan {
-                start: Position { row: 1, column: 22 },
-                end: Position { row: 1, column: 23 },
-            },
-        },
-        // Second parameter: complexity=O(n log n)
-        ScannerToken::Identifier {
-            content: "complexity".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 23 },
-                end: Position { row: 1, column: 33 },
-            },
-        },
-        ScannerToken::Equals {
-            span: SourceSpan {
-                start: Position { row: 1, column: 33 },
-                end: Position { row: 1, column: 34 },
-            },
-        },
-        ScannerToken::Text {
-            content: "O(n log n)".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 34 },
-                end: Position { row: 1, column: 44 },
-            },
-        },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 44 },
-                end: Position { row: 1, column: 45 },
-            },
-        },
-        ScannerToken::TxxtMarker {
-            span: SourceSpan {
-                start: Position { row: 1, column: 45 },
-                end: Position { row: 1, column: 47 },
-            },
-        },
-    ];
-
-    let span = SourceSpan {
-        start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 47 },
-    };
-
-    let result = analyzer.transform_definition(tokens, span.clone());
-    assert!(result.is_ok());
-
-    let semantic_token = result.unwrap();
-    match semantic_token {
-        HighLevelToken::Definition {
-            term,
-            parameters,
-            span: token_span,
-            ..
-        } => {
-            assert_eq!(token_span, span);
-            assert!(parameters.is_some());
-
-            match term.as_ref() {
+            HighLevelToken::Definition { term, .. } => match term.as_ref() {
                 HighLevelToken::TextSpan {
                     content: term_content,
                     ..
                 } => {
-                    assert_eq!(term_content, "Algorithm");
+                    assert_eq!(term_content, expected);
                 }
-                _ => panic!("Expected TextSpan term, got {:?}", term.as_ref()),
-            }
-
-            match parameters.as_ref().unwrap().as_ref() {
-                HighLevelToken::Parameters { params, .. } => {
-                    // With unified parameter scanner, we get actual parsed parameters
-                    assert_eq!(params.get("type"), Some(&"sorting".to_string()));
-                    assert_eq!(params.get("complexity"), Some(&"O(n log n)".to_string()));
-                }
-                _ => panic!("Expected Parameters, got {:?}", parameters.as_ref()),
-            }
+                _ => panic!("Expected TextSpan term"),
+            },
+            _ => panic!("Expected Definition semantic token"),
         }
-        _ => panic!(
-            "Expected Definition semantic token, got {:?}",
-            semantic_token
-        ),
     }
 }
 
-#[test]
-fn test_definition_empty_parameters() {
-    let analyzer = SemanticAnalyzer::new();
-
-    let tokens = vec![
-        ScannerToken::Text {
-            content: "Term".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 0 },
-                end: Position { row: 1, column: 4 },
-            },
-        },
-        ScannerToken::Colon {
-            span: SourceSpan {
-                start: Position { row: 1, column: 4 },
-                end: Position { row: 1, column: 5 },
-            },
-        },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
-            span: SourceSpan {
-                start: Position { row: 1, column: 5 },
-                end: Position { row: 1, column: 6 },
-            },
-        },
-        ScannerToken::TxxtMarker {
-            span: SourceSpan {
-                start: Position { row: 1, column: 6 },
-                end: Position { row: 1, column: 8 },
-            },
-        },
-    ];
-
-    let span = SourceSpan {
-        start: Position { row: 1, column: 0 },
-        end: Position { row: 1, column: 8 },
-    };
-
-    let result = analyzer.transform_definition(tokens, span.clone());
-    assert!(result.is_ok());
-
-    let semantic_token = result.unwrap();
-    match semantic_token {
-        HighLevelToken::Definition {
-            term,
-            parameters,
-            span: token_span,
-            ..
-        } => {
-            assert_eq!(token_span, span);
-            assert!(parameters.is_none()); // Empty parameters should result in None
-
-            match term.as_ref() {
-                HighLevelToken::TextSpan {
-                    content: term_content,
-                    ..
-                } => {
-                    assert_eq!(term_content, "Term");
-                }
-                _ => panic!("Expected TextSpan term, got {:?}", term.as_ref()),
-            }
-        }
-        _ => panic!(
-            "Expected Definition semantic token, got {:?}",
-            semantic_token
-        ),
-    }
-}
+// NOTE: Tests for inline parameters have been removed as parameters now come
+// from optional trailing annotations in AST construction, not from the
+// Definition high-level token itself.

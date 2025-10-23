@@ -8,19 +8,19 @@ This document defines the standardized terminology used throughout txxt specific
 
     txxt uses a clear hierarchy of structural terms that align with both human intuition and parsing implementation:
 
-    Span ::
+    Span :
         The smallest unit of text that does not include line breaks. A line can host multiple spans. Examples: a word, a phrase, inline formatting like *bold* or `code`.
 
-    Line ::
+    Line :
         An element that encompasses a full line of text. It can host multiple spans and is composed of one or more spans followed by a line break.
 
-    Block ::
+    Block :
         A larger structural unit that contains one or more lines. Blocks represent semantic document structures like paragraphs, lists, or sessions.
 
-    Container ::
+    Container :
         Special block elements that hold child elements of different types. Containers are what get indented, not their parent elements.
 
-    Element ::
+    Element :
         Any structural component in txxt - can be a span, line, block, or container. This is the most general term.
 
 2. Structural Elements
@@ -29,35 +29,35 @@ This document defines the standardized terminology used throughout txxt specific
 
         Spans are inline elements that format or reference text within a line:
 
-        Text Span ::
+        Text Span :
             Plain text content
 
-        Bold Span ::
+        Bold Span :
             Text wrapped in asterisks (*text*)
 
-        Italic Span ::
+        Italic Span :
             Text wrapped in underscores (_text_)
 
-        Code Span ::
+        Code Span :
             Text wrapped in backticks (`text`)
 
-        Math Span ::
+        Math Span :
             Mathematical expressions wrapped in hash signs (#formula#)
 
-        Reference Span ::
+        Reference Span :
             Links wrapped in brackets ([target])
 
-        Citation Span ::
+        Citation Span :
             Academic citations with @ prefix ([@key]) 
 
     2.2. Line Elements
 
         Lines represent complete lines of text content:
 
-        Text Line ::
+        Text Line :
             A line containing span elements, ended by a line break
 
-        Blank Line ::
+        Blank Line :
             A line containing only whitespace and a line break
 
     2.3. Block Elements
@@ -66,41 +66,41 @@ This document defines the standardized terminology used throughout txxt specific
 
         Leaf Blocks (cannot contain other blocks):
 
-        Paragraph ::
+        Paragraph :
             One or more text lines
 
-        Blank Line ::
+        Blank Line :
             Structural separator
 
         Container Blocks (can contain child elements):
 
-        Verbatim Block ::
+        Verbatim Block :
             Preserved content that bypasses txxt parsing
 
-        List ::
+        List :
             Collection of list items
 
-        Definition ::
+        Definition :
             Term and definition pair
 
-        Session ::
+        Session :
             Hierarchical document section
 
-        Container ::
+        Container :
             Explicit container for indented content
 
     2.4. Special Elements
 
-        List Item ::
+        List Item :
             Individual entry in a list, with marker and content
 
-        Definition Term ::
+        Definition Term :
             The term part of a definition
 
-        Session Title ::
+        Session Title :
             The title part of a session
 
-        Annotation ::
+        Annotation :
             Metadata attached to other elements
 
 3. Container Architecture
@@ -114,13 +114,13 @@ This document defines the standardized terminology used throughout txxt specific
 
     3.1. Container Types
 
-        Content Container ::
+        Content Container :
             Can hold any block element except sessions. Used for list item content, definition content, annotation content.
 
-        Session Container ::
+        Session Container :
             Can hold any block element including sessions. Must be surrounded by blank lines. Used for session content and document root.
 
-        Ignore Container ::
+        Ignore Container :
             Can only hold ignore lines and blank lines. Used for verbatim block content that should not be parsed as txxt.
 
 4. Parsing vs. Semantic Terminology
@@ -129,29 +129,29 @@ This document defines the standardized terminology used throughout txxt specific
 
         Terms used during tokenization and parsing phases:
 
-        Token ::
+        Token :
             Atomic lexical element (SequenceMarker, Text, AnnotationMarker, etc.)
 
-        Token Stream ::
+        Token Stream :
             Sequence of tokens from lexer
 
-        Block Grouping ::
+        Block Grouping :
             Process of organizing tokens into hierarchical structure
 
-        Type Resolution ::
+        Type Resolution :
             Process of converting generic blocks to specific element types
 
     4.2. Semantic Level
 
         Terms used for the final document structure:
 
-        AST Node ::
+        AST Node :
             Specific typed element in the abstract syntax tree
 
-        Document ::
+        Document :
             Top-level container holding entire txxt document
 
-        Element ::
+        Element :
             Any semantic component in the final document structure
 
 5. Notation
@@ -217,7 +217,7 @@ This document defines the standardized terminology used throughout txxt specific
 
         Examples:
             SequenceMarker: ^- \s
-            AnnotationMarker: ::
+            AnnotationMarker: :
             VerbatimStart: .+:\s*$
         :: regex
 

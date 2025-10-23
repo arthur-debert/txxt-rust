@@ -37,13 +37,13 @@
     
         Technical documents often need to define terms precisely:
         
-        Container ::
+        Container :
             An element that holds other elements, managing their hierarchical relationship through indentation.
             
-        Session ::
+        Session :
             A hierarchical section that organizes content into logical units. Sessions can be nested to arbitrary depth.
             
-        Verbatim Block ::
+        Verbatim Block :
             A block that preserves content exactly as written, without applying txxt parsing rules.
             
     3.2. Code Examples

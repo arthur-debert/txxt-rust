@@ -9,12 +9,12 @@
 //! produce gibberish if parsed as TXXT (especially indent tokens), we must identify these blocks first
 //! and mark them as opaque content.
 //!
-//! ## Verbatim Block Syntax
+//! ## Verbatim Block Syntax (After Grammar Simplification)
 //!
 //! Verbatim blocks have three components:
 //! 1. **Title line**: Optional text followed by a single `:` at end of line
 //! 2. **Content lines**: Everything between title and terminator (preserved exactly)
-//! 3. **Terminator line**: `:: label` or `:: label:params` with optional parameters
+//! 3. **Terminator line**: MANDATORY full annotation `:: label params? ::`
 //!
 //! ### Normal Verbatim Block
 //! ```txxt
@@ -23,7 +23,7 @@
 //!     Another line
 //!
 //!     Blank lines are allowed
-//! :: identifier
+//! :: python ::
 //! ```
 //!
 //! ### Stretched Verbatim Block
@@ -33,14 +33,14 @@
 //! Another line at column 0
 //!
 //! Blank lines are allowed
-//! :: identifier
+//! :: shell ::
 //! ```
 //!
 //! ### With Parameters
 //! ```txxt
 //! title:
 //!     Content here
-//! :: label:key1=value1,key2=value2
+//! :: python version=3.11 ::
 //! ```
 //!
 //! ## Scanner State Machine
@@ -86,12 +86,12 @@
 //! ### 5. Terminator Validation
 //! Valid terminator must:
 //! - Be at **exact same indentation** as title line
-//! - Match pattern: `:: identifier` or `:: identifier:params`
-//! - Have proper parameter syntax if present
+//! - Match pattern: `:: label ::` or `:: label params ::`
+//! - Be a full annotation (opening and closing `::` markers)
 //!
 //! ## Error Conditions
 //! - **No terminator found**: Document ends while in verbatim mode
-//! - **Invalid terminator syntax**: Malformed `:: label` line
+//! - **Invalid terminator syntax**: Malformed `:: label ::` annotation
 //! - **Wrong terminator indent**: Not aligned with title
 //! - **Content at wrong indent**: Breaks verbatim rules
 //!
@@ -213,12 +213,12 @@ impl VerbatimScanner {
         Self {
             // Match line ending with single : (not ::)
             verbatim_start_re: Regex::new(r"^(.*):\s*$").unwrap(),
-            // Match terminator: :: identifier or :: identifier:params
-            verbatim_end_re: Regex::new(r"^\s*::\s+([a-zA-Z_][a-zA-Z0-9._-]*(?::[^:\s].*)?)\s*$")
-                .unwrap(),
+            // Match terminator: :: label :: or :: label params :: (new unified annotation syntax)
+            // After grammar simplification, verbatim terminators are full annotations
+            verbatim_end_re: Regex::new(r"^\s*::\s+(.+?)\s+::\s*$").unwrap(),
             // Match annotation lines :: label ::
             annotation_re: Regex::new(r"^.*::\s*.*::\s*.*$").unwrap(),
-            // Match definition lines ending with ::
+            // Match definition lines ending with :: (OLD syntax, no longer used)
             definition_re: Regex::new(r"^.*::\s*$").unwrap(),
         }
     }
@@ -315,7 +315,7 @@ impl VerbatimScanner {
         state: ScanState,
         line_num: usize,
         line: &str,
-        _all_lines: &[&str],
+        all_lines: &[&str],
     ) -> ScanState {
         match state {
             ScanState::ScanningNormal => self.check_for_verbatim_start(line_num, line),
@@ -331,6 +331,7 @@ impl VerbatimScanner {
                 title_text,
                 line_num,
                 line,
+                all_lines,
             ),
 
             ScanState::InVerbatimNormal {
@@ -407,6 +408,7 @@ impl VerbatimScanner {
         title_text: String, // NEW: title text parameter
         line_num: usize,
         line: &str,
+        all_lines: &[&str],
     ) -> ScanState {
         // If this is a blank line, continue waiting for content
         if line.trim().is_empty() {
@@ -435,6 +437,15 @@ impl VerbatimScanner {
                 content_start: None,
                 content_end: None,
             });
+            return ScanState::ScanningNormal;
+        }
+
+        // CRITICAL: After grammar simplification, verbatim blocks REQUIRE a terminator.
+        // Before entering verbatim mode, check if a terminator exists.
+        // If no terminator exists, this is a DEFINITION (not verbatim), so return to normal scanning.
+        let line_idx = line_num - 1; // Convert to 0-based index
+        if !self.has_terminator_ahead(all_lines, line_idx, title_indent) {
+            // No terminator found - this is a definition, not verbatim
             return ScanState::ScanningNormal;
         }
 
@@ -581,6 +592,35 @@ impl VerbatimScanner {
         self.verbatim_end_re.is_match(line)
     }
 
+    /// Look ahead in remaining lines to check if a terminator exists
+    /// This is used after grammar simplification to distinguish verbatim blocks (mandatory terminator)
+    /// from definitions (optional terminator / no terminator).
+    fn has_terminator_ahead(&self, all_lines: &[&str], start_idx: usize, expected_indent: usize) -> bool {
+        for line in all_lines.iter().skip(start_idx) {
+            // Skip blank lines
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            // Check if this is a valid terminator
+            if self.is_valid_terminator(line, expected_indent) {
+                return true;
+            }
+
+            // Check indentation - if we hit content at wrong indent level, stop looking
+            let line_indent = self.calculate_indentation(line);
+
+            // If we hit content at title indent or less (except terminator),
+            // this marks end of potential verbatim block
+            if line_indent <= expected_indent {
+                return false;
+            }
+        }
+
+        // Reached end of document without finding terminator
+        false
+    }
+
     /// Calculate indentation level of a line (number of leading spaces, tabs = 4 spaces)
     fn calculate_indentation(&self, line: &str) -> usize {
         crate::syntax::indentation_analysis::calculate_indentation_level(line)
@@ -688,6 +728,7 @@ impl VerbatimScanner {
                 title_text,
                 line_num,
                 line,
+                all_lines,
             ),
 
             ScanState::InVerbatimNormal {
@@ -735,6 +776,7 @@ impl VerbatimScanner {
         title_text: String,
         line_num: usize,
         line: &str,
+        all_lines: &[&str],
     ) -> ScanState {
         // If this is a blank line, continue waiting for content
         if line.trim().is_empty() {
@@ -768,6 +810,15 @@ impl VerbatimScanner {
                 content_start: None,
                 content_end: None,
             });
+            return ScanState::ScanningNormal;
+        }
+
+        // CRITICAL: After grammar simplification, verbatim blocks REQUIRE a terminator.
+        // Before entering verbatim mode, check if a terminator exists.
+        // If no terminator exists, this is a DEFINITION (not verbatim), so return to normal scanning.
+        let line_idx = line_num - 1; // Convert to 0-based index
+        if !self.has_terminator_ahead(all_lines, line_idx, title_indent) {
+            // No terminator found - this is a definition, not verbatim
             return ScanState::ScanningNormal;
         }
 

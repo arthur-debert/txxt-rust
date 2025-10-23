@@ -35,7 +35,7 @@ Complete specification for definitions - structured term-definition pairs that p
     2.3. Syntax Rules
 
         Definition recognition:
-        - Term line ends with txxt marker (`::`)
+        - Term line ends with colon (`:`)
         - Definition content must be indented +1 from term
         - Term can contain inline formatting
         - Content follows through ContentContainer
@@ -80,7 +80,7 @@ Complete specification for definitions - structured term-definition pairs that p
         Definition term constraints:
         - Must be single line (cannot span multiple lines)
         - Can contain any inline elements (bold, italic, code, references)
-        - Must end with txxt marker (`::`)
+        - Must end with colon (`:`)
         - Cannot be empty (must have term content)
 
         Valid term examples:
@@ -127,7 +127,7 @@ Complete specification for definitions - structured term-definition pairs that p
     5.1. Recognition Criteria
 
         Definition-specific recognition pattern:
-        1. Line ending with txxt marker (`::`) → Potential definition
+        1. Line ending with colon (`:`) → Potential definition
         2. Validate term content (cannot be empty)
         3. Check for indented content following term
         4. If indented content exists → Definition
@@ -207,8 +207,8 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Definition marker disambiguation:
         - **Annotations**: txxt marker at start of line (`:: label ::`)
-        - **Definitions**: txxt marker at end of line (`term ::`)
-        - **Verbatim**: single colon at end of line (`title:`)
+        - **Definitions**: colon at end of line (`term :`)
+        - **Verbatim**: colon at end of line (`title:`)
 
         Marker position determines element type during recognition phase.
 

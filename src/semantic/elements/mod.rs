@@ -33,4 +33,5 @@ pub mod formatting;
 pub mod inlines;
 
 // Reusable component constructors
+pub mod numbering;
 pub mod parameters;

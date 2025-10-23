@@ -9,7 +9,7 @@
 use crate::ast::elements::containers::ContentContainer;
 use crate::ast::elements::inlines::TextTransform;
 use crate::ast::elements::list::block::{
-    ListBlock, ListDecorationType, ListItem, NumberingForm, NumberingStyle,
+    ListBlock, ListDecorationType, ListItem,
 };
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
 use crate::semantic::ast_construction::AstNode;
@@ -189,18 +189,14 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
 fn determine_decoration_type(marker: &str) -> ListDecorationType {
     let decoration = list_detection::determine_decoration_type(marker);
 
-    // Convert to AST types
-    let style = match decoration.style {
-        list_detection::NumberingStyle::Plain => NumberingStyle::Plain,
-        list_detection::NumberingStyle::Numerical => NumberingStyle::Numerical,
-        list_detection::NumberingStyle::Alphabetical => NumberingStyle::Alphabetical,
-        list_detection::NumberingStyle::Roman => NumberingStyle::Roman,
-    };
+    // Convert to AST types using shared utilities
+    // Lists DO allow plain markers (allow_plain = true)
+    use crate::semantic::elements::numbering::{convert_numbering_form, convert_numbering_style};
 
-    let form = match decoration.form {
-        list_detection::NumberingForm::Regular => NumberingForm::Short,
-        list_detection::NumberingForm::Extended => NumberingForm::Full,
-    };
+    let style = convert_numbering_style(&decoration.style, true)
+        .expect("Lists always allow plain markers, should never be None");
+
+    let form = convert_numbering_form(&decoration.form);
 
     ListDecorationType { style, form }
 }

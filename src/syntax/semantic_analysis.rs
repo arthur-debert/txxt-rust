@@ -720,13 +720,21 @@ impl SemanticAnalyzer {
         }
         i += 1; // Move past newline
 
-        // Next must be Whitespace (indentation)
-        if i >= scanner_tokens.len()
-            || !matches!(scanner_tokens[i], ScannerToken::Whitespace { .. })
-        {
+        // Next must be Indent token (NOT just Whitespace!)
+        // This ensures content is at a DEEPER indentation level than the subject line.
+        // If both lines are at the same level (e.g., "Key concepts:" followed by list at same indent),
+        // there won't be an Indent token, so this is not a definition.
+        if i >= scanner_tokens.len() || !matches!(scanner_tokens[i], ScannerToken::Indent { .. }) {
             return Ok(None);
         }
-        i += 1; // Move past whitespace
+        i += 1; // Move past Indent
+
+        // After Indent, there should be Whitespace and then content
+        // Skip whitespace if present
+        if i < scanner_tokens.len() && matches!(scanner_tokens[i], ScannerToken::Whitespace { .. })
+        {
+            i += 1;
+        }
 
         // Next must be content (Text or other content token)
         if i >= scanner_tokens.len() {

@@ -20,7 +20,8 @@ use txxt::syntax::semantic_analysis::SemanticAnalyzer;
 fn test_defect_1_definition_not_composed() {
     let analyzer = SemanticAnalyzer::new();
 
-    // Create a valid definition pattern: "Term:\n    content"
+    // Create a valid definition pattern: "Term:\n<indent>    content"
+    // Pattern requires: Text + Colon + Newline + Indent + Whitespace + content
     let scanner_tokens = vec![
         ScannerToken::Text {
             content: "Term".to_string(),
@@ -39,6 +40,12 @@ fn test_defect_1_definition_not_composed() {
             span: SourceSpan {
                 start: Position { row: 1, column: 5 },
                 end: Position { row: 1, column: 5 },
+            },
+        },
+        ScannerToken::Indent {
+            span: SourceSpan {
+                start: Position { row: 2, column: 0 },
+                end: Position { row: 2, column: 0 },
             },
         },
         ScannerToken::Whitespace {
@@ -309,6 +316,12 @@ fn test_expected_behavior_after_fixes() {
             span: SourceSpan {
                 start: Position { row: 1, column: 10 },
                 end: Position { row: 1, column: 10 },
+            },
+        },
+        ScannerToken::Indent {
+            span: SourceSpan {
+                start: Position { row: 2, column: 0 },
+                end: Position { row: 2, column: 0 },
             },
         },
         ScannerToken::Whitespace {

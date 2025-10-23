@@ -20,7 +20,7 @@ use txxt::syntax::semantic_analysis::SemanticAnalyzer;
 fn test_defect_1_definition_not_composed() {
     let analyzer = SemanticAnalyzer::new();
 
-    // Create a definition pattern: "Term ::"
+    // Create a valid definition pattern: "Term:\n    content"
     let scanner_tokens = vec![
         ScannerToken::Text {
             content: "Term".to_string(),
@@ -29,22 +29,38 @@ fn test_defect_1_definition_not_composed() {
                 end: Position { row: 1, column: 4 },
             },
         },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
+        ScannerToken::Colon {
             span: SourceSpan {
                 start: Position { row: 1, column: 4 },
                 end: Position { row: 1, column: 5 },
             },
         },
-        ScannerToken::TxxtMarker {
+        ScannerToken::Newline {
             span: SourceSpan {
                 start: Position { row: 1, column: 5 },
-                end: Position { row: 1, column: 7 },
+                end: Position { row: 1, column: 5 },
+            },
+        },
+        ScannerToken::Whitespace {
+            content: "    ".to_string(),
+            span: SourceSpan {
+                start: Position { row: 2, column: 0 },
+                end: Position { row: 2, column: 4 },
+            },
+        },
+        ScannerToken::Text {
+            content: "Definition content".to_string(),
+            span: SourceSpan {
+                start: Position { row: 2, column: 4 },
+                end: Position { row: 2, column: 22 },
             },
         },
     ];
 
     let result = analyzer.analyze(scanner_tokens);
+    if let Err(e) = &result {
+        eprintln!("Analyzer error: {:?}", e);
+    }
     assert!(result.is_ok());
 
     let semantic_tokens = result.unwrap();
@@ -275,7 +291,7 @@ fn test_expected_behavior_after_fixes() {
 
     // Create a complex document with multiple element types
     let scanner_tokens = vec![
-        // Definition: "Algorithm ::"
+        // Definition: "Algorithm:\n    A step-by-step procedure"
         ScannerToken::Text {
             content: "Algorithm".to_string(),
             span: SourceSpan {
@@ -283,71 +299,84 @@ fn test_expected_behavior_after_fixes() {
                 end: Position { row: 1, column: 9 },
             },
         },
-        ScannerToken::Whitespace {
-            content: " ".to_string(),
+        ScannerToken::Colon {
             span: SourceSpan {
                 start: Position { row: 1, column: 9 },
                 end: Position { row: 1, column: 10 },
             },
         },
-        ScannerToken::TxxtMarker {
+        ScannerToken::Newline {
             span: SourceSpan {
                 start: Position { row: 1, column: 10 },
-                end: Position { row: 1, column: 12 },
+                end: Position { row: 1, column: 10 },
+            },
+        },
+        ScannerToken::Whitespace {
+            content: "    ".to_string(),
+            span: SourceSpan {
+                start: Position { row: 2, column: 0 },
+                end: Position { row: 2, column: 4 },
+            },
+        },
+        ScannerToken::Text {
+            content: "A step-by-step procedure".to_string(),
+            span: SourceSpan {
+                start: Position { row: 2, column: 4 },
+                end: Position { row: 2, column: 29 },
             },
         },
         ScannerToken::Newline {
             span: SourceSpan {
-                start: Position { row: 1, column: 12 },
-                end: Position { row: 1, column: 12 },
+                start: Position { row: 2, column: 29 },
+                end: Position { row: 2, column: 29 },
             },
         },
         // Annotation: ":: author :: Arthur Debert"
         ScannerToken::TxxtMarker {
             span: SourceSpan {
-                start: Position { row: 2, column: 0 },
-                end: Position { row: 2, column: 2 },
+                start: Position { row: 3, column: 0 },
+                end: Position { row: 3, column: 2 },
             },
         },
         ScannerToken::Whitespace {
             content: " ".to_string(),
             span: SourceSpan {
-                start: Position { row: 2, column: 2 },
-                end: Position { row: 2, column: 3 },
+                start: Position { row: 3, column: 2 },
+                end: Position { row: 3, column: 3 },
             },
         },
         ScannerToken::Identifier {
             content: "author".to_string(),
             span: SourceSpan {
-                start: Position { row: 2, column: 3 },
-                end: Position { row: 2, column: 9 },
+                start: Position { row: 3, column: 3 },
+                end: Position { row: 3, column: 9 },
             },
         },
         ScannerToken::Whitespace {
             content: " ".to_string(),
             span: SourceSpan {
-                start: Position { row: 2, column: 9 },
-                end: Position { row: 2, column: 10 },
+                start: Position { row: 3, column: 9 },
+                end: Position { row: 3, column: 10 },
             },
         },
         ScannerToken::TxxtMarker {
             span: SourceSpan {
-                start: Position { row: 2, column: 10 },
-                end: Position { row: 2, column: 12 },
+                start: Position { row: 3, column: 10 },
+                end: Position { row: 3, column: 12 },
             },
         },
         ScannerToken::Whitespace {
             content: " ".to_string(),
             span: SourceSpan {
-                start: Position { row: 2, column: 12 },
-                end: Position { row: 2, column: 13 },
+                start: Position { row: 3, column: 12 },
+                end: Position { row: 3, column: 13 },
             },
         },
         ScannerToken::Text {
             content: "Arthur Debert".to_string(),
             span: SourceSpan {
-                start: Position { row: 2, column: 13 },
-                end: Position { row: 2, column: 26 },
+                start: Position { row: 3, column: 13 },
+                end: Position { row: 3, column: 26 },
             },
         },
     ];

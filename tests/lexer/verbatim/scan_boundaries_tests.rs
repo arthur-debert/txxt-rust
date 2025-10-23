@@ -7,7 +7,7 @@ use txxt::syntax::verbatim_scanning::VerbatimScanner;
 
 #[test]
 fn test_scan_boundaries_simple_in_flow() {
-    let input = "Code example:\n    def hello():\n        print('hi')\n:: python";
+    let input = "Code example:\n    def hello():\n        print('hi')\n:: python ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -27,7 +27,8 @@ fn test_scan_boundaries_simple_in_flow() {
 #[test]
 fn test_scan_boundaries_stretched_mode() {
     // Use content without colons to avoid ambiguity
-    let input = "Title:\nimport os\nprint('hello')\n:: python";
+    // Stretched mode: content at absolute column 1 (wall position)
+    let input = "Title:\n import os\n print('hello')\n:: python ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -43,7 +44,7 @@ fn test_scan_boundaries_stretched_mode() {
 
 #[test]
 fn test_scan_boundaries_empty_block() {
-    let input = "Image:\n:: image:src=photo.png";
+    let input = "Image:\n:: image:src=photo.png ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -59,17 +60,17 @@ fn test_scan_boundaries_empty_block() {
 
 #[test]
 fn test_scan_boundaries_with_parameters() {
-    let input = "Code:\n    x = 1\n:: python:version=3.11,style=pep8";
+    let input = "Code:\n    x = 1\n:: python version=3.11,style=pep8 ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
     assert_eq!(boundaries.len(), 1);
-    assert_eq!(boundaries[0].label_raw, "python:version=3.11,style=pep8");
+    assert_eq!(boundaries[0].label_raw, "python version=3.11,style=pep8");
 }
 
 #[test]
 fn test_scan_boundaries_multiple_blocks() {
-    let input = "First:\n    content1\n:: label1\n\nSecond:\n    content2\n:: label2";
+    let input = "First:\n    content1\n:: label1 ::\n\nSecond:\n    content2\n:: label2 ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -88,7 +89,7 @@ fn test_scan_boundaries_multiple_blocks() {
 
 #[test]
 fn test_scan_boundaries_indented_block() {
-    let input = "    Indented title:\n        content\n    :: label";
+    let input = "    Indented title:\n        content\n    :: label ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -102,7 +103,7 @@ fn test_scan_boundaries_indented_block() {
 
 #[test]
 fn test_scan_boundaries_with_blank_lines_in_content() {
-    let input = "Code:\n    line1\n\n    line3\n:: label";
+    let input = "Code:\n    line1\n\n    line3\n:: label ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -122,7 +123,7 @@ fn test_scan_boundaries_no_verbatim() {
 
 #[test]
 fn test_scan_boundaries_nested_indentation() {
-    let input = "Outer:\n    def foo():\n        nested\n            deep\n:: code";
+    let input = "Outer:\n    def foo():\n        nested\n            deep\n:: code ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -133,7 +134,7 @@ fn test_scan_boundaries_nested_indentation() {
 
 #[test]
 fn test_scan_boundaries_title_with_spaces() {
-    let input = "Title with many words:\n    content\n:: label";
+    let input = "Title with many words:\n    content\n:: label ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -143,7 +144,7 @@ fn test_scan_boundaries_title_with_spaces() {
 
 #[test]
 fn test_scan_boundaries_label_with_dots() {
-    let input = "Code:\n    x\n:: org.example.custom";
+    let input = "Code:\n    x\n:: org.example.custom ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -153,7 +154,7 @@ fn test_scan_boundaries_label_with_dots() {
 
 #[test]
 fn test_is_verbatim_content_boundary() {
-    let input = "Code:\n    line1\n    line2\n:: label";
+    let input = "Code:\n    line1\n    line2\n:: label ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -170,7 +171,7 @@ fn test_is_verbatim_content_boundary() {
 
 #[test]
 fn test_is_verbatim_content_boundary_empty_block() {
-    let input = "Empty:\n:: label";
+    let input = "Empty:\n:: label ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -182,7 +183,7 @@ fn test_is_verbatim_content_boundary_empty_block() {
 #[test]
 fn test_scan_boundaries_comparison_with_old_scan() {
     // Verify scan_boundaries produces equivalent results to old scan()
-    let input = "Example:\n    code\n:: label";
+    let input = "Example:\n    code\n:: label ::";
     let scanner = VerbatimScanner::new();
 
     let boundaries = scanner.scan_boundaries(input);

@@ -83,7 +83,7 @@ fn test_real_verbatim_still_works() {
     let input = r#"Code example:
     def hello():
         print("Hello!")
-:: python"#;
+:: python ::"#;
 
     let tokens = tokenize(input);
 

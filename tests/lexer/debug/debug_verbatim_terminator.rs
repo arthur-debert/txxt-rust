@@ -15,7 +15,7 @@ mod tests {
         let input = r#"Python Code:
     print("hello world")
     x = 42
-:: python:version=3.9,syntax_highlight=true"#;
+:: python:version=3.9,syntax_highlight=true ::"#;
 
         println!("Input:\n{}", input);
 
@@ -86,7 +86,7 @@ mod tests {
     fn debug_verbatim_simple_label() {
         let input = r#"Code:
     some content
-:: mylabel"#;
+:: mylabel ::"#;
 
         println!("Input:\n{}", input);
 
@@ -117,7 +117,7 @@ mod tests {
     fn debug_verbatim_empty_terminator() {
         let input = r#"Code:
     some content
-:: empty"#;
+:: empty ::"#;
 
         println!("Input:\n{}", input);
 

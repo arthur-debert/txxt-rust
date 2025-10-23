@@ -3,6 +3,6 @@
     Code example:
         def hello():
             print("Hello, world!")
-    :: python
+    :: python ::
 
     This session contains a single verbatim block that introduces the main topic. The verbatim block provides context and sets up the discussion for the sections that follow.

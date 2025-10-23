@@ -162,7 +162,10 @@ fn test_definition_invalid_structure() {
     assert!(result.is_err());
 
     if let Err(SemanticAnalysisError::AnalysisError(msg)) = result {
-        assert!(msg.contains("Definition must have at least 2 tokens"));
+        assert!(
+            msg.contains("Definition pattern must contain Colon")
+                || msg.contains("Definition must have a term")
+        );
     } else {
         panic!("Expected AnalysisError");
     }
@@ -199,7 +202,7 @@ fn test_definition_no_closing_marker() {
     assert!(result.is_err());
 
     if let Err(SemanticAnalysisError::AnalysisError(msg)) = result {
-        assert!(msg.contains("Definition must end with Colon"));
+        assert!(msg.contains("Definition pattern must contain Colon"));
     } else {
         panic!("Expected AnalysisError with Colon message");
     }

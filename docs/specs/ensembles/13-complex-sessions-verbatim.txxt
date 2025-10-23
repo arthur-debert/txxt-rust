@@ -27,7 +27,7 @@ This document aggregates most of these issues, both for reference and tests. Do 
             Foo 
 
             Bar
-        :: txxt
+        :: txxt ::
 
         Foo and Bar can only be paragraphs.
 
@@ -39,7 +39,7 @@ This document aggregates most of these issues, both for reference and tests. Do 
                 a. Sub-Section {{session-title}}
 
                     c. Foo
-        :: txxt
+        :: txxt ::
 
         What is each element in this example?  The way to decide is this: 
         - 1. Session follows all the rules for a session title, including an indented child. So it's a Session.
@@ -110,7 +110,7 @@ This document aggregates most of these issues, both for reference and tests. Do 
             </container>
         </element>
 
-    :: txxt
+    :: txxt ::
 
     In this case lists look like this {{verbatim}}: 
         <list-item>
@@ -118,7 +118,7 @@ This document aggregates most of these issues, both for reference and tests. Do 
             <container>
             </container>
         </list-item
-    :: text
+    :: text ::
 
     If a list has no children the text line is aligned with the parent. When a nested list exists, then it will be like this {{verbatim}}: 
 
@@ -135,7 +135,7 @@ This document aggregates most of these issues, both for reference and tests. Do 
                 </container>
             </outter-list-item>
         </list>
-    :: text
+    :: text ::
 
     There are two types of containers: ContentContainers and Session Containers.
 

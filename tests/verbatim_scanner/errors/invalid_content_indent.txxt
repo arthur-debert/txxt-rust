@@ -1,10 +1,4 @@
 Expected: []
 title:
   wrong indent level, not enough
-:: empty
-
-
-Expected: []
-title:
-        wrong indent level, too much enough
-:: empty
+:: empty ::

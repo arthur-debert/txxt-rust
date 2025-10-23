@@ -1,8 +1,8 @@
 Expected: [[2,4,"normal"], [6,8,"normal"]]
 First block:
     first content
-:: empty
+:: empty ::
 
 Second block:
     second content
-:: empty
+:: empty ::

@@ -52,7 +52,7 @@
             def greet(name):
                 """Greet someone by name."""
                 return f"Hello, {name}!"
-        :: python
+        :: python ::
         
         The verbatim block preserves formatting and syntax, making it ideal for code snippets.
         

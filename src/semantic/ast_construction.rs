@@ -25,6 +25,7 @@
 //!
 //! See docs/proposals/regex-grammar-engine.txxt for complete design.
 
+use crate::cst::high_level_tokens::HighLevelTokenSpan;
 use crate::cst::{HighLevelToken, HighLevelTokenList};
 use crate::semantic::BlockParseError;
 
@@ -357,25 +358,107 @@ impl<'a> AstConstructor<'a> {
             return Ok(None);
         }
 
-        // Check if current token is a Definition
+        // After grammar simplification, definitions are detected by PATTERN, not token type:
+        // Pattern: PlainTextLine ending with ":" + Indent (NO BlankLine)
+        //
+        // This distinguishes from:
+        // - Sessions: Title + BlankLine + Indent
+        // - Paragraphs: Text (no immediate indent)
+
         let current_token = &self.tokens[self.position];
-        if !matches!(current_token, HighLevelToken::Definition { .. }) {
+
+        // Check for pattern: PlainTextLine ending with ":"
+        let is_definition_pattern = match current_token {
+            HighLevelToken::PlainTextLine { content, .. } => {
+                // Check if content ends with ":"
+                match content.as_ref() {
+                    HighLevelToken::TextSpan { content: text, .. } => {
+                        text.trim_end().ends_with(':')
+                    }
+                    _ => false,
+                }
+            }
+            // Also support old-style Definition tokens from semantic analyzer (for backward compat)
+            HighLevelToken::Definition { .. } => true,
+            _ => false,
+        };
+
+        if !is_definition_pattern {
             return Ok(None);
         }
 
-        // Check if next token is Indent (definition must have indented content)
-        if self.position + 1 >= self.tokens.len()
-            || !matches!(
-                self.tokens[self.position + 1],
-                HighLevelToken::Indent { .. }
-            )
-        {
+        // Check next token is Indent (NOT BlankLine - that would be a session)
+        if self.position + 1 >= self.tokens.len() {
             return Ok(None);
         }
 
-        // Clone the definition token before advancing position
-        let definition_token_clone = self.tokens[self.position].clone();
-        self.position += 1; // Consume definition token
+        match &self.tokens[self.position + 1] {
+            HighLevelToken::Indent { .. } => {
+                // Valid definition pattern
+            }
+            HighLevelToken::BlankLine { .. } => {
+                // This is a session pattern (or paragraph + separate block), not definition
+                return Ok(None);
+            }
+            _ => {
+                // No indent - not a definition
+                return Ok(None);
+            }
+        }
+
+        // Extract term from PlainTextLine (remove trailing ":")
+        let term_text = match current_token {
+            HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
+                HighLevelToken::TextSpan { content: text, .. } => {
+                    text.trim_end().trim_end_matches(':').to_string()
+                }
+                _ => return Ok(None),
+            },
+            HighLevelToken::Definition { .. } => {
+                // Old-style Definition token - use it directly
+                let definition_token_clone = current_token.clone();
+                self.position += 1; // Consume definition token
+                self.position += 1; // Skip Indent
+
+                // Recursively parse the content until we hit Dedent
+                let content_nodes = self.parse_until_dedent()?;
+
+                // Consume the Dedent token
+                if self.position < self.tokens.len()
+                    && matches!(self.tokens[self.position], HighLevelToken::Dedent { .. })
+                {
+                    self.position += 1;
+                }
+
+                // Delegate to definition element constructor
+                let definition_block =
+                    crate::semantic::elements::definition::create_definition_element(
+                        &definition_token_clone,
+                        &content_nodes,
+                    )?;
+
+                let tokens_consumed = self.position - start_pos;
+                return Ok(Some((
+                    AstNode::Definition(definition_block),
+                    tokens_consumed,
+                )));
+            }
+            _ => return Ok(None),
+        };
+
+        // Create a Definition high-level token from the pattern
+        let term_span = current_token.span().clone();
+        #[allow(deprecated)]
+        let term_token = crate::cst::high_level_tokens::HighLevelTokenBuilder::text_span(
+            term_text,
+            term_span.clone(),
+        );
+        let definition_token = crate::cst::high_level_tokens::HighLevelTokenBuilder::definition(
+            term_token, None, // No inline parameters in new syntax
+            term_span,
+        );
+
+        self.position += 1; // Consume term line
         self.position += 1; // Skip Indent
 
         // Recursively parse the content until we hit Dedent
@@ -390,7 +473,7 @@ impl<'a> AstConstructor<'a> {
 
         // Delegate to definition element constructor
         let definition_block = crate::semantic::elements::definition::create_definition_element(
-            &definition_token_clone,
+            &definition_token,
             &content_nodes,
         )?;
 

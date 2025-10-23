@@ -16,7 +16,7 @@ mod verbatim_label_tests {
     fn test_verbatim_label_without_prefix() {
         let input = r#"Code:
     print("hello")
-:: python"#;
+:: python ::"#;
 
         let tokens = tokenize(input);
 
@@ -39,7 +39,7 @@ mod verbatim_label_tests {
     fn test_verbatim_label_with_simple_parameters() {
         let input = r#"Code:
     print("hello")
-:: python:version=3.9,syntax=true"#;
+:: python version=3.9,syntax=true ::"#;
 
         let tokens = tokenize(input);
 
@@ -49,9 +49,9 @@ mod verbatim_label_tests {
             .expect("Should find VerbatimBlockEnd token");
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
-            // VerbatimBlockEnd contains the full label:params string
+            // VerbatimBlockEnd contains the raw content between :: markers
             assert_eq!(
-                label_raw, "python:version=3.9,syntax=true",
+                label_raw, "python version=3.9,syntax=true",
                 "VerbatimBlockEnd label_raw should contain label and parameters"
             );
 
@@ -70,7 +70,7 @@ mod verbatim_label_tests {
     fn test_verbatim_label_parameter_separation() {
         let input = r#"Example:
     content here
-:: mylabel:key1=value1,key2=value2"#;
+:: mylabel key1=value1,key2=value2 ::"#;
 
         let tokens = tokenize(input);
 
@@ -80,10 +80,10 @@ mod verbatim_label_tests {
             .expect("Should find VerbatimBlockEnd token");
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
-            // VerbatimBlockEnd stores the raw label:params string
+            // VerbatimBlockEnd stores the raw content between :: markers
             assert_eq!(
-                label_raw, "mylabel:key1=value1,key2=value2",
-                "VerbatimBlockEnd label_raw should contain full label:params"
+                label_raw, "mylabel key1=value1,key2=value2",
+                "VerbatimBlockEnd label_raw should contain full label and params"
             );
             assert!(!label_raw.starts_with("::"), "Should not start with ::");
         }
@@ -94,10 +94,10 @@ mod verbatim_label_tests {
     #[test]
     fn test_verbatim_label_edge_cases() {
         let test_cases = vec![
-            (":: simple", "simple"),
-            (":: label-with-dashes", "label-with-dashes"),
-            (":: label_with_underscores", "label_with_underscores"),
-            (":: namespace.label", "namespace.label"),
+            (":: simple ::", "simple"),
+            (":: label-with-dashes ::", "label-with-dashes"),
+            (":: label_with_underscores ::", "label_with_underscores"),
+            (":: namespace.label ::", "namespace.label"),
         ];
 
         for (terminator_line, expected_label) in test_cases {
@@ -129,7 +129,7 @@ mod verbatim_label_tests {
         // This test verifies the FIXED behavior
         let input = r#"Code:
     example
-:: mylabel"#;
+:: mylabel ::"#;
 
         let tokens = tokenize(input);
 

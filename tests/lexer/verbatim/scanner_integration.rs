@@ -10,7 +10,7 @@ fn test_basic_verbatim_scanner_integration() {
     let scanner = VerbatimScanner::new();
     let text = r#"Simple verbatim:
     print("Hello World")
-:: python"#;
+:: python ::"#;
 
     let blocks = scanner.scan(text);
     assert_eq!(blocks.len(), 1, "Should find exactly one verbatim block");

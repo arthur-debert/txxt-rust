@@ -1,4 +1,4 @@
 Expected: []
 title:
     content here
-    :: wrong_indent
+    :: wrong_indent ::

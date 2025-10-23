@@ -662,15 +662,16 @@ impl SemanticAnalyzer {
         Ok(None)
     }
 
-    /// Recognize definition pattern: Text + ... + TxxtMarker
-    /// Supports both simple definitions (Text + Whitespace + TxxtMarker)
-    /// and parameterized definitions (Text + Colon + Text + ... + Whitespace + TxxtMarker)
+    /// Recognize definition pattern (NEW syntax after grammar simplification):
+    /// Pattern: Text + Colon + Newline + Whitespace + content
+    /// Example: "Term:\n    Definition content"
     fn recognize_definition_pattern(
         &self,
         scanner_tokens: &[ScannerToken],
         start_index: usize,
     ) -> Result<Option<(Vec<ScannerToken>, usize)>, SemanticAnalysisError> {
-        if start_index + 2 >= scanner_tokens.len() {
+        // Need at least: Text, Colon, Newline, Whitespace, Text
+        if start_index + 4 >= scanner_tokens.len() {
             return Ok(None);
         }
 
@@ -679,77 +680,70 @@ impl SemanticAnalyzer {
             return Ok(None);
         }
 
-        // Look for the closing TxxtMarker, but be more restrictive about what we accept
-        let mut consumed = 1;
-        let mut i = start_index + 1;
-        let mut has_whitespace = false;
+        // Collect term tokens until we hit Colon
+        let mut i = start_index;
+        let mut term_tokens = vec![];
 
+        // Collect term (can be multiple Text tokens with whitespace)
         while i < scanner_tokens.len() {
-            let token = &scanner_tokens[i];
-            match token {
-                ScannerToken::TxxtMarker { .. } => {
-                    // Found the closing TxxtMarker - this is a definition
-                    consumed += 1;
-                    break;
+            match &scanner_tokens[i] {
+                ScannerToken::Text { .. } => {
+                    term_tokens.push(scanner_tokens[i].clone());
+                    i += 1;
                 }
                 ScannerToken::Whitespace { .. } => {
-                    has_whitespace = true;
-                    consumed += 1;
+                    term_tokens.push(scanner_tokens[i].clone());
                     i += 1;
                 }
                 ScannerToken::Colon { .. } => {
-                    // Allow colon for parameterized definitions
-                    consumed += 1;
-                    i += 1;
-                }
-                ScannerToken::Text { .. } => {
-                    // Allow additional text for parameterized definitions
-                    consumed += 1;
-                    i += 1;
-                }
-                ScannerToken::Newline { .. } => {
-                    // Stop at line boundaries
-                    break;
-                }
-                ScannerToken::BlankLine { .. }
-                | ScannerToken::Indent { .. }
-                | ScannerToken::Dedent { .. } => {
-                    // Stop at structural tokens
+                    // Found the colon - check if this is a definition pattern
                     break;
                 }
                 _ => {
-                    // Don't include other token types (like Identifier) in definitions
-                    break;
+                    // Not a definition pattern
+                    return Ok(None);
                 }
             }
         }
 
-        // Must have found a TxxtMarker and have proper structure
-        if consumed >= 3
-            && matches!(
-                scanner_tokens[start_index + consumed - 1],
-                ScannerToken::TxxtMarker { .. }
-            )
-            && (has_whitespace || consumed > 3)
-        // Either has whitespace or has parameters
-        {
-            // Check if there's a trailing newline after the TxxtMarker and consume it
-            // This prevents it from being converted to a TextSpan in the main loop
-            let mut final_consumed = consumed;
-            if start_index + consumed < scanner_tokens.len()
-                && matches!(
-                    scanner_tokens[start_index + consumed],
-                    ScannerToken::Newline { .. }
-                )
-            {
-                final_consumed += 1; // Consume the newline
-            }
-
-            let pattern_tokens = scanner_tokens[start_index..start_index + consumed].to_vec();
-            return Ok(Some((pattern_tokens, final_consumed)));
+        // Must have found a Colon
+        if i >= scanner_tokens.len() || !matches!(scanner_tokens[i], ScannerToken::Colon { .. }) {
+            return Ok(None);
         }
 
-        Ok(None)
+        let colon_index = i;
+        i += 1; // Move past colon
+
+        // Next must be Newline
+        if i >= scanner_tokens.len() || !matches!(scanner_tokens[i], ScannerToken::Newline { .. }) {
+            return Ok(None);
+        }
+        i += 1; // Move past newline
+
+        // Next must be Whitespace (indentation)
+        if i >= scanner_tokens.len()
+            || !matches!(scanner_tokens[i], ScannerToken::Whitespace { .. })
+        {
+            return Ok(None);
+        }
+        i += 1; // Move past whitespace
+
+        // Next must be content (Text or other content token)
+        if i >= scanner_tokens.len() {
+            return Ok(None);
+        }
+
+        // Valid definition pattern found!
+        // Return ONLY the subject line tokens (term + colon + newline)
+        // The content will be processed separately as Indent + PlainTextLine tokens
+        let mut subject_tokens = term_tokens;
+        subject_tokens.push(scanner_tokens[colon_index].clone()); // Colon
+        subject_tokens.push(scanner_tokens[colon_index + 1].clone()); // Newline
+
+        // Consume only the subject line (term + colon + newline)
+        let consumed = colon_index + 2 - start_index;
+
+        Ok(Some((subject_tokens, consumed)))
     }
 
     /// Recognize annotation pattern: TxxtMarker + Whitespace + Identifier + ... + TxxtMarker
@@ -911,14 +905,19 @@ impl SemanticAnalyzer {
         let first_token = &pattern_tokens[0];
 
         match first_token {
-            // Definition pattern: Text + ... + Colon (new syntax after grammar simplification)
+            // Definition pattern: Text + Colon + Newline (subject line only)
+            // (new multi-line syntax after grammar simplification)
+            // Content is processed separately as Indent + PlainTextLine tokens
             ScannerToken::Text { .. } => {
-                if pattern_tokens.len() >= 2
-                    && matches!(
-                        pattern_tokens[pattern_tokens.len() - 1],
-                        ScannerToken::Colon { .. }
-                    )
-                {
+                // Check if pattern contains a Colon (definition marker)
+                let has_colon = pattern_tokens
+                    .iter()
+                    .any(|t| matches!(t, ScannerToken::Colon { .. }));
+                let has_newline = pattern_tokens
+                    .iter()
+                    .any(|t| matches!(t, ScannerToken::Newline { .. }));
+                if has_colon && has_newline && pattern_tokens.len() >= 2 {
+                    // Definition subject line: term + colon (+ optional newline)
                     let span = SourceSpan {
                         start: pattern_tokens[0].span().start,
                         end: pattern_tokens[pattern_tokens.len() - 1].span().end,
@@ -1651,35 +1650,61 @@ impl SemanticAnalyzer {
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // Validate minimum definition structure: term :
-        if tokens.len() < 2 {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Definition must have at least 2 tokens: term :".to_string(),
-            ));
-        }
+        // NEW multi-line definition structure: term + : + newline + indent + content
+        // The Definition token represents just the subject line (term:)
+        // Content becomes separate tokens that AST construction will group
 
-        // Check for closing Colon (should be at the end)
-        let colon_pos = tokens.len() - 1;
-        if !matches!(tokens[colon_pos], ScannerToken::Colon { .. }) {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Definition must end with Colon".to_string(),
-            ));
-        }
+        // Find the Colon position
+        let colon_pos = tokens
+            .iter()
+            .position(|t| matches!(t, ScannerToken::Colon { .. }))
+            .ok_or_else(|| {
+                SemanticAnalysisError::AnalysisError(
+                    "Definition pattern must contain Colon".to_string(),
+                )
+            })?;
 
-        // Extract term (everything before the final Colon)
-        // In the new syntax, there are NO inline parameters - they come from trailing annotations
+        // Extract term (everything before Colon)
         let term_tokens = &tokens[..colon_pos];
+        if term_tokens.is_empty() {
+            return Err(SemanticAnalysisError::AnalysisError(
+                "Definition must have a term before the colon".to_string(),
+            ));
+        }
+
         let term_token = self.tokens_to_text_span_preserve_whitespace(term_tokens)?;
 
-        // Aggregate all source tokens for preservation
-        let aggregated_tokens = ScannerTokenSequence::from_tokens(tokens);
+        // For span, use just the subject line (term + colon + newline)
+        // Find newline position after colon
+        let newline_pos = tokens
+            .iter()
+            .skip(colon_pos + 1)
+            .position(|t| matches!(t, ScannerToken::Newline { .. }))
+            .map(|p| p + colon_pos + 1);
 
-        // Transform to Definition semantic token with aggregated tokens
-        // Parameters are None - they come from optional trailing annotations in AST construction
+        let subject_line_span = if let Some(nl_pos) = newline_pos {
+            SourceSpan {
+                start: tokens[0].span().start,
+                end: tokens[nl_pos].span().end,
+            }
+        } else {
+            span.clone()
+        };
+
+        // Aggregate only the subject line tokens for the Definition token
+        let subject_tokens = if let Some(nl_pos) = newline_pos {
+            &tokens[..=nl_pos]
+        } else {
+            &tokens[..=colon_pos]
+        };
+        let aggregated_tokens = ScannerTokenSequence::from_tokens(subject_tokens.to_vec());
+
+        // Transform to Definition semantic token
+        // Parameters are None - they come from optional trailing annotations
         Ok(HighLevelTokenBuilder::definition_with_tokens(
             term_token,
-            None, // No inline parameters in new syntax
-            span,
+            None,
+            subject_line_span,
             aggregated_tokens,
         ))
     }

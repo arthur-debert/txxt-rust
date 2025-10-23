@@ -13,7 +13,7 @@ fn test_complex_verbatim_isolation() {
     let input = r#"    Python example:
         def hello():
             print("Hello from txxt!")
-    :: python"#;
+    :: python ::"#;
 
     println!("Input text:");
     println!("{}", input);
@@ -123,7 +123,7 @@ fn test_simple_verbatim_for_comparison() {
     // This is a simple verbatim block that should work
     let input = r#"simple title:
     content line
-:: label"#;
+:: label ::"#;
 
     println!("Simple input text:");
     println!("{}", input);

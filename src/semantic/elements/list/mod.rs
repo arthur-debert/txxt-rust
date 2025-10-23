@@ -14,6 +14,7 @@ use crate::ast::elements::list::block::{
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
 use crate::semantic::ast_construction::AstNode;
 use crate::semantic::BlockParseError;
+use crate::syntax::list_detection;
 
 pub fn create_list_element_with_nesting(
     list_items_data: &[(HighLevelToken, Vec<AstNode>)],
@@ -186,18 +187,20 @@ pub fn create_list_element(item_tokens: &[HighLevelToken]) -> Result<ListBlock, 
 
 /// Determine list decoration type from the first marker
 fn determine_decoration_type(marker: &str) -> ListDecorationType {
-    let style = if marker.starts_with('-') {
-        NumberingStyle::Plain
-    } else if marker.chars().next().is_some_and(|c| c.is_numeric()) {
-        NumberingStyle::Numerical
-    } else if marker.chars().next().is_some_and(|c| c.is_alphabetic()) {
-        NumberingStyle::Alphabetical
-    } else {
-        NumberingStyle::Plain // fallback
+    let decoration = list_detection::determine_decoration_type(marker);
+
+    // Convert to AST types
+    let style = match decoration.style {
+        list_detection::NumberingStyle::Plain => NumberingStyle::Plain,
+        list_detection::NumberingStyle::Numerical => NumberingStyle::Numerical,
+        list_detection::NumberingStyle::Alphabetical => NumberingStyle::Alphabetical,
+        list_detection::NumberingStyle::Roman => NumberingStyle::Roman,
     };
 
-    ListDecorationType {
-        style,
-        form: NumberingForm::Short,
-    }
+    let form = match decoration.form {
+        list_detection::NumberingForm::Regular => NumberingForm::Short,
+        list_detection::NumberingForm::Extended => NumberingForm::Full,
+    };
+
+    ListDecorationType { style, form }
 }

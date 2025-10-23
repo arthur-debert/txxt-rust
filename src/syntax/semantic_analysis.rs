@@ -12,6 +12,7 @@ use crate::cst::high_level_tokens::{
 };
 use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
+use crate::syntax::list_detection;
 
 /// Parsed components of an annotation
 ///
@@ -1427,24 +1428,22 @@ impl SemanticAnalyzer {
         &self,
         marker_type: &SequenceMarkerType,
     ) -> (HighLevelNumberingStyle, HighLevelNumberingForm) {
-        match marker_type {
-            SequenceMarkerType::Plain(_) => (
-                HighLevelNumberingStyle::Plain,
-                HighLevelNumberingForm::Regular,
-            ),
-            SequenceMarkerType::Numerical(_, _) => (
-                HighLevelNumberingStyle::Numeric,
-                HighLevelNumberingForm::Regular,
-            ),
-            SequenceMarkerType::Alphabetical(_, _) => (
-                HighLevelNumberingStyle::Alphabetic,
-                HighLevelNumberingForm::Regular,
-            ),
-            SequenceMarkerType::Roman(_, _) => (
-                HighLevelNumberingStyle::Roman,
-                HighLevelNumberingForm::Regular,
-            ),
-        }
+        let (style, form) = list_detection::classify_sequence_marker(marker_type);
+
+        // Convert to high-level types
+        let hl_style = match style {
+            list_detection::NumberingStyle::Plain => HighLevelNumberingStyle::Plain,
+            list_detection::NumberingStyle::Numerical => HighLevelNumberingStyle::Numeric,
+            list_detection::NumberingStyle::Alphabetical => HighLevelNumberingStyle::Alphabetic,
+            list_detection::NumberingStyle::Roman => HighLevelNumberingStyle::Roman,
+        };
+
+        let hl_form = match form {
+            list_detection::NumberingForm::Regular => HighLevelNumberingForm::Regular,
+            list_detection::NumberingForm::Extended => HighLevelNumberingForm::Extended,
+        };
+
+        (hl_style, hl_form)
     }
 
     /// Transform a sequence of text tokens into a PlainTextLine semantic token

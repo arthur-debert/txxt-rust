@@ -122,21 +122,7 @@ use crate::semantic::elements::inlines::InlineParseError;
 /// # Returns
 /// * `Result<Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Simple citation
-/// let tokens = tokenize("[@smith2023]");
-/// let citation = parse_citation(&tokens)?;
-///
-/// // Multiple citations
-/// let tokens = tokenize("[@smith2023; @jones2025]");
-/// let citation = parse_citation(&tokens)?;
-///
-/// // Page-specific citation
-/// let tokens = tokenize("[@smith2023, p. 123]");
-/// let citation = parse_citation(&tokens)?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_citation(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement citation parsing logic
     // For now, return a placeholder
@@ -191,18 +177,6 @@ pub fn parse_citation(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, Inl
 ///
 /// # Returns
 /// * `Result<Vec<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Single citation key
-/// let keys = parse_citation_keys("@smith2023")?;
-/// // Returns: ["smith2023"]
-///
-/// // Multiple citation keys
-/// let keys = parse_citation_keys("@smith2023; @jones2025")?;
-/// // Returns: ["smith2023", "jones2025"]
-/// ```
 pub fn parse_citation_keys(content: &str) -> Result<Vec<String>, InlineParseError> {
     // TODO: Implement citation key parsing logic
     // For now, return a placeholder
@@ -238,22 +212,6 @@ pub fn parse_citation_keys(content: &str) -> Result<Vec<String>, InlineParseErro
 ///
 /// # Returns
 /// * `Result<Option<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Page locator
-/// let locator = parse_citation_locator("@smith2023, p. 123")?;
-/// // Returns: Some("p. 123")
-///
-/// // Chapter locator
-/// let locator = parse_citation_locator("@smith2023, ch. 5")?;
-/// // Returns: Some("ch. 5")
-///
-/// // No locator
-/// let locator = parse_citation_locator("@smith2023")?;
-/// // Returns: None
-/// ```
 pub fn parse_citation_locator(content: &str) -> Result<Option<String>, InlineParseError> {
     // TODO: Implement citation locator parsing logic
     // For now, return a placeholder
@@ -282,18 +240,6 @@ pub fn parse_citation_locator(content: &str) -> Result<Option<String>, InlinePar
 ///
 /// # Returns
 /// * `Result<bool, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid citation key
-/// let valid = validate_citation_key("smith2023")?;
-/// // Returns: true
-///
-/// // Invalid citation key
-/// let valid = validate_citation_key("smith")?;
-/// // Returns: false (missing year)
-/// ```
 pub fn validate_citation_key(key: &str) -> Result<bool, InlineParseError> {
     // TODO: Implement citation key validation logic
     // For now, return a placeholder

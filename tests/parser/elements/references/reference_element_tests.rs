@@ -416,13 +416,5 @@ fn test_footnote_invalid_format_error() {
 // TODO: Add tests using TxxtCorpora when test cases are defined in specs
 // These would load test cases from docs/specs/elements/references/
 
-/// Placeholder test for future TxxtCorpora integration
-#[test]
-#[ignore] // Ignore until test corpus is defined
-fn test_references_with_corpora() {
-    // This test would use TxxtCorpora to load test cases from the specification
-    // Example:
-    // let corpus = TxxtCorpora::load("txxt.core.spec.references.citation.simple").unwrap();
-    // let result = parse_citation_from_text(&corpus.source_text);
-    // assert!(result.is_ok());
-}
+// REMOVED: Empty placeholder test with no implementation
+// TxxtCorpora testing should be added when the feature is implemented

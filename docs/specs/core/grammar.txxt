@@ -35,21 +35,16 @@ The grammar is represented using compositional rules that combine scanner tokens
         - Parameterized definitions: `Term: param ::` (Text + Colon + Text + Whitespace + TxxtMarker)
         - Complex definitions with multiple parameters
 
-    1.3. VerbatimTitle Pattern
+    1.3. Verbatim Block Pattern
 
-        Verbatim titles combine text with colons:
-        <VerbatimTitle> = <Text> <Colon>
+        Verbatim blocks use three-token structure:
+        <VerbatimBlock> = <VerbatimBlockStart> <VerbatimContentLine>* <VerbatimBlockEnd>
         :: grammar
 
-        Example: `Python example:`
-
-    1.4. VerbatimLabel Pattern
-
-        Verbatim labels are atomic tokens that combine txxt markers with identifiers:
-        <VerbatimLabel> = VerbatimLabel token (atomic)
-        :: grammar
-
-        Example: `:: python` (processed as single VerbatimLabel token)
+        Example: Title line → content lines → terminator
+        - VerbatimBlockStart: Title with wall type
+        - VerbatimContentLine: Raw content (multiple lines)
+        - VerbatimBlockEnd: Label and parameters in single string
 
     1.5. Parameters Pattern
 
@@ -71,15 +66,16 @@ The grammar is represented using compositional rules that combine scanner tokens
         Example scanner tokens: `Identifier("version")`, `Equals`, `Text("3.11")`, `Comma`, `Identifier("debug")`
         Example semantic token: `Parameters { params: {"version": "3.11", "debug": "true"} }`
 
-    1.6. Verbatim Wall Structure
+    1.4. Verbatim Wall Structure
 
-        Verbatim blocks use wall architecture for content preservation:
-        <VerbatimBlock> = <VerbatimTitle> <IndentationWall> <IgnoreTextSpan> <VerbatimLabel>
+        Verbatim blocks use wall architecture for content preservation at scanner level:
+        VerbatimBlockStart contains wall type (InFlow or Stretched)
         :: grammar
 
         The wall structure separates formatting concerns from content preservation:
-        - `IndentationWall`: Defines indentation level and type (InFlow/Stretched)
-        - `IgnoreTextSpan`: Contains raw content without formatting processing
+        - Wall type calculated from title indentation
+        - Content preserved line-by-line in VerbatimContentLine tokens
+        - Label and parameters combined in VerbatimBlockEnd.label_raw string
 
 2. Token Categories
 
@@ -135,11 +131,12 @@ The grammar is represented using compositional rules that combine scanner tokens
         - `SessionRef`: Session references
         - `FootnoteRef`: Footnote references
 
-    2.7. Ignore Tokens
+    2.7. Verbatim Tokens
 
         Tokens for verbatim content preservation:
-        - `IndentationWall`: Wall position and type information
-        - `IgnoreTextSpan`: Raw content without processing
+        - `VerbatimBlockStart`: Title and wall type information
+        - `VerbatimContentLine`: Raw content lines without processing
+        - `VerbatimBlockEnd`: Terminator with label and parameters
 
 3. Composition Rules
 
@@ -181,7 +178,7 @@ The grammar is represented using compositional rules that combine scanner tokens
     4.2. Context Rules
 
         Context-dependent interpretation:
-        - Verbatim content: All tokens treated as `IgnoreTextSpan`
+        - Verbatim content: All lines become `VerbatimContentLine` tokens
         - Annotation content: Text tokens only
         - List items: Sequence markers required
         - Definitions: Must end with `TxxtMarker`

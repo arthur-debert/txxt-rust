@@ -1340,7 +1340,7 @@ impl SemanticAnalyzer {
     /// This implements the VerbatimBlock transformation as specified in Issue #89.
     /// VerbatimBlock tokens represent content that preserves exact formatting and spacing
     /// using the wall architecture pattern:
-    /// VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+    /// title + wall + content (IgnoreLine/BlankLine) + label + parameters
     ///
     /// # Arguments
     /// * `tokens` - Vector of scanner tokens that form a verbatim block
@@ -1395,7 +1395,7 @@ impl SemanticAnalyzer {
             },
         );
 
-        // Create wall token (IndentationWall for compatibility with old high-level token structure)
+        // Create wall token (placeholder for high-level token structure)
         let wall_token = HighLevelTokenBuilder::text_span_with_tokens(
             String::new(),
             tokens[0].span().clone(),

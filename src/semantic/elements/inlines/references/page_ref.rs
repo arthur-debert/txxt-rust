@@ -129,21 +129,7 @@ use crate::semantic::elements::inlines::InlineParseError;
 /// # Returns
 /// * `Result<Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Single page
-/// let tokens = tokenize("[page:123]");
-/// let page_ref = parse_page_ref(&tokens)?;
-///
-/// // Page range
-/// let tokens = tokenize("[pages:123-125]");
-/// let page_ref = parse_page_ref(&tokens)?;
-///
-/// // Chapter reference
-/// let tokens = tokenize("[chapter:5]");
-/// let page_ref = parse_page_ref(&tokens)?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_page_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, InlineParseError> {
     // TODO: Implement page reference parsing logic
     // For now, return a placeholder
@@ -197,18 +183,6 @@ pub fn parse_page_ref(tokens: &[crate::cst::ScannerToken]) -> Result<Inline, Inl
 ///
 /// # Returns
 /// * `Result<Option<u32>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid single page
-/// let page = parse_single_page("page:123")?;
-/// // Returns: Some(123)
-///
-/// // Valid abbreviated format
-/// let page = parse_single_page("p. 123")?;
-/// // Returns: Some(123)
-/// ```
 pub fn parse_single_page(content: &str) -> Result<Option<u32>, InlineParseError> {
     // TODO: Implement single page parsing logic
     // For now, return a placeholder
@@ -243,18 +217,6 @@ pub fn parse_single_page(content: &str) -> Result<Option<u32>, InlineParseError>
 ///
 /// # Returns
 /// * `Result<Option<(u32, u32)>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid page range
-/// let range = parse_page_range("pages:123-125")?;
-/// // Returns: Some((123, 125))
-///
-/// // Valid abbreviated format
-/// let range = parse_page_range("pp. 123-125")?;
-/// // Returns: Some((123, 125))
-/// ```
 pub fn parse_page_range(content: &str) -> Result<Option<(u32, u32)>, InlineParseError> {
     // TODO: Implement page range parsing logic
     // For now, return a placeholder
@@ -300,18 +262,6 @@ pub fn parse_page_range(content: &str) -> Result<Option<(u32, u32)>, InlineParse
 ///
 /// # Returns
 /// * `Result<Option<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid chapter reference
-/// let chapter = parse_chapter_ref("chapter:5")?;
-/// // Returns: Some("5")
-///
-/// // Valid abbreviated format
-/// let chapter = parse_chapter_ref("ch. 5")?;
-/// // Returns: Some("5")
-/// ```
 pub fn parse_chapter_ref(content: &str) -> Result<Option<String>, InlineParseError> {
     // TODO: Implement chapter reference parsing logic
     // For now, return a placeholder
@@ -346,18 +296,6 @@ pub fn parse_chapter_ref(content: &str) -> Result<Option<String>, InlineParseErr
 ///
 /// # Returns
 /// * `Result<Option<String>, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Valid section reference
-/// let section = parse_section_ref("section:3.1")?;
-/// // Returns: Some("3.1")
-///
-/// // Valid abbreviated format
-/// let section = parse_section_ref("sec. 3.1")?;
-/// // Returns: Some("3.1")
-/// ```
 pub fn parse_section_ref(content: &str) -> Result<Option<String>, InlineParseError> {
     // TODO: Implement section reference parsing logic
     // For now, return a placeholder
@@ -392,18 +330,6 @@ pub fn parse_section_ref(content: &str) -> Result<Option<String>, InlineParseErr
 ///
 /// # Returns
 /// * `Result<PageRefType, InlineParseError>`
-///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Single page
-/// let ref_type = determine_page_ref_type("page:123")?;
-/// // Returns: PageRefType::Single(123)
-///
-/// // Page range
-/// let ref_type = determine_page_ref_type("pages:123-125")?;
-/// // Returns: PageRefType::Range(123, 125)
-/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub enum PageRefType {
     /// Single page reference

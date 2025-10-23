@@ -567,18 +567,7 @@ fn parse_not_sure_reference(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Simple citation
-/// parse_citation(&tokens_for("[@smith2023]"))?;
-///
-/// // Multiple citations
-/// parse_citation(&tokens_for("[@smith2023; @jones2025]"))?;
-///
-/// // Page-specific citation
-/// parse_citation(&tokens_for("[@smith2023, p. 123]"))?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_citation(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<
@@ -637,18 +626,7 @@ pub fn parse_citation(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Naked footnote
-/// parse_footnote_ref(&tokens_for("[1]"))?;
-///
-/// // Labeled footnote
-/// parse_footnote_ref(&tokens_for("[^note-label]"))?;
-///
-/// // Auto-generated footnote
-/// parse_footnote_ref(&tokens_for("[^]"))?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_footnote_ref(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<
@@ -718,18 +696,7 @@ pub fn parse_footnote_ref(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Single page
-/// parse_page_ref(&tokens_for("[page:123]"))?;
-///
-/// // Page range
-/// parse_page_ref(&tokens_for("[pages:123-125]"))?;
-///
-/// // Chapter reference
-/// parse_page_ref(&tokens_for("[chapter:5]"))?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_page_ref(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<
@@ -776,18 +743,7 @@ pub fn parse_page_ref(
 /// # Returns
 /// * `Result<crate::ast::elements::formatting::inlines::Inline, InlineParseError>`
 ///
-/// # Examples
-///
-/// ```rust,ignore
-/// // Numbered session
-/// parse_session_ref(&tokens_for("[#3]"))?;
-///
-/// // Hierarchical session
-/// parse_session_ref(&tokens_for("[#2.1]"))?;
-///
-/// // Named session
-/// parse_session_ref(&tokens_for("[local-section]"))?;
-/// ```
+/// See tests/parser/elements/references/reference_element_tests.rs for examples
 pub fn parse_session_ref(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<

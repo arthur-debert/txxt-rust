@@ -13,23 +13,7 @@
 //!
 //! # Usage
 //!
-//! ```rust,ignore
-//! use crate::ast::traversal::TraversableDocument;
-//!
-//! let doc = parse_document("# Hello\nThis is a paragraph.");
-//! let traversable = TraversableDocument::from_document(&doc);
-//!
-//! // Find all paragraphs
-//! let paragraphs = traversable.query()
-//!     .find_by_type(ElementType::Block)
-//!     .filter_blocks(|block| matches!(block, BlockElement::Paragraph(_)))
-//!     .collect();
-//!
-//! // Text search
-//! let matches = traversable.query()
-//!     .text_contains("Hello")
-//!     .collect();
-//! ```
+//! See tests/ast/traversal_tests.rs for usage examples.
 
 use std::collections::HashMap;
 
@@ -135,11 +119,8 @@ impl TraversableDocument {
 
     /// Query the document using XPath-like syntax
     ///
-    /// This provides a more convenient interface for complex queries:
-    /// ```ignore
-    /// let paragraphs = doc.xpath("//Block[@type='paragraph']")?;
-    /// let text_blocks = doc.xpath("//Block[text()='hello']")?;
-    /// ```
+    /// This provides a more convenient interface for complex queries.
+    /// See module tests for usage examples.
     pub fn xpath(&self, selector: &str) -> Result<Vec<NodeRef<'_, ElementWrapper>>, XPathError> {
         let query = DocumentQuery::xpath(self, selector)?;
         Ok(query.collect())
@@ -368,17 +349,9 @@ impl<'a> DocumentQuery<'a> {
     /// - `.` - Current context (self)
     /// - `..` - Parent element
     ///
-    /// Examples:
-    /// ```ignore
-    /// // Find all paragraphs anywhere
-    /// doc.xpath("//Paragraph")
+    /// Build query from XPath-like selector.
     ///
-    /// // Find verbatim blocks with specific label
-    /// doc.xpath("//Verbatim[@label='code']")
-    ///
-    /// // Find blocks containing "hello"
-    /// doc.xpath("//Block[text()='hello']")
-    /// ```
+    /// See module tests (test_xpath_parsing, test_xpath_integration) for usage examples.
     pub fn xpath(document: &'a TraversableDocument, selector: &str) -> Result<Self, XPathError> {
         let parser = XPathParser::new();
         let path = parser.parse(selector)?;

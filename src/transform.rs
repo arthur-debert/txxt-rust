@@ -14,18 +14,6 @@
 //! - run_all: Execute all three phases
 //! - run_from_file: Convenience function for file input
 //!
-//! Usage:
-//!
-//! ```ignore
-//! // Disabled: Parser being reimplemented with regex-based grammar engine
-//! use txxt::transform::run_all;
-//!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! # let source_text = "This is a TXXT document.";
-//! let document = run_all(source_text, Some("file.txxt".to_string()))?;
-//! # Ok(())
-//! # }
-//! ```
 
 use crate::assembly::{AnnotationAttacher, DocumentAssembler};
 use crate::ast::Document;

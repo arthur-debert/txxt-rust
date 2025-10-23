@@ -40,8 +40,7 @@ This document describes the semantic token architecture in the txxt parsing pipe
         - Punctuation tokens: `Colon`, `Equals`, `Comma`, `Period`, `Dash`
         - Marker tokens: `TxxtMarker`, `SequenceMarker`, `AtSign`, `Hash`, `Caret`
         - Reference tokens: `CitationRef`, `PageRef`, `SessionRef`, `FootnoteRef`
-        - Ignore tokens: `IndentationWall`, `IgnoreTextSpan`
-        - Verbatim tokens: `VerbatimTitle`, `VerbatimLabel`
+        - Verbatim tokens: `VerbatimBlockStart`, `VerbatimContentLine`, `VerbatimBlockEnd`
 
     2.2. Semantic Tokens
 
@@ -76,10 +75,9 @@ This document describes the semantic token architecture in the txxt parsing pipe
     3.3. Verbatim Block Structure
 
         Complete verbatim block token sequence:
-        1. `VerbatimTitle`: Title line ending with colon
-        2. `IndentationWall`: Wall position and type
-        3. `IgnoreTextSpan`: Raw content lines
-        4. `VerbatimLabel`: Label line with txxt marker
+        1. `VerbatimBlockStart`: Title with wall type (InFlow/Stretched)
+        2. `VerbatimContentLine`: Raw content lines (multiple)
+        3. `VerbatimBlockEnd`: Terminator with label_raw string (includes parameters)
 
 4. Benefits of Current Architecture
 

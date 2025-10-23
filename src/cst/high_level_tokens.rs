@@ -239,7 +239,7 @@ pub enum HighLevelToken {
     },
 
     /// Verbatim block semantic token using wall architecture
-    /// Composition: VerbatimTitle + IndentationWall + IgnoreTextSpan + VerbatimLabel
+    /// Composition: title + wall + content (IgnoreLine/BlankLine) + label + parameters
     /// Used for content that preserves exact formatting and spacing
     VerbatimBlock {
         /// The verbatim title

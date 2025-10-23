@@ -106,12 +106,12 @@ Complete specification for formatting inline elements - strong, emphasis, and co
             *bold*_italic_        # Valid - separate elements
             *bold* and _italic_   # Valid - clearly separated
             *bold*and*more*       # Valid - multiple strong elements
-        :: txxt.core.spec.formatting.edge.adjacent-elements ::
+        :: txxt.core.spec.formatting.edge.adjacent-elements :
 
     6.2. Formatting Within Code
 
         Code elements do not process internal formatting:
             `*not bold*` # Asterisks preserved literally
             `_not italic_` # Underscores preserved literally
-        :: txxt.core.spec.formatting.edge.code-literal-content ::
+        :: txxt.core.spec.formatting.edge.code-literal-content :
  

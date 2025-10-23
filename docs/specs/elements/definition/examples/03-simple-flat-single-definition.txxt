@@ -2,5 +2,5 @@
 
     This session contains a single definition that introduces the main topic. The definition provides context and sets up the discussion for the sections that follow.
 
-    Parser ::
+    Parser :
         A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.

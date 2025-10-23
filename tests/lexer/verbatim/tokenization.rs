@@ -13,12 +13,12 @@ use txxt::syntax::tokenize;
 
 #[rstest]
 #[case(
-    "simple title:\n    content line\n:: label\n",
+    "simple title:\n    content line\n:: label ::\n",
     "simple title",
     vec!["    content line"]
 )]
 #[case(
-    "test:\n    line 1\n    line 2\n:: block\n",
+    "test:\n    line 1\n    line 2\n:: block ::\n",
     "test",
     vec!["    line 1", "    line 2"]
 )]
@@ -85,8 +85,8 @@ fn test_verbatim_block_basic(
 }
 
 #[rstest]
-#[case("empty block:\n:: empty\n")]
-#[case("no content:\n:: label\n")]
+#[case("empty block:\n:: empty ::\n")]
+#[case("no content:\n:: label ::\n")]
 fn test_verbatim_block_empty(#[case] input: &str) {
     let tokens = tokenize(input);
 
@@ -125,14 +125,14 @@ fn test_verbatim_block_empty(#[case] input: &str) {
 
 #[rstest]
 #[case(
-    "stretched:\ncontent at column 0\n:: label\n",
+    "stretched:\n content at column 0\n:: label ::\n",
     "stretched",
-    vec!["content at column 0"]
+    vec![" content at column 0"]
 )]
 #[case(
-    "stretched block:\nline 1\nline 2\n:: label\n",
+    "stretched block:\n line 1\n line 2\n:: label ::\n",
     "stretched block",
-    vec!["line 1", "line 2"]
+    vec![" line 1", " line 2"]
 )]
 fn test_verbatim_block_stretched(
     #[case] input: &str,
@@ -231,7 +231,7 @@ mod helper_tests {
     #[test]
     fn test_framework_setup() {
         // Verify our test framework is working
-        let tokens = tokenize("title:\n    content\n:: label\n");
+        let tokens = tokenize("title:\n    content\n:: label ::\n");
         assert!(!tokens.is_empty());
     }
 }

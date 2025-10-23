@@ -223,8 +223,8 @@ fn test_mixed_content_document() {
         "Should contain list items"
     );
     assert!(
-        corpus.source_text.contains(" ::"),
-        "Should contain definitions (double colon)"
+        corpus.source_text.contains("Term :"),
+        "Should contain definitions (single colon)"
     );
 
     // Should have paragraphs before and after other elements

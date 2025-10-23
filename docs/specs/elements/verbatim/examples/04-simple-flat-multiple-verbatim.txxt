@@ -3,7 +3,7 @@
     Code example:
         def hello():
             print("Hello, world!")
-    :: python
+    :: python ::
 
     This session contains multiple verbatim blocks that introduce the main topic. The verbatim blocks provide context and set up the discussion for the sections that follow.
 
@@ -14,7 +14,7 @@
                 proxy_pass http://backend;
             }
         }
-    :: nginx
+    :: nginx ::
 
 2. Advanced Concepts
 
@@ -31,4 +31,4 @@
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL
         );
-    :: sql
+    :: sql ::

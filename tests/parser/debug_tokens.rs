@@ -3,7 +3,8 @@ use txxt::syntax::SemanticAnalyzer;
 
 #[test]
 fn debug_verbatim_01_tokens() {
-    let source = "Code example:\n    def hello():\n        print(\"Hello, world!\")\n:: python\n";
+    let source =
+        "Code example:\n    def hello():\n        print(\"Hello, world!\")\n:: python ::\n";
 
     println!("=== Source ===\n{}", source);
 

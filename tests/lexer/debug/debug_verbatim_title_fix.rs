@@ -14,7 +14,7 @@ mod tests {
     fn debug_verbatim_title_without_colon() {
         let input = r#"My Code Title:
     print("hello")
-:: code"#;
+:: code ::"#;
 
         println!("Input:\n{}", input);
 
@@ -87,7 +87,7 @@ mod tests {
         ];
 
         for (input_title, expected_title) in test_cases {
-            let input = format!("{}\n    content\n:: label\n", input_title);
+            let input = format!("{}\n    content\n:: label ::\n", input_title);
             println!("Testing: '{}'", input_title);
 
             let tokens = tokenize(&input);

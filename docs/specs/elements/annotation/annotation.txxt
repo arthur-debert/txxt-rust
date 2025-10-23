@@ -17,13 +17,13 @@ Complete specification for annotations - metadata elements that attach informati
         (form)
 
         Block annotation (multi-line):
-            :: label ::
+            :: label :
                 Content can span multiple lines
                 and include complex formatting
         (form)
 
         Empty content annotation:
-            :: label ::
+            :: label :
         (form)
 
     2.2. Parameterized Annotations
@@ -37,7 +37,7 @@ Complete specification for annotations - metadata elements that attach informati
         (form)
 
         Multi-line with parameters:
-            :: description:lang=en,format=structured ::
+            :: description:lang=en,format=structured :
                 This is a detailed description
                 that spans multiple lines
                 with parameter metadata
@@ -53,7 +53,7 @@ Complete specification for annotations - metadata elements that attach informati
 
             1. First Section
                 Content begins here
-        :: txxt.core.spec.annotation.valid.document-level ::
+        :: txxt.core.spec.annotation.valid.document-level :
 
 3. Grammar
 
@@ -133,7 +133,7 @@ Complete specification for annotations - metadata elements that attach informati
             :: note :: This explains the following paragraph
             
             This paragraph receives the note annotation.
-        :: txxt.core.spec.annotation.valid.next-element-attachment ::
+        :: txxt.core.spec.annotation.valid.next-element-attachment :
 
         Multiple annotations:
             :: warning :: Be careful here
@@ -207,23 +207,23 @@ Complete specification for annotations - metadata elements that attach informati
 
         No namespace:
             :: note :: Simple note
-        :: txxt.core.spec.annotation.valid.no-namespace ::
+        :: txxt.core.spec.annotation.valid.no-namespace :
 
         Single-level namespace:
             :: custom.note :: Note with a single-level namespace
-        :: txxt.core.spec.annotation.valid.single-level-namespace ::
+        :: txxt.core.spec.annotation.valid.single-level-namespace :
 
         Multi-level namespace:
             :: org.example.custom :: Note with a multi-level namespace
-        :: txxt.core.spec.annotation.valid.multi-level-namespace ::
+        :: txxt.core.spec.annotation.valid.multi-level-namespace :
 
         Leading dot:
             :: .note :: Note with a leading dot
-        :: txxt.core.spec.annotation.valid.leading-dot-namespace ::
+        :: txxt.core.spec.annotation.valid.leading-dot-namespace :
 
         Trailing dot:
             :: note. :: Note with a trailing dot
-        :: txxt.core.spec.annotation.valid.trailing-dot-namespace ::
+        :: txxt.core.spec.annotation.valid.trailing-dot-namespace :
 
     8.2. Empty Labels
 
@@ -249,27 +249,27 @@ Complete specification for annotations - metadata elements that attach informati
             :: note :: This is a top-level annotation
                 :: warning :: This is a nested annotation
                     More nested content
-        :: txxt.core.spec.annotation.valid.single-level-nesting ::
+        :: txxt.core.spec.annotation.valid.single-level-nesting :
 
         Multi-level nesting:
-            :: level1 ::
-                :: level2 ::
-                    :: level3 ::
+            :: level1 :
+                :: level2 :
+                    :: level3 :
                         Deeply nested content
-        :: txxt.core.spec.annotation.valid.multi-level-nesting ::
+        :: txxt.core.spec.annotation.valid.multi-level-nesting :
 
         Multiple siblings at the same nesting level:
-            :: parent ::
-                :: child1 ::
-                :: child2 ::
-        :: txxt.core.spec.annotation.valid.nested-siblings ::
+            :: parent :
+                :: child1 :
+                :: child2 :
+        :: txxt.core.spec.annotation.valid.nested-siblings :
 
         Mixed with other content:
-            :: parent ::
+            :: parent :
                 This is a paragraph.
-                :: child ::
+                :: child :
                     Nested annotation content.
-        :: txxt.core.spec.annotation.valid.nested-mixed-content ::
+        :: txxt.core.spec.annotation.valid.nested-mixed-content :
 
     8.4. Indentation Context
 

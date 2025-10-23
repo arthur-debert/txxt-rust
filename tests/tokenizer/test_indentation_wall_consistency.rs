@@ -213,7 +213,7 @@ fn test_wall_nested_lists_and_sessions() {
 
         Technical documents often need to define terms precisely:
 
-        Container ::
+        Container:
             An element that holds other elements.
 
     3.2. Nested Structure

@@ -6,10 +6,10 @@
     
         This subsection explores the first aspect of the main topic in detail. Notice how it is indented one level deeper than the main section.
 
-        Parser ::
+        Parser :
             A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.
 
-        Lexer ::
+        Lexer :
             A program that breaks down text into tokens, which are the smallest meaningful units of the language being processed.
 
     1.2. Second Subtopic
@@ -21,7 +21,7 @@
         1.2.1. Third Subtopic
 
 
-            AST ::
+            AST :
                 Abstract Syntax Tree - a tree representation of the syntactic structure of source code or text, where each node represents a construct occurring in the source.
 
             This is the deepest level of nesting, demonstrating how definitions can appear at any level of the document hierarchy.
@@ -30,5 +30,5 @@
 
     This second main topic is at the same level as the first, demonstrating how nested and flat structures can combine.
 
-    Compiler ::
+    Compiler :
         A program that translates source code written in one programming language into another language, typically machine code or bytecode.

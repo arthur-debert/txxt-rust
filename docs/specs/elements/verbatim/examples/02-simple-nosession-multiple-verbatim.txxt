@@ -1,7 +1,7 @@
 Code example:
     def hello():
         print("Hello, world!")
-:: python
+:: python ::
 
 Configuration file:
     server {
@@ -10,10 +10,10 @@ Configuration file:
             proxy_pass http://backend;
         }
     }
-:: nginx
+:: nginx ::
 
 Wide table example:
  | Column 1 | Column 2 | Column 3 | Column 4 | Column 5 |
  |----------|----------|----------|----------|----------|
  | Data     | Data     | Data     | Data     | Data     |
-:: markdown
+:: markdown ::

@@ -9,12 +9,12 @@
 //! produce gibberish if parsed as TXXT (especially indent tokens), we must identify these blocks first
 //! and mark them as opaque content.
 //!
-//! ## Verbatim Block Syntax
+//! ## Verbatim Block Syntax (After Grammar Simplification)
 //!
 //! Verbatim blocks have three components:
 //! 1. **Title line**: Optional text followed by a single `:` at end of line
 //! 2. **Content lines**: Everything between title and terminator (preserved exactly)
-//! 3. **Terminator line**: `:: label` or `:: label:params` with optional parameters
+//! 3. **Terminator line**: MANDATORY full annotation `:: label params? ::`
 //!
 //! ### Normal Verbatim Block
 //! ```txxt
@@ -23,7 +23,7 @@
 //!     Another line
 //!
 //!     Blank lines are allowed
-//! :: identifier
+//! :: python ::
 //! ```
 //!
 //! ### Stretched Verbatim Block
@@ -33,14 +33,14 @@
 //! Another line at column 0
 //!
 //! Blank lines are allowed
-//! :: identifier
+//! :: shell ::
 //! ```
 //!
 //! ### With Parameters
 //! ```txxt
 //! title:
 //!     Content here
-//! :: label:key1=value1,key2=value2
+//! :: python version=3.11 ::
 //! ```
 //!
 //! ## Scanner State Machine
@@ -86,12 +86,12 @@
 //! ### 5. Terminator Validation
 //! Valid terminator must:
 //! - Be at **exact same indentation** as title line
-//! - Match pattern: `:: identifier` or `:: identifier:params`
-//! - Have proper parameter syntax if present
+//! - Match pattern: `:: label ::` or `:: label params ::`
+//! - Be a full annotation (opening and closing `::` markers)
 //!
 //! ## Error Conditions
 //! - **No terminator found**: Document ends while in verbatim mode
-//! - **Invalid terminator syntax**: Malformed `:: label` line
+//! - **Invalid terminator syntax**: Malformed `:: label ::` annotation
 //! - **Wrong terminator indent**: Not aligned with title
 //! - **Content at wrong indent**: Breaks verbatim rules
 //!
@@ -213,12 +213,12 @@ impl VerbatimScanner {
         Self {
             // Match line ending with single : (not ::)
             verbatim_start_re: Regex::new(r"^(.*):\s*$").unwrap(),
-            // Match terminator: :: identifier or :: identifier:params
-            verbatim_end_re: Regex::new(r"^\s*::\s+([a-zA-Z_][a-zA-Z0-9._-]*(?::[^:\s].*)?)\s*$")
-                .unwrap(),
+            // Match terminator: :: label :: or :: label params :: (new unified annotation syntax)
+            // After grammar simplification, verbatim terminators are full annotations
+            verbatim_end_re: Regex::new(r"^\s*::\s+(.+?)\s+::\s*$").unwrap(),
             // Match annotation lines :: label ::
             annotation_re: Regex::new(r"^.*::\s*.*::\s*.*$").unwrap(),
-            // Match definition lines ending with ::
+            // Match definition lines ending with :: (OLD syntax, no longer used)
             definition_re: Regex::new(r"^.*::\s*$").unwrap(),
         }
     }
@@ -315,7 +315,7 @@ impl VerbatimScanner {
         state: ScanState,
         line_num: usize,
         line: &str,
-        _all_lines: &[&str],
+        all_lines: &[&str],
     ) -> ScanState {
         match state {
             ScanState::ScanningNormal => self.check_for_verbatim_start(line_num, line),
@@ -331,6 +331,7 @@ impl VerbatimScanner {
                 title_text,
                 line_num,
                 line,
+                all_lines,
             ),
 
             ScanState::InVerbatimNormal {
@@ -399,6 +400,7 @@ impl VerbatimScanner {
     }
 
     /// Validate that the next line confirms this is a verbatim block
+    #[allow(clippy::too_many_arguments)]
     fn validate_verbatim_start(
         &self,
         blocks: &mut Vec<VerbatimBlock>,
@@ -407,6 +409,7 @@ impl VerbatimScanner {
         title_text: String, // NEW: title text parameter
         line_num: usize,
         line: &str,
+        all_lines: &[&str],
     ) -> ScanState {
         // If this is a blank line, continue waiting for content
         if line.trim().is_empty() {
@@ -417,14 +420,11 @@ impl VerbatimScanner {
             };
         }
 
-        // Check if this line is an annotation - if so, this is NOT a verbatim block
-        if self.annotation_re.is_match(line) {
-            return ScanState::ScanningNormal;
-        }
-
         let line_indent = self.calculate_indentation(line);
 
         // Check for terminator immediately after title (empty verbatim block)
+        // IMPORTANT: This must come BEFORE the annotation check, because terminators
+        // also match the annotation regex (:: label ::)
         if self.is_valid_terminator(line, title_indent) {
             // This is an empty verbatim block - add it and continue scanning
             blocks.push(VerbatimBlock {
@@ -438,17 +438,33 @@ impl VerbatimScanner {
             return ScanState::ScanningNormal;
         }
 
-        // Determine verbatim type based on content indentation
-        if line_indent == 0 {
-            // Stretched verbatim - content at column 0
+        // Check if this line is an annotation - if so, this is NOT a verbatim block
+        if self.annotation_re.is_match(line) {
+            return ScanState::ScanningNormal;
+        }
+
+        // CRITICAL: After grammar simplification, verbatim blocks REQUIRE a terminator.
+        // Before entering verbatim mode, check if a terminator exists.
+        // If no terminator exists, this is a DEFINITION (not verbatim), so return to normal scanning.
+        // Note: Start looking from the NEXT line, not the current content line
+        let line_idx = line_num; // line_num is 1-based, so this points to next line in 0-based array
+        if !self.has_terminator_ahead(all_lines, line_idx, title_indent) {
+            // No terminator found - this is a definition, not verbatim
+            return ScanState::ScanningNormal;
+        }
+
+        // Determine verbatim type based on first content line indentation
+        // Wall is determined by first non-blank content line
+        if line_indent == 1 {
+            // Stretched mode: first content at absolute column 1 (wall = 1)
             ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
                 title_text,
                 content_start: line_num,
             }
-        } else if line_indent == title_indent + INDENT_SIZE {
-            // Normal verbatim - content at +1 indentation level from title
+        } else if line_indent >= title_indent + INDENT_SIZE {
+            // In-flow mode: first content at title + 4 or greater (wall = title + 4)
             ScanState::InVerbatimNormal {
                 title_line,
                 title_indent,
@@ -457,7 +473,7 @@ impl VerbatimScanner {
                 expected_indent: line_indent,
             }
         } else {
-            // Not a valid verbatim block - wrong indentation
+            // Invalid: content below minimum wall position
             ScanState::ScanningNormal
         }
     }
@@ -554,8 +570,8 @@ impl VerbatimScanner {
             return ScanState::ScanningNormal;
         }
 
-        // Content should be at column 0
-        if line_indent == 0 {
+        // Content should be at absolute column 1 (wall = 1 for stretched mode)
+        if line_indent == 1 {
             return ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
@@ -564,7 +580,7 @@ impl VerbatimScanner {
             };
         }
 
-        // Invalid - expected terminator or content at column 0
+        // Invalid - expected terminator or content at column 1 (stretched wall position)
         ScanState::ScanningNormal
     }
 
@@ -579,6 +595,51 @@ impl VerbatimScanner {
 
         // Must match terminator pattern
         self.verbatim_end_re.is_match(line)
+    }
+
+    /// Look ahead in remaining lines to check if a terminator exists
+    /// This is used after grammar simplification to distinguish verbatim blocks (mandatory terminator)
+    /// from definitions (optional terminator / no terminator).
+    fn has_terminator_ahead(
+        &self,
+        all_lines: &[&str],
+        start_idx: usize,
+        expected_indent: usize,
+    ) -> bool {
+        for line in all_lines.iter().skip(start_idx) {
+            // Skip blank lines
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            // Check if this is a valid terminator
+            if self.is_valid_terminator(line, expected_indent) {
+                return true;
+            }
+
+            // Check indentation
+            let line_indent = self.calculate_indentation(line);
+
+            // If we hit a line EXACTLY at title indent (and it's not a terminator - already checked),
+            // this means content has finished and this is not a terminator → NOT verbatim
+            if line_indent == expected_indent {
+                return false;
+            }
+
+            // Special case: stretched mode content at absolute column 1
+            // If line is at indent 1, it could be stretched mode content, so keep looking
+            if line_indent == 1 {
+                continue;
+            }
+
+            // If we hit a line below title indent (and not stretched wall), we've left block scope
+            if line_indent < expected_indent {
+                return false;
+            }
+        }
+
+        // Reached end of document without finding terminator
+        false
     }
 
     /// Calculate indentation level of a line (number of leading spaces, tabs = 4 spaces)
@@ -688,6 +749,7 @@ impl VerbatimScanner {
                 title_text,
                 line_num,
                 line,
+                all_lines,
             ),
 
             ScanState::InVerbatimNormal {
@@ -727,6 +789,7 @@ impl VerbatimScanner {
     }
 
     /// Validate verbatim start and create boundary (instead of VerbatimBlock)
+    #[allow(clippy::too_many_arguments)]
     fn validate_verbatim_start_boundary(
         &self,
         boundaries: &mut Vec<VerbatimBoundary>,
@@ -735,6 +798,7 @@ impl VerbatimScanner {
         title_text: String,
         line_num: usize,
         line: &str,
+        all_lines: &[&str],
     ) -> ScanState {
         // If this is a blank line, continue waiting for content
         if line.trim().is_empty() {
@@ -745,14 +809,11 @@ impl VerbatimScanner {
             };
         }
 
-        // Check if this line is an annotation - if so, this is NOT a verbatim block
-        if self.annotation_re.is_match(line) {
-            return ScanState::ScanningNormal;
-        }
-
         let line_indent = self.calculate_indentation(line);
 
         // Check for terminator immediately after title (empty verbatim block)
+        // IMPORTANT: This must come BEFORE the annotation check, because terminators
+        // also match the annotation regex (:: label ::)
         if self.is_valid_terminator(line, title_indent) {
             // Extract label from terminator
             let label_raw = self.extract_label(line);
@@ -771,17 +832,33 @@ impl VerbatimScanner {
             return ScanState::ScanningNormal;
         }
 
-        // Determine verbatim type based on content indentation
-        if line_indent == 0 {
-            // Stretched verbatim - content at column 0
+        // Check if this line is an annotation - if so, this is NOT a verbatim block
+        if self.annotation_re.is_match(line) {
+            return ScanState::ScanningNormal;
+        }
+
+        // CRITICAL: After grammar simplification, verbatim blocks REQUIRE a terminator.
+        // Before entering verbatim mode, check if a terminator exists.
+        // If no terminator exists, this is a DEFINITION (not verbatim), so return to normal scanning.
+        // Note: Start looking from the NEXT line, not the current content line
+        let line_idx = line_num; // line_num is 1-based, so this points to next line in 0-based array
+        if !self.has_terminator_ahead(all_lines, line_idx, title_indent) {
+            // No terminator found - this is a definition, not verbatim
+            return ScanState::ScanningNormal;
+        }
+
+        // Determine verbatim type based on first content line indentation
+        // Wall is determined by first non-blank content line
+        if line_indent == 1 {
+            // Stretched mode: first content at absolute column 1 (wall = 1)
             ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
                 title_text,
                 content_start: line_num,
             }
-        } else if line_indent == title_indent + INDENT_SIZE {
-            // Normal verbatim - content at +1 indentation level from title
+        } else if line_indent >= title_indent + INDENT_SIZE {
+            // In-flow mode: first content at title + 4 or greater (wall = title + 4)
             ScanState::InVerbatimNormal {
                 title_line,
                 title_indent,
@@ -790,7 +867,7 @@ impl VerbatimScanner {
                 expected_indent: line_indent,
             }
         } else {
-            // Not a valid verbatim block - wrong indentation
+            // Invalid: content below minimum wall position
             ScanState::ScanningNormal
         }
     }
@@ -899,8 +976,8 @@ impl VerbatimScanner {
             return ScanState::ScanningNormal;
         }
 
-        // Content should be at column 0
-        if line_indent == 0 {
+        // Content should be at absolute column 1 (wall = 1 for stretched mode)
+        if line_indent == 1 {
             return ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
@@ -909,7 +986,7 @@ impl VerbatimScanner {
             };
         }
 
-        // Invalid - expected terminator or content at column 0
+        // Invalid - expected terminator or content at column 1 (stretched wall position)
         ScanState::ScanningNormal
     }
 

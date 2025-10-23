@@ -3,7 +3,7 @@
     Code example:
         def hello():
             print("Hello, world!")
-    :: python
+    :: python ::
 
     This is the introduction to the main topic. It provides an overview before diving into specific subtopics.
 
@@ -25,7 +25,7 @@
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL
             );
-        :: sql
+        :: sql ::
 
     1.2. Second Subtopic
     
@@ -49,7 +49,7 @@
                     "value": 42,
                     "active": true
                 }
-            :: json
+            :: json ::
 
 2. Another Main Topic
 
@@ -60,4 +60,4 @@
             <h1>Title</h1>
             <p>Content here</p>
         </div>
-    :: html
+    :: html ::

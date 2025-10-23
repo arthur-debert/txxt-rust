@@ -17,14 +17,14 @@ Complete specification for sessions - the hierarchical organizational units that
             
                 Content of the introduction section goes here.
                 Multiple paragraphs are supported.
-        :: txxt.core.spec.session.valid.unnumbered-basic ::
+        :: txxt.core.spec.session.valid.unnumbered-basic :
 
         Numbered session:
             1. Methodology
             
                 Detailed methodology content follows.
                 Includes all relevant procedures.
-        :: txxt.core.spec.session.valid.numbered-basic ::
+        :: txxt.core.spec.session.valid.numbered-basic :
 
         Hierarchical numbering:
             1. Main Section
@@ -38,7 +38,7 @@ Complete specification for sessions - the hierarchical organizational units that
                     More subsection content.
                     
             2. Next Main Section
-        :: txxt.core.spec.session.valid.hierarchical ::
+        :: txxt.core.spec.session.valid.hierarchical :
 
     2.2. Recognition Rules
 

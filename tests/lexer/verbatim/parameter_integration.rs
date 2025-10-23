@@ -14,7 +14,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_without_parameters() {
         let input = r#"Code:
     print("hello")
-:: python"#;
+:: python ::"#;
 
         let tokens = tokenize(input);
 
@@ -40,7 +40,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_single_parameter() {
         let input = r#"Code:
     print("hello")
-:: python:version=3.9"#;
+:: python:version=3.9 ::"#;
 
         let tokens = tokenize(input);
 
@@ -75,7 +75,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_multiple_parameters() {
         let input = r#"Code:
     print("hello")
-:: python:version=3.9,syntax=true"#;
+:: python:version=3.9,syntax=true ::"#;
 
         let tokens = tokenize(input);
 
@@ -107,7 +107,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_boolean_parameters() {
         let input = r#"Code:
     example
-:: label:flag=true,debug=false"#;
+:: label:flag=true,debug=false ::"#;
 
         let tokens = tokenize(input);
 
@@ -128,7 +128,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_quoted_parameters() {
         let input = r#"Code:
     example
-:: label:message="hello world",name="test""#;
+:: label:message="hello world",name="test" ::"#;
 
         let tokens = tokenize(input);
 
@@ -149,7 +149,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_escaped_parameters() {
         let input = r#"Code:
     example
-:: label:path="C:\folder\file.txt""#;
+:: label:path="C:\folder\file.txt" ::"#;
 
         let tokens = tokenize(input);
 
@@ -170,7 +170,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_namespaced_parameters() {
         let input = r#"Code:
     example
-:: label:custom.namespace.key=value"#;
+:: label:custom.namespace.key=value ::"#;
 
         let tokens = tokenize(input);
 

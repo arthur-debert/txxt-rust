@@ -221,7 +221,7 @@ Complete specification for containers - the foundational structural elements tha
     8.3. Definition Content
 
         Rich definition content:
-            Parser ::
+            Parser :
                 A program that analyzes text according to formal grammar rules.
                 
                 Key characteristics:

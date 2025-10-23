@@ -18,22 +18,22 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
 
 2. Semantic Token Definitions
 
-    TxxtMarker::
+    TxxtMarker:
         The fundamental :: marker used across annotations, definitions, and verbatim blocks.
         Identifies txxt structural elements and provides disambiguation anchor points.
         Essential for recognizing txxt syntax vs plain text.
 
-    Colon::
+    Colon:
         Colon punctuation marker used for parameter separation.
         Preserves syntactic meaning for parameter parsing and error reporting.
         Allows AST construction phase to identify misplaced syntactic markers with precision.
 
-    Label::
+    Label:
         Structured identifier component for annotations and verbatim blocks.
         Supports namespaced identifiers like "python", "org.example.custom".
         Reusable across annotation labels and verbatim labels.
 
-    Parameters::
+    Parameters:
         Key-value metadata component used in annotations, verbatim blocks, and definitions.
         Built from scanner tokens (Identifier, Equals, Text/QuotedString, Comma) into a
         structured HashMap of key-value pairs.
@@ -47,18 +47,18 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         Supports quoted values with escape sequences, boolean shorthand (key without value),
         and namespaced keys (org.example.key).
 
-    Sequence Marker::
+    Sequence Marker:
         List and session numbering component.
         Handles numeric (1.), alphabetic (a.), roman (i.), and plain (-) markers,
         in both regular (2.) and extended (1.3.b) forms.
         Critical for session vs list disambiguation logic, and between lists and paragraphs.
 
-    Text Span::
+    Text Span:
         Basic text content component without special formatting.
         Building block for larger line constructs.
         Preserves source span information for error reporting.
 
-    Sequence Text Line::
+    Sequence Text Line:
         Line beginning with sequence marker followed by text content.
         Combines Sequence Marker and Text Span components.
         Used for list items, session titles, and numbered paragraphs.
@@ -73,7 +73,7 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         "    " for indented content, etc.). This separates STRUCTURAL indentation from
         SEMANTIC content, ensuring the parser never sees structural whitespace.
 
-    Plain Text Line::
+    Plain Text Line:
         Simple text content without special markers or structure.
         Contains single Text Span component.
         Default fallback for unstructured content.
@@ -87,37 +87,37 @@ This document defines the semantic tokens used in the txxt parsing pipeline. Sem
         "    " for indented content, etc.). This separates STRUCTURAL indentation from
         SEMANTIC content, ensuring the parser never sees structural whitespace.
 
-    Ignore Line::
+    Ignore Line:
         Preserved exactly as written without txxt processing.
         Stored as raw string with source span tracking.
         Consumed by a verbatim block.
 
-    Blank Line::
+    Blank Line:
         Line containing only whitespace or completely empty.
         Critical for whitespace enclosure detection in sessions vs lists.
         Sessions require blank line separation; lists cannot have blank lines between items.
 
-    Indent::
+    Indent:
         Indentation marker passed through unchanged from scanner tokens.
         Marks the beginning of a new indentation level.
         Used for block structure and nesting.
 
-    Dedent::
+    Dedent:
         Dedentation marker passed through unchanged from scanner tokens.
         Marks the end of an indentation level.
         Used for block structure and nesting.
 
-    Annotation::
+    Annotation:
         Annotation semantic token combining txxt markers with labels and optional content.
         Composition: TxxtMarker + Whitespace + Text + Whitespace + TxxtMarker + Text?
         Used for metadata elements that attach structured information to other elements.
 
-    Definition::
+    Definition:
         Definition semantic token combining text with txxt markers.
         Composition: Text + Whitespace + TxxtMarker (simple) or Text + Colon + Text + Whitespace + TxxtMarker (parameterized)
         Used for structured elements that define terms, concepts, and entities.
 
-    Verbatim Block::
+    Verbatim Block:
         Verbatim block semantic token using wall architecture.
         Composition: title + wall + content (IgnoreLine/BlankLine) + label + parameters
         Built from scanner tokens: VerbatimBlockStart, VerbatimContentLine, VerbatimBlockEnd

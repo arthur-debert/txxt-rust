@@ -1,2 +1,2 @@
-Parser ::
+Parser :
     A program that analyzes text according to formal grammar rules to create a structured representation like an Abstract Syntax Tree.

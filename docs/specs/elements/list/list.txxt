@@ -16,25 +16,25 @@ Complete specification for lists - ordered and unordered collections of items wi
             - First item
             - Second item
             - Third item
-        :: txxt.core.spec.list.valid.plain-flat ::
+        :: txxt.core.spec.list.valid.plain-flat :
 
         Numerical style list:
             1. First item
             2. Second item
             3. Third item
-        :: txxt.core.spec.list.valid.numerical-flat ::
+        :: txxt.core.spec.list.valid.numerical-flat :
 
         Alphabetical style list:
             a. First item
             b. Second item
             c. Third item
-        :: txxt.core.spec.list.valid.alphabetical-flat ::
+        :: txxt.core.spec.list.valid.alphabetical-flat :
 
         Roman style list:
             i. First item
             ii. Second item
             iii. Third item
-        :: txxt.core.spec.list.valid.roman-flat ::
+        :: txxt.core.spec.list.valid.roman-flat :
 
     2.2. Marker Variations
 
@@ -69,14 +69,14 @@ Complete specification for lists - ordered and unordered collections of items wi
             2. Hardware store
                 - Screws
                 - Paint
-        :: txxt.core.spec.list.valid.nested-mixed-styles ::
+        :: txxt.core.spec.list.valid.nested-mixed-styles :
 
         Multi-level nesting (3+ levels deep):
             - Level 1
                 1. Level 2
                     a. Level 3
                         i. Level 4
-        :: txxt.core.spec.list.valid.multi-level-nesting ::
+        :: txxt.core.spec.list.valid.multi-level-nesting :
 
         Nested lists with multi-line items are not supported yet.
 
@@ -165,7 +165,7 @@ Complete specification for lists - ordered and unordered collections of items wi
             1. First item
             1. Second item (written as 1.)
             1. Third item (written as 1.)
-        :: txxt.core.spec.list.valid.templated ::
+        :: txxt.core.spec.list.valid.templated :
 
         This pattern allows easy insertion/deletion without renumbering.
 
@@ -207,7 +207,7 @@ Complete specification for lists - ordered and unordered collections of items wi
         
         Not a list (parsed as paragraph):
             - Call mom.
-        :: txxt.core.spec.list.edge.single-item-top-level ::
+        :: txxt.core.spec.list.edge.single-item-top-level :
 
         This is parsed as a paragraph, not a list, to avoid ambiguity with dialog and ensure clear authoring intent. Lists must have multiple items at the root level.
 
@@ -217,7 +217,7 @@ Complete specification for lists - ordered and unordered collections of items wi
             1. First item
             3. Second item (numbered as 3)
             1. Third item (numbered as 1)
-        :: txxt.core.spec.list.valid.inconsistent-numbering ::
+        :: txxt.core.spec.list.valid.inconsistent-numbering :
 
         Original markers preserved; tools can auto-correct if needed.
 
@@ -227,7 +227,7 @@ Complete specification for lists - ordered and unordered collections of items wi
             1. First item (style: Numerical)
             a. Second item (different style but accepted)
             i. Third item (different style but accepted)
-        :: txxt.core.spec.list.valid.mixed-marker-styles ::
+        :: txxt.core.spec.list.valid.mixed-marker-styles :
 
         List officially has Numerical style based on first item.
 
@@ -239,7 +239,7 @@ Complete specification for lists - ordered and unordered collections of items wi
             - Main task (multiple items required at this level)
             - Another task
                 - Single subtask (allowed because it's nested)
-        :: txxt.core.spec.list.valid.nested-single-item ::
+        :: txxt.core.spec.list.valid.nested-single-item :
 
         The outer level has multiple items (valid list), and the nested single item is allowed because it's within a container.
 

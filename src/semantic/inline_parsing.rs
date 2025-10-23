@@ -7,7 +7,9 @@
 //! src/parser/mod.rs has the full architecture overview.
 
 use crate::ast::ElementNode;
-use crate::semantic::elements::formatting::parse_formatting_elements;
+use crate::semantic::elements::inlines::pipeline::{
+    create_standard_pipeline, inlines_to_text_transforms,
+};
 
 /// Inline parser for processing inline elements within blocks
 ///
@@ -45,8 +47,13 @@ impl InlineParser {
     fn parse_inlines_in_node(&self, node: ElementNode) -> Result<ElementNode, InlineParseError> {
         match node {
             ElementNode::ParagraphBlock(mut block) => {
-                // Use existing scanner tokens from the block instead of re-tokenizing
-                block.content = parse_formatting_elements(&block.tokens.tokens)?;
+                // Use the new declarative pipeline to parse all inline elements
+                let pipeline = create_standard_pipeline();
+                let inlines = pipeline.parse(&block.tokens.tokens)?;
+
+                // Convert to TextTransform for backward compatibility
+                // TODO: Update ParagraphBlock to support Vec<Inline> directly
+                block.content = inlines_to_text_transforms(inlines);
                 Ok(ElementNode::ParagraphBlock(block))
             }
             _ => Ok(node),

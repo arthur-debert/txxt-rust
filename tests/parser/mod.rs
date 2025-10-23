@@ -5,6 +5,7 @@ mod semantic_analysis;
 
 // Parser integration and bug tests
 mod issue_26_indented_sequence_markers;
+mod session_numbering;
 // TODO: Update for new API
 // mod parser_integration;
 mod parser_tests;

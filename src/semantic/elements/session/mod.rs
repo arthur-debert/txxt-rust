@@ -7,11 +7,51 @@
 //! - **AST Node**: `src/ast/elements/session/block.rs`
 
 use crate::ast::elements::inlines::TextTransform;
-use crate::ast::elements::session::block::{SessionBlock, SessionTitle};
+use crate::ast::elements::session::block::{SessionBlock, SessionNumbering, SessionTitle};
 use crate::ast::elements::session::session_container::{SessionContainer, SessionContainerElement};
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
 use crate::semantic::ast_construction::AstNode;
 use crate::semantic::BlockParseError;
+
+/// Extract numbering information from a sequence marker
+///
+/// Sessions can have hierarchical numbering like "1.2.3" which appears as a
+/// SequenceMarker in the high-level token stream. This function extracts the
+/// marker string and determines its style and form using shared numbering utilities.
+///
+/// Plain markers ("-") are NOT valid for sessions - only numerical, alphabetical,
+/// and roman numeral markers are supported.
+fn extract_numbering_from_marker(
+    marker_token: &HighLevelToken,
+) -> Result<Option<SessionNumbering>, BlockParseError> {
+    // Extract marker string from marker token (same as lists do)
+    let marker = match marker_token {
+        HighLevelToken::SequenceMarker { marker, .. } => marker.clone(),
+        HighLevelToken::TextSpan { content, .. } => content.clone(),
+        _ => return Ok(None),
+    };
+
+    // Use list_detection to determine marker type
+    use crate::syntax::list_detection;
+    let decoration = list_detection::determine_decoration_type(&marker);
+
+    // Convert to AST types using shared utilities
+    // Sessions do NOT allow plain markers (allow_plain = false)
+    use crate::semantic::elements::numbering::{convert_numbering_form, convert_numbering_style};
+
+    let style = match convert_numbering_style(&decoration.style, false) {
+        Some(s) => s,
+        None => return Ok(None), // Plain markers not allowed for sessions
+    };
+
+    let form = convert_numbering_form(&decoration.form);
+
+    Ok(Some(SessionNumbering {
+        marker,
+        style,
+        form,
+    }))
+}
 
 /// Create a session element from parsed components
 ///
@@ -28,22 +68,28 @@ pub fn create_session_element(
     title_token: &HighLevelToken,
     child_nodes: &[AstNode],
 ) -> Result<SessionBlock, BlockParseError> {
-    // Extract title text and tokens from the title token
-    let (title_text, source_tokens) = match title_token {
+    // Extract title text, tokens, and numbering from the title token
+    let (title_text, source_tokens, numbering) = match title_token {
         HighLevelToken::PlainTextLine { content, .. } => match content.as_ref() {
             HighLevelToken::TextSpan {
                 content, tokens, ..
-            } => (content.clone(), tokens.clone()),
+            } => (content.clone(), tokens.clone(), None),
             _ => {
                 return Err(BlockParseError::InvalidStructure(
                     "PlainTextLine content must be a TextSpan".to_string(),
                 ))
             }
         },
-        HighLevelToken::SequenceTextLine { content, .. } => match content.as_ref() {
+        HighLevelToken::SequenceTextLine {
+            marker, content, ..
+        } => match content.as_ref() {
             HighLevelToken::TextSpan {
                 content, tokens, ..
-            } => (content.clone(), tokens.clone()),
+            } => {
+                // Extract numbering from marker
+                let numbering = extract_numbering_from_marker(marker)?;
+                (content.clone(), tokens.clone(), numbering)
+            }
             _ => {
                 return Err(BlockParseError::InvalidStructure(
                     "SequenceTextLine content must be a TextSpan".to_string(),
@@ -53,7 +99,7 @@ pub fn create_session_element(
         HighLevelToken::Definition { term, .. } => match term.as_ref() {
             HighLevelToken::TextSpan {
                 content, tokens, ..
-            } => (content.clone(), tokens.clone()),
+            } => (content.clone(), tokens.clone(), None),
             _ => {
                 return Err(BlockParseError::InvalidStructure(
                     "Definition term must be a TextSpan".to_string(),
@@ -93,8 +139,7 @@ pub fn create_session_element(
         title: SessionTitle {
             // FIXME: post-parser - Parse inline formatting in title instead of using Text::simple
             content: title_content,
-            // FIXME: post-parser - Extract numbering from title_token (e.g., "1.2.3")
-            numbering: None,
+            numbering,
             tokens: ScannerTokenSequence::new(),
         },
         content: SessionContainer {

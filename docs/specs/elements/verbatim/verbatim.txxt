@@ -222,7 +222,7 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
     External binary content:
         Network topology diagram:
-        :: image src=network-topology.png,alt="Network diagram showing server connections" :
+        :: image src=network-topology.png,alt="Network diagram showing server connections" ::
     :: txxt.core.spec.verbatim.valid.empty-content ::
 
     6.5. Multi-format Documents
@@ -233,7 +233,7 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
                 <p>This is <strong>important</strong> information.</p>
                 <button onclick="dismiss()">Dismiss</button>
             </div>
-        :: html :
+        :: html ::
 
 7. Implementation Notes
 

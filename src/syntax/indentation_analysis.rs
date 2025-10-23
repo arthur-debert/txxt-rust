@@ -90,55 +90,6 @@ pub fn calculate_indentation_level(whitespace: &str) -> usize {
     level
 }
 
-/// Check if all lines in a collection maintain consistent indentation
-///
-/// Validates that all lines either:
-/// - Match the expected indentation level exactly, OR
-/// - Are blank lines (which don't affect indentation consistency)
-///
-/// # Arguments
-/// * `lines` - Collection of (indentation_level, is_blank) tuples
-/// * `expected_level` - The indentation level that should be maintained
-///
-/// # Returns
-/// * `true` if all non-blank lines match expected_level
-/// * `false` if any non-blank line has different indentation
-///
-/// # Examples
-/// ```text
-/// Lines: [(4, false), (4, false), (0, true), (4, false)]
-/// Expected: 4
-/// Output: true (blank line at position 2 doesn't break consistency)
-///
-/// Lines: [(4, false), (8, false)]
-/// Expected: 4
-/// Output: false (line 2 has wrong indentation)
-/// ```
-pub fn is_consistently_indented(lines: &[(usize, bool)], expected_level: usize) -> bool {
-    lines
-        .iter()
-        .all(|(level, is_blank)| *is_blank || *level == expected_level)
-}
-
-/// Helper function to extract indentation information from a line string
-///
-/// Combines indentation calculation with blank line detection.
-///
-/// # Arguments
-/// * `line` - The line string to analyze
-///
-/// # Returns
-/// * `(usize, bool)` - Tuple of (indentation_level, is_blank)
-pub fn analyze_line_indentation(line: &str) -> (usize, bool) {
-    let is_blank = line.trim().is_empty();
-    let level = if is_blank {
-        0 // Blank lines considered as level 0
-    } else {
-        calculate_indentation_level(line)
-    };
-    (level, is_blank)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -261,49 +212,5 @@ mod tests {
     fn test_calculate_indentation_level_stops_at_content() {
         assert_eq!(calculate_indentation_level("  hello"), 2);
         assert_eq!(calculate_indentation_level("\thello"), 4);
-    }
-
-    #[test]
-    fn test_is_consistently_indented_all_same() {
-        let lines = vec![(4, false), (4, false), (4, false)];
-        assert!(is_consistently_indented(&lines, 4));
-    }
-
-    #[test]
-    fn test_is_consistently_indented_with_blanks() {
-        let lines = vec![(4, false), (0, true), (4, false)];
-        assert!(is_consistently_indented(&lines, 4));
-    }
-
-    #[test]
-    fn test_is_consistently_indented_inconsistent() {
-        let lines = vec![(4, false), (8, false), (4, false)];
-        assert!(!is_consistently_indented(&lines, 4));
-    }
-
-    #[test]
-    fn test_is_consistently_indented_empty() {
-        let lines: Vec<(usize, bool)> = vec![];
-        assert!(is_consistently_indented(&lines, 4));
-    }
-
-    #[test]
-    fn test_is_consistently_indented_all_blanks() {
-        let lines = vec![(0, true), (0, true), (0, true)];
-        assert!(is_consistently_indented(&lines, 4)); // All blank = consistent
-    }
-
-    #[test]
-    fn test_analyze_line_indentation_normal() {
-        assert_eq!(analyze_line_indentation("hello"), (0, false));
-        assert_eq!(analyze_line_indentation("    hello"), (4, false));
-        assert_eq!(analyze_line_indentation("\tworld"), (4, false));
-    }
-
-    #[test]
-    fn test_analyze_line_indentation_blank() {
-        assert_eq!(analyze_line_indentation(""), (0, true));
-        assert_eq!(analyze_line_indentation("   "), (0, true));
-        assert_eq!(analyze_line_indentation("\t  \t"), (0, true));
     }
 }

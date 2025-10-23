@@ -8,7 +8,6 @@
 
 use crate::ast::elements::annotation::annotation_block::{AnnotationBlock, AnnotationContent};
 use crate::ast::elements::containers::content::ContentContainerElement;
-use crate::ast::elements::containers::ContentContainer;
 use crate::cst::HighLevelToken;
 use crate::semantic::ast_construction::AstNode;
 use crate::semantic::elements::parameters::create_parameters_ast;
@@ -44,42 +43,74 @@ pub fn create_annotation_element(
             // See: crate::semantic::elements::parameters::create_parameters_ast for single source of truth
             let extracted_params = create_parameters_ast(parameters.as_deref())?;
 
-            // Separate nested annotations from other content
-            let mut nested_annotations = Vec::new();
-            let mut other_content = Vec::new();
+            // Convert content nodes to SimpleBlockElements
+            // Per simple-container.txxt: Annotations can only contain Paragraph, List, Verbatim
+            // No nested annotations allowed (prevents unbounded recursion)
+            let mut simple_elements = Vec::new();
 
             for node in content_nodes {
                 match node {
-                    AstNode::Annotation(block) => nested_annotations.push(block.clone().into()),
-                    _ => match node.to_element_node().try_into() {
-                        Ok(element) => other_content.push(element),
-                        Err(e) => {
-                            return Err(BlockParseError::InvalidStructure(format!(
-                                "Failed to convert nested element in annotation: {}",
-                                e
-                            )));
-                        }
-                    },
+                    AstNode::Paragraph(p) => {
+                        simple_elements.push(
+                            crate::ast::elements::containers::simple::SimpleBlockElement::Paragraph(
+                                p.clone(),
+                            ),
+                        );
+                    }
+                    AstNode::List(l) => {
+                        simple_elements.push(
+                            crate::ast::elements::containers::simple::SimpleBlockElement::List(
+                                l.clone(),
+                            ),
+                        );
+                    }
+                    AstNode::Verbatim(v) => {
+                        simple_elements.push(
+                            crate::ast::elements::containers::simple::SimpleBlockElement::Verbatim(
+                                v.clone(),
+                            ),
+                        );
+                    }
+                    AstNode::Annotation(_) => {
+                        return Err(BlockParseError::InvalidStructure(
+                            "Cannot nest Annotation inside Annotation (SimpleContainer constraint)"
+                                .to_string(),
+                        ));
+                    }
+                    AstNode::Definition(_) => {
+                        return Err(BlockParseError::InvalidStructure(
+                            "Cannot nest Definition inside Annotation (SimpleContainer constraint)"
+                                .to_string(),
+                        ));
+                    }
+                    AstNode::Session(_) => {
+                        return Err(BlockParseError::InvalidStructure(
+                            "Cannot nest Session inside Annotation (SimpleContainer constraint)"
+                                .to_string(),
+                        ));
+                    }
                 }
             }
 
             // Determine content type
-            let content = if other_content.is_empty() {
+            let content = if simple_elements.is_empty() {
                 AnnotationContent::Inline(vec![])
             } else {
-                AnnotationContent::Block(ContentContainer::new(
-                    other_content,
-                    Vec::new(),
-                    Default::default(),
-                    Default::default(),
-                ))
+                AnnotationContent::Block(
+                    crate::ast::elements::containers::simple::SimpleContainer::new(
+                        simple_elements,
+                        Vec::new(),
+                        Default::default(),
+                        Default::default(),
+                    ),
+                )
             };
 
             Ok(AnnotationBlock::new(
                 label_text,
                 content,
                 extracted_params,
-                nested_annotations,
+                Vec::new(), // No nested annotations allowed in SimpleContainer
                 tokens.clone(),
             ))
         }

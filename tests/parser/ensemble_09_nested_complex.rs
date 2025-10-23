@@ -22,7 +22,7 @@
 mod corpora;
 
 use corpora::TxxtCorpora;
-use txxt::ast::elements::containers::content::ContentContainerElement;
+use txxt::ast::elements::containers::simple::SimpleBlockElement;
 use txxt::ast::elements::session::session_container::SessionContainerElement;
 use txxt::transform::run_all;
 
@@ -167,7 +167,7 @@ fn test_ensemble_09_nested_complex() {
                     1,
                     "Definition should have 1 paragraph"
                 );
-                if let ContentContainerElement::Paragraph(para) = &def.content.content[0] {
+                if let SimpleBlockElement::Paragraph(para) = &def.content.content[0] {
                     let content_text: String =
                         para.content.iter().map(|t| t.text_content()).collect();
                     println!("      Content: {}", content_text);

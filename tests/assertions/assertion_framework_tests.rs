@@ -15,6 +15,7 @@ mod framework_tests {
         elements::{
             annotation::{AnnotationBlock, AnnotationContent},
             containers::content::{ContentContainer, ContentContainerElement},
+            containers::simple::{SimpleBlockElement, SimpleContainer},
             core::{ElementType, TxxtElement},
             inlines::{Text, TextTransform},
             paragraph::ParagraphBlock,
@@ -677,8 +678,8 @@ mod framework_tests {
             parameters: Parameters::new(),
         };
 
-        let block_content = ContentContainer {
-            content: vec![ContentContainerElement::Paragraph(para)],
+        let block_content = SimpleContainer {
+            content: vec![SimpleBlockElement::Paragraph(para)],
             tokens: ScannerTokenSequence::new(),
             annotations: Vec::new(),
             parameters: Parameters::new(),

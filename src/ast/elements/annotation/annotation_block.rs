@@ -12,7 +12,7 @@ use crate::ast::elements::{
 use crate::cst::ScannerTokenSequence;
 
 use super::super::{
-    containers::ContentContainer,
+    containers::SimpleContainer,
     core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
 };
@@ -50,22 +50,29 @@ pub struct AnnotationBlock {
 
 /// Content of an annotation
 ///
-/// Annotations can contain either simple inline text or complex block content
-/// for multiline annotations with indented blocks.
+/// Annotations can contain either simple inline text or simple block content.
+/// Per `docs/proposals/simple-container.txxt`, annotations use SimpleContainer
+/// to prevent unbounded recursion (Annotation in Annotation) while preserving
+/// the ability to include lists and code examples.
+///
+/// Allowed block content: Paragraphs, Lists, VerbatimBlocks
+/// Prohibited block content: Sessions, Definitions, Annotations, nested containers
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AnnotationContent {
     /// Simple inline content
     /// Example: :: note :: This is a simple note
     Inline(Vec<TextTransform>),
 
-    /// Block content for multiline annotations
+    /// Block content for multiline annotations - constrained to simple blocks
     /// Example:
     /// ```txxt
     /// :: warning ::
     ///     This is a complex warning
-    ///     with multiple lines.
+    ///     with multiple lines and a list:
+    ///     - Item 1
+    ///     - Item 2
     /// ```
-    Block(ContentContainer),
+    Block(SimpleContainer),
 }
 
 impl TxxtElement for AnnotationBlock {

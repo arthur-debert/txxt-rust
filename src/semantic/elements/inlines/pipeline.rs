@@ -266,11 +266,11 @@ pub fn create_standard_pipeline() -> InlinePipeline {
     use crate::semantic::elements::inlines::level1_matchers::*;
 
     InlinePipeline::new()
-        .with_matcher(Box::new(CodeMatcher))
-        .with_matcher(Box::new(MathMatcher))
-        .with_matcher(Box::new(ReferenceMatcher))
-        .with_matcher(Box::new(BoldMatcher))
-        .with_matcher(Box::new(ItalicMatcher))
+        .with_matcher(Box::new(code_matcher()))
+        .with_matcher(Box::new(math_matcher()))
+        .with_matcher(Box::new(reference_matcher()))
+        .with_matcher(Box::new(bold_matcher()))
+        .with_matcher(Box::new(italic_matcher()))
 }
 
 /// Convert Vec<Inline> to Vec<TextTransform> for backward compatibility

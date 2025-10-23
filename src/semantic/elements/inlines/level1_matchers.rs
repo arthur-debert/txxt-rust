@@ -1,16 +1,21 @@
 //! # Level 1: Delimiter Matchers
 //!
-//! Implementations of DelimiterMatcher for all inline element types.
-//! These matchers identify spans enclosed by specific delimiters without
-//! interpreting their content or building AST nodes.
+//! Generic delimiter matcher that can be configured for any inline element type
+//! with start and end delimiters. This eliminates code duplication across all
+//! simple delimiter-based inline elements.
 //!
-//! ## Matchers
+//! ## Architecture
 //!
-//! - `BoldMatcher`: Matches `*...*` for bold/strong text
-//! - `ItalicMatcher`: Matches `_..._` for italic/emphasis text
-//! - `CodeMatcher`: Matches `` `...` `` for code spans
-//! - `MathMatcher`: Matches `#...#` for math expressions
-//! - `ReferenceMatcher`: Matches `[...]` for all reference types
+//! Instead of separate matcher structs for each inline type, we use a single
+//! `GenericDelimiterMatcher` configured with:
+//! - Name: Identifier for the inline type
+//! - Start predicate: Function to check if token is a start delimiter
+//! - End predicate: Function to check if token is an end delimiter
+//!
+//! ## Examples
+//!
+//! - Bold: start=`*`, end=`*` (same delimiter)
+//! - Reference: start=`[`, end=`]` (different delimiters)
 
 use crate::cst::ScannerToken;
 use crate::semantic::elements::inlines::pipeline::{DelimiterMatcher, SpanMatch};
@@ -36,21 +41,68 @@ where
         .map(|pos| start + pos)
 }
 
-/// Bold delimiter matcher - matches `*...*`
-pub struct BoldMatcher;
+/// Generic delimiter matcher - matches any `start...end` pattern
+///
+/// This single matcher handles all delimiter-based inline elements by taking
+/// predicates for start and end delimiters. This eliminates code duplication
+/// and makes it easy to add new inline types.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // Bold: same delimiter for start and end
+/// let bold = GenericDelimiterMatcher::new(
+///     "bold",
+///     |t| t.is_bold_delimiter(),
+///     |t| t.is_bold_delimiter(),
+/// );
+///
+/// // Reference: different delimiters
+/// let reference = GenericDelimiterMatcher::new(
+///     "reference",
+///     |t| matches!(t, ScannerToken::Text { content, .. } if content == "["),
+///     |t| matches!(t, ScannerToken::Text { content, .. } if content == "]"),
+/// );
+/// ```
+pub struct GenericDelimiterMatcher {
+    name: String,
+    start_predicate: fn(&ScannerToken) -> bool,
+    end_predicate: fn(&ScannerToken) -> bool,
+}
 
-impl DelimiterMatcher for BoldMatcher {
+impl GenericDelimiterMatcher {
+    /// Create a new generic delimiter matcher
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - Name of the inline type (e.g., "bold", "reference")
+    /// * `start_predicate` - Function to check if token is a start delimiter
+    /// * `end_predicate` - Function to check if token is an end delimiter
+    pub fn new(
+        name: &str,
+        start_predicate: fn(&ScannerToken) -> bool,
+        end_predicate: fn(&ScannerToken) -> bool,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            start_predicate,
+            end_predicate,
+        }
+    }
+}
+
+impl DelimiterMatcher for GenericDelimiterMatcher {
     fn name(&self) -> &str {
-        "bold"
+        &self.name
     }
 
     fn can_start(&self, token: &ScannerToken) -> bool {
-        token.is_bold_delimiter()
+        (self.start_predicate)(token)
     }
 
     fn match_span(&self, tokens: &[ScannerToken], start: usize) -> Option<SpanMatch> {
         // Find closing delimiter
-        if let Some(end) = find_closing(tokens, start + 1, |t| t.is_bold_delimiter()) {
+        if let Some(end) = find_closing(tokens, start + 1, self.end_predicate) {
             let inner_tokens = tokens[start + 1..end].to_vec();
 
             // Enforce single-line constraint
@@ -66,7 +118,7 @@ impl DelimiterMatcher for BoldMatcher {
             Some(SpanMatch {
                 start,
                 end: end + 1, // Include closing delimiter
-                matcher_name: self.name().to_string(),
+                matcher_name: self.name.clone(),
                 inner_tokens,
                 full_tokens: tokens[start..=end].to_vec(),
             })
@@ -76,168 +128,51 @@ impl DelimiterMatcher for BoldMatcher {
     }
 }
 
-/// Italic delimiter matcher - matches `_..._`
-pub struct ItalicMatcher;
+// Factory functions for common matchers
 
-impl DelimiterMatcher for ItalicMatcher {
-    fn name(&self) -> &str {
-        "italic"
-    }
-
-    fn can_start(&self, token: &ScannerToken) -> bool {
-        token.is_italic_delimiter()
-    }
-
-    fn match_span(&self, tokens: &[ScannerToken], start: usize) -> Option<SpanMatch> {
-        // Find closing delimiter
-        if let Some(end) = find_closing(tokens, start + 1, |t| t.is_italic_delimiter()) {
-            let inner_tokens = tokens[start + 1..end].to_vec();
-
-            // Enforce single-line constraint
-            if contains_newline(&inner_tokens) {
-                return None;
-            }
-
-            // Must have content
-            if inner_tokens.is_empty() {
-                return None;
-            }
-
-            Some(SpanMatch {
-                start,
-                end: end + 1,
-                matcher_name: self.name().to_string(),
-                inner_tokens,
-                full_tokens: tokens[start..=end].to_vec(),
-            })
-        } else {
-            None
-        }
-    }
+/// Create a bold delimiter matcher (matches `*...*`)
+pub fn bold_matcher() -> GenericDelimiterMatcher {
+    GenericDelimiterMatcher::new(
+        "bold",
+        ScannerToken::is_bold_delimiter,
+        ScannerToken::is_bold_delimiter,
+    )
 }
 
-/// Code delimiter matcher - matches `` `...` ``
-pub struct CodeMatcher;
-
-impl DelimiterMatcher for CodeMatcher {
-    fn name(&self) -> &str {
-        "code"
-    }
-
-    fn can_start(&self, token: &ScannerToken) -> bool {
-        token.is_code_delimiter()
-    }
-
-    fn match_span(&self, tokens: &[ScannerToken], start: usize) -> Option<SpanMatch> {
-        // Find closing delimiter
-        if let Some(end) = find_closing(tokens, start + 1, |t| t.is_code_delimiter()) {
-            let inner_tokens = tokens[start + 1..end].to_vec();
-
-            // Enforce single-line constraint
-            if contains_newline(&inner_tokens) {
-                return None;
-            }
-
-            // Must have content
-            if inner_tokens.is_empty() {
-                return None;
-            }
-
-            Some(SpanMatch {
-                start,
-                end: end + 1,
-                matcher_name: self.name().to_string(),
-                inner_tokens,
-                full_tokens: tokens[start..=end].to_vec(),
-            })
-        } else {
-            None
-        }
-    }
+/// Create an italic delimiter matcher (matches `_..._`)
+pub fn italic_matcher() -> GenericDelimiterMatcher {
+    GenericDelimiterMatcher::new(
+        "italic",
+        ScannerToken::is_italic_delimiter,
+        ScannerToken::is_italic_delimiter,
+    )
 }
 
-/// Math delimiter matcher - matches `#...#`
-pub struct MathMatcher;
-
-impl DelimiterMatcher for MathMatcher {
-    fn name(&self) -> &str {
-        "math"
-    }
-
-    fn can_start(&self, token: &ScannerToken) -> bool {
-        token.is_math_delimiter()
-    }
-
-    fn match_span(&self, tokens: &[ScannerToken], start: usize) -> Option<SpanMatch> {
-        // Find closing delimiter
-        if let Some(end) = find_closing(tokens, start + 1, |t| t.is_math_delimiter()) {
-            let inner_tokens = tokens[start + 1..end].to_vec();
-
-            // Enforce single-line constraint
-            if contains_newline(&inner_tokens) {
-                return None;
-            }
-
-            // Must have content
-            if inner_tokens.is_empty() {
-                return None;
-            }
-
-            Some(SpanMatch {
-                start,
-                end: end + 1,
-                matcher_name: self.name().to_string(),
-                inner_tokens,
-                full_tokens: tokens[start..=end].to_vec(),
-            })
-        } else {
-            None
-        }
-    }
+/// Create a code delimiter matcher (matches `` `...` ``)
+pub fn code_matcher() -> GenericDelimiterMatcher {
+    GenericDelimiterMatcher::new(
+        "code",
+        ScannerToken::is_code_delimiter,
+        ScannerToken::is_code_delimiter,
+    )
 }
 
-/// Reference delimiter matcher - matches `[...]`
-pub struct ReferenceMatcher;
+/// Create a math delimiter matcher (matches `#...#`)
+pub fn math_matcher() -> GenericDelimiterMatcher {
+    GenericDelimiterMatcher::new(
+        "math",
+        ScannerToken::is_math_delimiter,
+        ScannerToken::is_math_delimiter,
+    )
+}
 
-impl DelimiterMatcher for ReferenceMatcher {
-    fn name(&self) -> &str {
-        "reference"
-    }
-
-    fn can_start(&self, token: &ScannerToken) -> bool {
-        matches!(token, ScannerToken::Text { content, .. } if content == "[")
-    }
-
-    fn match_span(&self, tokens: &[ScannerToken], start: usize) -> Option<SpanMatch> {
-        // Find closing bracket
-        if let Some(end) = find_closing(
-            tokens,
-            start + 1,
-            |t| matches!(t, ScannerToken::Text { content, .. } if content == "]"),
-        ) {
-            let inner_tokens = tokens[start + 1..end].to_vec();
-
-            // Enforce single-line constraint
-            if contains_newline(&inner_tokens) {
-                return None;
-            }
-
-            // Must have content
-            if inner_tokens.is_empty() {
-                return None;
-            }
-
-            Some(SpanMatch {
-                start,
-                end: end + 1,
-                matcher_name: self.name().to_string(),
-                inner_tokens,
-                full_tokens: tokens[start..=end].to_vec(),
-            })
-        } else {
-            None
-        }
-    }
+/// Create a reference delimiter matcher (matches `[...]`)
+pub fn reference_matcher() -> GenericDelimiterMatcher {
+    GenericDelimiterMatcher::new(
+        "reference",
+        |t| matches!(t, ScannerToken::Text { content, .. } if content == "["),
+        |t| matches!(t, ScannerToken::Text { content, .. } if content == "]"),
+    )
 }
 
 #[cfg(test)]
@@ -284,7 +219,7 @@ mod tests {
             create_bold_delimiter(),
         ];
 
-        let matcher = BoldMatcher;
+        let matcher = bold_matcher();
         let span = matcher.match_span(&tokens, 0);
 
         assert!(span.is_some());
@@ -304,7 +239,7 @@ mod tests {
             create_bold_delimiter(),
         ];
 
-        let matcher = BoldMatcher;
+        let matcher = bold_matcher();
         let span = matcher.match_span(&tokens, 0);
 
         assert!(span.is_none()); // Should reject due to newline
@@ -314,7 +249,7 @@ mod tests {
     fn test_bold_matcher_rejects_empty() {
         let tokens = vec![create_bold_delimiter(), create_bold_delimiter()];
 
-        let matcher = BoldMatcher;
+        let matcher = bold_matcher();
         let span = matcher.match_span(&tokens, 0);
 
         assert!(span.is_none()); // Should reject empty content
@@ -324,7 +259,7 @@ mod tests {
     fn test_reference_matcher_simple() {
         let tokens = vec![create_text("["), create_text("@citation"), create_text("]")];
 
-        let matcher = ReferenceMatcher;
+        let matcher = reference_matcher();
         let span = matcher.match_span(&tokens, 0);
 
         assert!(span.is_some());

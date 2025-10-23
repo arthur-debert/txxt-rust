@@ -41,7 +41,7 @@ use super::super::core::{ContainerElement, ContainerType, ElementType, TxxtEleme
 ///
 /// Example:
 /// ```txxt
-/// Parser ::
+/// Parser :
 ///     A program that analyzes text.
 ///
 ///     Key phases:

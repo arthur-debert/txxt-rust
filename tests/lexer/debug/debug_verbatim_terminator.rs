@@ -15,7 +15,7 @@ mod tests {
         let input = r#"Python Code:
     print("hello world")
     x = 42
-:: python:version=3.9,syntax_highlight=true ::"#;
+:: python version=3.9,syntax_highlight=true ::"#;
 
         println!("Input:\n{}", input);
 
@@ -70,8 +70,8 @@ mod tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = &verbatim_end_tokens[0] {
             assert_eq!(
-                label_raw, "python:version=3.9,syntax_highlight=true",
-                "VerbatimBlockEnd label_raw should contain full label:params"
+                label_raw, "python version=3.9,syntax_highlight=true",
+                "VerbatimBlockEnd label_raw should contain full label params"
             );
             println!(
                 "\n✅ VerbatimBlockEnd token correctly captured: {}",

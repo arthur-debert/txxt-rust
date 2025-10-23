@@ -14,7 +14,7 @@ use crate::infrastructure::parameter_fixtures::{
 
 #[test]
 fn test_parameter_spans_in_annotation() {
-    let input = ":: note:key=value,flag ::";
+    let input = ":: note key=value,flag ::";
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
 

@@ -6,7 +6,7 @@ use txxt::syntax::tokenize;
 #[test]
 fn test_colon_followed_by_annotation_not_verbatim() {
     let input = r#"Annotations can have parameters:
-:: warning:severity=high :: Critical security information"#;
+:: warning severity=high :: Critical security information"#;
 
     let tokens = tokenize(input);
 

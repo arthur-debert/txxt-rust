@@ -17,7 +17,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
             javascript
             warning
             note
-        (labels)
+        :: labels ::
 
     2.2. Namespaced Labels
 
@@ -25,19 +25,19 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
             org.example.custom
             company.product.feature
             user.category.subcategory
-        (namespaced)
+        :: namespaced ::
 
     2.3. Integration Patterns
 
         Annotation labels:
             :: warning :: Critical information
             :: org.example.metadata :: Custom data
-        (annotation-integration)
+        :: annotation-integration ::
 
         Verbatim labels:
             :: python
-            :: sql:dialect=postgresql
-        (verbatim-integration)
+            :: sql dialect=postgresql
+        :: verbatim-integration ::
 
 3. Grammar
 
@@ -78,47 +78,47 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Programming languages:
             python, javascript, rust, sql, html, css, json, yaml, xml
-        (programming)
+        :: programming ::
 
         Markup and data formats:
             markdown, latex, csv, toml, ini, properties
-        (markup)
+        :: markup ::
 
         Configuration formats:
             nginx, apache, dockerfile, makefile
-        (config)
+        :: config ::
 
     4.2. Content Type Labels
 
         Media types:
             image, video, audio, diagram, chart, table
-        (media)
+        :: media ::
 
         Document sections:
             abstract, introduction, conclusion, bibliography
-        (document)
+        :: document ::
 
     4.3. Annotation Labels
 
         Common annotations:
             note, warning, error, info, tip, example
             todo, fixme, deprecated, experimental
-        (annotation-types)
+        :: annotation-types ::
 
         Metadata annotations:
             title, author, date, version, license, status
-        (metadata)
+        :: metadata ::
 
     4.4. Custom and Tool-Specific
 
         Organization-specific:
             acme.internal.review
             company.product.feature
-        (organization)
+        :: organization ::
 
         Tool-specific:
             lint.ignore, export.pdf, syntax.highlight
-        (tool-specific)
+        :: tool-specific ::
 
 5. Reserved Labels
 
@@ -126,13 +126,13 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Reserved for txxt specification:
             txxt, meta, internal, system, reserved
-        (core-reserved)
+        :: core-reserved ::
 
     5.2. Standard Media Types
 
         Following MIME type conventions:
             text, image, audio, video, application
-        (media-reserved)
+        :: media-reserved ::
 
     5.3. Reserved Namespaces
 
@@ -159,7 +159,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Invalid examples:
             123label, -invalid, label., .label, label..name
-        :: txxt.core.spec.label.invalid.malformed:error="InvalidLabel" :
+        :: txxt.core.spec.label.invalid.malformed error="InvalidLabel" :
 
 
     6.3. Context Validation
@@ -180,7 +180,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
             rust, go, cpp (systems)
             java, csharp, kotlin (enterprise)
             sql, graphql (query)
-        (language-families)
+        :: language-families ::
 
     7.2. Configuration Formats
 
@@ -189,7 +189,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
             docker, kubernetes (containers)
             git, mercurial (version control)
             yaml, toml, json (data)
-        (config-types)
+        :: config-types ::
 
     7.3. Documentation Types
 
@@ -197,7 +197,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
             api, tutorial, reference, guide
             specification, proposal, rfc
             changelog, readme, license
-        (doc-types)
+        :: doc-types ::
 
 8. Namespace Guidelines
 
@@ -275,32 +275,32 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Programming examples:
             :: python
-            :: rust:edition=2021
-            :: sql:dialect=postgresql
-        (code-docs)
+            :: rust edition=2021
+            :: sql dialect=postgresql
+        :: code-docs ::
 
     11.2. Content Annotation
 
         Content metadata:
-            :: warning:severity=high :: Security vulnerability
-            :: example:type=best-practice :: Recommended approach
-            :: todo:priority=medium :: Implementation needed
-        (content-annotation)
+            :: warning severity=high :: Security vulnerability
+            :: example type=best-practice :: Recommended approach
+            :: todo priority=medium :: Implementation needed
+        :: content-annotation ::
 
     11.3. Tool Integration
 
         Tool-specific labels:
             :: export:pdf:template=academic :
-            :: lint:ignore=line-length,spelling :
+            :: lint ignore=line-length,spelling :
             :: syntax:highlight:theme=github :
-        (tool-integration)
+        :: tool-integration ::
 
     11.4. Custom Organization
 
         Company-specific usage:
-            :: acme.review:reviewer="Jane Doe",status=approved :
-            :: company.legal:classification=internal :
-            :: org.standards:compliance=iso9001 :
-        (organization-custom)
+            :: acme.review reviewer="Jane Doe",status=approved :
+            :: company.legal classification=internal :
+            :: org.standards compliance=iso9001 :
+        :: organization-custom ::
 
 :: note :: Labels provide semantic identification across txxt elements. Consistent label conventions improve document portability and tool interoperability.

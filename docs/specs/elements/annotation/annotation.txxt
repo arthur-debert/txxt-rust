@@ -14,34 +14,34 @@ Complete specification for annotations - metadata elements that attach informati
 
         Inline annotation (single line):
             :: label :: content text here
-        (form)
+        :: form ::
 
         Block annotation (multi-line):
             :: label :
                 Content can span multiple lines
                 and include complex formatting
-        (form)
+        :: form ::
 
         Empty content annotation:
             :: label :
-        (form)
+        :: form ::
 
     2.2. Parameterized Annotations
 
         Simple parameters:
-            :: warning:severity=high :: Critical security issue
-        (form)
+            :: warning severity=high :: Critical security issue
+        :: form ::
 
         Complex parameters:
-            :: meta:version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
-        (form)
+            :: meta version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
+        :: form ::
 
         Multi-line with parameters:
-            :: description:lang=en,format=structured :
+            :: description lang=en,format=structured :
                 This is a detailed description
                 that spans multiple lines
                 with parameter metadata
-        (form)
+        :: form ::
 
     2.3. Document-Level Annotations
 
@@ -123,7 +123,7 @@ Complete specification for annotations - metadata elements that attach informati
 
             1. Introduction
                 Content starts here
-        (attachment)
+        :: attachment ::
 
     5.2. Element Attachment (Next Element Rule)
 
@@ -140,7 +140,7 @@ Complete specification for annotations - metadata elements that attach informati
             :: example :: This demonstrates the concept
             
             This element has both warning and example annotations.
-        (attachment)
+        :: attachment ::
 
     5.3. Parent Attachment (Last Element Rule)
 
@@ -152,7 +152,7 @@ Complete specification for annotations - metadata elements that attach informati
                 Some content here.
                 
                 :: summary :: This summarizes the entire session
-        (attachment)
+        :: attachment ::
 
         The summary annotation attaches to the session since there's no next element at that indentation level.
 
@@ -229,7 +229,7 @@ Complete specification for annotations - metadata elements that attach informati
 
         Invalid annotation (empty label):
             :: :: Content here
-        (invalid)
+        :: invalid ::
 
         This is parsed as a paragraph, not an annotation.
 
@@ -237,7 +237,7 @@ Complete specification for annotations - metadata elements that attach informati
 
         Missing closing marker:
             :: title Content without closing marker
-        (incomplete)
+        :: incomplete ::
 
         This falls back to paragraph parsing.
 
@@ -278,14 +278,14 @@ Complete specification for annotations - metadata elements that attach informati
         Within list item:
             - List item content
                 :: note :: This annotation applies to the list item
-        (context)
+        :: context ::
 
         Within session:
             1. Session Title
                 :: meta :: This applies to the session content
                 
                 Session content here.
-        (context)
+        :: context ::
 
 9. Implementation Notes
 

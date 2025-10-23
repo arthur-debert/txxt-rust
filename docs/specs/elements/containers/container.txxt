@@ -17,14 +17,14 @@ Complete specification for containers - the foundational structural elements tha
         Incorrect mental model (parent indented):
             Session Title
                 Session content here
-        (mental-model)
+        :: mental-model ::
 
         Correct AST structure (container indented):
             ├── Session
             │   ├── title: "Session Title"
             │   └── container: (indented)
             │       └── paragraph: "Session content here"
-        (ast-model)
+        :: ast-model ::
 
 
 3. Container Types
@@ -90,13 +90,13 @@ Complete specification for containers - the foundational structural elements tha
             
                 This paragraph is in the session's container.
                 Container is created automatically.
-        (creation)
+        :: creation ::
 
         List item with container:
             - List item text
                 This paragraph is in the list item's container.
                 Nested content creates container automatically.
-        (nested-creation)
+        :: nested-creation ::
 
     4.2. Indentation Rules
 
@@ -201,7 +201,7 @@ Complete specification for containers - the foundational structural elements tha
                 2.1. Subsection
                 
                     Nested sessions create nested session containers.
-        (document-structure)
+        :: document-structure ::
 
     8.2. List Nesting
 
@@ -216,7 +216,7 @@ Complete specification for containers - the foundational structural elements tha
                 Visit the hardware store for supplies.
                 
                 Remember to bring the shopping list.
-        (list-nesting)
+        :: list-nesting ::
 
     8.3. Definition Content
 
@@ -233,7 +233,7 @@ Complete specification for containers - the foundational structural elements tha
                 1. Recursive descent parsers
                 2. LR parsers
                 3. Parser combinators
-        (definition-content)
+        :: definition-content ::
 
 9. Edge Cases
 
@@ -245,7 +245,7 @@ Complete specification for containers - the foundational structural elements tha
             1. Section Title
             
             2. Next Section
-        (invalid-empty)
+        :: invalid-empty ::
 
         Valid (with content):
             1. Section Title
@@ -253,7 +253,7 @@ Complete specification for containers - the foundational structural elements tha
                 At least one element required.
                 
             2. Next Section
-        (valid-content)
+        :: valid-content ::
 
     9.2. Mixed Indentation
 
@@ -263,14 +263,14 @@ Complete specification for containers - the foundational structural elements tha
             1. Section
                 Paragraph at +1
                   Another at +2 (invalid)
-        (invalid-indent)
+        :: invalid-indent ::
 
         Valid (consistent indentation):
             1. Section
                 Paragraph at +1
                 Another paragraph at +1
                     Nested content at +2 (creates new container)
-        (valid-indent)
+        :: valid-indent ::
 
     9.3. Session Container Boundaries
 
@@ -281,7 +281,7 @@ Complete specification for containers - the foundational structural elements tha
             1. Session Title
                 Session content
             More content
-        (invalid-boundaries)
+        :: invalid-boundaries ::
 
         Valid (blank lines around sessions):
             Content here
@@ -291,7 +291,7 @@ Complete specification for containers - the foundational structural elements tha
                 Session content
                 
             More content
-        (valid-boundaries)
+        :: valid-boundaries ::
 
 10. Implementation Notes
 
@@ -344,7 +344,7 @@ Complete specification for containers - the foundational structural elements tha
             │   ├── meta: Meta
             │   ├── blocks: Vec<Block>
             │   └── annotations: Vec<Annotation>
-        (document-root)
+        :: document-root ::
 
         The document's `blocks` field is conceptually a Session Container.
 

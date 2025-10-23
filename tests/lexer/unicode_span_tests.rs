@@ -523,7 +523,7 @@ fn test_parameter_spans_unicode() {
     let test_cases = vec![
         // Label with accent (café is a Text token, not part of Parameter)
         (
-            ":: café:key=value ::",
+            ":: café key=value ::",
             "café",
             true, // is_text
             3,
@@ -532,7 +532,7 @@ fn test_parameter_spans_unicode() {
         ),
         // Parameter with accented key
         (
-            ":: label:café=value ::",
+            ":: label café=value ::",
             "café",
             false, // is_text (now always treated as text in unified system)
             9,
@@ -541,7 +541,7 @@ fn test_parameter_spans_unicode() {
         ),
         // Parameter with accented value
         (
-            ":: label:key=café ::",
+            ":: label key=café ::",
             "café",
             false, // is_text (now always treated as text in unified system)
             13,

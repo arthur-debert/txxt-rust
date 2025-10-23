@@ -137,7 +137,7 @@ Complete specification for paragraphs - the fundamental text blocks that contain
             This paragraph starts here
               but this line is over-indented
             and this returns to original level.
-        :: txxt.core.spec.paragraph.invalid.inconsistent-indent:error="IndentationError" :
+        :: txxt.core.spec.paragraph.invalid.inconsistent-indent error="IndentationError" :
 
     6.3. Inline Element Boundaries
 
@@ -151,7 +151,7 @@ Complete specification for paragraphs - the fundamental text blocks that contain
         Invalid (broken inline elements):
             This contains *bold text that
             spans across lines without closing*.
-        :: txxt.core.spec.paragraph.invalid.broken-inline:error="InlineSpansLines" :
+        :: txxt.core.spec.paragraph.invalid.broken-inline error="InlineSpansLines" :
 
 7. Processing Details
 

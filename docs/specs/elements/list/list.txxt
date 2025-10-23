@@ -41,21 +41,21 @@ Complete specification for lists - ordered and unordered collections of items wi
         Numerical formats:
             1. Period format (canonical)
             1) Parenthesis format
-        (numerical)
+        :: numerical ::
 
         Alphabetical formats:
             a. Lowercase with period
             A. Uppercase with period
             a) Lowercase with parenthesis
             A) Uppercase with parenthesis
-        (alphabetical-formats)
+        :: alphabetical-formats ::
 
         Roman numeral formats:
             i. Lowercase roman with period
             I. Uppercase roman with period
             i) Lowercase roman with parenthesis
             I) Uppercase roman with parenthesis
-        (roman-formats)
+        :: roman-formats ::
 
     2.3. Nested Lists
 
@@ -127,7 +127,7 @@ Complete specification for lists - ordered and unordered collections of items wi
     Numbering styles and forms:
         NumberingStyle: Plain | Numerical | AlphabeticalLower | AlphabeticalUpper | RomanLower | RomanUpper
         NumberingForm: Short | Full
-    (enums)
+    :: enums ::
 
 5. Styling and Decoration
 
@@ -147,7 +147,7 @@ Complete specification for lists - ordered and unordered collections of items wi
                 a. Nested first
                 b. Nested second
             3. Third
-        (short-form)
+        :: short-form ::
 
         Extended form (hierarchical numbering):
             1. First
@@ -155,7 +155,7 @@ Complete specification for lists - ordered and unordered collections of items wi
                 2.a. Nested first
                 2.b. Nested second  
             3. Third
-        (extended-form)
+        :: extended-form ::
 
         Form determination is based on the actual markers used in the source.
 

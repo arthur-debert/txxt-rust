@@ -14,11 +14,11 @@ Complete specification for the txxt parameter system used across annotations, ve
 
         Key-value pairs separated by commas:
             key=value,key2=value2
-        (form)
+        :: form ::
 
         Single parameter:
             debug=true
-        (form)
+        :: form ::
 
         Multiple parameters:
             version=3.11,style=functional,author="Jane Doe"
@@ -77,7 +77,7 @@ Complete specification for the txxt parameter system used across annotations, ve
 
         Boolean shorthand (key without value implies true):
             debug,verbose,strict
-        (shorthand)
+        :: shorthand ::
 
 5. Namespaced Keys
 
@@ -87,13 +87,13 @@ Complete specification for the txxt parameter system used across annotations, ve
             org.example.metadata
             company.product.feature
             txxt.internal.parser
-        (namespaces)
+        :: namespaces ::
 
     5.2. Reserved Namespaces
 
         Official txxt namespace:
             txxt.version, txxt.parser, txxt.internal
-        (reserved)
+        :: reserved ::
 
         The `txxt.` namespace is reserved for format specification use.
 
@@ -129,7 +129,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             src="image.png"
             href="https://example.com"
             file="/path/to/resource"
-        (resources)
+        :: resources ::
 
     6.4. Display and Formatting
 
@@ -138,7 +138,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             style=minimal
             line-numbers=true
             highlight="1-5,10"
-        (display)
+        :: display ::
 
     6.5. Processing Instructions
 
@@ -147,7 +147,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             validate=strict
             timeout=30
             cache=false
-        (processing)
+        :: processing ::
 
 7. Validation Rules
 
@@ -164,7 +164,7 @@ Complete specification for the txxt parameter system used across annotations, ve
             -invalid (starts with dash)
             key..name (double period)
             key. (ends with period)
-        (invalid-keys)
+        :: invalid-keys ::
 
     7.2. Value Validation
 

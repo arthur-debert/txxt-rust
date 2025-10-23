@@ -56,21 +56,37 @@ pub fn parse_parameter_string(input: &str) -> HashMap<String, String> {
 ///
 /// This scans through tokens looking for Identifier-Equals-Value patterns and
 /// extracts them into a parameter HashMap. Useful for integration tests.
-/// Parameters are extracted only after a Colon token to avoid picking up labels.
+/// Parameters are extracted after the label (first text token after initial marker).
 pub fn extract_parameters_from_tokens(tokens: &[ScannerToken]) -> HashMap<String, String> {
     let mut params = HashMap::new();
     let mut i = 0;
 
-    // First, find the colon separator (parameters come after it)
+    // Skip initial TxxtMarker and whitespace
     while i < tokens.len() {
-        if matches!(&tokens[i], ScannerToken::Colon { .. }) {
-            i += 1; // Skip past the colon
-            break;
+        match &tokens[i] {
+            ScannerToken::TxxtMarker { .. } | ScannerToken::Whitespace { .. } => {
+                i += 1;
+            }
+            _ => break,
         }
+    }
+
+    // Skip the label (first Text/Identifier token)
+    if i < tokens.len()
+        && matches!(
+            &tokens[i],
+            ScannerToken::Text { .. } | ScannerToken::Identifier { .. }
+        )
+    {
         i += 1;
     }
 
-    // Now extract parameters after the colon
+    // Skip whitespace after label
+    while i < tokens.len() && matches!(&tokens[i], ScannerToken::Whitespace { .. }) {
+        i += 1;
+    }
+
+    // Now extract parameters
     while i < tokens.len() {
         // Stop at structural tokens
         match &tokens[i] {

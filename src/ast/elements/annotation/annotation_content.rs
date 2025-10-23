@@ -44,7 +44,7 @@ pub struct Annotation {
     pub name: String,
 
     /// Optional parameters in key=value format
-    /// Example: :: warning:severity=high :: Content
+    /// Example: :: warning severity=high :: Content
     /// Supports ref=, id=, severity=, category= and other metadata
     pub parameters: Parameters,
 

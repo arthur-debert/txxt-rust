@@ -40,7 +40,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_single_parameter() {
         let input = r#"Code:
     print("hello")
-:: python:version=3.9 ::"#;
+:: python version=3.9 ::"#;
 
         let tokens = tokenize(input);
 
@@ -52,16 +52,16 @@ mod verbatim_parameter_integration_tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
             assert_eq!(
-                label_raw, "python:version=3.9",
+                label_raw, "python version=3.9",
                 "VerbatimBlockEnd label_raw should contain label and parameters"
             );
 
             // Verify the format
-            let parts: Vec<&str> = label_raw.split(':').collect();
+            let parts: Vec<&str> = label_raw.split(' ').collect();
             assert_eq!(
                 parts.len(),
                 2,
-                "Should have label and params separated by colon"
+                "Should have label and params separated by space"
             );
             assert_eq!(parts[0], "python", "First part should be label");
             assert_eq!(parts[1], "version=3.9", "Second part should be parameters");
@@ -75,7 +75,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_multiple_parameters() {
         let input = r#"Code:
     print("hello")
-:: python:version=3.9,syntax=true ::"#;
+:: python version=3.9,syntax=true ::"#;
 
         let tokens = tokenize(input);
 
@@ -86,12 +86,15 @@ mod verbatim_parameter_integration_tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
             assert_eq!(
-                label_raw, "python:version=3.9,syntax=true",
+                label_raw, "python version=3.9,syntax=true",
                 "VerbatimBlockEnd label_raw should contain all parameters"
             );
 
             // Verify structure
-            assert!(label_raw.starts_with("python:"), "Should start with label:");
+            assert!(
+                label_raw.starts_with("python "),
+                "Should start with label followed by space"
+            );
             assert!(
                 label_raw.contains("version=3.9"),
                 "Should contain version parameter"
@@ -107,7 +110,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_boolean_parameters() {
         let input = r#"Code:
     example
-:: label:flag=true,debug=false ::"#;
+:: label flag=true,debug=false ::"#;
 
         let tokens = tokenize(input);
 
@@ -118,7 +121,7 @@ mod verbatim_parameter_integration_tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
             assert_eq!(
-                label_raw, "label:flag=true,debug=false",
+                label_raw, "label flag=true,debug=false",
                 "VerbatimBlockEnd label_raw should preserve boolean parameter values"
             );
         }
@@ -128,7 +131,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_quoted_parameters() {
         let input = r#"Code:
     example
-:: label:message="hello world",name="test" ::"#;
+:: label message="hello world",name="test" ::"#;
 
         let tokens = tokenize(input);
 
@@ -139,7 +142,7 @@ mod verbatim_parameter_integration_tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
             assert_eq!(
-                label_raw, r#"label:message="hello world",name="test""#,
+                label_raw, r#"label message="hello world",name="test""#,
                 "VerbatimBlockEnd label_raw should preserve quoted parameter values"
             );
         }
@@ -149,7 +152,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_escaped_parameters() {
         let input = r#"Code:
     example
-:: label:path="C:\folder\file.txt" ::"#;
+:: label path="C:\folder\file.txt" ::"#;
 
         let tokens = tokenize(input);
 
@@ -160,7 +163,7 @@ mod verbatim_parameter_integration_tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
             assert_eq!(
-                label_raw, r#"label:path="C:\folder\file.txt""#,
+                label_raw, r#"label path="C:\folder\file.txt""#,
                 "VerbatimBlockEnd label_raw should preserve escaped characters"
             );
         }
@@ -170,7 +173,7 @@ mod verbatim_parameter_integration_tests {
     fn test_verbatim_label_with_namespaced_parameters() {
         let input = r#"Code:
     example
-:: label:custom.namespace.key=value ::"#;
+:: label custom.namespace.key=value ::"#;
 
         let tokens = tokenize(input);
 
@@ -181,7 +184,7 @@ mod verbatim_parameter_integration_tests {
 
         if let ScannerToken::VerbatimBlockEnd { label_raw, .. } = label_token {
             assert_eq!(
-                label_raw, "label:custom.namespace.key=value",
+                label_raw, "label custom.namespace.key=value",
                 "VerbatimBlockEnd label_raw should preserve namespaced parameter keys"
             );
         }

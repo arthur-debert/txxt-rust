@@ -165,7 +165,7 @@ fn audit_inline_delimiters() {
 
 #[test]
 fn audit_parameter_spans() {
-    let input = ":: label:key=value ::";
+    let input = ":: label key=value ::";
     let mut lexer = Lexer::new(input);
     let tokens = lexer.tokenize();
 

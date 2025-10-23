@@ -44,7 +44,7 @@ fn test_scan_boundaries_stretched_mode() {
 
 #[test]
 fn test_scan_boundaries_empty_block() {
-    let input = "Image:\n:: image:src=photo.png ::";
+    let input = "Image:\n:: image src=photo.png ::";
     let scanner = VerbatimScanner::new();
     let boundaries = scanner.scan_boundaries(input);
 
@@ -52,7 +52,7 @@ fn test_scan_boundaries_empty_block() {
     let boundary = &boundaries[0];
 
     assert_eq!(boundary.title, "Image");
-    assert_eq!(boundary.label_raw, "image:src=photo.png");
+    assert_eq!(boundary.label_raw, "image src=photo.png");
     assert_eq!(boundary.wall_type, WallType::InFlow(0));
     assert_eq!(boundary.content_start, None);
     assert_eq!(boundary.content_end, None);

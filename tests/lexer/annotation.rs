@@ -347,7 +347,7 @@ mod helper_tests {
 
 #[test]
 fn test_simple_annotation_parameter() {
-    let input = ":: warning:severity=high :: Critical issue";
+    let input = ":: warning severity=high :: Critical issue";
     let tokens = tokenize(input);
 
     // With new unified parameter scanning, parameters appear as regular text tokens

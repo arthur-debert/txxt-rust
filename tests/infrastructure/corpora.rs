@@ -558,9 +558,24 @@ impl<'a> CorpusExtractor<'a> {
         }
 
         // Parse name and parameters
-        if let Some(colon_pos) = content.find(':') {
-            let name = content[..colon_pos].trim().to_string();
-            let params_str = &content[colon_pos + 1..];
+        // New syntax: label and params are separated by space, not colon
+        // Look for first space followed by a parameter (pattern: word=)
+        let mut split_pos = None;
+        for (i, c) in content.char_indices() {
+            if c == ' ' {
+                // Check if this space is followed by a parameter pattern
+                let rest = &content[i + 1..];
+                if rest.chars().next().is_some_and(|ch| ch.is_alphanumeric()) && rest.contains('=')
+                {
+                    split_pos = Some(i);
+                    break;
+                }
+            }
+        }
+
+        if let Some(pos) = split_pos {
+            let name = content[..pos].trim().to_string();
+            let params_str = &content[pos + 1..];
             let parameters = Self::parse_parameters(params_str);
             Some((name, parameters))
         } else {
@@ -741,7 +756,7 @@ mod tests {
         assert!(params.is_empty());
 
         // Test label with parameters
-        let (name, params) = CorpusExtractor::parse_corpus_label(r#":: txxt.core.spec.list.error.singleItem:error="ParseError",message="Lists require multiple items" ::"#).unwrap();
+        let (name, params) = CorpusExtractor::parse_corpus_label(r#":: txxt.core.spec.list.error.singleItem error="ParseError",message="Lists require multiple items" ::"#).unwrap();
         assert_eq!(name, "txxt.core.spec.list.error.singleItem");
         assert_eq!(params.get("error"), Some(&"ParseError".to_string()));
         assert_eq!(

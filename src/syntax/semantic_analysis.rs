@@ -1865,11 +1865,11 @@ impl SemanticAnalyzer {
     ///
     /// The scanner layer intentionally produces different formats:
     /// - **Annotations**: Fine-grained tokens [TxxtMarker, Identifier, Colon, ...]
-    ///   - Scanner: `:: python:version=3.11 ::` → individual tokens
+    ///   - Scanner: `:: python version=3.11 ::` → individual tokens
     ///   - Semantic: Extracts string from tokens → calls this method
     ///
     /// - **Verbatim**: Pre-combined string in VerbatimBlockEnd
-    ///   - Scanner: `:: python:version=3.11` → label_raw: "python:version=3.11"
+    ///   - Scanner: `:: python version=3.11` → label_raw: "python:version=3.11"
     ///   - Semantic: Already has string → calls this method directly
     ///
     /// Both converge at this unified method for consistent validation and Label creation.

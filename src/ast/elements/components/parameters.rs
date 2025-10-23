@@ -36,8 +36,8 @@
 //!
 //! Annotations:
 //! ```txxt
-//! :: important:id=security-note :: This section requires careful attention
-//! :: warning:severity=high,category=security :: Critical security issue
+//! :: important id=security-note :: This section requires careful attention
+//! :: warning severity=high,category=security :: Critical security issue
 //! ```
 //!
 //! Definitions:

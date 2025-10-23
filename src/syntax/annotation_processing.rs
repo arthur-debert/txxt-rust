@@ -11,7 +11,7 @@
 //!
 //! Annotations use the `::` marker syntax:
 //! - Simple: `:: label :: content`
-//! - Parameterized: `:: label:param=value :: content`
+//! - Parameterized: `:: label param=value :: content`
 //! - Block form: `:: label :\n    indented content`
 //!
 //! ## Label Namespaces

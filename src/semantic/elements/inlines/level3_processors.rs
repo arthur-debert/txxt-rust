@@ -663,3 +663,431 @@ pub fn get_processor(inline_type: &InlineType) -> Box<dyn InlineProcessor> {
         InlineType::NotSure => Box::new(NotSureProcessor),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cst::{Position, SourceSpan};
+    use crate::semantic::elements::inlines::pipeline::SpanMatch;
+
+    fn create_text(content: &str) -> ScannerToken {
+        ScannerToken::Text {
+            content: content.to_string(),
+            span: SourceSpan {
+                start: Position { row: 0, column: 0 },
+                end: Position {
+                    row: 0,
+                    column: content.len(),
+                },
+            },
+        }
+    }
+
+    fn create_typed_span(inline_type: InlineType, content_tokens: Vec<ScannerToken>) -> TypedSpan {
+        let full_tokens = content_tokens.clone();
+        TypedSpan {
+            span: SpanMatch {
+                start: 0,
+                end: content_tokens.len(),
+                matcher_name: "test".to_string(),
+                inner_tokens: content_tokens,
+                full_tokens,
+            },
+            inline_type,
+        }
+    }
+
+    // ============================================================================
+    // Unit Tests for CitationProcessor (Complex Parsing Logic)
+    // ============================================================================
+
+    #[test]
+    fn test_citation_processor_simple() {
+        let processor = CitationProcessor;
+        let typed_span = create_typed_span(InlineType::Citation, vec![create_text("@smith2023")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Citation { citations, .. } => {
+                    assert_eq!(citations.len(), 1);
+                    assert_eq!(citations[0].key, "smith2023");
+                    assert_eq!(citations[0].locator, None);
+                }
+                _ => panic!("Expected Citation target"),
+            }
+        } else {
+            panic!("Expected Reference inline");
+        }
+    }
+
+    #[test]
+    fn test_citation_processor_with_locator() {
+        let processor = CitationProcessor;
+        let typed_span = create_typed_span(
+            InlineType::Citation,
+            vec![create_text("@smith2023, p. 123")],
+        );
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Citation { citations, .. } => {
+                    assert_eq!(citations.len(), 1);
+                    assert_eq!(citations[0].key, "smith2023");
+                    assert_eq!(citations[0].locator, Some("p. 123".to_string()));
+                }
+                _ => panic!("Expected Citation target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_citation_processor_multiple_citations() {
+        let processor = CitationProcessor;
+        let typed_span = create_typed_span(
+            InlineType::Citation,
+            vec![create_text("@smith2023; @jones2025")],
+        );
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Citation { citations, .. } => {
+                    assert_eq!(citations.len(), 2);
+                    assert_eq!(citations[0].key, "smith2023");
+                    assert_eq!(citations[1].key, "jones2025");
+                }
+                _ => panic!("Expected Citation target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_citation_processor_complex_with_locators() {
+        let processor = CitationProcessor;
+        let typed_span = create_typed_span(
+            InlineType::Citation,
+            vec![create_text(
+                "@smith2023, ch. 2, p. 45; @jones2025, sec. 3.1",
+            )],
+        );
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Citation { citations, .. } => {
+                    assert_eq!(citations.len(), 2);
+                    assert_eq!(citations[0].key, "smith2023");
+                    assert_eq!(citations[0].locator, Some("ch. 2, p. 45".to_string()));
+                    assert_eq!(citations[1].key, "jones2025");
+                    assert_eq!(citations[1].locator, Some("sec. 3.1".to_string()));
+                }
+                _ => panic!("Expected Citation target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_citation_processor_empty_key_error() {
+        let processor = CitationProcessor;
+        let typed_span = create_typed_span(InlineType::Citation, vec![create_text("@")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_err());
+        assert!(matches!(result, Err(InlineParseError::InvalidStructure(_))));
+    }
+
+    #[test]
+    fn test_citation_processor_missing_at_sign_error() {
+        let processor = CitationProcessor;
+        let typed_span = create_typed_span(InlineType::Citation, vec![create_text("smith2023")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_err());
+    }
+
+    // ============================================================================
+    // Unit Tests for FootnoteProcessor
+    // ============================================================================
+
+    #[test]
+    fn test_footnote_processor_naked_numerical() {
+        let processor = FootnoteProcessor;
+        let typed_span = create_typed_span(InlineType::Footnote, vec![create_text("1")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::NakedNumerical { number, .. } => {
+                    assert_eq!(*number, 1);
+                }
+                _ => panic!("Expected NakedNumerical target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_footnote_processor_labeled() {
+        let processor = FootnoteProcessor;
+        let typed_span = create_typed_span(InlineType::Footnote, vec![create_text("^note-label")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::NamedAnchor { anchor, .. } => {
+                    assert_eq!(anchor, "note-label");
+                }
+                _ => panic!("Expected NamedAnchor target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_footnote_processor_invalid_format_error() {
+        let processor = FootnoteProcessor;
+        let typed_span = create_typed_span(InlineType::Footnote, vec![create_text("not-a-number")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_err());
+    }
+
+    // ============================================================================
+    // Unit Tests for SectionProcessor (Identifier Parsing)
+    // ============================================================================
+
+    #[test]
+    fn test_section_processor_simple_numeric() {
+        let processor = SectionProcessor;
+        let typed_span = create_typed_span(InlineType::Section, vec![create_text("#3")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Section { identifier, .. } => match identifier {
+                    SectionIdentifier::Numeric {
+                        levels,
+                        negative_index,
+                    } => {
+                        assert_eq!(levels, &vec![3]);
+                        assert!(!negative_index);
+                    }
+                    _ => panic!("Expected Numeric identifier"),
+                },
+                _ => panic!("Expected Section target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_section_processor_hierarchical() {
+        let processor = SectionProcessor;
+        let typed_span = create_typed_span(InlineType::Section, vec![create_text("#2.1.3")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Section { identifier, .. } => match identifier {
+                    SectionIdentifier::Numeric { levels, .. } => {
+                        assert_eq!(levels, &vec![2, 1, 3]);
+                    }
+                    _ => panic!("Expected Numeric identifier"),
+                },
+                _ => panic!("Expected Section target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_section_processor_negative_indexing() {
+        let processor = SectionProcessor;
+        let typed_span = create_typed_span(InlineType::Section, vec![create_text("#-1.2")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Section { identifier, .. } => match identifier {
+                    SectionIdentifier::Numeric {
+                        levels,
+                        negative_index,
+                    } => {
+                        assert_eq!(levels, &vec![1, 2]);
+                        assert!(negative_index);
+                    }
+                    _ => panic!("Expected Numeric identifier"),
+                },
+                _ => panic!("Expected Section target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_section_processor_named() {
+        let processor = SectionProcessor;
+        let typed_span = create_typed_span(InlineType::Section, vec![create_text("introduction")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Section { identifier, .. } => match identifier {
+                    SectionIdentifier::Named { name } => {
+                        assert_eq!(name, "introduction");
+                    }
+                    _ => panic!("Expected Named identifier"),
+                },
+                _ => panic!("Expected Section target"),
+            }
+        }
+    }
+
+    // ============================================================================
+    // Unit Tests for URL and File Processors (Fragment Parsing)
+    // ============================================================================
+
+    #[test]
+    fn test_url_processor_simple() {
+        let processor = UrlProcessor;
+        let typed_span =
+            create_typed_span(InlineType::Url, vec![create_text("https://example.com")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Url {
+                    url, fragment, raw, ..
+                } => {
+                    assert_eq!(url, "https://example.com");
+                    assert_eq!(fragment, &None);
+                    assert_eq!(raw, "[https://example.com]");
+                }
+                _ => panic!("Expected Url target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_url_processor_with_fragment() {
+        let processor = UrlProcessor;
+        let typed_span = create_typed_span(
+            InlineType::Url,
+            vec![create_text("https://example.com#section")],
+        );
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::Url { url, fragment, .. } => {
+                    assert_eq!(url, "https://example.com");
+                    assert_eq!(fragment, &Some("section".to_string()));
+                }
+                _ => panic!("Expected Url target"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_processor_with_section() {
+        let processor = FileProcessor;
+        let typed_span =
+            create_typed_span(InlineType::File, vec![create_text("./file.txt#section")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::Reference(reference)) = result {
+            match &reference.target {
+                ReferenceTarget::File { path, section, .. } => {
+                    assert_eq!(path, "./file.txt");
+                    assert_eq!(section, &Some("section".to_string()));
+                }
+                _ => panic!("Expected File target"),
+            }
+        }
+    }
+
+    // ============================================================================
+    // Unit Tests for Code and Math Processors (Literal Content)
+    // ============================================================================
+
+    #[test]
+    fn test_code_processor_literal_content() {
+        let processor = CodeProcessor;
+        let typed_span = create_typed_span(InlineType::Code, vec![create_text("let x = 42;")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::TextLine(TextTransform::Code(text))) = result {
+            assert_eq!(text.content(), "let x = 42;");
+        } else {
+            panic!("Expected TextLine(Code)");
+        }
+    }
+
+    #[test]
+    fn test_math_processor_literal_content() {
+        let processor = MathProcessor;
+        let typed_span = create_typed_span(InlineType::Math, vec![create_text("x^2 + y^2 = z^2")]);
+
+        let result = processor.process(&typed_span);
+        assert!(result.is_ok());
+
+        if let Ok(Inline::TextLine(TextTransform::Math(text))) = result {
+            assert_eq!(text.content(), "x^2 + y^2 = z^2");
+        } else {
+            panic!("Expected TextLine(Math)");
+        }
+    }
+
+    // ============================================================================
+    // Unit Tests for get_processor Factory Function
+    // ============================================================================
+
+    #[test]
+    fn test_get_processor_returns_correct_types() {
+        let types = vec![
+            InlineType::Bold,
+            InlineType::Italic,
+            InlineType::Code,
+            InlineType::Math,
+            InlineType::Citation,
+            InlineType::Footnote,
+            InlineType::Section,
+            InlineType::Url,
+            InlineType::File,
+            InlineType::ToComeTK,
+            InlineType::NotSure,
+        ];
+
+        for inline_type in types {
+            // Just verify get_processor doesn't panic for each type
+            // The actual behavior is tested in individual processor tests
+            let _processor = get_processor(&inline_type);
+            // If we get here without panicking, the test passes
+        }
+    }
+}

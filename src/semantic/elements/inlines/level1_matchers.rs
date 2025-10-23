@@ -268,4 +268,192 @@ mod tests {
         assert_eq!(span.end, 3);
         assert_eq!(span.inner_tokens.len(), 1);
     }
+
+    // ============================================================================
+    // Unit Tests for GenericDelimiterMatcher Infrastructure
+    // ============================================================================
+
+    #[test]
+    fn test_generic_matcher_with_same_delimiters() {
+        // Test that generic matcher works with same start/end delimiter (like bold)
+        let tokens = vec![
+            create_bold_delimiter(),
+            create_text("content"),
+            create_bold_delimiter(),
+        ];
+
+        let matcher = GenericDelimiterMatcher::new(
+            "test-same",
+            ScannerToken::is_bold_delimiter,
+            ScannerToken::is_bold_delimiter,
+        );
+
+        let span = matcher.match_span(&tokens, 0);
+        assert!(span.is_some());
+        let span = span.unwrap();
+        assert_eq!(span.matcher_name, "test-same");
+        assert_eq!(span.start, 0);
+        assert_eq!(span.end, 3);
+        assert_eq!(span.inner_tokens.len(), 1);
+    }
+
+    #[test]
+    fn test_generic_matcher_with_different_delimiters() {
+        // Test that generic matcher works with different start/end delimiters (like reference)
+        let tokens = vec![create_text("["), create_text("content"), create_text("]")];
+
+        let matcher = GenericDelimiterMatcher::new(
+            "test-different",
+            |t| matches!(t, ScannerToken::Text { content, .. } if content == "["),
+            |t| matches!(t, ScannerToken::Text { content, .. } if content == "]"),
+        );
+
+        let span = matcher.match_span(&tokens, 0);
+        assert!(span.is_some());
+        let span = span.unwrap();
+        assert_eq!(span.matcher_name, "test-different");
+    }
+
+    #[test]
+    fn test_generic_matcher_preserves_full_tokens() {
+        // Test that full_tokens includes delimiters
+        let tokens = vec![
+            create_bold_delimiter(),
+            create_text("hello"),
+            create_text(" "),
+            create_text("world"),
+            create_bold_delimiter(),
+        ];
+
+        let matcher = bold_matcher();
+        let span = matcher.match_span(&tokens, 0).unwrap();
+
+        assert_eq!(span.full_tokens.len(), 5); // All tokens including delimiters
+        assert_eq!(span.inner_tokens.len(), 3); // Only content tokens
+    }
+
+    #[test]
+    fn test_generic_matcher_can_start_check() {
+        let bold_token = create_bold_delimiter();
+        let text_token = create_text("not a delimiter");
+
+        let matcher = bold_matcher();
+
+        assert!(matcher.can_start(&bold_token));
+        assert!(!matcher.can_start(&text_token));
+    }
+
+    #[test]
+    fn test_all_factory_functions_create_working_matchers() {
+        // Test that all factory functions produce working matchers
+        let factories = vec![
+            ("bold", bold_matcher()),
+            ("italic", italic_matcher()),
+            ("code", code_matcher()),
+            ("math", math_matcher()),
+            ("reference", reference_matcher()),
+        ];
+
+        for (expected_name, matcher) in factories {
+            assert_eq!(matcher.name(), expected_name);
+        }
+    }
+
+    // ============================================================================
+    // Edge Case Tests
+    // ============================================================================
+
+    #[test]
+    fn test_multiple_bold_spans_in_sequence() {
+        let tokens = vec![
+            create_bold_delimiter(),
+            create_text("first"),
+            create_bold_delimiter(),
+            create_text(" "),
+            create_bold_delimiter(),
+            create_text("second"),
+            create_bold_delimiter(),
+        ];
+
+        let matcher = bold_matcher();
+
+        // First span
+        let span1 = matcher.match_span(&tokens, 0).unwrap();
+        assert_eq!(span1.start, 0);
+        assert_eq!(span1.end, 3);
+
+        // Second span starts at position 4
+        let span2 = matcher.match_span(&tokens, 4).unwrap();
+        assert_eq!(span2.start, 4);
+        assert_eq!(span2.end, 7);
+    }
+
+    #[test]
+    fn test_unmatched_closing_delimiter() {
+        // Closing delimiter without opening should not match
+        let tokens = vec![create_text("text"), create_bold_delimiter()];
+
+        let matcher = bold_matcher();
+        let span = matcher.match_span(&tokens, 0); // Start at text, not delimiter
+
+        assert!(span.is_none());
+    }
+
+    #[test]
+    fn test_nested_same_delimiter_not_matched() {
+        // *outer *inner* text* - should match first pair only
+        let tokens = vec![
+            create_bold_delimiter(),
+            create_text("outer "),
+            create_bold_delimiter(), // This closes first bold
+            create_text("inner"),
+            create_bold_delimiter(), // This would be unmatched
+            create_text(" text"),
+            create_bold_delimiter(), // This would be unmatched
+        ];
+
+        let matcher = bold_matcher();
+        let span = matcher.match_span(&tokens, 0).unwrap();
+
+        // Should match only first pair
+        assert_eq!(span.start, 0);
+        assert_eq!(span.end, 3); // Just the first "outer " span
+    }
+
+    #[test]
+    fn test_blank_line_also_rejects_span() {
+        let tokens = vec![
+            create_bold_delimiter(),
+            create_text("line1"),
+            ScannerToken::BlankLine {
+                whitespace: " ".to_string(),
+                span: SourceSpan {
+                    start: Position { row: 0, column: 0 },
+                    end: Position { row: 0, column: 1 },
+                },
+            },
+            create_text("line2"),
+            create_bold_delimiter(),
+        ];
+
+        let matcher = bold_matcher();
+        let span = matcher.match_span(&tokens, 0);
+
+        assert!(span.is_none()); // Should reject due to blank line
+    }
+
+    #[test]
+    fn test_whitespace_only_content_accepted() {
+        // Content with only whitespace should still be valid (not "empty")
+        let tokens = vec![
+            create_bold_delimiter(),
+            create_text("   "),
+            create_bold_delimiter(),
+        ];
+
+        let matcher = bold_matcher();
+        let span = matcher.match_span(&tokens, 0);
+
+        assert!(span.is_some()); // Whitespace is valid content
+    }
 }

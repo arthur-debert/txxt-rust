@@ -13,6 +13,119 @@ use crate::cst::high_level_tokens::{
 use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
+/// Parsed components of an annotation
+///
+/// Pure data structure representing the extracted parts of an annotation.
+/// Used by `parse_annotation_components` for testable annotation parsing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AnnotationComponents {
+    /// Position of the opening TxxtMarker (::)
+    pub opening_marker_pos: usize,
+    /// Position of the closing TxxtMarker (::)
+    pub closing_marker_pos: usize,
+    /// Start position of label tokens (after opening marker and whitespace)
+    pub label_start: usize,
+    /// End position of label tokens (before closing marker)
+    pub label_end: usize,
+    /// Start position of content tokens (after closing marker), if any
+    pub content_start: Option<usize>,
+}
+
+/// Parse annotation token structure into components
+///
+/// Pure function that validates annotation structure and extracts component positions.
+/// This enables unit testing of annotation parsing logic without SemanticAnalyzer.
+///
+/// After grammar simplification (issue #139), annotations have the form:
+/// - `:: label ::` - label only
+/// - `:: label params ::` - label with parameters (whitespace separator)
+/// - `:: params ::` - params-only
+/// - `:: label :: content` - annotation with content after closing marker
+///
+/// # Arguments
+/// * `tokens` - Scanner tokens representing the annotation
+///
+/// # Returns
+/// * `Result<AnnotationComponents, String>` - Parsed component positions or error
+///
+/// # Examples
+/// ```text
+/// For input: `:: meta version=2.0 ::`
+/// Returns: AnnotationComponents {
+///   opening_marker_pos: 0,
+///   closing_marker_pos: 4,
+///   label_start: 2,
+///   label_end: 4,
+///   content_start: None,
+/// }
+/// ```
+pub fn parse_annotation_components(
+    tokens: &[ScannerToken],
+) -> Result<AnnotationComponents, String> {
+    // Validate minimum annotation structure: :: label ::
+    if tokens.len() < 5 {
+        return Err("Annotation must have at least 5 tokens: :: label ::".to_string());
+    }
+
+    // Check for opening TxxtMarker
+    if !matches!(tokens[0], ScannerToken::TxxtMarker { .. }) {
+        return Err("Annotation must start with TxxtMarker".to_string());
+    }
+
+    // Find closing TxxtMarker (second :: marker)
+    let closing_marker_pos = find_closing_marker(tokens)?;
+    if closing_marker_pos < 4 {
+        return Err("Annotation must have proper structure: :: label ::".to_string());
+    }
+
+    // Label tokens are between opening marker+whitespace and closing marker
+    // Skip position 1 if it's whitespace
+    let label_start = if matches!(tokens.get(1), Some(ScannerToken::Whitespace { .. })) {
+        2
+    } else {
+        1
+    };
+
+    let label_end = closing_marker_pos;
+
+    // Content starts after closing marker, if there are more tokens
+    let content_start = if closing_marker_pos + 1 < tokens.len() {
+        Some(closing_marker_pos + 1)
+    } else {
+        None
+    };
+
+    Ok(AnnotationComponents {
+        opening_marker_pos: 0,
+        closing_marker_pos,
+        label_start,
+        label_end,
+        content_start,
+    })
+}
+
+/// Find the position of the closing TxxtMarker (second ::) in annotation
+///
+/// Pure helper function for finding the second TxxtMarker in a token stream.
+///
+/// # Arguments
+/// * `tokens` - Scanner tokens to search
+///
+/// # Returns
+/// * `Result<usize, String>` - Position of closing marker or error
+fn find_closing_marker(tokens: &[ScannerToken]) -> Result<usize, String> {
+    let mut marker_count = 0;
+    for (i, token) in tokens.iter().enumerate() {
+        if matches!(token, ScannerToken::TxxtMarker { .. }) {
+            marker_count += 1;
+            if marker_count == 2 {
+                return Ok(i);
+            }
+        }
+    }
+    Err("Annotation must have closing TxxtMarker".to_string())
+}
+
 /// High-level token analyzer for converting scanner tokens to high-level tokens
 ///
 /// This analyzer takes a flat stream of scanner tokens and transforms them
@@ -1239,35 +1352,17 @@ impl SemanticAnalyzer {
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // Validate minimum annotation structure: :: label ::
-        if tokens.len() < 5 {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Annotation must have at least 5 tokens: :: label ::".to_string(),
-            ));
-        }
+        // Use pure function to parse annotation structure
+        let components =
+            parse_annotation_components(&tokens).map_err(SemanticAnalysisError::AnalysisError)?;
 
-        // Check for opening TxxtMarker
-        if !matches!(tokens[0], ScannerToken::TxxtMarker { .. }) {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Annotation must start with TxxtMarker".to_string(),
-            ));
-        }
-
-        // Check for closing TxxtMarker (should be at position 4 for basic annotation)
-        let closing_marker_pos = self.find_closing_txxt_marker(&tokens)?;
-        if closing_marker_pos < 4 {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Annotation must have proper structure: :: label ::".to_string(),
-            ));
-        }
-
-        // Extract label (between first TxxtMarker and closing TxxtMarker)
-        let label_tokens = &tokens[2..closing_marker_pos];
+        // Extract label tokens (between opening and closing markers)
+        let label_tokens = &tokens[components.label_start..components.label_end];
         let (label_token, parameters) = self.parse_label_with_parameters(label_tokens)?;
 
-        // Extract content (after closing TxxtMarker, if any)
-        let content = if closing_marker_pos + 1 < tokens.len() {
-            let content_tokens = &tokens[closing_marker_pos + 1..];
+        // Extract content tokens (after closing marker, if any)
+        let content = if let Some(content_start) = components.content_start {
+            let content_tokens = &tokens[content_start..];
             Some(self.parse_annotation_content(content_tokens)?)
         } else {
             None
@@ -1472,34 +1567,6 @@ impl SemanticAnalyzer {
             wall_type,
             span,
             aggregated_tokens,
-        ))
-    }
-
-    /// Find the position of the closing TxxtMarker in an annotation
-    ///
-    /// This helper method searches for the second TxxtMarker in an annotation,
-    /// which marks the end of the label section.
-    ///
-    /// # Arguments
-    /// * `tokens` - The scanner tokens to search
-    ///
-    /// # Returns
-    /// * `Result<usize, SemanticAnalysisError>` - The position of the closing marker
-    fn find_closing_txxt_marker(
-        &self,
-        tokens: &[ScannerToken],
-    ) -> Result<usize, SemanticAnalysisError> {
-        let mut marker_count = 0;
-        for (i, token) in tokens.iter().enumerate() {
-            if matches!(token, ScannerToken::TxxtMarker { .. }) {
-                marker_count += 1;
-                if marker_count == 2 {
-                    return Ok(i);
-                }
-            }
-        }
-        Err(SemanticAnalysisError::AnalysisError(
-            "Annotation must have closing TxxtMarker".to_string(),
         ))
     }
 
@@ -1953,3 +2020,143 @@ impl std::fmt::Display for SemanticAnalysisError {
 }
 
 impl std::error::Error for SemanticAnalysisError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_txxt_marker(col: usize) -> ScannerToken {
+        ScannerToken::TxxtMarker {
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + 2,
+                },
+            },
+        }
+    }
+
+    fn make_text(content: &str, col: usize) -> ScannerToken {
+        ScannerToken::Text {
+            content: content.to_string(),
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + content.len(),
+                },
+            },
+        }
+    }
+
+    fn make_whitespace(col: usize) -> ScannerToken {
+        ScannerToken::Whitespace {
+            content: " ".to_string(),
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + 1,
+                },
+            },
+        }
+    }
+
+    #[test]
+    fn test_parse_annotation_components_simple() {
+        // Input: `:: label ::`
+        let tokens = vec![
+            make_txxt_marker(0),   // ::
+            make_whitespace(2),    // (space)
+            make_text("label", 3), // label
+            make_whitespace(8),    // (space)
+            make_txxt_marker(9),   // ::
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_ok());
+
+        let components = result.unwrap();
+        assert_eq!(components.opening_marker_pos, 0);
+        assert_eq!(components.closing_marker_pos, 4);
+        assert_eq!(components.label_start, 2); // After opening marker and whitespace
+        assert_eq!(components.label_end, 4); // Before closing marker
+        assert_eq!(components.content_start, None);
+    }
+
+    #[test]
+    fn test_parse_annotation_components_with_content() {
+        // Input: `:: label :: some content`
+        let tokens = vec![
+            make_txxt_marker(0),      // ::
+            make_whitespace(2),       // (space)
+            make_text("label", 3),    // label
+            make_whitespace(8),       // (space)
+            make_txxt_marker(9),      // ::
+            make_whitespace(11),      // (space)
+            make_text("content", 12), // content
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_ok());
+
+        let components = result.unwrap();
+        assert_eq!(components.opening_marker_pos, 0);
+        assert_eq!(components.closing_marker_pos, 4);
+        assert_eq!(components.label_start, 2);
+        assert_eq!(components.label_end, 4);
+        assert_eq!(components.content_start, Some(5)); // After closing marker
+    }
+
+    #[test]
+    fn test_parse_annotation_components_too_short() {
+        // Input too short: only 3 tokens
+        let tokens = vec![make_txxt_marker(0), make_whitespace(2), make_text("x", 3)];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("must have at least 5 tokens"));
+    }
+
+    #[test]
+    fn test_parse_annotation_components_missing_opening_marker() {
+        // Input doesn't start with TxxtMarker
+        let tokens = vec![
+            make_text("label", 0),
+            make_whitespace(5),
+            make_txxt_marker(6),
+            make_whitespace(8),
+            make_txxt_marker(9),
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("must start with TxxtMarker"));
+    }
+
+    #[test]
+    fn test_parse_annotation_components_missing_closing_marker() {
+        // Input has only one TxxtMarker
+        let tokens = vec![
+            make_txxt_marker(0),
+            make_whitespace(2),
+            make_text("label", 3),
+            make_whitespace(8),
+            make_text("more", 9),
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("closing TxxtMarker"));
+    }
+}

@@ -40,6 +40,7 @@
 
 pub mod pipeline;
 pub mod pipeline_data;
+pub mod reference_example;
 
 pub use pipeline::{Pipeline, PipelineBuilder, Stage, StageResult, TransformFn, TypeKeyFn};
 pub use pipeline_data::{ClassifiedSpan, MatchedSpan, PipelineData, StageData, StageError};

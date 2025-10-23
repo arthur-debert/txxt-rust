@@ -224,6 +224,49 @@ impl PipelineData for ClassifiedSpan {
     }
 }
 
+/// Implement PipelineData for Inline (final output type)
+impl PipelineData for crate::ast::elements::formatting::inlines::Inline {
+    fn tokens(&self) -> &[ScannerToken] {
+        match self {
+            crate::ast::elements::formatting::inlines::Inline::TextLine(transform) => {
+                // Extract tokens from TextTransform
+                use crate::ast::elements::formatting::inlines::TextTransform;
+                match transform {
+                    TextTransform::Identity(text) => &text.tokens.tokens,
+                    TextTransform::Code(text) => &text.tokens.tokens,
+                    TextTransform::Math(text) => &text.tokens.tokens,
+                    TextTransform::Emphasis(_)
+                    | TextTransform::Strong(_)
+                    | TextTransform::Composed(_)
+                    | TextTransform::Custom { .. } => {
+                        // For nested transforms, we can't easily extract tokens
+                        // Return empty slice for now
+                        // TODO: This should be handled better
+                        &[]
+                    }
+                }
+            }
+            crate::ast::elements::formatting::inlines::Inline::Link { tokens, .. } => {
+                &tokens.tokens
+            }
+            crate::ast::elements::formatting::inlines::Inline::Reference(ref_) => {
+                &ref_.tokens.tokens
+            }
+            crate::ast::elements::formatting::inlines::Inline::Custom { tokens, .. } => {
+                &tokens.tokens
+            }
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

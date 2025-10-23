@@ -1,0 +1,305 @@
+:: title :: Generic Registration-Based Inline Parsing Engine
+:: author :: txxt Development Team
+:: pub-date :: 2025-10-23
+
+This document proposes a redesign of the inline parsing system from PR 151's three-level declarative pipeline into a fully generic, registration-based engine where inline types define their own processing logic and the engine handles all infrastructure concerns.
+
+1. Problem Statement
+
+    PR 151 introduced a significant improvement with its three-level declarative pipeline (delimiter matching, type classification, deep processing). However, it still has fundamental limitations:
+
+    1.1. Fixed Architecture
+
+        The three levels are hardcoded into the pipeline. An inline type cannot have two levels or four levels - it must conform to exactly three. This is arbitrary and limits expressiveness.
+
+    1.2. Manual Integration
+
+        Adding a new inline type requires editing multiple files:
+        - level1_matchers.rs for delimiter matching
+        - level2_classifiers.rs for type classification
+        - level3_processors.rs for processing logic
+        - pipeline.rs to wire everything together
+
+        There is no single registration point, making the system fragile and hard to extend.
+
+    1.3. No Validation
+
+        The system does not validate that delimiter pairs are unique across inline types. Two inlines could accidentally use the same delimiters, creating ambiguous parsing situations.
+
+    1.4. Implicit Type Dispatch
+
+        The get_processor function uses a hardcoded match statement to dispatch types to processors. This is procedural rather than declarative.
+
+    1.5. Narrow Scope
+
+        The current design was built specifically for references and formatting. It does not easily accommodate inline types with radically different processing needs or pipeline structures.
+
+2. Core Insight
+
+    Two key observations enable a better design:
+
+    2.1. Everything Has Tokens
+
+        Looking at the AST, every type involved in inline parsing - whether Text, Reference, Link, Custom, or any intermediate processing type - has a tokens field containing ScannerTokenSequence. This is essential for position tracking, error reporting, source reconstruction, and LSP support.
+
+        This common structure can serve as the foundation for a trait-based design.
+
+    2.2. Registration Over Convention
+
+        Rather than requiring inline types to fit into a predefined three-level structure, we should allow them to register themselves with the engine, defining:
+        - Their delimiters
+        - Their processing pipeline (arbitrary length)
+        - Their type-based dispatch logic (if needed)
+
+        The engine becomes generic infrastructure that validates, orchestrates, and handles errors, while inline types provide only their unique business logic.
+
+3. Proposed Architecture
+
+    3.1. PipelineData Trait
+
+        All data flowing through pipelines must implement a common trait:
+
+        trait PipelineData: provides tokens(), type_name(), downcasting to Any
+
+        This ensures:
+        - Tokens are preserved through all stages
+        - Position information is always accessible
+        - Type-specific processing can downcast as needed
+        - Debugging and error reporting have context
+
+        Core types implementing this trait:
+        - MatchedSpan: delimiter-matched tokens
+        - ClassifiedSpan: matched span with type information
+        - ParsedCitation, ParsedFootnote, etc: intermediate processing types
+        - Inline: final AST output
+
+    3.2. Pipeline Stages
+
+        Stages can be either simple transformations or type-based dispatches:
+
+        enum Stage:
+            Transform: name, function taking StageData returning StageData
+            Dispatch: name, type extraction function, map of type to sub-pipeline, required default branch
+
+        A pipeline is just a sequence of stages: Pipeline = Vec<Stage>
+
+        This allows:
+        - Simple chains: MatchedSpan → parse → transform → Inline
+        - Dispatch chains: MatchedSpan → classify → DISPATCH → (per-type processing) → Inline
+        - Mixed chains: normalize → DISPATCH → finalize → Inline
+
+    3.3. Delimiter Specification
+
+        Delimiters are single characters:
+
+        struct DelimiterSpec: start char, end char
+
+        This simplifies validation significantly - no need to handle overlapping multi-character delimiters. Either two inlines have identical delimiters (error) or they don't (valid).
+
+    3.4. Inline Definition
+
+        Each inline type registers itself:
+
+        struct InlineDefinition:
+            name: identifier string
+            delimiters: DelimiterSpec
+            pipeline: Pipeline (sequence of stages)
+
+        Example simple chain (bold):
+            name: "bold"
+            delimiters: start '*', end '*'
+            pipeline: [Transform(parse_content), Transform(create_strong)]
+
+        Example dispatch chain (references):
+            name: "reference"
+            delimiters: start '[', end ']'
+            pipeline: [
+                Transform(classify_type),
+                Dispatch(
+                    type_fn: extract_type_from_classification,
+                    branches: {
+                        "Citation": [Transform(parse_keys), Transform(parse_locators), Transform(build_citation)],
+                        "ToCome": [Transform(create_placeholder)],
+                        "NotSure": [Transform(create_fallback)]
+                    },
+                    default: [Transform(create_fallback)]
+                )
+            ]
+
+    3.5. The Engine
+
+        InlineEngine maintains a registry of definitions:
+
+        struct InlineEngine:
+            registry: Vec<InlineDefinition>
+
+        Key operations:
+
+        register(definition) → Result:
+            - Validates delimiter uniqueness against all registered inlines
+            - Validates pipeline structure (non-empty, etc)
+            - Adds to registry
+
+        parse(tokens) → Vec<Inline>:
+            - Iterates through token stream
+            - For each position, tries registered matchers in order
+            - On match, runs the inline's pipeline
+            - On error, falls through to plain text with warning log
+            - Returns final inline list
+
+        run_pipeline(span, pipeline) → Inline:
+            - Executes stages in sequence
+            - For Transform stages: calls function, passes result to next stage
+            - For Dispatch stages: extracts type key, selects branch, recursively runs sub-pipeline
+            - Always uses default branch if type key not found in map
+
+4. Key Design Decisions
+
+    4.1. Single-Character Delimiters
+
+        Delimiters are restricted to single characters (start char, end char). This drastically simplifies validation and matching logic. No need to handle prefix overlap like [ vs [[.
+
+    4.2. Required Default Branch
+
+        Dispatch stages must include a default branch. This ensures the pipeline never fails due to an unexpected type key - there is always a fallback path.
+
+    4.3. Fallthrough Error Handling
+
+        Parse errors never hard-fail. Instead:
+        - Log warning with position information
+        - Render problematic span as plain text
+        - Continue parsing
+
+        This makes the parser resilient and user-friendly. Malformed inline syntax does not break the entire document.
+
+    4.4. Runtime Validation, Not Compile-Time
+
+        Pipeline validation happens at registration time (delimiter uniqueness, non-empty pipeline), not at compile time. Stage execution errors are caught at runtime.
+
+        This is acceptable because:
+        - Registration happens once at engine initialization
+        - Errors are clear and actionable
+        - Flexibility is more valuable than compile-time guarantees for this use case
+
+    4.5. Tokens Flow Through Everything
+
+        The PipelineData trait's requirement to implement tokens() ensures position information is never lost. This is critical for error reporting, LSP support, and source reconstruction.
+
+5. Benefits
+
+    5.1. True Extensibility
+
+        Adding a new inline type is a single registration call. No need to modify engine code. Third-party plugins can register custom inlines.
+
+    5.2. Arbitrary Pipeline Length
+
+        Inline types define their own pipeline structure. Some have one stage, some have five stages with nested dispatches. The engine does not impose artificial constraints.
+
+    5.3. Validation and Safety
+
+        The engine validates delimiter uniqueness and catches conflicts before parsing begins. Type dispatch always has a fallback. Errors never crash the parser.
+
+    5.4. Clear Separation of Concerns
+
+        Engine: infrastructure (delimiter matching, orchestration, error handling)
+        Inline definitions: business logic (classification, parsing, AST construction)
+
+        This makes both easier to understand, test, and maintain.
+
+    5.5. Composable and Testable
+
+        Pipelines are data structures that can be inspected, modified, and tested. Stage functions are pure transformations that can be unit tested in isolation.
+
+6. Implementation Plan
+
+    6.1. Phase 1: Core Infrastructure
+
+        - Define PipelineData trait
+        - Implement MatchedSpan, ClassifiedSpan, StageData wrapper
+        - Define Stage enum and Pipeline struct
+        - Implement InlineEngine with registration and validation
+        - Add delimiter matching logic using GenericDelimiterMatcher from PR 151
+
+    6.2. Phase 2: Reference as Example
+
+        - Implement reference classification as Transform stage
+        - Implement reference processing as Dispatch stage with branches
+        - Register references using the new API
+        - Verify all reference tests pass
+
+    6.3. Phase 3: Migration (Future PR)
+
+        - Migrate existing inline types (bold, italic, code, math) to registration
+        - Remove old three-level pipeline code
+        - Update tests to use new API
+
+    6.4. Phase 4: Documentation and Examples
+
+        - Document PipelineData trait and how to implement it
+        - Provide examples of simple chains and dispatch chains
+        - Create guide for adding custom inline types
+
+7. Migration Path
+
+    7.1. No Migration in This PR
+
+        The current PR only builds the engine infrastructure and validates the design with references as an example. Existing inline types will continue to use the PR 151 pipeline temporarily.
+
+    7.2. Future Migration PR
+
+        A separate PR will migrate all 11 existing inline types to the registration API. This keeps changes atomic and reviewable.
+
+    7.3. Compatibility
+
+        The old pipeline code and new engine can coexist during migration. We can migrate inline types one at a time without breaking existing functionality.
+
+8. Design Decisions for Implementation
+
+    8.1. PipelineData Trait Scope
+
+        The trait will be kept minimal, providing only tokens() and type metadata. Content extraction and other accessors are specific to individual types and should not be part of the common interface.
+
+    8.2. Intermediate Type Ownership
+
+        The engine provides foundational data structures used across all inline types:
+        - MatchedSpan: output of delimiter matching
+        - ClassifiedSpan: output of type classification
+        - StageData: wrapper with common interface
+
+        Inline definitions provide their own specialized intermediate types:
+        - ParsedCitation: citation-specific processing state
+        - ParsedFootnote: footnote-specific processing state
+        - Any other domain-specific intermediate representations
+
+        This creates clear separation: engine owns infrastructure, inline definitions own business logic.
+
+    8.3. Transform Stage Flexibility
+
+        Transform stages accept and return Box<dyn PipelineData>, using downcasting to access concrete types:
+
+        fn classify_reference(data: Box<dyn PipelineData>) -> Result<Box<dyn PipelineData>, Error>
+
+        This provides maximum flexibility at the cost of runtime type checking. The trade-off is acceptable because:
+        - Runtime cost is minimal (single downcast per stage)
+        - Flexibility enables arbitrary inline-specific intermediate types
+        - Type errors are caught and handled gracefully (fallthrough to plain text)
+
+    8.4. Nested Dispatch Support
+
+        Dispatch stages will support nested dispatch - a sub-pipeline can contain another Dispatch stage. While there is no immediate use case, this capability:
+        - Costs almost nothing to implement (just recursive pipeline execution)
+        - Provides significant future-proofing for complex inline types
+        - Maintains consistency with the "pipelines are composable" principle
+
+    8.5. Error Context Depth
+
+        Stage errors will include: stage name, input type name, error message, and token positions (via PipelineData.tokens()). This provides sufficient context for debugging without overwhelming complexity.
+
+9. Relation to Existing Work
+
+    This proposal builds on PR 151's insights:
+    - GenericDelimiterMatcher is reused for delimiter matching
+    - Three-level pipeline (match → classify → process) is a common pattern, now expressible as a specific pipeline configuration
+    - Existing tests and inline types provide validation that the design works
+
+    The key difference is making the architecture generic and registration-based rather than hardcoded into the engine.

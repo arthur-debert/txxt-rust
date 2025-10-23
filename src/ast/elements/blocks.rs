@@ -60,3 +60,15 @@ impl From<super::containers::content::ContentContainerElement> for Block {
         }
     }
 }
+
+impl From<super::containers::simple::SimpleBlockElement> for Block {
+    fn from(element: super::containers::simple::SimpleBlockElement) -> Self {
+        use super::containers::simple::SimpleBlockElement;
+        match element {
+            SimpleBlockElement::Paragraph(p) => Block::Paragraph(p),
+            SimpleBlockElement::List(l) => Block::List(l),
+            SimpleBlockElement::Verbatim(v) => Block::VerbatimBlock(v),
+            SimpleBlockElement::BlankLine(b) => Block::BlankLine(b),
+        }
+    }
+}

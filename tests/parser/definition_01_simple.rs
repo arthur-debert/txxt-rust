@@ -3,7 +3,7 @@
 #[path = "../infrastructure/corpora.rs"]
 mod corpora;
 
-use txxt::ast::elements::containers::content::ContentContainerElement;
+use txxt::ast::elements::containers::simple::SimpleBlockElement;
 use txxt::transform::run_all;
 
 #[test]
@@ -53,7 +53,7 @@ fn test_definition_simple() {
         );
 
         // Check content is a paragraph
-        if let ContentContainerElement::Paragraph(para) = &def.content.content[0] {
+        if let SimpleBlockElement::Paragraph(para) = &def.content.content[0] {
             let content_text: String = para.content.iter().map(|t| t.text_content()).collect();
             println!("Content: {}", content_text);
             assert!(content_text.contains("program that analyzes text"));

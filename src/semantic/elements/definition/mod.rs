@@ -51,41 +51,61 @@ pub fn create_definition_element(
                 crate::ast::elements::inlines::Text::simple_with_tokens(&term_text, source_tokens),
             )];
 
-            // Convert content nodes to ContentContainerElements
-            let content_elements: Vec<crate::ast::elements::containers::content::ContentContainerElement> = content_nodes
-                .iter()
-                .map(|node| match node {
+            // Convert content nodes to SimpleBlockElements
+            // Per simple-container.txxt: Definitions can only contain Paragraph, List, Verbatim
+            let mut simple_elements = Vec::new();
+            for node in content_nodes.iter() {
+                match node {
                     crate::semantic::ast_construction::AstNode::Paragraph(p) => {
-                        crate::ast::elements::containers::content::ContentContainerElement::Paragraph(p.clone())
+                        simple_elements.push(
+                            crate::ast::elements::containers::simple::SimpleBlockElement::Paragraph(
+                                p.clone(),
+                            ),
+                        );
                     }
                     crate::semantic::ast_construction::AstNode::List(l) => {
-                        crate::ast::elements::containers::content::ContentContainerElement::List(l.clone())
-                    }
-                    crate::semantic::ast_construction::AstNode::Definition(d) => {
-                        crate::ast::elements::containers::content::ContentContainerElement::Definition(d.clone())
-                    }
-                    crate::semantic::ast_construction::AstNode::Annotation(a) => {
-                        crate::ast::elements::containers::content::ContentContainerElement::Annotation(a.clone())
+                        simple_elements.push(
+                            crate::ast::elements::containers::simple::SimpleBlockElement::List(
+                                l.clone(),
+                            ),
+                        );
                     }
                     crate::semantic::ast_construction::AstNode::Verbatim(v) => {
-                        crate::ast::elements::containers::content::ContentContainerElement::Verbatim(v.clone())
+                        simple_elements.push(
+                            crate::ast::elements::containers::simple::SimpleBlockElement::Verbatim(
+                                v.clone(),
+                            ),
+                        );
+                    }
+                    crate::semantic::ast_construction::AstNode::Definition(_) => {
+                        return Err(BlockParseError::InvalidStructure(
+                            "Cannot nest Definition inside Definition (SimpleContainer constraint)"
+                                .to_string(),
+                        ));
+                    }
+                    crate::semantic::ast_construction::AstNode::Annotation(_) => {
+                        return Err(BlockParseError::InvalidStructure(
+                            "Cannot nest Annotation inside Definition (SimpleContainer constraint)"
+                                .to_string(),
+                        ));
                     }
                     crate::semantic::ast_construction::AstNode::Session(_) => {
-                        // Sessions cannot be in ContentContainer - only in SessionContainer
-                        panic!("Sessions cannot be inside definitions (ContentContainer restriction)")
+                        return Err(BlockParseError::InvalidStructure(
+                            "Cannot nest Session inside Definition (SimpleContainer constraint)"
+                                .to_string(),
+                        ));
                     }
-                })
-                .collect();
+                }
+            }
 
-            // Create ContentContainer with the parsed content
-            let content_container =
-                crate::ast::elements::containers::content::ContentContainer::new(
-                    content_elements,
-                    // FIXME: post-parser - Parse container-level annotations instead of empty vec
-                    vec![],
-                    crate::ast::elements::components::parameters::Parameters::new(),
-                    ScannerTokenSequence::new(),
-                );
+            // Create SimpleContainer with the parsed content
+            let content_container = crate::ast::elements::containers::simple::SimpleContainer::new(
+                simple_elements,
+                // FIXME: post-parser - Parse container-level annotations instead of empty vec
+                vec![],
+                crate::ast::elements::components::parameters::Parameters::new(),
+                ScannerTokenSequence::new(),
+            );
 
             Ok(DefinitionBlock {
                 term: DefinitionTerm {

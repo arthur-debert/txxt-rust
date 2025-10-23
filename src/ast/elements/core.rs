@@ -159,9 +159,10 @@ pub trait HeaderedBlock: BlockElement {
 /// Container type for type-safe content restrictions
 ///
 /// From `docs/specs/core/terminology.txxt`:
-/// - Content Container: Cannot contain sessions (list items, definitions, etc.)
-/// - Session Container: Can contain sessions (document root, session content)  
+/// - Content Container: Cannot contain sessions (list items, etc.)
+/// - Session Container: Can contain sessions (document root, session content)
 /// - Ignore Container: Verbatim content only
+/// - Simple Container: Only paragraphs, lists, verbatim (definitions, annotations)
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContainerType {
     /// Content container: holds any blocks except sessions
@@ -172,6 +173,10 @@ pub enum ContainerType {
 
     /// Ignore container: holds verbatim content only
     Ignore,
+
+    /// Simple container: only basic blocks (paragraphs, lists, verbatim)
+    /// Used for definitions and annotations to prevent recursive nesting
+    Simple,
 }
 
 /// Unified element node type for the complete AST

@@ -10,21 +10,26 @@ use crate::ast::elements::{
 use crate::cst::ScannerTokenSequence;
 
 use super::super::{
-    containers::ContentContainer,
+    containers::SimpleContainer,
     core::{BlockElement, ContainerElement, ElementType, HeaderedBlock, TxxtElement},
     inlines::TextTransform,
 };
 
 /// Definition block - term and definition pairs
 ///
-/// TODO: Migrate existing definition logic from src/ast/blocks.rs
+/// Per `docs/proposals/simple-container.txxt`, definitions use SimpleContainer
+/// to prevent nonsensical nesting (Definition in Definition) while preserving
+/// essential expressive power (lists and code examples in definitions).
+///
+/// Allowed content: Paragraphs, Lists, VerbatimBlocks
+/// Prohibited content: Sessions, Definitions, Annotations, nested containers
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DefinitionBlock {
     /// The term being defined
     pub term: DefinitionTerm,
 
-    /// Definition content (indented)
-    pub content: ContentContainer,
+    /// Definition content (indented) - constrained to simple blocks
+    pub content: SimpleContainer,
 
     /// Parameters for metadata including ref= for named anchors
     pub parameters: Parameters,
@@ -105,7 +110,7 @@ impl DefinitionBlock {
     /// Create a new definition block
     pub fn new(
         term: DefinitionTerm,
-        content: ContentContainer,
+        content: SimpleContainer,
         parameters: Parameters,
         annotations: Vec<Annotation>,
         tokens: ScannerTokenSequence,

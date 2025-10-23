@@ -936,9 +936,9 @@ pub fn assert_annotation<'a>(
     if let Some(needle) = expected.content_contains {
         let actual_content = match &annotation.content {
             AnnotationContent::Inline(transforms) => validators::extract_all_text(transforms),
-            AnnotationContent::Block(content_container) => {
+            AnnotationContent::Block(simple_container) => {
                 // Extract all text from all elements in the block content
-                extract_text_from_content_container(content_container)
+                extract_text_from_simple_container(simple_container)
             }
         };
         assert!(
@@ -970,6 +970,7 @@ pub fn assert_annotation<'a>(
 // ============================================================================
 
 /// Extract all text from a ContentContainer recursively
+#[allow(dead_code)]
 fn extract_text_from_content_container(
     container: &txxt::ast::elements::containers::content::ContentContainer,
 ) -> String {
@@ -992,7 +993,7 @@ fn extract_text_from_content_container(
             ContentContainerElement::Definition(d) => {
                 text.push_str(&d.term_text());
                 text.push('\n');
-                text.push_str(&extract_text_from_content_container(&d.content));
+                text.push_str(&extract_text_from_simple_container(&d.content));
             }
             ContentContainerElement::Verbatim(v) => {
                 text.push_str(&v.content_text());
@@ -1004,13 +1005,46 @@ fn extract_text_from_content_container(
                     text.push('\n');
                 }
                 txxt::ast::elements::annotation::AnnotationContent::Block(c) => {
-                    text.push_str(&extract_text_from_content_container(c));
+                    text.push_str(&extract_text_from_simple_container(c));
                 }
             },
             ContentContainerElement::Container(c) => {
                 text.push_str(&extract_text_from_content_container(c));
             }
             ContentContainerElement::BlankLine(_) => {
+                // Skip blank lines for text extraction
+            }
+        }
+    }
+
+    text
+}
+
+/// Extract all text from a SimpleContainer recursively
+fn extract_text_from_simple_container(
+    container: &txxt::ast::elements::containers::simple::SimpleContainer,
+) -> String {
+    use txxt::ast::elements::containers::simple::SimpleBlockElement;
+
+    let mut text = String::new();
+
+    for element in &container.content {
+        match element {
+            SimpleBlockElement::Paragraph(p) => {
+                text.push_str(&validators::extract_all_text(&p.content));
+                text.push('\n');
+            }
+            SimpleBlockElement::List(l) => {
+                for item in &l.items {
+                    text.push_str(&item.text_content());
+                    text.push('\n');
+                }
+            }
+            SimpleBlockElement::Verbatim(v) => {
+                text.push_str(&v.content_text());
+                text.push('\n');
+            }
+            SimpleBlockElement::BlankLine(_) => {
                 // Skip blank lines for text extraction
             }
         }

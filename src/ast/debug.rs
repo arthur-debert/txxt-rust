@@ -5,7 +5,10 @@
 
 use crate::ast::{
     elements::{
-        containers::{content::ContentContainerElement, ContentContainer},
+        containers::{
+            content::ContentContainerElement, simple::SimpleBlockElement, ContentContainer,
+            SimpleContainer,
+        },
         formatting::inlines::TextTransform,
         session::{session_container::SessionContainerElement, SessionContainer},
     },
@@ -253,7 +256,7 @@ impl AstTreeVisualizer {
                 writeln!(output, "{} Definition: \"{}\"", prefix, term_text).unwrap();
 
                 if !def.content.content.is_empty() {
-                    self.visualize_content_container(&def.content, output, indent, depth);
+                    self.visualize_simple_container(&def.content, output, indent, depth);
                 }
 
                 if self.config.show_parameters && !def.parameters.map.is_empty() {
@@ -358,6 +361,29 @@ impl AstTreeVisualizer {
         }
     }
 
+    /// Visualize a simple container's contents
+    fn visualize_simple_container(
+        &self,
+        container: &SimpleContainer,
+        output: &mut String,
+        base_indent: &str,
+        depth: usize,
+    ) {
+        for (i, element) in container.content.iter().enumerate() {
+            let is_last = i == container.content.len() - 1;
+            let prefix = if is_last { "└─" } else { "├─" };
+            let indent = if is_last { "   " } else { "│  " };
+
+            self.visualize_simple_element(
+                element,
+                output,
+                &format!("{}{}", base_indent, prefix),
+                &format!("{}{}", base_indent, indent),
+                depth + 1,
+            );
+        }
+    }
+
     /// Visualize a content container element
     fn visualize_content_element(
         &self,
@@ -422,6 +448,56 @@ impl AstTreeVisualizer {
                 )
                 .unwrap();
                 self.visualize_content_container(container, output, indent, depth);
+            }
+        }
+    }
+
+    /// Visualize a simple container element
+    fn visualize_simple_element(
+        &self,
+        element: &SimpleBlockElement,
+        output: &mut String,
+        prefix: &str,
+        indent: &str,
+        depth: usize,
+    ) {
+        if let Some(max_depth) = self.config.max_depth {
+            if depth > max_depth {
+                writeln!(output, "{} ... (max depth reached)", prefix).unwrap();
+                return;
+            }
+        }
+
+        match element {
+            SimpleBlockElement::Paragraph(para) => {
+                writeln!(output, "{} Paragraph", prefix).unwrap();
+                if !self.config.compact {
+                    let text_content = self.extract_text_from_transforms(&para.content);
+                    let preview = if text_content.len() > 50 {
+                        format!("{}...", &text_content[..47])
+                    } else {
+                        text_content
+                    };
+                    writeln!(output, "{}   └─ \"{preview}\"", indent).unwrap();
+                }
+            }
+            SimpleBlockElement::List(list) => {
+                writeln!(
+                    output,
+                    "{} List ({:?}, {} items)",
+                    prefix,
+                    list.decoration_type.style,
+                    list.items.len()
+                )
+                .unwrap();
+            }
+            SimpleBlockElement::Verbatim(_verbatim) => {
+                writeln!(output, "{} Verbatim", prefix).unwrap();
+            }
+            SimpleBlockElement::BlankLine(_) => {
+                if !self.config.compact {
+                    writeln!(output, "{} Blank Line", prefix).unwrap();
+                }
             }
         }
     }
@@ -642,7 +718,7 @@ impl AstStatistics {
                 self.total_characters += AstTreeVisualizer::new()
                     .extract_text_from_transforms(&def.term.content)
                     .len();
-                self.collect_from_content_container(&def.content, depth + 1);
+                self.collect_from_simple_container(&def.content, depth + 1);
             }
             SessionContainerElement::Annotation(_) => {
                 // Annotations don't count as primary content
@@ -670,6 +746,13 @@ impl AstStatistics {
     fn collect_from_content_container(&mut self, container: &ContentContainer, depth: usize) {
         for element in &container.content {
             self.collect_from_content_element(element, depth + 1);
+        }
+    }
+
+    /// Collect statistics from a simple container
+    fn collect_from_simple_container(&mut self, container: &SimpleContainer, depth: usize) {
+        for element in &container.content {
+            self.collect_from_simple_element(element, depth + 1);
         }
     }
 
@@ -709,7 +792,7 @@ impl AstStatistics {
                 self.total_characters += AstTreeVisualizer::new()
                     .extract_text_from_transforms(&def.term.content)
                     .len();
-                self.collect_from_content_container(&def.content, depth + 1);
+                self.collect_from_simple_container(&def.content, depth + 1);
             }
             ContentContainerElement::Annotation(_) => {
                 // Annotations don't count as primary content
@@ -719,6 +802,43 @@ impl AstStatistics {
             }
             ContentContainerElement::Container(container) => {
                 self.collect_from_content_container(container, depth);
+            }
+        }
+    }
+
+    /// Collect statistics from simple elements
+    fn collect_from_simple_element(&mut self, element: &SimpleBlockElement, depth: usize) {
+        self.max_nesting_depth = self.max_nesting_depth.max(depth);
+
+        match element {
+            SimpleBlockElement::Paragraph(para) => {
+                self.paragraph_count += 1;
+                self.total_characters += AstTreeVisualizer::new()
+                    .extract_text_from_transforms(&para.content)
+                    .len();
+            }
+            SimpleBlockElement::List(list) => {
+                self.list_count += 1;
+                for item in &list.items {
+                    self.total_characters += AstTreeVisualizer::new()
+                        .extract_text_from_transforms(&item.content)
+                        .len();
+                    if let Some(ref nested) = item.nested {
+                        self.collect_from_content_container(nested, depth + 1);
+                    }
+                }
+            }
+            SimpleBlockElement::Verbatim(verbatim) => {
+                self.verbatim_count += 1;
+                self.total_characters += verbatim
+                    .content
+                    .ignore_lines
+                    .iter()
+                    .map(|line| line.content.len())
+                    .sum::<usize>();
+            }
+            SimpleBlockElement::BlankLine(_) => {
+                // Blank lines don't add to character count
             }
         }
     }

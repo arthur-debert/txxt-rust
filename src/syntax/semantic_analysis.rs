@@ -13,6 +13,369 @@ use crate::cst::high_level_tokens::{
 use crate::cst::primitives::ScannerTokenSequence;
 use crate::cst::{Position, ScannerToken, SequenceMarkerType, SourceSpan};
 
+/// Parsed components of an annotation
+///
+/// Pure data structure representing the extracted parts of an annotation.
+/// Used by `parse_annotation_components` for testable annotation parsing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AnnotationComponents {
+    /// Position of the opening TxxtMarker (::)
+    pub opening_marker_pos: usize,
+    /// Position of the closing TxxtMarker (::)
+    pub closing_marker_pos: usize,
+    /// Start position of label tokens (after opening marker and whitespace)
+    pub label_start: usize,
+    /// End position of label tokens (before closing marker)
+    pub label_end: usize,
+    /// Start position of content tokens (after closing marker), if any
+    pub content_start: Option<usize>,
+}
+
+/// Parsing context for context-aware element detection
+///
+/// After grammar simplification (issue #139), element types are distinguished by:
+/// - Colon presence/absence at end of line
+/// - Blank line presence/absence before content
+/// - Indentation presence/absence after title
+///
+/// However, some elements (like sessions) are only valid in specific containers.
+/// ParseContext tracks where we are in the document structure to enable
+/// context-aware detection.
+///
+/// # Context Rules
+///
+/// - **Sessions**: Only allowed in DocumentRoot and SessionContainer
+/// - **Definitions**: Allowed in any container (but not inside lists for now)
+/// - **Paragraphs**: Allowed in ContentContainer and ListContent
+/// - **Lists**: Allowed in ContentContainer and ListContent
+///
+/// # Unambiguous Patterns
+///
+/// Within allowed contexts, patterns are unambiguous:
+/// - `Title\n\n<indent>` → Session (blank line + indent)
+/// - `Term:\n<indent>` → Definition (colon + immediate indent, no blank)
+/// - `Text\n<indent>` → Paragraph continuation
+///
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParseContext {
+    /// Top-level document context
+    /// Allows: Sessions, Definitions, Paragraphs, Lists, Annotations
+    DocumentRoot,
+
+    /// Inside a session container
+    /// Allows: Sessions (nested), Definitions, Paragraphs, Lists, Annotations
+    SessionContainer,
+
+    /// Inside a definition or other content container
+    /// Allows: Definitions, Paragraphs, Lists, Annotations
+    /// Does NOT allow: Sessions
+    ContentContainer,
+
+    /// Inside a list item
+    /// Allows: Paragraphs, Lists (nested), Annotations
+    /// Does NOT allow: Sessions, Definitions (for now)
+    ListContent,
+}
+
+impl ParseContext {
+    /// Check if sessions are allowed in this context
+    ///
+    /// Sessions can only appear at document root or inside other sessions.
+    /// They cannot appear in definitions, paragraphs, or list items.
+    pub fn allows_sessions(self) -> bool {
+        matches!(
+            self,
+            ParseContext::DocumentRoot | ParseContext::SessionContainer
+        )
+    }
+
+    /// Check if definitions are allowed in this context
+    ///
+    /// Definitions are allowed everywhere except inside list items (for now).
+    pub fn allows_definitions(self) -> bool {
+        !matches!(self, ParseContext::ListContent)
+    }
+
+    /// Check if paragraphs are allowed in this context
+    ///
+    /// Paragraphs are allowed in all contexts.
+    pub fn allows_paragraphs(self) -> bool {
+        true
+    }
+
+    /// Check if lists are allowed in this context
+    ///
+    /// Lists are allowed in all contexts.
+    pub fn allows_lists(self) -> bool {
+        true
+    }
+
+    /// Get the context for parsing content inside a session
+    pub fn session_content_context(self) -> ParseContext {
+        ParseContext::SessionContainer
+    }
+
+    /// Get the context for parsing content inside a definition
+    pub fn definition_content_context(self) -> ParseContext {
+        ParseContext::ContentContainer
+    }
+
+    /// Get the context for parsing content inside a list item
+    pub fn list_item_content_context(self) -> ParseContext {
+        ParseContext::ListContent
+    }
+}
+
+/// Parse annotation token structure into components
+///
+/// Pure function that validates annotation structure and extracts component positions.
+/// This enables unit testing of annotation parsing logic without SemanticAnalyzer.
+///
+/// After grammar simplification (issue #139), annotations have the form:
+/// - `:: label ::` - label only
+/// - `:: label params ::` - label with parameters (whitespace separator)
+/// - `:: params ::` - params-only
+/// - `:: label :: content` - annotation with content after closing marker
+///
+/// # Arguments
+/// * `tokens` - Scanner tokens representing the annotation
+///
+/// # Returns
+/// * `Result<AnnotationComponents, String>` - Parsed component positions or error
+///
+/// # Examples
+/// ```text
+/// For input: `:: meta version=2.0 ::`
+/// Returns: AnnotationComponents {
+///   opening_marker_pos: 0,
+///   closing_marker_pos: 4,
+///   label_start: 2,
+///   label_end: 4,
+///   content_start: None,
+/// }
+/// ```
+pub fn parse_annotation_components(
+    tokens: &[ScannerToken],
+) -> Result<AnnotationComponents, String> {
+    // Validate minimum annotation structure: :: label ::
+    if tokens.len() < 5 {
+        return Err("Annotation must have at least 5 tokens: :: label ::".to_string());
+    }
+
+    // Check for opening TxxtMarker
+    if !matches!(tokens[0], ScannerToken::TxxtMarker { .. }) {
+        return Err("Annotation must start with TxxtMarker".to_string());
+    }
+
+    // Find closing TxxtMarker (second :: marker)
+    let closing_marker_pos = find_closing_marker(tokens)?;
+    if closing_marker_pos < 4 {
+        return Err("Annotation must have proper structure: :: label ::".to_string());
+    }
+
+    // Label tokens are between opening marker+whitespace and closing marker
+    // Skip position 1 if it's whitespace
+    let label_start = if matches!(tokens.get(1), Some(ScannerToken::Whitespace { .. })) {
+        2
+    } else {
+        1
+    };
+
+    let label_end = closing_marker_pos;
+
+    // Content starts after closing marker, if there are more tokens
+    let content_start = if closing_marker_pos + 1 < tokens.len() {
+        Some(closing_marker_pos + 1)
+    } else {
+        None
+    };
+
+    Ok(AnnotationComponents {
+        opening_marker_pos: 0,
+        closing_marker_pos,
+        label_start,
+        label_end,
+        content_start,
+    })
+}
+
+/// Find the position of the closing TxxtMarker (second ::) in annotation
+///
+/// Pure helper function for finding the second TxxtMarker in a token stream.
+///
+/// # Arguments
+/// * `tokens` - Scanner tokens to search
+///
+/// # Returns
+/// * `Result<usize, String>` - Position of closing marker or error
+fn find_closing_marker(tokens: &[ScannerToken]) -> Result<usize, String> {
+    let mut marker_count = 0;
+    for (i, token) in tokens.iter().enumerate() {
+        if matches!(token, ScannerToken::TxxtMarker { .. }) {
+            marker_count += 1;
+            if marker_count == 2 {
+                return Ok(i);
+            }
+        }
+    }
+    Err("Annotation must have closing TxxtMarker".to_string())
+}
+
+/// Detect if a line pattern represents a session start (context-aware)
+///
+/// After grammar simplification (issue #139), sessions are identified by:
+/// - Title line (text without colon at end)
+/// - Followed by blank line
+/// - Followed by indented content
+///
+/// This pattern is ONLY valid in contexts that allow sessions (DocumentRoot, SessionContainer).
+/// In other contexts, the same pattern would be interpreted as a paragraph.
+///
+/// # Arguments
+/// * `current_line` - Tokens for the current line
+/// * `next_line` - Tokens for the next line (should be blank for session)
+/// * `line_after_next` - Tokens for the line after the blank line (should be indented)
+/// * `context` - Current parsing context
+///
+/// # Returns
+/// * `true` if this is a session start pattern AND context allows sessions
+///
+/// # Examples
+/// ```text
+/// In DocumentRoot context:
+///   Session Title
+///   <blank>
+///       Content
+/// → Returns true (session allowed in DocumentRoot)
+///
+/// In ContentContainer context:
+///   Same pattern
+/// → Returns false (sessions not allowed in ContentContainer)
+/// ```
+pub fn is_session_start(
+    current_line: &[ScannerToken],
+    next_line: Option<&[ScannerToken]>,
+    line_after_next: Option<&[ScannerToken]>,
+    context: ParseContext,
+) -> bool {
+    // Sessions only allowed in specific contexts
+    if !context.allows_sessions() {
+        return false;
+    }
+
+    // Check current line is not a definition (no colon at end)
+    if crate::syntax::is_definition_marker(current_line) {
+        return false;
+    }
+
+    // Check current line has content (not blank)
+    if crate::syntax::is_blank_line(current_line) {
+        return false;
+    }
+
+    // Check next line is blank
+    if !next_line.is_some_and(crate::syntax::is_blank_line) {
+        return false;
+    }
+
+    // Check line after blank has indented content
+    // (This is a simplified check - full implementation would check indent level)
+    if let Some(tokens) = line_after_next {
+        if !tokens.is_empty() {
+            // In real implementation, would check for Indent token or leading whitespace
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Detect if a line pattern represents a definition start (context-aware)
+///
+/// After grammar simplification (issue #139), definitions are identified by:
+/// - Term line ending with single colon (:)
+/// - Followed immediately by indented content (no blank line)
+///
+/// This pattern is valid in most contexts except ListContent (for now).
+///
+/// # Arguments
+/// * `current_line` - Tokens for the current line (should end with colon)
+/// * `next_line` - Tokens for the next line (should be indented, not blank)
+/// * `context` - Current parsing context
+///
+/// # Returns
+/// * `true` if this is a definition start pattern AND context allows definitions
+///
+/// # Examples
+/// ```text
+/// Term:
+///     Definition content
+/// → Returns true if context allows definitions
+///
+/// Inside ListContent:
+///     Term:
+///         Content
+/// → Returns false (definitions not allowed in lists yet)
+/// ```
+pub fn is_definition_start(
+    current_line: &[ScannerToken],
+    next_line: Option<&[ScannerToken]>,
+    context: ParseContext,
+) -> bool {
+    // Definitions only allowed in specific contexts
+    if !context.allows_definitions() {
+        return false;
+    }
+
+    // Check current line ends with colon (definition marker)
+    if !crate::syntax::is_definition_marker(current_line) {
+        return false;
+    }
+
+    // Check next line is NOT blank (immediate content required)
+    if next_line.is_none_or(crate::syntax::is_blank_line) {
+        return false;
+    }
+
+    // Check next line has content (is indented)
+    // (In real implementation, would verify indent level)
+    next_line.is_some_and(|tokens| !tokens.is_empty())
+}
+
+/// Detect if a line pattern represents a paragraph continuation
+///
+/// Paragraphs are identified by:
+/// - Text line (no special markers)
+/// - Optionally followed by indented content (continuation)
+///
+/// This is the "default" interpretation when more specific patterns don't match.
+///
+/// # Arguments
+/// * `current_line` - Tokens for the current line
+/// * `context` - Current parsing context
+///
+/// # Returns
+/// * `true` if this line could be a paragraph (context allows paragraphs)
+pub fn is_paragraph_line(current_line: &[ScannerToken], context: ParseContext) -> bool {
+    // Paragraphs allowed in all contexts
+    if !context.allows_paragraphs() {
+        return false;
+    }
+
+    // Not a blank line
+    if crate::syntax::is_blank_line(current_line) {
+        return false;
+    }
+
+    // Not a definition marker
+    if crate::syntax::is_definition_marker(current_line) {
+        return false;
+    }
+
+    // Has some content
+    !current_line.is_empty()
+}
+
 /// High-level token analyzer for converting scanner tokens to high-level tokens
 ///
 /// This analyzer takes a flat stream of scanner tokens and transforms them
@@ -1239,35 +1602,17 @@ impl SemanticAnalyzer {
         tokens: Vec<ScannerToken>,
         span: SourceSpan,
     ) -> Result<HighLevelToken, SemanticAnalysisError> {
-        // Validate minimum annotation structure: :: label ::
-        if tokens.len() < 5 {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Annotation must have at least 5 tokens: :: label ::".to_string(),
-            ));
-        }
+        // Use pure function to parse annotation structure
+        let components =
+            parse_annotation_components(&tokens).map_err(SemanticAnalysisError::AnalysisError)?;
 
-        // Check for opening TxxtMarker
-        if !matches!(tokens[0], ScannerToken::TxxtMarker { .. }) {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Annotation must start with TxxtMarker".to_string(),
-            ));
-        }
-
-        // Check for closing TxxtMarker (should be at position 4 for basic annotation)
-        let closing_marker_pos = self.find_closing_txxt_marker(&tokens)?;
-        if closing_marker_pos < 4 {
-            return Err(SemanticAnalysisError::AnalysisError(
-                "Annotation must have proper structure: :: label ::".to_string(),
-            ));
-        }
-
-        // Extract label (between first TxxtMarker and closing TxxtMarker)
-        let label_tokens = &tokens[2..closing_marker_pos];
+        // Extract label tokens (between opening and closing markers)
+        let label_tokens = &tokens[components.label_start..components.label_end];
         let (label_token, parameters) = self.parse_label_with_parameters(label_tokens)?;
 
-        // Extract content (after closing TxxtMarker, if any)
-        let content = if closing_marker_pos + 1 < tokens.len() {
-            let content_tokens = &tokens[closing_marker_pos + 1..];
+        // Extract content tokens (after closing marker, if any)
+        let content = if let Some(content_start) = components.content_start {
+            let content_tokens = &tokens[content_start..];
             Some(self.parse_annotation_content(content_tokens)?)
         } else {
             None
@@ -1475,34 +1820,6 @@ impl SemanticAnalyzer {
         ))
     }
 
-    /// Find the position of the closing TxxtMarker in an annotation
-    ///
-    /// This helper method searches for the second TxxtMarker in an annotation,
-    /// which marks the end of the label section.
-    ///
-    /// # Arguments
-    /// * `tokens` - The scanner tokens to search
-    ///
-    /// # Returns
-    /// * `Result<usize, SemanticAnalysisError>` - The position of the closing marker
-    fn find_closing_txxt_marker(
-        &self,
-        tokens: &[ScannerToken],
-    ) -> Result<usize, SemanticAnalysisError> {
-        let mut marker_count = 0;
-        for (i, token) in tokens.iter().enumerate() {
-            if matches!(token, ScannerToken::TxxtMarker { .. }) {
-                marker_count += 1;
-                if marker_count == 2 {
-                    return Ok(i);
-                }
-            }
-        }
-        Err(SemanticAnalysisError::AnalysisError(
-            "Annotation must have closing TxxtMarker".to_string(),
-        ))
-    }
-
     /// **UNIFIED LABEL PARSING** - Used by both annotations and verbatim blocks
     ///
     /// Parse a label string (with optional parameters) into validated Label and Parameters tokens.
@@ -1541,47 +1858,94 @@ impl SemanticAnalyzer {
         label_raw: &str,
         base_span: SourceSpan,
     ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
-        // Split on first ':' to separate label from parameters
-        if let Some(colon_pos) = label_raw.find(':') {
-            let label_part = &label_raw[..colon_pos];
-            let params_part = &label_raw[colon_pos + 1..];
+        // After grammar simplification (issue #139), annotations use:
+        // - `:: label params ::` - label followed by params (no colon separator)
+        // - `:: params ::` - params-only (no label)
+        //
+        // Strategy:
+        // 1. Check if entire string looks like parameters (contains '=' before any whitespace)
+        // 2. If yes: params-only annotation, create dummy label
+        // 3. If no: split on first whitespace, first word is label, rest is params
 
-            // Calculate span for label portion only
-            let label_span = SourceSpan {
-                start: base_span.start,
-                end: Position {
-                    row: base_span.start.row,
-                    column: base_span.start.column + colon_pos,
-                },
-            };
+        let trimmed = label_raw.trim();
 
-            // Create validated Label token with namespace support
-            let label_token = self.create_validated_label(label_part, label_span)?;
+        // Check if this is a params-only annotation
+        // Params start with key=value pattern (identifier followed by '=')
+        let is_params_only = trimmed.chars().next().is_some_and(|c| {
+            // If starts with letter/digit and contains '=' before whitespace
+            c.is_alphanumeric() && {
+                let first_whitespace = trimmed.find(char::is_whitespace).unwrap_or(trimmed.len());
+                let equals_pos = trimmed.find('=').unwrap_or(trimmed.len());
+                equals_pos < first_whitespace
+            }
+        });
 
-            // Parse parameters using unified parameter scanner
-            let parameters = if params_part.is_empty() {
-                None
-            } else {
-                let param_start = Position {
-                    row: base_span.start.row,
-                    column: base_span.start.column + colon_pos + 1,
-                };
+        if is_params_only {
+            // Params-only annotation: entire string is parameters
+            let param_start = base_span.start;
 
-                // Use unified parameter scanner from Issue #135
-                let param_scanner_tokens =
-                    crate::cst::parameter_scanner::scan_parameter_string(params_part, param_start);
+            // Use unified parameter scanner from Issue #135
+            let param_scanner_tokens =
+                crate::cst::parameter_scanner::scan_parameter_string(trimmed, param_start);
 
-                // Convert scanner tokens to high-level Parameters token
-                crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
-                    &param_scanner_tokens,
-                )
+            // Convert scanner tokens to high-level Parameters token
+            let parameters = crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
+                &param_scanner_tokens,
+            );
+
+            // Create empty label for params-only annotations
+            let label_token = crate::cst::high_level_tokens::HighLevelToken::Label {
+                text: String::new(),
+                span: base_span.clone(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             };
 
             Ok((label_token, parameters))
         } else {
-            // No parameters, just validate and create label
-            let label_token = self.create_validated_label(label_raw, base_span)?;
-            Ok((label_token, None))
+            // Split on first whitespace to separate label from parameters
+            if let Some(whitespace_pos) = trimmed.find(char::is_whitespace) {
+                let label_part = &trimmed[..whitespace_pos];
+                let params_part = trimmed[whitespace_pos..].trim();
+
+                // Calculate span for label portion only
+                let label_span = SourceSpan {
+                    start: base_span.start,
+                    end: Position {
+                        row: base_span.start.row,
+                        column: base_span.start.column + whitespace_pos,
+                    },
+                };
+
+                // Create validated Label token with namespace support
+                let label_token = self.create_validated_label(label_part, label_span)?;
+
+                // Parse parameters using unified parameter scanner
+                let parameters = if params_part.is_empty() {
+                    None
+                } else {
+                    let param_start = Position {
+                        row: base_span.start.row,
+                        column: base_span.start.column + whitespace_pos + 1,
+                    };
+
+                    // Use unified parameter scanner from Issue #135
+                    let param_scanner_tokens = crate::cst::parameter_scanner::scan_parameter_string(
+                        params_part,
+                        param_start,
+                    );
+
+                    // Convert scanner tokens to high-level Parameters token
+                    crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
+                        &param_scanner_tokens,
+                    )
+                };
+
+                Ok((label_token, parameters))
+            } else {
+                // No whitespace, entire string is label, no parameters
+                let label_token = self.create_validated_label(trimmed, base_span)?;
+                Ok((label_token, None))
+            }
         }
     }
 
@@ -1649,18 +2013,11 @@ impl SemanticAnalyzer {
             ));
         }
 
-        // Extract string from tokens (filter whitespace, combine content)
+        // Extract string from tokens (PRESERVE whitespace for new grammar)
+        // After grammar simplification (issue #139), whitespace separates label from params
         let mut label_raw = String::new();
         for token in tokens {
-            match token {
-                ScannerToken::Whitespace { .. } => {
-                    // Skip whitespace when combining into string
-                    continue;
-                }
-                _ => {
-                    label_raw.push_str(token.content());
-                }
-            }
+            label_raw.push_str(token.content());
         }
 
         // Calculate span from first to last token
@@ -1913,3 +2270,294 @@ impl std::fmt::Display for SemanticAnalysisError {
 }
 
 impl std::error::Error for SemanticAnalysisError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_txxt_marker(col: usize) -> ScannerToken {
+        ScannerToken::TxxtMarker {
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + 2,
+                },
+            },
+        }
+    }
+
+    fn make_text(content: &str, col: usize) -> ScannerToken {
+        ScannerToken::Text {
+            content: content.to_string(),
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + content.len(),
+                },
+            },
+        }
+    }
+
+    fn make_whitespace(col: usize) -> ScannerToken {
+        ScannerToken::Whitespace {
+            content: " ".to_string(),
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + 1,
+                },
+            },
+        }
+    }
+
+    #[test]
+    fn test_parse_annotation_components_simple() {
+        // Input: `:: label ::`
+        let tokens = vec![
+            make_txxt_marker(0),   // ::
+            make_whitespace(2),    // (space)
+            make_text("label", 3), // label
+            make_whitespace(8),    // (space)
+            make_txxt_marker(9),   // ::
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_ok());
+
+        let components = result.unwrap();
+        assert_eq!(components.opening_marker_pos, 0);
+        assert_eq!(components.closing_marker_pos, 4);
+        assert_eq!(components.label_start, 2); // After opening marker and whitespace
+        assert_eq!(components.label_end, 4); // Before closing marker
+        assert_eq!(components.content_start, None);
+    }
+
+    #[test]
+    fn test_parse_annotation_components_with_content() {
+        // Input: `:: label :: some content`
+        let tokens = vec![
+            make_txxt_marker(0),      // ::
+            make_whitespace(2),       // (space)
+            make_text("label", 3),    // label
+            make_whitespace(8),       // (space)
+            make_txxt_marker(9),      // ::
+            make_whitespace(11),      // (space)
+            make_text("content", 12), // content
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_ok());
+
+        let components = result.unwrap();
+        assert_eq!(components.opening_marker_pos, 0);
+        assert_eq!(components.closing_marker_pos, 4);
+        assert_eq!(components.label_start, 2);
+        assert_eq!(components.label_end, 4);
+        assert_eq!(components.content_start, Some(5)); // After closing marker
+    }
+
+    #[test]
+    fn test_parse_annotation_components_too_short() {
+        // Input too short: only 3 tokens
+        let tokens = vec![make_txxt_marker(0), make_whitespace(2), make_text("x", 3)];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("must have at least 5 tokens"));
+    }
+
+    #[test]
+    fn test_parse_annotation_components_missing_opening_marker() {
+        // Input doesn't start with TxxtMarker
+        let tokens = vec![
+            make_text("label", 0),
+            make_whitespace(5),
+            make_txxt_marker(6),
+            make_whitespace(8),
+            make_txxt_marker(9),
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("must start with TxxtMarker"));
+    }
+
+    #[test]
+    fn test_parse_annotation_components_missing_closing_marker() {
+        // Input has only one TxxtMarker
+        let tokens = vec![
+            make_txxt_marker(0),
+            make_whitespace(2),
+            make_text("label", 3),
+            make_whitespace(8),
+            make_text("more", 9),
+        ];
+
+        let result = parse_annotation_components(&tokens);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("closing TxxtMarker"));
+    }
+
+    // Context-aware detection tests
+
+    fn make_colon(col: usize) -> ScannerToken {
+        ScannerToken::Colon {
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + 1,
+                },
+            },
+        }
+    }
+
+    fn make_blank_line() -> Vec<ScannerToken> {
+        vec![make_whitespace(0)]
+    }
+
+    fn make_indented_line() -> Vec<ScannerToken> {
+        vec![
+            make_whitespace(0),
+            make_whitespace(1),
+            make_text("content", 2),
+        ]
+    }
+
+    #[test]
+    fn test_parse_context_allows_sessions() {
+        assert!(ParseContext::DocumentRoot.allows_sessions());
+        assert!(ParseContext::SessionContainer.allows_sessions());
+        assert!(!ParseContext::ContentContainer.allows_sessions());
+        assert!(!ParseContext::ListContent.allows_sessions());
+    }
+
+    #[test]
+    fn test_parse_context_allows_definitions() {
+        assert!(ParseContext::DocumentRoot.allows_definitions());
+        assert!(ParseContext::SessionContainer.allows_definitions());
+        assert!(ParseContext::ContentContainer.allows_definitions());
+        assert!(!ParseContext::ListContent.allows_definitions());
+    }
+
+    #[test]
+    fn test_is_session_start_in_document_root() {
+        let current = vec![make_text("Session Title", 0)];
+        let next = Some(make_blank_line());
+        let after_next = Some(make_indented_line());
+
+        assert!(is_session_start(
+            &current,
+            next.as_deref(),
+            after_next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_session_start_in_content_container() {
+        // Same pattern but wrong context - should fail
+        let current = vec![make_text("Title", 0)];
+        let next = Some(make_blank_line());
+        let after_next = Some(make_indented_line());
+
+        assert!(!is_session_start(
+            &current,
+            next.as_deref(),
+            after_next.as_deref(),
+            ParseContext::ContentContainer
+        ));
+    }
+
+    #[test]
+    fn test_is_session_start_no_blank_line() {
+        // Missing blank line - should fail
+        let current = vec![make_text("Title", 0)];
+        let next = Some(make_indented_line()); // Not blank!
+        let after_next = Some(make_indented_line());
+
+        assert!(!is_session_start(
+            &current,
+            next.as_deref(),
+            after_next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_definition_start_with_colon() {
+        let current = vec![make_text("Term", 0), make_colon(4)];
+        let next = Some(make_indented_line());
+
+        assert!(is_definition_start(
+            &current,
+            next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_definition_start_in_list_content() {
+        // Definitions not allowed in list content
+        let current = vec![make_text("Term", 0), make_colon(4)];
+        let next = Some(make_indented_line());
+
+        assert!(!is_definition_start(
+            &current,
+            next.as_deref(),
+            ParseContext::ListContent
+        ));
+    }
+
+    #[test]
+    fn test_is_definition_start_with_blank_line() {
+        // Definition requires immediate content (no blank line)
+        let current = vec![make_text("Term", 0), make_colon(4)];
+        let next = Some(make_blank_line());
+
+        assert!(!is_definition_start(
+            &current,
+            next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_paragraph_line_simple() {
+        let line = vec![make_text("Some text", 0)];
+
+        assert!(is_paragraph_line(&line, ParseContext::DocumentRoot));
+        assert!(is_paragraph_line(&line, ParseContext::ContentContainer));
+    }
+
+    #[test]
+    fn test_is_paragraph_line_with_definition_marker() {
+        // Line ending with colon is not a paragraph
+        let line = vec![make_text("Term", 0), make_colon(4)];
+
+        assert!(!is_paragraph_line(&line, ParseContext::DocumentRoot));
+    }
+
+    #[test]
+    fn test_is_paragraph_line_blank() {
+        // Blank lines are not paragraphs
+        let line = make_blank_line();
+
+        assert!(!is_paragraph_line(&line, ParseContext::DocumentRoot));
+    }
+}

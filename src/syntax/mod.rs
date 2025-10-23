@@ -34,11 +34,15 @@ pub mod verbatim_scanning;
 // Supporting modules
 pub mod core;
 pub mod elements;
+pub mod line_classification;
 
 // Re-export main interfaces
 pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};
 pub use tokenization::Lexer;
 pub use verbatim_scanning::{VerbatimBlock, VerbatimScanner, VerbatimType};
+
+// Re-export line classification functions
+pub use line_classification::{is_blank_line, is_definition_marker};
 
 // Re-export formatting functionality
 pub use elements::formatting::{read_inline_delimiter, InlineDelimiterLexer};

@@ -330,7 +330,8 @@ fn test_verbatim_block_v2_with_parameters() {
             },
         },
         ScannerToken::VerbatimBlockEnd {
-            label_raw: "python:version=3.11,style=pep8".to_string(),
+            // New grammar (issue #139): whitespace separator instead of colon
+            label_raw: "python version=3.11,style=pep8".to_string(),
             span: SourceSpan {
                 start: Position { row: 2, column: 0 },
                 end: Position { row: 3, column: 0 },

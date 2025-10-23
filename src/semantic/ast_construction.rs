@@ -558,27 +558,15 @@ impl<'a> AstConstructor<'a> {
 
         // Match PlainTextLine tokens
         if let HighLevelToken::PlainTextLine { .. } = token {
-            // Collect consecutive PlainTextLine tokens (no blank lines allowed)
-            let mut paragraph_lines = Vec::new();
+            // Use extracted block grouping function to collect consecutive text lines
+            let (paragraph_lines, consumed) =
+                crate::syntax::block_grouping::group_contiguous_text_lines(
+                    self.tokens,
+                    self.position,
+                );
 
-            while self.position < self.tokens.len() {
-                let token = &self.tokens[self.position];
-
-                match token {
-                    HighLevelToken::PlainTextLine { .. } => {
-                        paragraph_lines.push(token.clone());
-                        self.position += 1;
-                    }
-                    HighLevelToken::BlankLine { .. } => {
-                        // Blank line terminates paragraph
-                        break;
-                    }
-                    _ => {
-                        // Any other token terminates paragraph
-                        break;
-                    }
-                }
-            }
+            // Advance position by the number of tokens consumed
+            self.position += consumed;
 
             // Delegate to paragraph element constructor with all lines
             let paragraph_block =

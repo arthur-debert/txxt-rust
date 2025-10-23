@@ -192,8 +192,8 @@ This document defines the low-level scanner tokens used in the txxt format. Thes
 
     5.2. Definition Tokens
 
-        Input: `Term: param ::`
-        Tokens: `Text` `Colon` `Text` `Whitespace` `TxxtMarker`
+        Input: `Term : param :`
+        Tokens: `Text` `Colon` `Whitespace` `Text` `Whitespace` `Colon`
 
     5.3. Verbatim Block Tokens
 

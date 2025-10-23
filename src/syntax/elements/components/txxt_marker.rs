@@ -1,9 +1,14 @@
 //! TXXT Marker (::) detection and classification
 //!
-//! Handles detection of :: tokens and classification based on context:
-//! - Annotation: :: label :: or :: label:params ::
-//! - Definition: term :: or term:params ::
-//! - Standalone: isolated :: tokens
+//! After grammar simplification (issue #139), :: is used ONLY for annotations:
+//! - Annotation: `:: label ::` or `:: label params ::` (no colon before params)
+//! - Annotation: `:: params ::` (params-only, no label)
+//!
+//! Definitions now use single colon at end of term:
+//! - Definition: `Term:` followed by immediate indented content
+//! - Distinguished from sessions by absence of blank line before content
+//!
+//! This file maintains backward compatibility code but documents the new usage.
 
 use crate::cst::{Position, ScannerToken, SourceSpan};
 use crate::syntax::core::patterns::get_current_line;

@@ -1,8 +1,10 @@
 //! Tests for DefinitionMarker token recognition using rstest and proptest
 //!
 //! Tests both successful parsing and failure cases for definition markers.
-//! Definition markers are :: at the end of lines (term ::) as opposed to
-//! annotation markers which are :: label :: patterns.
+//! After grammar simplification (issue #139):
+//! - Definition markers are single : at the end of lines (term:)
+//! - Annotation markers use :: label :: patterns
+//! - The :: (double colon) is ONLY for annotations, NOT definitions
 
 use proptest::prelude::*;
 use rstest::rstest;
@@ -14,23 +16,23 @@ use txxt::syntax::tokenize;
 // =============================================================================
 
 #[rstest]
-#[case("term ::")]
-#[case("definition ::")]
-#[case("concept ::")]
+#[case("term:")]
+#[case("definition:")]
+#[case("concept:")]
 fn test_definition_marker_isolated_passing(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should have: TEXT, DEFINITION_MARKER, EOF
+    // Should have: TEXT, COLON, EOF
     assert!(tokens.len() >= 3, "Should have at least 3 tokens");
 
-    // Find the definition marker
-    let definition_marker = tokens
+    // Find the colon marker
+    let colon_marker = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
-        .expect("Should find TxxtMarker token");
+        .find(|token| matches!(token, ScannerToken::Colon { .. }))
+        .expect("Should find Colon token");
 
-    match definition_marker {
-        ScannerToken::TxxtMarker { span } => {
+    match colon_marker {
+        ScannerToken::Colon { span } => {
             assert!(span.start.column > 0); // Should not be at start of line
         }
         _ => unreachable!(),
@@ -46,9 +48,9 @@ fn test_definition_marker_isolated_passing(#[case] input: &str) {
 }
 
 #[rstest]
-#[case("term::\n", "term")]
-#[case("definition::\n", "definition")]
-#[case("my concept::\n", "my")]
+#[case("term:\n", "term")]
+#[case("definition:\n", "definition")]
+#[case("my concept:\n", "my")]
 fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_text: &str) {
     let tokens = tokenize(input);
 
@@ -67,15 +69,15 @@ fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_tex
         _ => unreachable!(),
     }
 
-    // Find the definition marker
-    let definition_marker = tokens
+    // Find the colon marker
+    let colon_marker = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
-        .expect("Should find DefinitionMarker token");
+        .find(|token| matches!(token, ScannerToken::Colon { .. }))
+        .expect("Should find Colon token");
 
-    match definition_marker {
-        ScannerToken::TxxtMarker { span: _ } => {
-            // TxxtMarker always has content "::"
+    match colon_marker {
+        ScannerToken::Colon { span: _ } => {
+            // Colon always has content ":"
         }
         _ => unreachable!(),
     }
@@ -90,8 +92,8 @@ fn test_definition_marker_with_newline(#[case] input: &str, #[case] expected_tex
 }
 
 #[rstest]
-#[case("term :: content after", "term", "content")]
-#[case("definition :: more text", "definition", "more")]
+#[case("term: content after", "term", "content")]
+#[case("definition: more text", "definition", "more")]
 fn test_definition_marker_with_content_after(
     #[case] input: &str,
     #[case] first_text: &str,
@@ -107,13 +109,13 @@ fn test_definition_marker_with_content_after(
 
     assert!(matches!(first_token, ScannerToken::Text { .. }));
 
-    // Find definition marker
-    let definition_marker = tokens
+    // Find colon marker
+    let colon_marker = tokens
         .iter()
-        .find(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
-        .expect("Should find DefinitionMarker token");
+        .find(|token| matches!(token, ScannerToken::Colon { .. }))
+        .expect("Should find Colon token");
 
-    assert!(matches!(definition_marker, ScannerToken::TxxtMarker { .. }));
+    assert!(matches!(colon_marker, ScannerToken::Colon { .. }));
 
     // Find second text token
     let second_token = tokens
@@ -176,22 +178,23 @@ fn test_definition_marker_failing_invalid_patterns(#[case] input: &str) {
 }
 
 #[rstest]
-#[case("text")] // No double colon
-#[case("term:")] // Single colon
+#[case("text")] // No colon
 #[case("normal text")] // Regular text
+#[case("term ::")] // Old syntax - now this is just text + TxxtMarker (annotation start)
 fn test_definition_marker_failing_no_marker(#[case] input: &str) {
     let tokens = tokenize(input);
 
-    // Should NOT contain any DEFINITION_MARKER tokens
-    let definition_tokens: Vec<_> = tokens
+    // Should NOT contain any Colon tokens (single : for definitions)
+    // Note: "term ::" will have TxxtMarker tokens (for annotations), not Colon tokens
+    let colon_tokens: Vec<_> = tokens
         .iter()
-        .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
+        .filter(|token| matches!(token, ScannerToken::Colon { .. }))
         .collect();
 
     assert_eq!(
-        definition_tokens.len(),
+        colon_tokens.len(),
         0,
-        "Input '{}' should not produce DEFINITION_MARKER tokens",
+        "Input '{}' should not produce Colon tokens",
         input
     );
 }
@@ -203,15 +206,15 @@ fn test_definition_marker_failing_no_marker(#[case] input: &str) {
 proptest! {
     #[test]
     fn test_definition_marker_properties(term in "[a-zA-Z][a-zA-Z0-9 ]{1,20}") {
-        let input = format!("{} ::", term.trim());
+        let input = format!("{}:", term.trim());
         let tokens = tokenize(&input);
 
-        // Should have at least one DEFINITION_MARKER token
-        let definition_tokens: Vec<_> = tokens.iter()
-            .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
+        // Should have at least one Colon token (definition marker)
+        let colon_tokens: Vec<_> = tokens.iter()
+            .filter(|token| matches!(token, ScannerToken::Colon { .. }))
             .collect();
 
-        prop_assert_eq!(definition_tokens.len(), 1, "Should produce exactly 1 DEFINITION_MARKER token");
+        prop_assert_eq!(colon_tokens.len(), 1, "Should produce exactly 1 Colon token");
 
         // Should have at least one TEXT token for the term
         let text_tokens: Vec<_> = tokens.iter()
@@ -223,15 +226,15 @@ proptest! {
 
     #[test]
     fn test_definition_marker_span_consistency(term in "[a-zA-Z]+") {
-        let input = format!("{} ::", term);
+        let input = format!("{}:", term);
         let tokens = tokenize(&input);
 
         for token in &tokens {
-            if let ScannerToken::TxxtMarker { span } = token {
+            if let ScannerToken::Colon { span } = token {
                 // Span should be consistent with content length
                 prop_assert_eq!(
                     span.end.column - span.start.column,
-                    2, // TxxtMarker always has content "::"
+                    1, // Colon always has content ":"
                     "Span length should match content length"
                 );
 
@@ -239,25 +242,25 @@ proptest! {
                 prop_assert!(span.start.column <= span.end.column);
                 prop_assert!(span.start.row <= span.end.row);
 
-                // Content should always be "::"
-                prop_assert_eq!("::", "::");
+                // Content should always be ":"
+                prop_assert_eq!(":", ":");
             }
         }
     }
 
     #[test]
     fn test_definition_vs_annotation_distinction(label in "[a-zA-Z]+") {
-        // Test definition pattern
-        let def_input = format!("{} ::", label);
+        // Test definition pattern (new grammar: single colon)
+        let def_input = format!("{}:", label);
         let def_tokens = tokenize(&def_input);
 
-        let def_markers: Vec<_> = def_tokens.iter()
-            .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
+        let def_colons: Vec<_> = def_tokens.iter()
+            .filter(|token| matches!(token, ScannerToken::Colon { .. }))
             .collect();
 
-        prop_assert_eq!(def_markers.len(), 1, "Definition pattern should produce DEFINITION_MARKER");
+        prop_assert_eq!(def_colons.len(), 1, "Definition pattern should produce single Colon token");
 
-        // Test annotation pattern
+        // Test annotation pattern (still uses ::)
         let ann_input = format!(":: {} ::", label);
         let ann_tokens = tokenize(&ann_input);
 
@@ -265,15 +268,14 @@ proptest! {
             .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
             .collect();
 
-        prop_assert!(ann_markers.len() >= 2, "Annotation pattern should produce ANNOTATION_MARKERs");
+        prop_assert_eq!(ann_markers.len(), 2, "Annotation pattern should produce 2 TxxtMarker tokens (opening and closing)");
 
-        let ann_txxt_markers: Vec<_> = ann_tokens.iter()
-            .filter(|token| matches!(token, ScannerToken::TxxtMarker { .. }))
+        // Verify annotations don't produce Colon tokens (they produce TxxtMarker)
+        let ann_colons: Vec<_> = ann_tokens.iter()
+            .filter(|token| matches!(token, ScannerToken::Colon { .. }))
             .collect();
 
-        // With the new scanner-level unification, annotation patterns produce TxxtMarker tokens
-        // The distinction between annotation and definition is handled at the semantic level
-        prop_assert_eq!(ann_txxt_markers.len(), 2, "Annotation pattern should produce 2 TxxtMarker tokens (opening and closing)");
+        prop_assert_eq!(ann_colons.len(), 0, "Annotation pattern should NOT produce Colon tokens");
     }
 }
 
@@ -284,7 +286,7 @@ mod helper_tests {
     #[test]
     fn test_framework_setup() {
         // Verify our test framework is working
-        let tokens = tokenize("term ::");
+        let tokens = tokenize("term:");
         assert!(!tokens.is_empty());
     }
 }

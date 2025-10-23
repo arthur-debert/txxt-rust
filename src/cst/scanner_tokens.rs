@@ -122,6 +122,7 @@ pub enum ScannerToken {
     RightParen { span: SourceSpan },
 
     /// Colon character (:)
+    /// After grammar simplification (issue #139): Single colon at end of line indicates definition
     Colon { span: SourceSpan },
 
     /// Equals character (=)
@@ -131,6 +132,8 @@ pub enum ScannerToken {
     Comma { span: SourceSpan },
 
     /// TXXT marker (::) - fundamental structural element
+    /// After grammar simplification (issue #139): Used ONLY for annotations
+    /// Definitions now use single Colon token at end of term
     TxxtMarker { span: SourceSpan },
 
     /// Identifier (variable names, labels)

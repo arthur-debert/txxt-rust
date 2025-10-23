@@ -9,20 +9,20 @@ docs/proposals/simplifying.txxt
 
 1. Motivation: The Trouble with a Monolith
 
-Our current parser, while it works, is a complex beast. It's a single, large, stateful machine that does many things at once: it manages indentation state, looks ahead for tokens, and builds the AST all in 2 or three passes, which often intermingle.
+	Our current parser, while it works, is a complex beast. It's a single, large, stateful machine that does many things at once: it manages indentation state, looks ahead for tokens, and builds the AST all in 2 or three passes, which often intermingle.
 
-This has some real drawbacks:
-- Hard to Debug: When something goes wrong, it's tough to pinpoint where. You end up needing to log a long list of branching decisions and conditionals to trace the logic.
-- Hard to Test: It's difficult to test one specific piece of logic (like just session detection) in isolation. Most of our tests have to be broad, end-to-end integration tests.
-- Hard to Maintain: Changing one part of the logic can have unforeseen consequences elsewhere. The cognitive load for understanding the whole machine is high.
+	This has some real drawbacks:
+	- Hard to Debug: When something goes wrong, it's tough to pinpoint where. You end up needing to log a long list of branching decisions and conditionals to trace the logic.
+	- Hard to Test: It's difficult to test one specific piece of logic (like just session detection) in isolation. Most of our tests have to be broad, end-to-end integration tests.
+	- Hard to Maintain: Changing one part of the logic can have unforeseen consequences elsewhere. The cognitive load for understanding the whole machine is high.
 
 2. The Core Idea: A Pipeline of Simple Functions
 
-What if we stopped thinking of the parser as one big step, and instead thought of it as a pipeline of many small, simple, and focused transformations?
+	What if we stopped thinking of the parser as one big step, and instead thought of it as a pipeline of many small, simple, and focused transformations?
 
-The idea is to move to a "Progressive Refinement" architecture. Each step in the pipeline would be a pure function that takes a list of items, transforms it into a slightly higher level of abstraction, and passes it to the next stage.
+	The idea is to move to a "Progressive Refinement" architecture. Each step in the pipeline would be a pure function that takes a list of items, transforms it into a slightly higher level of abstraction, and passes it to the next stage.
 
-`String -> [Lines] -> [TaggedLines] -> [Lines + Indents] -> [HighLevelLines] -> AST`
+	`String -> [Lines] -> [TaggedLines] -> [Lines + Indents] -> [HighLevelLines] -> AST`
 
 The beauty of this is that each function is incredibly simple and easy to understand, test, and debug on its own.
 

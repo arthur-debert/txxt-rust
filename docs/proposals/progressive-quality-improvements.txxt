@@ -1,0 +1,360 @@
+:: title :: Proposal: Progressive Quality Improvements Without Rewrite
+:: author :: Claude Code Analysis
+:: date :: 2025-10-22
+
+This proposal offers a pragmatic alternative to the functional pipeline architecture. The goal is to achieve the same benefits (testability, debuggability, maintainability) through incremental refactoring rather than wholesale rewrite.
+
+1. Core Insight: The Problem Isn't Architecture
+
+	After analyzing the current parser (5,151 lines across 52 files), the core issue isn't architectural complexity. The semantic analyzer is actually quite readable with minimal state (one String for pending_indentation).
+
+	The real problems are:
+
+	a) Grammar Inconsistency
+		- Definitions use `Term ::` syntax
+		- Verbatim blocks use trailing `:: label : params ::`
+		- Annotations use `:: label :: content`
+		- Sessions distinguished by... unclear rules
+
+		This forces parser complexity. Fix the grammar first (via simplifying.txxt), THEN see if parser naturally simplifies.
+
+	b) Lack of Testable Units
+		- Large functions with mixed concerns
+		- Pure logic buried in stateful loops
+		- No intermediate types for reasoning
+
+		Solution: Extract pure functions, not rewrite architecture.
+
+2. Recommended Approach: Three Phases
+
+	2.1. Phase 1: Implement Grammar Unification (simplifying.txxt)
+
+		Before touching parser architecture, implement the unified annotation syntax:
+		- Sessions: Title + mandatory blank line + content
+		- Definitions: Term + colon + immediate content (no blank)
+		- Verbatim: Like definitions but with mandatory trailing annotation
+		- Annotations: Unified `:: label key=value ::` syntax
+
+		Expected Outcome: Parser naturally becomes simpler because grammar is clearer.
+
+		Estimated Effort: 2-3 weeks
+		Risk: Medium (spec changes affect all downstream code)
+		Benefit: High (addresses root cause of complexity)
+
+	2.2. Phase 2: Extract Pure Functions (No Architecture Change)
+
+		Systematically extract testable units from existing code. The current parser CAN be made testable without rewriting it.
+
+		Strategy:
+		- Identify decision points in current code
+		- Extract them as pure, named functions
+		- Add unit tests for each
+		- Keep main parser structure unchanged
+
+		Expected Outcome: 80% of parser logic becomes unit-testable.
+
+		Estimated Effort: 1-2 weeks
+		Risk: Low (incremental changes, easy to revert)
+		Benefit: High (testability without rewrite cost)
+
+	2.3. Phase 3: Evaluate Multi-Pass Need
+
+		After Phase 1 and 2, reassess:
+		- Does the simplified grammar naturally decompose into passes?
+		- Are there clear intermediate representations?
+		- Would multi-pass actually help or just add overhead?
+
+		Only proceed with multi-pass if evidence clearly supports it.
+
+		Expected Outcome: Data-driven decision about architecture.
+
+		Estimated Effort: 1 week evaluation
+		Risk: Low (evaluation only, no commitment)
+		Benefit: Medium (prevents premature optimization)
+
+3. Phase 2 Details: Concrete Extraction Examples
+
+	Here are specific functions to extract from the current codebase. These are high-value targets that will immediately improve testability.
+
+	3.1. Line Classification Functions
+
+		Extract decision logic for identifying line types:
+
+		fn is_blank_line(tokens: &[ScannerToken]) -> bool
+
+		fn is_subject_line(tokens: &[ScannerToken]) -> bool
+			Check if line matches subject pattern (ends with ::)
+
+		fn is_sequence_line(tokens: &[ScannerToken]) -> bool
+			Check if line starts with sequence marker
+
+		fn has_trailing_colon(tokens: &[ScannerToken]) -> bool
+			Check if line ends with colon (definition or verbatim)
+
+		fn is_annotation_line(tokens: &[ScannerToken]) -> bool
+			Check if line matches :: label :: pattern
+
+	3.2. Indentation Analysis Functions
+
+		Extract the "wall" logic into pure functions:
+
+		fn extract_leading_whitespace(tokens: &[ScannerToken]) -> Option<String>
+			Get the whitespace before content starts
+
+		fn calculate_indentation_level(whitespace: &str, base_indent: usize) -> usize
+			Convert whitespace to semantic indent level
+
+		fn is_consistently_indented(lines: &[Line], expected_level: usize) -> bool
+			Check if all lines in block maintain indent level
+
+		struct Line {
+		    indentation: String,
+		    tokens: Vec<ScannerToken>,
+		}
+
+	3.3. Verbatim Boundary Detection
+
+		Extract verbatim block detection logic:
+
+		fn find_verbatim_opener(tokens: &[ScannerToken], start: usize) -> Option<VerbatimStart>
+			Detect start of verbatim block
+
+		fn find_verbatim_closer(tokens: &[ScannerToken], start: usize) -> Option<usize>
+			Find matching close annotation
+
+		fn extract_verbatim_metadata(annotation: &[ScannerToken]) -> Result<VerbatimMeta, ParseError>
+			Parse language, parameters from trailing annotation
+
+		struct VerbatimStart {
+		    title_end: usize,
+		    content_start: usize,
+		}
+
+		struct VerbatimMeta {
+		    language: String,
+		    parameters: HashMap<String, String>,
+		}
+
+	3.4. Session vs Definition Discrimination
+
+		After simplifying.txxt lands, this becomes trivial:
+
+		fn is_session_start(
+		    line_tokens: &[ScannerToken],
+		    next_line: Option<&[ScannerToken]>
+		) -> bool
+			Title/heading followed by blank line = session
+			Title/heading + colon + immediate content = definition
+
+		fn is_definition_start(
+		    line_tokens: &[ScannerToken],
+		    next_line: Option<&[ScannerToken]>
+		) -> bool
+			Colon-terminated line with immediate indented content
+
+		Critical: These only work cleanly AFTER grammar unification.
+
+	3.5. Block Grouping Functions
+
+		Extract logic for grouping related lines:
+
+		fn group_contiguous_text_lines(tokens: &[HighLevelToken]) -> Vec<TextBlock>
+			Group consecutive plain text lines into paragraphs
+
+		fn find_block_end(
+		    tokens: &[HighLevelToken],
+		    start: usize,
+		    indent_level: usize
+		) -> usize
+			Find where an indented block ends (at dedent or EOF)
+
+		fn collect_until_dedent(
+		    tokens: &[HighLevelToken],
+		    start: usize
+		) -> Vec<HighLevelToken>
+			Collect all tokens until dedent token found
+
+		struct TextBlock {
+		    lines: Vec<String>,
+		    span: SourceSpan,
+		}
+
+	3.6. Parameter Parsing Functions
+
+		These are already well-separated, but extract for consistency:
+
+		fn extract_parameters(tokens: &[ScannerToken]) -> HashMap<String, String>
+			Parse key=value pairs from token sequence
+
+		fn validate_parameter_key(key: &str) -> Result<(), ValidationError>
+			Check if parameter key is valid identifier
+
+		fn parse_parameter_value(value: &str) -> ParameterValue
+			Parse value (string, number, boolean, list)
+
+	3.7. List Detection and Analysis
+
+		Extract sequence marker logic:
+
+		fn detect_sequence_marker_type(token: &ScannerToken) -> Option<SequenceMarkerType>
+			Classify marker (bullet, number, letter, roman)
+
+		fn infer_list_style(markers: &[SequenceMarkerType]) -> ListStyle
+			Determine if list is ordered, unordered, or mixed
+
+		fn calculate_sequence_indent(
+		    marker_end: usize,
+		    content_start: usize
+		) -> usize
+			Compute indent for wrapped list content
+
+	3.8. Annotation Processing
+
+		Extract annotation-specific logic:
+
+		fn parse_annotation_label(tokens: &[ScannerToken]) -> Result<String, ParseError>
+			Extract label from annotation
+
+		fn is_verbatim_annotation(label: &str) -> bool
+			Check if annotation indicates verbatim content
+
+		fn is_definition_annotation(label: &str) -> bool
+			Check if annotation is def.* namespaced
+
+		fn split_annotation_content(
+		    tokens: &[ScannerToken]
+		) -> (Option<String>, HashMap<String, String>)
+			Separate label from parameters in annotation
+
+4. Testing Strategy for Extracted Functions
+
+	Each extracted function should have:
+
+	4.1. Property Tests
+		Use proptest for invariants:
+		- is_blank_line(tokens) implies tokens only contain whitespace/newline
+		- find_block_end returns index >= start
+		- extract_parameters produces valid key=value map
+
+	4.2. Example-Based Tests
+		Test specific known cases:
+		- Blank line variations (empty, spaces only, tabs only)
+		- Edge cases (line with just ::, just a colon, etc.)
+		- Valid vs invalid inputs
+
+	4.3. Roundtrip Tests
+		For reversible operations:
+		- parse_parameter_value + display = identity
+		- extract_leading_whitespace + content = original line
+
+	Example test structure:
+
+		#[cfg(test)]
+		mod tests {
+		    use super::*;
+		    use proptest::prelude::*;
+
+		    #[test]
+		    fn test_blank_line_empty() { ... }
+
+		    #[test]
+		    fn test_blank_line_spaces_only() { ... }
+
+		    proptest! {
+		        #[test]
+		        fn test_blank_line_invariant(s in "\\s*") { ... }
+		    }
+		}
+
+5. Implementation Order
+
+	Extract in this order to maximize value:
+
+	Priority 1 (High Value, Low Risk):
+	- Line classification functions (3.1)
+	- Block grouping functions (3.5)
+	- These are pure decision logic with no side effects
+
+	Priority 2 (High Value, Medium Risk):
+	- Indentation analysis (3.2)
+	- Session vs Definition discrimination (3.4)
+	- These touch core parsing logic but are well-scoped
+
+	Priority 3 (Medium Value, Low Risk):
+	- Verbatim boundary detection (3.3)
+	- List detection (3.7)
+	- Annotation processing (3.8)
+	- These are already somewhat isolated
+
+6. Success Criteria
+
+	After Phase 2 completion, we should have:
+
+	Quantitative:
+	- At least 15 new pure functions with clear signatures
+	- Unit test coverage for each extracted function
+	- No regression in existing integration tests
+	- Parser logic reduced by extracting ~500 lines into testable units
+
+	Qualitative:
+	- New developer can understand one function without reading entire parser
+	- Bug fixes can be made by changing one small function
+	- Tests clearly document expected behavior
+	- Debugging: "which function made wrong decision?" not "which line in 200-line loop?"
+
+7. Why This Beats a Rewrite
+
+	7.1. Risk Profile
+		- Rewrite: All-or-nothing, months of work, easy to abandon
+		- Extraction: Incremental, each step adds value, low sunk cost
+
+	7.2. Learning
+		- Rewrite: Discover problems when deep into new architecture
+		- Extraction: Learn what's actually complex while improving current code
+
+	7.3. Delivery
+		- Rewrite: No user value until complete
+		- Extraction: Each function extraction improves codebase immediately
+
+	7.4. Validation
+		- Rewrite: Architecture decision made up front, hope it works
+		- Extraction: Discover natural boundaries empirically
+
+8. When to Consider Multi-Pass
+
+	Only consider multi-pass architecture if Phase 1+2 reveals:
+
+	Evidence-Based Criteria:
+	- Clear natural split between "line classification" and "tree building" passes
+	- Intermediate representation has name and purpose (not just "Pass 2 output")
+	- >30% of bugs involve state contamination between parsing phases
+	- Performance profiling shows single-pass causes unnecessary backtracking
+
+	Counter-Indicators (Don't multi-pass if):
+	- Parser is already clear after function extraction
+	- Intermediate representation is artificial (exists only for architecture)
+	- Grammar requires lookahead/lookback that spans "passes"
+	- No empirical evidence of state-related bugs
+
+9. Conclusion
+
+	Don't rewrite the parser. Instead:
+
+	1. Fix the grammar first (simplifying.txxt)
+	   - This addresses root cause of parser complexity
+	   - Grammar inconsistency forces parser complexity
+
+	2. Extract pure functions from existing parser
+	   - Achieves testability without rewrite cost
+	   - Incremental, low-risk, immediate value
+	   - Reveals natural structure empirically
+
+	3. Only then evaluate architectural changes
+	   - Data-driven decision based on real experience
+	   - Avoid premature optimization
+	   - Avoid aesthetic-driven rewrites
+
+	The functional pipeline proposal is 70% aesthetic preference, 30% real benefit. Get the 30% through extraction, skip the 70% rewrite cost.
+
+	Start with Phase 1 (grammar unification), then Phase 2 (function extraction). The parser will naturally become clearer without architectural revolution.
+

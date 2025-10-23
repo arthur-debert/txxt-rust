@@ -31,6 +31,101 @@ pub struct AnnotationComponents {
     pub content_start: Option<usize>,
 }
 
+/// Parsing context for context-aware element detection
+///
+/// After grammar simplification (issue #139), element types are distinguished by:
+/// - Colon presence/absence at end of line
+/// - Blank line presence/absence before content
+/// - Indentation presence/absence after title
+///
+/// However, some elements (like sessions) are only valid in specific containers.
+/// ParseContext tracks where we are in the document structure to enable
+/// context-aware detection.
+///
+/// # Context Rules
+///
+/// - **Sessions**: Only allowed in DocumentRoot and SessionContainer
+/// - **Definitions**: Allowed in any container (but not inside lists for now)
+/// - **Paragraphs**: Allowed in ContentContainer and ListContent
+/// - **Lists**: Allowed in ContentContainer and ListContent
+///
+/// # Unambiguous Patterns
+///
+/// Within allowed contexts, patterns are unambiguous:
+/// - `Title\n\n<indent>` → Session (blank line + indent)
+/// - `Term:\n<indent>` → Definition (colon + immediate indent, no blank)
+/// - `Text\n<indent>` → Paragraph continuation
+///
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParseContext {
+    /// Top-level document context
+    /// Allows: Sessions, Definitions, Paragraphs, Lists, Annotations
+    DocumentRoot,
+
+    /// Inside a session container
+    /// Allows: Sessions (nested), Definitions, Paragraphs, Lists, Annotations
+    SessionContainer,
+
+    /// Inside a definition or other content container
+    /// Allows: Definitions, Paragraphs, Lists, Annotations
+    /// Does NOT allow: Sessions
+    ContentContainer,
+
+    /// Inside a list item
+    /// Allows: Paragraphs, Lists (nested), Annotations
+    /// Does NOT allow: Sessions, Definitions (for now)
+    ListContent,
+}
+
+impl ParseContext {
+    /// Check if sessions are allowed in this context
+    ///
+    /// Sessions can only appear at document root or inside other sessions.
+    /// They cannot appear in definitions, paragraphs, or list items.
+    pub fn allows_sessions(self) -> bool {
+        matches!(
+            self,
+            ParseContext::DocumentRoot | ParseContext::SessionContainer
+        )
+    }
+
+    /// Check if definitions are allowed in this context
+    ///
+    /// Definitions are allowed everywhere except inside list items (for now).
+    pub fn allows_definitions(self) -> bool {
+        !matches!(self, ParseContext::ListContent)
+    }
+
+    /// Check if paragraphs are allowed in this context
+    ///
+    /// Paragraphs are allowed in all contexts.
+    pub fn allows_paragraphs(self) -> bool {
+        true
+    }
+
+    /// Check if lists are allowed in this context
+    ///
+    /// Lists are allowed in all contexts.
+    pub fn allows_lists(self) -> bool {
+        true
+    }
+
+    /// Get the context for parsing content inside a session
+    pub fn session_content_context(self) -> ParseContext {
+        ParseContext::SessionContainer
+    }
+
+    /// Get the context for parsing content inside a definition
+    pub fn definition_content_context(self) -> ParseContext {
+        ParseContext::ContentContainer
+    }
+
+    /// Get the context for parsing content inside a list item
+    pub fn list_item_content_context(self) -> ParseContext {
+        ParseContext::ListContent
+    }
+}
+
 /// Parse annotation token structure into components
 ///
 /// Pure function that validates annotation structure and extracts component positions.
@@ -124,6 +219,161 @@ fn find_closing_marker(tokens: &[ScannerToken]) -> Result<usize, String> {
         }
     }
     Err("Annotation must have closing TxxtMarker".to_string())
+}
+
+/// Detect if a line pattern represents a session start (context-aware)
+///
+/// After grammar simplification (issue #139), sessions are identified by:
+/// - Title line (text without colon at end)
+/// - Followed by blank line
+/// - Followed by indented content
+///
+/// This pattern is ONLY valid in contexts that allow sessions (DocumentRoot, SessionContainer).
+/// In other contexts, the same pattern would be interpreted as a paragraph.
+///
+/// # Arguments
+/// * `current_line` - Tokens for the current line
+/// * `next_line` - Tokens for the next line (should be blank for session)
+/// * `line_after_next` - Tokens for the line after the blank line (should be indented)
+/// * `context` - Current parsing context
+///
+/// # Returns
+/// * `true` if this is a session start pattern AND context allows sessions
+///
+/// # Examples
+/// ```text
+/// In DocumentRoot context:
+///   Session Title
+///   <blank>
+///       Content
+/// → Returns true (session allowed in DocumentRoot)
+///
+/// In ContentContainer context:
+///   Same pattern
+/// → Returns false (sessions not allowed in ContentContainer)
+/// ```
+pub fn is_session_start(
+    current_line: &[ScannerToken],
+    next_line: Option<&[ScannerToken]>,
+    line_after_next: Option<&[ScannerToken]>,
+    context: ParseContext,
+) -> bool {
+    // Sessions only allowed in specific contexts
+    if !context.allows_sessions() {
+        return false;
+    }
+
+    // Check current line is not a definition (no colon at end)
+    if crate::syntax::is_definition_marker(current_line) {
+        return false;
+    }
+
+    // Check current line has content (not blank)
+    if crate::syntax::is_blank_line(current_line) {
+        return false;
+    }
+
+    // Check next line is blank
+    if !next_line.is_some_and(crate::syntax::is_blank_line) {
+        return false;
+    }
+
+    // Check line after blank has indented content
+    // (This is a simplified check - full implementation would check indent level)
+    if let Some(tokens) = line_after_next {
+        if !tokens.is_empty() {
+            // In real implementation, would check for Indent token or leading whitespace
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Detect if a line pattern represents a definition start (context-aware)
+///
+/// After grammar simplification (issue #139), definitions are identified by:
+/// - Term line ending with single colon (:)
+/// - Followed immediately by indented content (no blank line)
+///
+/// This pattern is valid in most contexts except ListContent (for now).
+///
+/// # Arguments
+/// * `current_line` - Tokens for the current line (should end with colon)
+/// * `next_line` - Tokens for the next line (should be indented, not blank)
+/// * `context` - Current parsing context
+///
+/// # Returns
+/// * `true` if this is a definition start pattern AND context allows definitions
+///
+/// # Examples
+/// ```text
+/// Term:
+///     Definition content
+/// → Returns true if context allows definitions
+///
+/// Inside ListContent:
+///     Term:
+///         Content
+/// → Returns false (definitions not allowed in lists yet)
+/// ```
+pub fn is_definition_start(
+    current_line: &[ScannerToken],
+    next_line: Option<&[ScannerToken]>,
+    context: ParseContext,
+) -> bool {
+    // Definitions only allowed in specific contexts
+    if !context.allows_definitions() {
+        return false;
+    }
+
+    // Check current line ends with colon (definition marker)
+    if !crate::syntax::is_definition_marker(current_line) {
+        return false;
+    }
+
+    // Check next line is NOT blank (immediate content required)
+    if next_line.is_none_or(crate::syntax::is_blank_line) {
+        return false;
+    }
+
+    // Check next line has content (is indented)
+    // (In real implementation, would verify indent level)
+    next_line.is_some_and(|tokens| !tokens.is_empty())
+}
+
+/// Detect if a line pattern represents a paragraph continuation
+///
+/// Paragraphs are identified by:
+/// - Text line (no special markers)
+/// - Optionally followed by indented content (continuation)
+///
+/// This is the "default" interpretation when more specific patterns don't match.
+///
+/// # Arguments
+/// * `current_line` - Tokens for the current line
+/// * `context` - Current parsing context
+///
+/// # Returns
+/// * `true` if this line could be a paragraph (context allows paragraphs)
+pub fn is_paragraph_line(current_line: &[ScannerToken], context: ParseContext) -> bool {
+    // Paragraphs allowed in all contexts
+    if !context.allows_paragraphs() {
+        return false;
+    }
+
+    // Not a blank line
+    if crate::syntax::is_blank_line(current_line) {
+        return false;
+    }
+
+    // Not a definition marker
+    if crate::syntax::is_definition_marker(current_line) {
+        return false;
+    }
+
+    // Has some content
+    !current_line.is_empty()
 }
 
 /// High-level token analyzer for converting scanner tokens to high-level tokens
@@ -2158,5 +2408,156 @@ mod tests {
         let result = parse_annotation_components(&tokens);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("closing TxxtMarker"));
+    }
+
+    // Context-aware detection tests
+
+    fn make_colon(col: usize) -> ScannerToken {
+        ScannerToken::Colon {
+            span: SourceSpan {
+                start: Position {
+                    row: 0,
+                    column: col,
+                },
+                end: Position {
+                    row: 0,
+                    column: col + 1,
+                },
+            },
+        }
+    }
+
+    fn make_blank_line() -> Vec<ScannerToken> {
+        vec![make_whitespace(0)]
+    }
+
+    fn make_indented_line() -> Vec<ScannerToken> {
+        vec![
+            make_whitespace(0),
+            make_whitespace(1),
+            make_text("content", 2),
+        ]
+    }
+
+    #[test]
+    fn test_parse_context_allows_sessions() {
+        assert!(ParseContext::DocumentRoot.allows_sessions());
+        assert!(ParseContext::SessionContainer.allows_sessions());
+        assert!(!ParseContext::ContentContainer.allows_sessions());
+        assert!(!ParseContext::ListContent.allows_sessions());
+    }
+
+    #[test]
+    fn test_parse_context_allows_definitions() {
+        assert!(ParseContext::DocumentRoot.allows_definitions());
+        assert!(ParseContext::SessionContainer.allows_definitions());
+        assert!(ParseContext::ContentContainer.allows_definitions());
+        assert!(!ParseContext::ListContent.allows_definitions());
+    }
+
+    #[test]
+    fn test_is_session_start_in_document_root() {
+        let current = vec![make_text("Session Title", 0)];
+        let next = Some(make_blank_line());
+        let after_next = Some(make_indented_line());
+
+        assert!(is_session_start(
+            &current,
+            next.as_deref(),
+            after_next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_session_start_in_content_container() {
+        // Same pattern but wrong context - should fail
+        let current = vec![make_text("Title", 0)];
+        let next = Some(make_blank_line());
+        let after_next = Some(make_indented_line());
+
+        assert!(!is_session_start(
+            &current,
+            next.as_deref(),
+            after_next.as_deref(),
+            ParseContext::ContentContainer
+        ));
+    }
+
+    #[test]
+    fn test_is_session_start_no_blank_line() {
+        // Missing blank line - should fail
+        let current = vec![make_text("Title", 0)];
+        let next = Some(make_indented_line()); // Not blank!
+        let after_next = Some(make_indented_line());
+
+        assert!(!is_session_start(
+            &current,
+            next.as_deref(),
+            after_next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_definition_start_with_colon() {
+        let current = vec![make_text("Term", 0), make_colon(4)];
+        let next = Some(make_indented_line());
+
+        assert!(is_definition_start(
+            &current,
+            next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_definition_start_in_list_content() {
+        // Definitions not allowed in list content
+        let current = vec![make_text("Term", 0), make_colon(4)];
+        let next = Some(make_indented_line());
+
+        assert!(!is_definition_start(
+            &current,
+            next.as_deref(),
+            ParseContext::ListContent
+        ));
+    }
+
+    #[test]
+    fn test_is_definition_start_with_blank_line() {
+        // Definition requires immediate content (no blank line)
+        let current = vec![make_text("Term", 0), make_colon(4)];
+        let next = Some(make_blank_line());
+
+        assert!(!is_definition_start(
+            &current,
+            next.as_deref(),
+            ParseContext::DocumentRoot
+        ));
+    }
+
+    #[test]
+    fn test_is_paragraph_line_simple() {
+        let line = vec![make_text("Some text", 0)];
+
+        assert!(is_paragraph_line(&line, ParseContext::DocumentRoot));
+        assert!(is_paragraph_line(&line, ParseContext::ContentContainer));
+    }
+
+    #[test]
+    fn test_is_paragraph_line_with_definition_marker() {
+        // Line ending with colon is not a paragraph
+        let line = vec![make_text("Term", 0), make_colon(4)];
+
+        assert!(!is_paragraph_line(&line, ParseContext::DocumentRoot));
+    }
+
+    #[test]
+    fn test_is_paragraph_line_blank() {
+        // Blank lines are not paragraphs
+        let line = make_blank_line();
+
+        assert!(!is_paragraph_line(&line, ParseContext::DocumentRoot));
     }
 }

@@ -32,6 +32,7 @@ pub mod tokenization;
 pub mod verbatim_scanning;
 
 // Supporting modules
+pub mod annotation_processing;
 pub mod block_grouping;
 pub mod core;
 pub mod elements;

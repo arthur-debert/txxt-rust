@@ -1,0 +1,135 @@
+A Proposal for a Simpler TXXT
+
+This memo is about an idea to make `txxt` even simpler by unifying how we handle some of our core block elements. The goal, as always, is to keep the syntax minimal and intuitive, letting authors focus on their ideas, not on our rules.
+
+1. Context and Motivation
+
+    Right now, we have a few different ways to create structured blocks, mainly `Definitions`, `Verbatim` blocks, and `Annotations`. They all share concepts like labels and parameters, but the syntax is a bit all over the place.
+
+    - Definitions have their marker at the end of the term (`Term ::`), with optional parameters before the :: part.
+    - Verbatim blocks have a title, content, and then a label/parameter section at the very end (`:: label : params ::`).
+    - Annotations have their own unique `:: label :: content` form.
+
+    This inconsistency adds complexity to the parser and forces authors to remember several distinct patterns. It feels like we're missing a chance to unify these under a single, elegant concept. The core idea of `txxt` is to have very few special rules, and this feels like a place we can do better.
+
+2. The Proposal: Unify Around Annotations and Whitespace
+
+    The proposal is to make `Annotations` the single, consistent way to handle all block-level metadata, and to use a simple whitespace rule to distinguish between `Sessions` and `Definitions`.
+
+    Here’s how it would work:
+
+	2.0 Adjust annotation rules: 
+
+        Current annotations are defined as : 
+            <txxt-marker> <label> <params>? <txxt-marker> <content>
+        Where content and parameters are optional, which allows for : 
+        :: labelonly ::
+        :: labelwithparams : key=value ::
+
+        On this change, we would introduce the rule that, in annotations, one of label, params must be set, as in : 
+
+        :: key=value :: Becomes a valid annotation
+
+        To go with it, since now parameters are only present in annotations, and labels cannot have neitehr spaces not equals, we no longer need the ":" before parameters
+        
+        As `equal` chars are not valid in labels, there would be no ambiguity here.
+        This means all of these forms would be valid: 
+
+                To put it in another way, we can call the tagging part: 
+
+        <texxt-marker> <label><space>\+<key-value-paris>? <txxt-marker> 
+
+        Which will look like: 
+        - Label only (:: label ::)
+        - Label + params only (:: label  key=value :: )
+        - Params only (:: key=value :: )
+
+        Which in turn allow for content on contentless annotations: 
+
+        - tagging part only (<tag>)
+        - both (tag + content)
+
+
+        
+
+    2.1. Definitions
+
+        A `Definition` becomes a term ending in a colon, followed *immediately* by its indented content. The `::` marker on the term line is removed.
+
+            <Term><colon>
+                <Indented content...>
+
+        The key rule: **No blank line is allowed** between the term and the content and neither, nor term nor content should begin with  a list decoration  (-, or 1. etall ...)
+
+        Metadata, like a reference or parameters, is handled by an *optional* trailing annotation.
+
+            Syntax:
+                The form and formal representation of a symbol or concept.
+            :: lang=en, topic=parsing ::
+
+        That is, defintions are infered with no label. If one must label a def, that is possible by namespacing the label with the hard coded "def" part.
+
+        Labeled Definition: 
+            A txxt definition block where a label is set for it.
+        :: def.specs :: 
+
+    2.2. Sessions
+
+        A `Session` is a title line (with or without a colon), followed by a *mandatory* blank line, and then its indented content.
+
+            <Title>
+
+                <Indented content...>
+
+        The key rule: **A blank line is mandatory** between the title and the content.
+
+        This simple whitespace rule becomes the unambiguous signal that separates a `Session` from a `Definition`.
+
+    2.3. Verbatim Blocks
+
+        Verbatim blocks follow the same structure as definitions, but their trailing annotation is **mandatory**. The label of the annotation signals that the block is verbatim.
+
+            <Title><colon>
+                <Raw content...>
+            :: javascript  edition=es6 ::
+
+        This keeps the syntax consistent while ensuring verbatim blocks always have the necessary metadata (like the language).
+
+3. The Wins (Advantages)
+
+    This design cleans things up considerably:
+
+    - Massive Parser Simplification: The parser no longer needs complex logic to tell a `Session` from a `Definition`. It just needs to check for a `BlankLine` token. This is far more robust.
+
+    - Unified Metadata: Annotations become the one and only way to handle parameters and labels for these blocks. No more special-casing parameter syntax for different elements.
+
+    - Reduced Cognitive Load: Authors only need to learn one core pattern: "header, content, optional metadata." The only extra rule is the simple and intuitive blank line for sessions.
+
+    - Natural Grouping: This design naturally allows for annotating multiple blocks at once, a powerful feature we don't currently have.
+
+        Syntax:
+            The form and formal representation of a symbol or concept.
+        Semantics:
+            The meaning of a symbol.
+        :: group=linguistics ::
+
+    - Also works for verbatim blocks.
+
+        Show current directory: 
+            $ ls
+        Change directory: 
+            $ cwd
+        :: shell:: 
+
+4. The Trade-offs (Cons to Consider)
+
+    The Whitespace Rule is Subtle: the entire semantic distinction between a `Session` and a `Definition` now rests on a single blank line. An author who accidentally adds or removes one would silently change the meaning of their document. While the rule is intuitive, it's less explicit than the old `Term ::` syntax.
+
+	
+    Annotations Aren't Perfectly Uniform: we're making a pragmatic choice to keep the trailing annotation mandatory for verbatim blocks , and no label for definitions. This is the right call for usability, but it means they remain a slight "special case" in the new system.
+
+5. Conclusion
+
+    This proposal simplifies the `txxt` syntax by replacing multiple, inconsistent rules with a single, elegant pattern based on annotations and a natural whitespace convention. The benefits in parser simplicity, author experience, and architectural consistency are substantial.
+
+    While the subtlety of the whitespace rule is a valid concern, it feels very much in the spirit of `txxt`—leveraging natural document structure over explicit syntactic noise. It's a trade-off worth making.

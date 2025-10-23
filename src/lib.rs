@@ -18,19 +18,25 @@
 //!
 //! Understanding the processing model requires clear terminology:
 //!
-//! - Phase: One of three high-level processing stages
-//!     · Phase 1: Lexer
-//!     · Phase 2: Parser
-//!     · Phase 3: Assembler
+//! The txxt parser is written as a series of phases, conceptual grouppings of individual transformations, or steps.
+//! The phases are syntactic (from source text to scanner tokens), semantic (from scanner tokens to ast nodes), and assembly (from ast nodes to document nodes). The names were so chosen to avoid parser, as that can refer to entire processing pipeline as well as the semantic step.
 //!
-//! - Step: Sub-operations within a phase
-//!     · Example: Semantic analysis, AST construction, inline parsing
-//!     · Each step transforms data and passes it to the next step
-//!
-//! - Stage: CLI and test concept for where to stop processing
-//!     · Used for inspection, debugging, and intermediate output
-//!     · Examples: scanner-tokens, high-level-tokens, ast-block, ast-full
-//!     · Stages map to specific steps within phases
+//! Syntax:
+//!     The combination of significant indentation and non txxt processable content (verbatim blocks, etc) requires a special treatment, in which we isolate such content to avoid contaminating the txxt parsing. That is the first step, the verbatim scanner.
+//!     That is followed by a more traditional tokenization step, that creates the scanner token list, which are low level tokens, either individual characters, or groups of characters that form tokens (like words, numbers, punctuation, etc).
+//!     The scanner token list is then fed to the semantic analyzer, which converts it into a semantic token list, which are higher level tokens, that represent the structure of the document.
+//!     The general theme here is that transformations are applied, each step can leverage higher level tokens, simplifying it's task. For example, semantic step will create parameters tokens out of identifiers, equals, string quoted and other tokens, which is much easier that doing it directly from characters.
+//!     THere is an infinite bike shedding argument to be made wheather this is lexing or parsing. Not that it matters, but the criteria for txxt has been that lexing takes on syntax analysis. For example, it does not check if a parameter group has multiple keys with the same value, just the general form. That validation will be done on the semantic phase, in which are no longer woking on forms, but on semantics.
+//! Semantic:
+//!     The semantic phase will now take tokens, simple (like line-break, indent, dedent) and more elaborate ones (HighLevelToken) and create the final AST.
+//!     We isolate the block element parsing , that is elements that shape the ast structure itself and can contain heterogenous and arbitrarely nested content, from inlines, whos always operate on text spans and ultimaty produce more specialized text spans.
+//!     That helps to mangage complexity, as block elements are much more complex, and inlines are much simpler. Inlines are also parelelizble, and while not done now, could be executed in parallel and later assembled.
+//! Assembly:
+//!     The assembly phase will take the AST and wrap it in a document node, and correctely attach annotations.
+//!     The document special casing is done because a document contains more information than the ast nodes, that is things outside the document root.
+//!     For example, one can tag the document with the parser version, of the file name and other things that are not part of the ast.
+//!     Additionally, this wrapping provides a consistent interaface that leaves the txxt content to be as simple as a line of text, and still become a valid document.
+//!     Once we have the document, we can attach annotations. These may be moved from ast to ast node, but there are also document level annotations that will be correctly placed at this point.
 //!
 //!
 //! DATA FLOW
@@ -40,7 +46,7 @@
 //! Parser: -> ast-block -> ast-inlines
 //! Assembler:  ast-document -> ast-full
 //!
-//! PHASE 1: LEXER Converts source text into hierarchical token structures.
+//! PHASE 1: SYNTAX Converts source text into hierarchical token structures.
 //! 1. Lexer: Syntax Analysis: Convert source text into token vectors.
 //!     1.a: Step:  Verbatim scanning: Identify and mark verbatim regions
 //!         (Raw source text -> Text with verbatim boundaries marked)

@@ -486,19 +486,21 @@ impl SemanticAnalyzer {
 
                 // Leading whitespace at line start - capture it as indentation padding
                 // This applies after: Indent, BlankLine, Dedent, Newline, or start of file
-                ScannerToken::Whitespace { content, .. }
+                ScannerToken::Whitespace { .. }
                     if pending_indentation.is_empty()
-                        && (i == 0
-                            || matches!(
-                                scanner_tokens.get(i - 1),
-                                Some(ScannerToken::Indent { .. })
-                                    | Some(ScannerToken::BlankLine { .. })
-                                    | Some(ScannerToken::Dedent { .. })
-                                    | Some(ScannerToken::Newline { .. })
-                            )) =>
+                        && crate::syntax::indentation_analysis::extract_leading_whitespace_from_tokens(
+                            &scanner_tokens,
+                            i,
+                        )
+                        .is_some() =>
                 {
-                    // This whitespace is "before the wall" - capture it as indentation padding
-                    pending_indentation = content.clone();
+                    // Extract and capture the leading whitespace
+                    pending_indentation =
+                        crate::syntax::indentation_analysis::extract_leading_whitespace_from_tokens(
+                            &scanner_tokens,
+                            i,
+                        )
+                        .unwrap(); // Safe because we checked is_some() in guard
                     i += 1;
                     continue;
                 }

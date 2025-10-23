@@ -32,8 +32,10 @@ pub mod tokenization;
 pub mod verbatim_scanning;
 
 // Supporting modules
+pub mod block_grouping;
 pub mod core;
 pub mod elements;
+pub mod indentation_analysis;
 pub mod line_classification;
 
 // Re-export main interfaces

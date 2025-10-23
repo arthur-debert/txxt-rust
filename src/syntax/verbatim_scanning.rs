@@ -583,15 +583,7 @@ impl VerbatimScanner {
 
     /// Calculate indentation level of a line (number of leading spaces, tabs = 4 spaces)
     fn calculate_indentation(&self, line: &str) -> usize {
-        let mut indent = 0;
-        for ch in line.chars() {
-            match ch {
-                ' ' => indent += 1,
-                '\t' => indent += 4,
-                _ => break,
-            }
-        }
-        indent
+        crate::syntax::indentation_analysis::calculate_indentation_level(line)
     }
 
     /// Extract title text from a title line (removes trailing colon and leading/trailing whitespace)

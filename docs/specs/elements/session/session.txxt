@@ -283,7 +283,7 @@ Complete specification for sessions - the hierarchical organizational units that
     10.2. Named Anchors
 
         Sessions with reference parameters:
-            :: anchor:id=methodology :: 2. Research Methodology
+            :: anchor id=methodology :: 2. Research Methodology
             
                 Content of methodology section.
                 

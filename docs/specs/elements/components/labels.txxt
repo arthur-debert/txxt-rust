@@ -36,7 +36,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Verbatim labels:
             :: python
-            :: sql:dialect=postgresql
+            :: sql dialect=postgresql
         (verbatim-integration)
 
 3. Grammar
@@ -159,7 +159,7 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Invalid examples:
             123label, -invalid, label., .label, label..name
-        :: txxt.core.spec.label.invalid.malformed:error="InvalidLabel" :
+        :: txxt.core.spec.label.invalid.malformed error="InvalidLabel" :
 
 
     6.3. Context Validation
@@ -275,32 +275,32 @@ Complete specification for txxt labels used in annotations, verbatim blocks, and
 
         Programming examples:
             :: python
-            :: rust:edition=2021
-            :: sql:dialect=postgresql
+            :: rust edition=2021
+            :: sql dialect=postgresql
         (code-docs)
 
     11.2. Content Annotation
 
         Content metadata:
-            :: warning:severity=high :: Security vulnerability
-            :: example:type=best-practice :: Recommended approach
-            :: todo:priority=medium :: Implementation needed
+            :: warning severity=high :: Security vulnerability
+            :: example type=best-practice :: Recommended approach
+            :: todo priority=medium :: Implementation needed
         (content-annotation)
 
     11.3. Tool Integration
 
         Tool-specific labels:
             :: export:pdf:template=academic :
-            :: lint:ignore=line-length,spelling :
+            :: lint ignore=line-length,spelling :
             :: syntax:highlight:theme=github :
         (tool-integration)
 
     11.4. Custom Organization
 
         Company-specific usage:
-            :: acme.review:reviewer="Jane Doe",status=approved :
-            :: company.legal:classification=internal :
-            :: org.standards:compliance=iso9001 :
+            :: acme.review reviewer="Jane Doe",status=approved :
+            :: company.legal classification=internal :
+            :: org.standards compliance=iso9001 :
         (organization-custom)
 
 :: note :: Labels provide semantic identification across txxt elements. Consistent label conventions improve document portability and tool interoperability.

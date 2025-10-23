@@ -188,7 +188,7 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
                     middle = [x for x in arr if x == pivot]
                     right = [x for x in arr if x > pivot]
                     return quicksort(left) + middle + quicksort(right)
-        :: python:style=functional ::
+        :: python style=functional ::
     :: txxt.core.spec.verbatim.valid.with-parameters ::
 
     6.2. Configuration Files
@@ -222,7 +222,7 @@ Complete specification for verbatim blocks - preserved content that bypasses txx
 
     External binary content:
         Network topology diagram:
-        :: image:src=network-topology.png,alt="Network diagram showing server connections" :
+        :: image src=network-topology.png,alt="Network diagram showing server connections" :
     :: txxt.core.spec.verbatim.valid.empty-content ::
 
     6.5. Multi-format Documents

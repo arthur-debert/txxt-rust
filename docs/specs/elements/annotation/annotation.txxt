@@ -29,15 +29,15 @@ Complete specification for annotations - metadata elements that attach informati
     2.2. Parameterized Annotations
 
         Simple parameters:
-            :: warning:severity=high :: Critical security issue
+            :: warning severity=high :: Critical security issue
         (form)
 
         Complex parameters:
-            :: meta:version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
+            :: meta version=2.0,author="Jane Doe",date=2025-01-15 :: Document metadata
         (form)
 
         Multi-line with parameters:
-            :: description:lang=en,format=structured :
+            :: description lang=en,format=structured :
                 This is a detailed description
                 that spans multiple lines
                 with parameter metadata

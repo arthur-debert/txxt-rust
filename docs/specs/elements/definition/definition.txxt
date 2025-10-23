@@ -156,7 +156,7 @@ Complete specification for definitions - structured term-definition pairs that p
         Invalid (empty term):
             :
                 This definition has no term.
-        :: txxt.core.spec.definition.invalid.empty-term:error="EmptyTerm" :
+        :: txxt.core.spec.definition.invalid.empty-term error="EmptyTerm" :
 
         This is parsed as an annotation, not a definition.
 
@@ -166,7 +166,7 @@ Complete specification for definitions - structured term-definition pairs that p
             Term with no definition :
             
             Next paragraph here.
-        :: txxt.core.spec.definition.invalid.no-content:error="MissingContent" :
+        :: txxt.core.spec.definition.invalid.no-content error="MissingContent" :
 
         This should cause a parse error as definitions require content.
 
@@ -174,7 +174,7 @@ Complete specification for definitions - structured term-definition pairs that p
 
         Invalid (definition content must be indented):
             Inline Term :: Definition content on same line
-        :: txxt.core.spec.definition.invalid.inline-content:error="InlineContent" :
+        :: txxt.core.spec.definition.invalid.inline-content error="InlineContent" :
 
         Definitions require indented content; inline content is not supported.
 

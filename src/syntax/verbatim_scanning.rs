@@ -103,6 +103,7 @@
 //! 5. **Terminator indent must match title indent exactly**
 
 use crate::cst::{Position, WallType};
+use crate::syntax::verbatim_boundary::is_stretched_mode;
 // Parameters now handled via cst::parameter_scanner::scan_parameter_string
 use regex::Regex;
 
@@ -455,8 +456,8 @@ impl VerbatimScanner {
 
         // Determine verbatim type based on first content line indentation
         // Wall is determined by first non-blank content line
-        if line_indent == 1 {
-            // Stretched mode: first content at absolute column 1 (wall = 1)
+        if is_stretched_mode(line_indent) {
+            // Stretched mode: first content at absolute column 1
             ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
@@ -570,8 +571,8 @@ impl VerbatimScanner {
             return ScanState::ScanningNormal;
         }
 
-        // Content should be at absolute column 1 (wall = 1 for stretched mode)
-        if line_indent == 1 {
+        // Content should be at absolute column 1 (stretched mode)
+        if is_stretched_mode(line_indent) {
             return ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
@@ -627,8 +628,8 @@ impl VerbatimScanner {
             }
 
             // Special case: stretched mode content at absolute column 1
-            // If line is at indent 1, it could be stretched mode content, so keep looking
-            if line_indent == 1 {
+            // If line is at stretched wall, it could be stretched mode content, so keep looking
+            if is_stretched_mode(line_indent) {
                 continue;
             }
 
@@ -849,8 +850,8 @@ impl VerbatimScanner {
 
         // Determine verbatim type based on first content line indentation
         // Wall is determined by first non-blank content line
-        if line_indent == 1 {
-            // Stretched mode: first content at absolute column 1 (wall = 1)
+        if is_stretched_mode(line_indent) {
+            // Stretched mode: first content at absolute column 1
             ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,
@@ -976,8 +977,8 @@ impl VerbatimScanner {
             return ScanState::ScanningNormal;
         }
 
-        // Content should be at absolute column 1 (wall = 1 for stretched mode)
-        if line_indent == 1 {
+        // Content should be at absolute column 1 (stretched mode)
+        if is_stretched_mode(line_indent) {
             return ScanState::InVerbatimStretched {
                 title_line,
                 title_indent,

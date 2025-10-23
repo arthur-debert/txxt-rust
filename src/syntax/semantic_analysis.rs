@@ -1541,47 +1541,94 @@ impl SemanticAnalyzer {
         label_raw: &str,
         base_span: SourceSpan,
     ) -> Result<(HighLevelToken, Option<HighLevelToken>), SemanticAnalysisError> {
-        // Split on first ':' to separate label from parameters
-        if let Some(colon_pos) = label_raw.find(':') {
-            let label_part = &label_raw[..colon_pos];
-            let params_part = &label_raw[colon_pos + 1..];
+        // After grammar simplification (issue #139), annotations use:
+        // - `:: label params ::` - label followed by params (no colon separator)
+        // - `:: params ::` - params-only (no label)
+        //
+        // Strategy:
+        // 1. Check if entire string looks like parameters (contains '=' before any whitespace)
+        // 2. If yes: params-only annotation, create dummy label
+        // 3. If no: split on first whitespace, first word is label, rest is params
 
-            // Calculate span for label portion only
-            let label_span = SourceSpan {
-                start: base_span.start,
-                end: Position {
-                    row: base_span.start.row,
-                    column: base_span.start.column + colon_pos,
-                },
-            };
+        let trimmed = label_raw.trim();
 
-            // Create validated Label token with namespace support
-            let label_token = self.create_validated_label(label_part, label_span)?;
+        // Check if this is a params-only annotation
+        // Params start with key=value pattern (identifier followed by '=')
+        let is_params_only = trimmed.chars().next().is_some_and(|c| {
+            // If starts with letter/digit and contains '=' before whitespace
+            c.is_alphanumeric() && {
+                let first_whitespace = trimmed.find(char::is_whitespace).unwrap_or(trimmed.len());
+                let equals_pos = trimmed.find('=').unwrap_or(trimmed.len());
+                equals_pos < first_whitespace
+            }
+        });
 
-            // Parse parameters using unified parameter scanner
-            let parameters = if params_part.is_empty() {
-                None
-            } else {
-                let param_start = Position {
-                    row: base_span.start.row,
-                    column: base_span.start.column + colon_pos + 1,
-                };
+        if is_params_only {
+            // Params-only annotation: entire string is parameters
+            let param_start = base_span.start;
 
-                // Use unified parameter scanner from Issue #135
-                let param_scanner_tokens =
-                    crate::cst::parameter_scanner::scan_parameter_string(params_part, param_start);
+            // Use unified parameter scanner from Issue #135
+            let param_scanner_tokens =
+                crate::cst::parameter_scanner::scan_parameter_string(trimmed, param_start);
 
-                // Convert scanner tokens to high-level Parameters token
-                crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
-                    &param_scanner_tokens,
-                )
+            // Convert scanner tokens to high-level Parameters token
+            let parameters = crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
+                &param_scanner_tokens,
+            );
+
+            // Create empty label for params-only annotations
+            let label_token = crate::cst::high_level_tokens::HighLevelToken::Label {
+                text: String::new(),
+                span: base_span.clone(),
+                tokens: crate::cst::ScannerTokenSequence::new(),
             };
 
             Ok((label_token, parameters))
         } else {
-            // No parameters, just validate and create label
-            let label_token = self.create_validated_label(label_raw, base_span)?;
-            Ok((label_token, None))
+            // Split on first whitespace to separate label from parameters
+            if let Some(whitespace_pos) = trimmed.find(char::is_whitespace) {
+                let label_part = &trimmed[..whitespace_pos];
+                let params_part = trimmed[whitespace_pos..].trim();
+
+                // Calculate span for label portion only
+                let label_span = SourceSpan {
+                    start: base_span.start,
+                    end: Position {
+                        row: base_span.start.row,
+                        column: base_span.start.column + whitespace_pos,
+                    },
+                };
+
+                // Create validated Label token with namespace support
+                let label_token = self.create_validated_label(label_part, label_span)?;
+
+                // Parse parameters using unified parameter scanner
+                let parameters = if params_part.is_empty() {
+                    None
+                } else {
+                    let param_start = Position {
+                        row: base_span.start.row,
+                        column: base_span.start.column + whitespace_pos + 1,
+                    };
+
+                    // Use unified parameter scanner from Issue #135
+                    let param_scanner_tokens = crate::cst::parameter_scanner::scan_parameter_string(
+                        params_part,
+                        param_start,
+                    );
+
+                    // Convert scanner tokens to high-level Parameters token
+                    crate::cst::high_level_tokens::HighLevelTokenBuilder::parameters_from_scanner_tokens(
+                        &param_scanner_tokens,
+                    )
+                };
+
+                Ok((label_token, parameters))
+            } else {
+                // No whitespace, entire string is label, no parameters
+                let label_token = self.create_validated_label(trimmed, base_span)?;
+                Ok((label_token, None))
+            }
         }
     }
 
@@ -1649,18 +1696,11 @@ impl SemanticAnalyzer {
             ));
         }
 
-        // Extract string from tokens (filter whitespace, combine content)
+        // Extract string from tokens (PRESERVE whitespace for new grammar)
+        // After grammar simplification (issue #139), whitespace separates label from params
         let mut label_raw = String::new();
         for token in tokens {
-            match token {
-                ScannerToken::Whitespace { .. } => {
-                    // Skip whitespace when combining into string
-                    continue;
-                }
-                _ => {
-                    label_raw.push_str(token.content());
-                }
-            }
+            label_raw.push_str(token.content());
         }
 
         // Calculate span from first to last token

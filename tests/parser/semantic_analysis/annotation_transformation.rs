@@ -189,6 +189,8 @@ fn test_annotation_with_content() {
 fn test_annotation_with_parameters() {
     let analyzer = SemanticAnalyzer::new();
 
+    // New grammar (issue #139): `:: label params ::` (no colon separator)
+    // Input: `:: meta version=2.0 ::`
     let tokens = vec![
         ScannerToken::TxxtMarker {
             span: SourceSpan {
@@ -210,7 +212,8 @@ fn test_annotation_with_parameters() {
                 end: Position { row: 1, column: 7 },
             },
         },
-        ScannerToken::Colon {
+        ScannerToken::Whitespace {
+            content: " ".to_string(),
             span: SourceSpan {
                 start: Position { row: 1, column: 7 },
                 end: Position { row: 1, column: 8 },

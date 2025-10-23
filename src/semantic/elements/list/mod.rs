@@ -8,9 +8,7 @@
 
 use crate::ast::elements::containers::ContentContainer;
 use crate::ast::elements::inlines::TextTransform;
-use crate::ast::elements::list::block::{
-    ListBlock, ListDecorationType, ListItem,
-};
+use crate::ast::elements::list::block::{ListBlock, ListDecorationType, ListItem};
 use crate::cst::{HighLevelToken, ScannerTokenSequence};
 use crate::semantic::ast_construction::AstNode;
 use crate::semantic::BlockParseError;

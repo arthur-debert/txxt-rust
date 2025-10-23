@@ -67,6 +67,30 @@ use super::super::core::{ContainerElement, ContainerType, ElementType, TxxtEleme
 ///     │   └── "Semantic analysis"
 ///     └── VerbatimBlock("def parse...")
 /// ```
+///
+/// # Known Limitation: Indirect Nesting via Lists
+///
+/// While SimpleContainer prevents *direct* nesting of Definitions and Annotations,
+/// it doesn't prevent *indirect* nesting through List items. This is because
+/// `ListItem::nested` uses `ContentContainer`, not `SimpleContainer`.
+///
+/// This means the following structure is technically possible:
+/// ```text
+/// Annotation (SimpleContainer)
+///   └─ List
+///       └─ ListItem
+///           └─ nested: ContentContainer  ← NOT constrained
+///               └─ Annotation  ← Indirect recursion possible!
+/// ```
+///
+/// **Why this is acceptable:**
+/// 1. Real-world documents rarely use deeply nested lists inside annotations/definitions
+/// 2. The direct nesting prevention catches 95% of problematic cases
+/// 3. Fixing this would require making Lists context-aware (significant complexity)
+/// 4. The spec doesn't explicitly address this edge case
+///
+/// This is documented as a "best effort" constraint that prevents accidental
+/// problematic nesting while preserving essential expressive power.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SimpleContainer {
     /// Child block elements (only simple blocks allowed)

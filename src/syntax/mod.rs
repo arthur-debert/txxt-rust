@@ -32,11 +32,15 @@ pub mod tokenization;
 pub mod verbatim_scanning;
 
 // Supporting modules
+pub mod annotation_processing;
 pub mod block_grouping;
 pub mod core;
 pub mod elements;
 pub mod indentation_analysis;
 pub mod line_classification;
+pub mod list_detection;
+pub mod parameter_parsing;
+pub mod verbatim_boundary;
 
 // Re-export main interfaces
 pub use semantic_analysis::{SemanticAnalysisError, SemanticAnalyzer};

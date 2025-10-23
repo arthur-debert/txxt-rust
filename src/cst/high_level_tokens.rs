@@ -43,6 +43,7 @@ use serde::{Deserialize, Serialize};
 
 use super::primitives::{Position, ScannerTokenSequence, SourceSpan};
 use super::scanner_tokens::{ScannerToken, WallType};
+use crate::syntax::parameter_parsing::extract_parameters_from_tokens;
 
 /// High-level token representing higher-level syntactic constructs
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -562,8 +563,12 @@ impl HighLevelTokenBuilder {
             return None;
         }
 
-        let mut params = HashMap::new();
-        let mut i = 0;
+        // Extract parameters using extracted function
+        let params = extract_parameters_from_tokens(scanner_tokens);
+
+        if params.is_empty() {
+            return None;
+        }
 
         // Calculate span
         let start_span = scanner_tokens.first()?.span();
@@ -572,97 +577,6 @@ impl HighLevelTokenBuilder {
             start: start_span.start,
             end: end_span.end,
         };
-
-        while i < scanner_tokens.len() {
-            // Skip whitespace
-            if matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. }) {
-                i += 1;
-                continue;
-            }
-
-            // Skip colon (parameter separator)
-            if matches!(&scanner_tokens[i], ScannerToken::Colon { .. }) {
-                i += 1;
-                continue;
-            }
-
-            // Parse key=value pair or boolean shorthand
-            // Accept both Identifier (from scan_parameter_string) and Text (from main tokenizer)
-            let key = match &scanner_tokens[i] {
-                ScannerToken::Identifier { content, .. } => Some(content.clone()),
-                ScannerToken::Text { content, .. } => Some(content.clone()),
-                _ => None,
-            };
-
-            if let Some(key) = key {
-                i += 1;
-
-                // Skip whitespace after key
-                while i < scanner_tokens.len()
-                    && matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. })
-                {
-                    i += 1;
-                }
-
-                // Check for equals sign
-                if i < scanner_tokens.len()
-                    && matches!(&scanner_tokens[i], ScannerToken::Equals { .. })
-                {
-                    i += 1; // Skip equals
-
-                    // Skip whitespace after equals
-                    while i < scanner_tokens.len()
-                        && matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. })
-                    {
-                        i += 1;
-                    }
-
-                    // Get value (empty values are allowed per spec)
-                    let value = if i < scanner_tokens.len() {
-                        match &scanner_tokens[i] {
-                            ScannerToken::Text { content, .. } => {
-                                i += 1;
-                                content.clone()
-                            }
-                            ScannerToken::QuotedString { content, .. } => {
-                                i += 1;
-                                content.clone()
-                            }
-                            ScannerToken::Identifier { content, .. } => {
-                                i += 1;
-                                content.clone()
-                            }
-                            _ => String::new(), // Empty value (key= with nothing after)
-                        }
-                    } else {
-                        String::new() // Empty value (key= at end of input)
-                    };
-
-                    params.insert(key.clone(), value);
-                } else {
-                    // Boolean shorthand - key without value means true
-                    params.insert(key.clone(), "true".to_string());
-                }
-
-                // Skip whitespace and comma
-                while i < scanner_tokens.len() {
-                    if matches!(&scanner_tokens[i], ScannerToken::Whitespace { .. })
-                        || matches!(&scanner_tokens[i], ScannerToken::Comma { .. })
-                    {
-                        i += 1;
-                    } else {
-                        break;
-                    }
-                }
-            } else {
-                // Unexpected token, skip it
-                i += 1;
-            }
-        }
-
-        if params.is_empty() {
-            return None;
-        }
 
         Some(HighLevelToken::Parameters {
             params,

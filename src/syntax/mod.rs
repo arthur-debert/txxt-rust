@@ -37,6 +37,7 @@ pub mod core;
 pub mod elements;
 pub mod indentation_analysis;
 pub mod line_classification;
+pub mod parameter_parsing;
 pub mod verbatim_boundary;
 
 // Re-export main interfaces

@@ -1,0 +1,99 @@
+:: title :: Proposal: A More Functional, Staged Parsing Architecture
+:: author :: Gemini & Arthur
+:: pub-date :: 2025-10-20
+
+This is a bit of a brain dump on a new way to think about our parser. After the recent refactorings (`SimpleContainer`, `simplifying.txxt`), it feels like we have an opportunity to go a step further and radically simplify the entire parsing process.
+
+This assumes that these two things have landed: 
+docs/proposals/simplifying.txxt
+
+1. Motivation: The Trouble with a Monolith
+
+Our current parser, while it works, is a complex beast. It's a single, large, stateful machine that does many things at once: it manages indentation state, looks ahead for tokens, and builds the AST all in 2 or three passes, which often intermingle.
+
+This has some real drawbacks:
+- Hard to Debug: When something goes wrong, it's tough to pinpoint where. You end up needing to log a long list of branching decisions and conditionals to trace the logic.
+- Hard to Test: It's difficult to test one specific piece of logic (like just session detection) in isolation. Most of our tests have to be broad, end-to-end integration tests.
+- Hard to Maintain: Changing one part of the logic can have unforeseen consequences elsewhere. The cognitive load for understanding the whole machine is high.
+
+2. The Core Idea: A Pipeline of Simple Functions
+
+What if we stopped thinking of the parser as one big step, and instead thought of it as a pipeline of many small, simple, and focused transformations?
+
+The idea is to move to a "Progressive Refinement" architecture. Each step in the pipeline would be a pure function that takes a list of items, transforms it into a slightly higher level of abstraction, and passes it to the next stage.
+
+`String -> [Lines] -> [TaggedLines] -> [Lines + Indents] -> [HighLevelLines] -> AST`
+
+The beauty of this is that each function is incredibly simple and easy to understand, test, and debug on its own.
+
+3. The Proposed Pipeline
+
+Here’s a rough sketch of what these stages could look like.
+ 
+	1. The Lexical Pipeline (String -> `Vec<HighLevelLine>`)
+
+		This stage's only job is to turn the raw source text into a clean, pre-classified list of meaningful lines.
+
+		Pass A: Raw Line Triage
+			- Input: `String`
+			- Output: A list of `RawLine` tokens.
+			- Logic:
+				1.  Split the input string into lines.
+				2.  Instead of a stateful indentation tracker, just count the leading spaces on each line and emit `LevelToken`s. A line with 8 spaces gets two `LevelToken`s.
+				3.  The rest of the line is a `TextSpan`.
+				4.  Tag lines that are entirely whitespace as `BlankLine`.
+		Pass B: Verbatim Tagging
+			- Input: The list from Pass A.
+			- Output: The same list, but with verbatim content lines tagged as `IgnoreLine`.
+			- Logic:
+				1.  Do a quick first pass to find potential verbatim boundaries (fast regex for `SubjectLine`s and `AnnotationLine`s).
+				2.  Once a verbatim block is identified, iterate through the lines between its boundaries and simply re-tag them as `IgnoreLine`.
+				3.  This is crucial because it tells all subsequent passes to not even try to parse the content of these lines.
+		Pass C: Semantic Indentation
+			- Input: The list of tagged lines.
+			- Output: A flat list of tokens, now including `Indent` and `Dedent`.
+			- Logic:
+				1.  Iterate through the lines, skipping any `IgnoreLine`s.
+				2.  Process the `LevelToken`s from Pass A to generate the semantic `Indent` and `Dedent` tokens we need for parsing. This logic is now isolated in one simple, stateless function.
+		Pass D: Final Line Classification
+			- Input: The flat list of tokens from Pass C.
+			- Output: The final `Vec<HighLevelLine>`.
+			- Logic:
+				1.  Group the tokens by line.
+				2.  Apply our classification rules to produce the final, clean line types: `AnnotationLine`, `SequenceLine`, `SubjectLine`, `TextLine`, and the composite `HeadingLine` (a `TextLine` surrounded by `BlankLine`s).
+
+		At the end of this stage, we have a perfect, clean input for the syntactic parser.
+
+	2. The Syntactic Pipeline (`Vec<HighLevelLine>` -> AST)
+
+		This stage's job is to take the clean list of lines and build the hierarchical AST.
+
+		Pass A: Simple Grouping (Optional Optimization)
+		- Input: `Vec<HighLevelLine>`
+		- Output: A list of `LineGroup`s.
+		- Logic: Group contiguous runs of the same line type (e.g., three `TextLine`s become a `TextGroup`). This just simplifies the input for the final parser.
+		Pass B: Element Construction
+		- Input: The list of `LineGroup`s and `Indent`/`Dedent` tokens.
+		- Output: The final AST.
+		- Logic:
+			- At this point, the input is so clean and predictable that the grammar rules are trivial to implement.
+			- This is the perfect place to use a parser combinator library like `winnow`. The grammar we've discussed...
+				```
+				session = heading-line indent <content> dedent
+				definition = subject-line indent <simple-content> dedent
+				list = sequence-line+
+				```
+			- ...can be written almost 1-to-1 in the library's declarative style. It would handle all the recursion and tree-building for us, allowing us to delete a huge amount of hand-rolled code.
+
+3. The Benefits (Why This is a Huge Win)
+
+	- Amazing Debuggability: If there's a bug, we can just print the output of each stage and see exactly where the transformation went wrong. No more digging through complex loops.
+	- Trivial Unit Testing: Every pass is a pure function. We can test the `HeadingLine` transformation by just giving it a small `Vec` of lines and checking the output.
+	- Maintainability: The cognitive load is drastically reduced. A developer only needs to understand one small, focused transformation at a time.
+	- Architectural Purity: It provides a perfect separation of concerns. The lexer worries about lines, the syntactic parser worries about structure.
+
+4. The "Drawbacks" (and Why They're Okay)
+
+	- Performance: Yes, iterating over the list multiple times is technically slower than doing it all in one go. But for our use case (parsing text documents of a reasonable size), this overhead will be negligible. The gains in maintainability are worth it a thousand times over. Not only that , but many of these actually have approachable optimizations (like say a map with line and type that can be used to iterate quickly)
+	- Pipeline Complexity: There are more "files" and "steps," but the complexity of each step is an order of magnitude lower than the complexity of our current single step. It's a net win for simplicity. Given we are able to keep each step very focused, it's much easier to analyize input and output for a given step then a long list of branching and ifs and mutations under the same function.
+

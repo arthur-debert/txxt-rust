@@ -1,0 +1,77 @@
+:: title :: Simple Container Proposal
+:: author :: txxt Development Team
+:: pub-date :: 2025-01-12
+
+1. Problem: Unconstrained Content in Definitions and Annotations
+
+    The current AST design allows both `Definition` and `Annotation` blocks to contain a full `ContentContainer`. While this was designed for uniformity, it has proven to be a source of significant complexity and potential bugs.
+
+    The `ContentContainer` is too powerful for this context:
+
+    1.1. Nonsensical Nesting
+
+        The current model permits structures like a `Session` inside a `Definition`, or a `Definition` inside another `Definition`. These are semantically confusing and have no clear use case.
+
+    1.2. Unbounded Recursion
+
+        An `Annotation` can contain another `Annotation`, which can contain another, leading to infinite recursion bugs, stack overflows, and extremely complex parsing logic.
+
+    Feedback has indicated that this level of power is not useful in practice and the complexity it introduces is a net negative.
+
+2. The Wrong Solution: Oversimplification
+
+    A tempting solution is to drastically simplify the content model to only allow multiple `Paragraphs`. This would be a mistake, as it would forbid critical, legitimate use cases that make `txxt` expressive for technical documentation.
+
+    For example, we would lose the ability to:
+
+    - Include a `List` inside a `Definition` to enumerate its properties.
+    - Include a `VerbatimBlock` inside a `Definition` or `Annotation` to show a code example.
+
+    Example of critical use case we must preserve:
+        TCP Handshake::
+            The process of establishing a connection, which involves three steps:
+            - SYN: The client sends a synchronization packet.
+            - SYN-ACK: The server acknowledges the packet.
+            - ACK: The client acknowledges the server's response.
+
+3. Proposed Solution: The SimpleContainer
+
+    The solution is not to remove power, but to **constrain it intelligently**. We should introduce a new, more limited container type specifically for these elements.
+
+    This issue proposes the creation of a `SimpleContainer`.
+
+    3.1. SimpleContainer Specification
+
+        A `SimpleContainer` is a block container that can **only** contain a flat list of the following "simple" block elements:
+
+        - `Paragraph`
+        - `List`
+        - `VerbatimBlock`
+
+        Crucially, a `SimpleContainer` **cannot** contain any of the complex, recursive container types:
+
+        - `Session`
+        - `Definition`
+        - `Annotation`
+        - `ContentContainer` or another `SimpleContainer`
+
+    3.2. Implementation Plan
+
+        1. **Define the AST Node:** Create a new `ast::SimpleContainer` struct. It will be similar to `ContentContainer` but will hold a `Vec` of a new, more constrained `SimpleBlockElement` enum.
+
+        2. **Update Definition and Annotation ASTs:** Modify the `ast::DefinitionBlock` and `ast::AnnotationBlock` structs. Their `content` field should be changed from `ContentContainer` to the new `SimpleContainer`.
+
+        3. **Keep Session as-is:** The `ast::Session` block will continue to use the full `ContentContainer`, as it is the primary high-level structuring element and should be able to host any other block type.
+
+        4. **Update the Parser:** The parser/AST constructor logic for `Definition` and `Annotation` content will be simplified. When parsing the indented content for these blocks, it will now only need to look for `Paragraphs`, `Lists`, and `VerbatimBlocks`, and will error or reject any other block type.
+
+4. Rationale and Benefits
+
+    This approach provides the best of both worlds:
+
+    - **Preserves Essential Power:** It keeps the most important and legitimate use cases (like lists and code blocks in definitions) fully functional.
+    - **Eliminates Dangerous Complexity:** It completely breaks the problematic recursive chains (`Annotation` in `Annotation`, etc.) and prevents nonsensical nesting.
+    - **Simplifies the Parser:** The parsing logic for these elements becomes simpler, more predictable, and less prone to bugs.
+    - **Creates a Clearer Semantic Model:** The AST now correctly reflects the intended roles of the different container types. `Session` is for arbitrary document structure; `Definition` and `Annotation` are for providing richly formatted but structurally constrained information.
+
+    This change is a foundational architectural improvement that will make the entire parsing pipeline more robust and easier to maintain.

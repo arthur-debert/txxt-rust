@@ -14,8 +14,7 @@
 //! - `verbatim` - Verbatim block construction
 //!
 //! Inline-level element parsing (Phase 2.b):
-//! - `formatting` - Text formatting elements (bold, italic, code, math)
-//! - `inlines` - Inline elements and references
+//! - `inlines` - Inline elements (formatting and references)
 //!
 //! Reusable component constructors:
 //! - `parameters` - Single source of truth for parameter AST construction
@@ -29,7 +28,6 @@ pub mod session;
 pub mod verbatim;
 
 // Inline-level element parsing
-pub mod formatting;
 pub mod inlines;
 
 // Reusable component constructors

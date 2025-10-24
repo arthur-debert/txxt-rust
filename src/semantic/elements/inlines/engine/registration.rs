@@ -16,13 +16,22 @@
 //! let inlines = engine.parse(&tokens);
 //! ```
 
+use super::formatting_inlines::{
+    build_bold_pipeline, build_code_pipeline, build_italic_pipeline, build_math_pipeline,
+};
 use super::reference_example::build_reference_pipeline;
 use super::{DelimiterSpec, InlineDefinition, InlineEngine};
 
 /// Create a fully configured InlineEngine with all standard inline types
 ///
 /// This creates an engine with the following inline types registered:
+/// - Code: `` `...` `` (highest priority)
+/// - Math: `#...#`
 /// - References: `[...]` with type-based dispatch for citations, footnotes, etc.
+/// - Bold: `*...*`
+/// - Italic: `_..._`
+///
+/// Priority order prevents conflicts (code first to avoid parsing its content).
 ///
 /// # Errors
 ///
@@ -30,10 +39,32 @@ use super::{DelimiterSpec, InlineDefinition, InlineEngine};
 pub fn create_standard_engine() -> Result<InlineEngine, super::EngineError> {
     let mut engine = InlineEngine::new();
 
-    // Register reference inline type
+    // Register in priority order: code > math > references > bold > italic
+    engine.register(create_code_definition())?;
+    engine.register(create_math_definition())?;
     engine.register(create_reference_definition())?;
+    engine.register(create_bold_definition())?;
+    engine.register(create_italic_definition())?;
 
     Ok(engine)
+}
+
+/// Create the definition for code inline type
+fn create_code_definition() -> InlineDefinition {
+    InlineDefinition {
+        name: "code",
+        delimiters: DelimiterSpec::new('`', '`'),
+        pipeline: build_code_pipeline(),
+    }
+}
+
+/// Create the definition for math inline type
+fn create_math_definition() -> InlineDefinition {
+    InlineDefinition {
+        name: "math",
+        delimiters: DelimiterSpec::new('#', '#'),
+        pipeline: build_math_pipeline(),
+    }
 }
 
 /// Create the definition for reference inline type
@@ -49,6 +80,24 @@ fn create_reference_definition() -> InlineDefinition {
         name: "reference",
         delimiters: DelimiterSpec::new('[', ']'),
         pipeline: build_reference_pipeline(),
+    }
+}
+
+/// Create the definition for bold inline type
+fn create_bold_definition() -> InlineDefinition {
+    InlineDefinition {
+        name: "bold",
+        delimiters: DelimiterSpec::new('*', '*'),
+        pipeline: build_bold_pipeline(),
+    }
+}
+
+/// Create the definition for italic inline type
+fn create_italic_definition() -> InlineDefinition {
+    InlineDefinition {
+        name: "italic",
+        delimiters: DelimiterSpec::new('_', '_'),
+        pipeline: build_italic_pipeline(),
     }
 }
 
@@ -76,7 +125,7 @@ mod tests {
         assert!(result.is_ok());
 
         let engine = result.unwrap();
-        assert_eq!(engine.registered_count(), 1);
+        assert_eq!(engine.registered_count(), 5); // code, math, reference, bold, italic
     }
 
     #[test]

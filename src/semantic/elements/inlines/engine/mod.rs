@@ -38,6 +38,7 @@
 //! let inlines = engine.parse(&tokens);
 //! ```
 
+pub mod formatting_inlines;
 pub mod pipeline;
 pub mod pipeline_data;
 pub mod reference_example;
@@ -71,8 +72,16 @@ impl DelimiterSpec {
 
     /// Check if a token matches the start delimiter
     pub fn matches_start(&self, token: &ScannerToken) -> bool {
-        match token {
-            ScannerToken::Text { content, .. } if content.len() == 1 => {
+        match (self.start, token) {
+            // Match delimiter-specific tokens
+            ('*', ScannerToken::BoldDelimiter { .. }) => true,
+            ('_', ScannerToken::ItalicDelimiter { .. }) => true,
+            ('`', ScannerToken::CodeDelimiter { .. }) => true,
+            ('#', ScannerToken::MathDelimiter { .. }) => true,
+            ('[', ScannerToken::LeftBracket { .. }) => true,
+            (']', ScannerToken::RightBracket { .. }) => true,
+            // Match text tokens with single-character content
+            (_, ScannerToken::Text { content, .. }) if content.len() == 1 => {
                 content.starts_with(self.start)
             }
             _ => false,
@@ -81,8 +90,16 @@ impl DelimiterSpec {
 
     /// Check if a token matches the end delimiter
     pub fn matches_end(&self, token: &ScannerToken) -> bool {
-        match token {
-            ScannerToken::Text { content, .. } if content.len() == 1 => {
+        match (self.end, token) {
+            // Match delimiter-specific tokens
+            ('*', ScannerToken::BoldDelimiter { .. }) => true,
+            ('_', ScannerToken::ItalicDelimiter { .. }) => true,
+            ('`', ScannerToken::CodeDelimiter { .. }) => true,
+            ('#', ScannerToken::MathDelimiter { .. }) => true,
+            ('[', ScannerToken::LeftBracket { .. }) => true,
+            (']', ScannerToken::RightBracket { .. }) => true,
+            // Match text tokens with single-character content
+            (_, ScannerToken::Text { content, .. }) if content.len() == 1 => {
                 content.starts_with(self.end)
             }
             _ => false,

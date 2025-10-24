@@ -1,203 +1,33 @@
-//! # Phase 2b: Inline Parsing
+//! Phase 2b: Inline Parsing
 //!
 //! ============================================================================
 //! OVERVIEW
 //! ============================================================================
 //!
-//! Handles inline elements within block content. This is the second step
-//! of Phase 2 parsing, where we take AST block elements and process
-//! any inline formatting, references, and other inline elements within them.
+//! Inline parsing is the second step of Phase 2 (Semantic Analysis). It takes
+//! AST block elements with raw scanner tokens and processes inline elements
+//! within their content, producing complete AST with both block and inline
+//! structure.
 //!
-//! Inlines are isolated and require no context - they operate on simple text
-//! spans within blocks and produce specialized text spans. This makes them
-//! much simpler than block elements and enables independent testing and
-//! potential parallelization.
+//! Inline elements represent formatting and references within text spans:
+//! - Formatting: bold, italic, code, math
+//! - References: citations, footnotes, sections, URLs, files
 //!
+//! Inlines operate on text spans within blocks and produce specialized text
+//! spans. They require no document context, enabling independent processing
+//! and testing.
 //!
+//! Inlines operate on a registry, and can leverage the infrastructure for most things
 //! ============================================================================
-//! ARCHITECTURE: THREE-LEVEL DECLARATIVE PIPELINE
-//! ============================================================================
-//!
-//! The inline parsing system uses a declarative three-level pipeline where each
-//! level has a distinct responsibility. Components are defined as composable
-//! traits rather than monolithic parsing logic.
-//!
-//!
-//! LEVEL 1: DELIMITER MATCHING
-//!
-//! Purpose: Identify spans enclosed by delimiter pairs
-//! Input:   Vec<ScannerToken> (from block elements)
-//! Output:  Vec<SpanMatch> (matched delimiter pairs)
-//! Module:  semantic::elements::inlines::level1_matchers
-//!
-//! Key Components:
-//! - GenericDelimiterMatcher: Single configurable matcher for all inline types
-//! - Factory functions: bold_matcher(), italic_matcher(), code_matcher(),
-//!   math_matcher(), reference_matcher()
-//!
-//! Responsibilities:
-//! - Match start and end delimiters (e.g., `*...*`, `[...]`)
-//! - Enforce single-line constraint (no newlines in content)
-//! - Validate non-empty content
-//! - Preserve token sequences for AST construction
-//!
-//! Examples:
-//! - Bold: `*text*` → SpanMatch { start: 0, end: 3, inner: ["text"] }
-//! - Reference: `[url]` → SpanMatch { start: 0, end: 3, inner: ["url"] }
-//!
-//!
-//! LEVEL 2: TYPE CLASSIFICATION
-//!
-//! Purpose: Determine specific inline element type from matched spans
-//! Input:   SpanMatch (from Level 1)
-//! Output:  TypedSpan (span + InlineType)
-//! Module:  semantic::elements::inlines::level2_classifiers
-//!
-//! Key Components:
-//! - FormattingClassifier: Maps delimiter names to formatting types
-//!   (bold → InlineType::Bold, italic → InlineType::Italic, etc.)
-//!
-//! - ReferenceTypeClassifier: Analyzes reference content to determine type
-//!   (Uses existing ReferenceClassifier for pattern matching)
-//!   - @key → InlineType::Citation
-//!   - #3 → InlineType::Section
-//!   - [1] or ^label → InlineType::Footnote
-//!   - https://... → InlineType::Url
-//!   - ./file.txt → InlineType::File
-//!   - TK → InlineType::ToComeTK
-//!   - other → InlineType::NotSure
-//!
-//! Responsibilities:
-//! - Classify formatting elements (trivial: type = delimiter)
-//! - Classify reference elements (complex: analyze content patterns)
-//! - Handle ambiguous cases with precedence rules
-//!
-//!
-//! LEVEL 3: DEEP PROCESSING
-//!
-//! Purpose: Build final AST nodes with complete semantic information
-//! Input:   TypedSpan (from Level 2)
-//! Output:  Inline (final AST node)
-//! Module:  semantic::elements::inlines::level3_processors
-//!
-//! Key Components (Processors):
-//!
-//! Formatting Processors:
-//! - BoldProcessor: Builds Strong transforms, allows nested different types
-//! - ItalicProcessor: Builds Emphasis transforms, prevents same-type nesting
-//! - CodeProcessor: Builds Code transforms, no nesting (literal content)
-//! - MathProcessor: Builds Math transforms, no nesting (literal content)
-//!
-//! Reference Processors:
-//! - CitationProcessor: Parses citation keys and locators
-//!   `@smith2023, p. 123; @jones2025` → Vec<CitationEntry>
-//!
-//! - FootnoteProcessor: Handles naked numerical and labeled footnotes
-//!   `1` → NakedNumerical, `^label` → NamedAnchor
-//!
-//! - SectionProcessor: Parses section identifiers with hierarchy
-//!   `#3` → Numeric([3]), `#2.1.3` → Numeric([2,1,3]), `#-1` → negative index
-//!
-//! - UrlProcessor: Parses URLs with optional fragments
-//!   `https://example.com#section` → Url { url, fragment }
-//!
-//! - FileProcessor: Parses file paths with optional section anchors
-//!   `./file.txt#section` → File { path, section }
-//!
-//! - TKProcessor: Handles TK (To Come) placeholders
-//! - NotSureProcessor: Handles unresolved references
-//!
-//! Responsibilities:
-//! - Parse internal structure (citation keys, section numbers, etc.)
-//! - Handle nested formatting recursively
-//! - Build complete AST nodes with semantic information
-//! - Preserve token sequences for source reconstruction
-//!
-//!
-//! ============================================================================
-//! PIPELINE ORCHESTRATION
+//! ARCHITECTURE: REGISTRATION-BASED ENGINE
 //! ============================================================================
 //!
-//! The InlinePipeline struct coordinates all three levels:
+//! The inline parsing system uses a registration-based engine where inline
+//! types register themselves with delimiter specifications and processing
+//! pipelines. The engine orchestrates delimiter matching and pipeline execution.
 //!
-//! Module: semantic::elements::inlines::pipeline
-//!
-//! Key Components:
-//! - InlinePipeline: Main orchestrator that runs Level 1 → 2 → 3
-//! - create_standard_pipeline(): Factory with all built-in matchers
-//! - Priority order: Code > Math > Reference > Bold > Italic
-//!   (Code first to prevent conflicts with other delimiters)
-//!
-//! Processing Flow:
-//! ```text
-//! ScannerToken[] → [Level 1: Match] → SpanMatch[]
-//!                → [Level 2: Classify] → TypedSpan[]
-//!                → [Level 3: Process] → Inline[]
-//! ```
-//!
-//! Example: Bold with nested italic
-//! ```text
-//! Input:  [*, _, "text", _, *]
-//!
-//! Level 1: Match bold delimiters
-//!   → SpanMatch { matcher: "bold", inner: [_, "text", _] }
-//!
-//! Level 2: Classify as Bold
-//!   → TypedSpan { type: Bold, span: ... }
-//!
-//! Level 3: Process with recursion
-//!   → BoldProcessor sees inner italic delimiters
-//!   → Recursively processes: Italic("text")
-//!   → Output: Strong(Emphasis(Identity("text")))
-//! ```
-//!
-//! Example: Citation with multiple keys
-//! ```text
-//! Input:  [[, "@smith2023; @jones2025", ]]
-//!
-//! Level 1: Match reference delimiters
-//!   → SpanMatch { matcher: "reference", inner: ["@smith2023; @jones2025"] }
-//!
-//! Level 2: Classify as Citation (sees @ at start)
-//!   → TypedSpan { type: Citation, span: ... }
-//!
-//! Level 3: Process with citation parser
-//!   → CitationProcessor splits by semicolon
-//!   → Parses each key: "smith2023", "jones2025"
-//!   → Output: Reference(Citation([entry1, entry2]))
-//! ```
-//!
-//!
-//! ============================================================================
-//! DESIGN PRINCIPLES
-//! ============================================================================
-//!
-//! DECLARATIVE OVER IMPERATIVE
-//! - Inline types defined as trait implementations, not hard-coded logic
-//! - Adding new inline types: implement 3 traits + factory function
-//! - No monolithic switch statements or if-else chains
-//!
-//! SEPARATION OF CONCERNS
-//! - Level 1: Knows about delimiters, not AST
-//! - Level 2: Knows about types, not content parsing
-//! - Level 3: Knows about semantics, not delimiter matching
-//!
-//! TESTABILITY
-//! - Each level tested independently with unit tests
-//! - Mock data at level boundaries (SpanMatch, TypedSpan)
-//! - Integration tests verify full pipeline
-//!
-//! EXTENSIBILITY
-//! - Plugin systems can add custom inline types
-//! - Reuse GenericDelimiterMatcher for simple cases
-//! - Implement custom processors for complex parsing
-//!
-//! COMPOSABILITY
-//! - Nested formatting via recursive processing
-//! - Processors can invoke sub-parsers (citations in footnotes, etc.)
-//! - Multiple levels of processing (currently 3, extensible if needed)
-//!
-//!
+//! The first step is always to match the inline input, which is then passed to the first
+
 //! ============================================================================
 //! RELATED SPECIFICATIONS
 //! ============================================================================
@@ -212,9 +42,12 @@
 //! SEE ALSO
 //! ============================================================================
 //!
-//! For the complete architecture overview: src/lib.rs
-//! For block element parsing: src/semantic/mod.rs
-//! For tokenization: src/syntax/mod.rs
+//! Complete architecture: src/lib.rs
+//! Engine implementation: src/semantic/elements/inlines/engine/mod.rs
+//! Reference example: src/semantic/elements/inlines/engine/reference_example.rs
+//! Registration: src/semantic/elements/inlines/engine/registration.rs
+//! Block parsing: src/semantic/mod.rs
+//! Tokenization: src/syntax/mod.rs
 
 use crate::ast::elements::formatting::inlines::{Inline, Text, TextTransform};
 use crate::ast::ElementNode;

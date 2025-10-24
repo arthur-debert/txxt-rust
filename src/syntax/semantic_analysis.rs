@@ -5,6 +5,22 @@
 //! into a higher-level stream of semantic nodes.
 //!
 //! src/lexer/mod.rs has the full architecture overview.
+//!
+//! # Token Transformation Overview
+//!
+//! The `SemanticAnalyzer` transforms scanner tokens into high-level semantic tokens.
+//! This document explains which tokens are generated, which are passed through,
+//! and the transformation patterns used.
+//!
+//! It will pass through the structural tokens (Indent, Dedent, BlankLine, etc) unchanged.
+//!
+//! It will transform the following tokens:
+//! - **TxxtMarker** → **TxxtMarker** (passed through unchanged, just converted to high-level token format)
+//! - **Identifier** → **Label** (validates label syntax, supports namespacing)
+//! - **Text** → **TextSpan** (basic text content preservation)
+//! - **SequenceMarker** → **SequenceMarker** (classifies numbering style and form)
+//! - **Colon** → **Colon** (preserved as syntactic marker)
+//! - Other tokens will be transformed to text spans.
 
 use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,

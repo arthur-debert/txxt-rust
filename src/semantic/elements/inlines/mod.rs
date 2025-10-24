@@ -162,10 +162,7 @@
 //! - Maintain token-level precision for language server support
 //! - Support progressive complexity (single → multiple → nested)
 
-pub mod level1_matchers;
-pub mod level2_classifiers;
-pub mod level3_processors;
-pub mod pipeline;
+pub mod engine;
 pub mod references;
 
 // Re-export inline parsing functions
@@ -174,8 +171,8 @@ pub use references::*;
 /// Parse inline elements from a sequence of tokens
 ///
 /// This is the main entry point for inline parsing. It processes a sequence
-/// of tokens and returns a vector of inline elements using the text transform
-/// layer architecture.
+/// of tokens and returns a vector of inline elements using the generic
+/// inline engine.
 ///
 /// # Arguments
 /// * `tokens` - Sequence of tokens to parse as inline elements
@@ -184,8 +181,6 @@ pub use references::*;
 /// * `Result<Vec<crate::ast::elements::formatting::inlines::Inline>, InlineParseError>`
 ///
 /// See tests/parser/elements/inlines/test_formatting.rs for examples
-use crate::semantic::elements::formatting::parse_formatting_inlines;
-
 pub fn parse_inlines(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::Inline>, InlineParseError> {
@@ -193,7 +188,11 @@ pub fn parse_inlines(
         return Ok(Vec::new());
     }
 
-    parse_formatting_inlines(tokens)
+    // Use the generic inline engine
+    let engine = engine::create_standard_engine()
+        .map_err(|e| InlineParseError::InvalidStructure(e.to_string()))?;
+
+    Ok(engine.parse(tokens))
 }
 
 /// Parse formatting inline elements (bold, italic, code, math)
@@ -209,14 +208,30 @@ pub fn parse_inlines(
 ///
 /// # Formatting Types
 /// * **Strong (Bold)**: `*content*` - Single asterisk tokens
-/// * **Emphasis (Italic)**: `_content_` - Single underscore tokens  
+/// * **Emphasis (Italic)**: `_content_` - Single underscore tokens
 /// * **Code**: `` `content` `` - Single backtick tokens
 /// * **Math**: `#content#` - Single hash tokens
+///
+/// # Note
+/// This function filters the engine output to only return TextTransform variants.
+/// References and other non-formatting inlines are excluded.
 pub fn parse_formatting(
     tokens: &[crate::cst::ScannerToken],
 ) -> Result<Vec<crate::ast::elements::formatting::inlines::TextTransform>, InlineParseError> {
-    // Delegate to the formatting module
-    crate::semantic::elements::formatting::parse_formatting_elements(tokens)
+    let inlines = parse_inlines(tokens)?;
+
+    // Extract only TextTransform variants
+    let transforms = inlines
+        .into_iter()
+        .filter_map(|inline| match inline {
+            crate::ast::elements::formatting::inlines::Inline::TextLine(transform) => {
+                Some(transform)
+            }
+            _ => None, // Skip references and other non-formatting inlines
+        })
+        .collect();
+
+    Ok(transforms)
 }
 
 /// Parse reference inline elements (citations, footnotes, page refs, session refs)

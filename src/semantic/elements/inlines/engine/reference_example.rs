@@ -18,7 +18,7 @@ use crate::cst::{ScannerToken, ScannerTokenSequence};
 use std::collections::HashMap;
 
 /// Extract text content from tokens
-fn extract_content(tokens: &[ScannerToken]) -> String {
+pub fn extract_content(tokens: &[ScannerToken]) -> String {
     tokens
         .iter()
         .filter_map(|token| match token {
@@ -386,7 +386,7 @@ fn process_not_sure(data: StageData) -> Result<StageData, StageError> {
 ///    - File → process_file
 ///    - ToComeTK → process_tk
 ///    - NotSure (default) → process_not_sure
-fn build_reference_pipeline() -> Pipeline {
+pub fn build_reference_pipeline() -> Pipeline {
     let mut branches = HashMap::new();
 
     // Each branch is a pipeline with processing stages

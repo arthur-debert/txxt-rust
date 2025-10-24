@@ -216,16 +216,17 @@
 //! For block element parsing: src/semantic/mod.rs
 //! For tokenization: src/syntax/mod.rs
 
+use crate::ast::elements::formatting::inlines::{Inline, Text, TextTransform};
 use crate::ast::ElementNode;
-use crate::semantic::elements::inlines::pipeline::{
-    create_standard_pipeline, inlines_to_text_transforms,
-};
+use crate::semantic::elements::inlines::engine::{create_standard_engine, InlineEngine};
 
 /// Inline parser for processing inline elements within blocks
 ///
 /// This parser takes AST block elements and processes any inline
 /// formatting, references, and other inline elements within them.
-pub struct InlineParser;
+pub struct InlineParser {
+    engine: InlineEngine,
+}
 
 impl Default for InlineParser {
     fn default() -> Self {
@@ -236,7 +237,11 @@ impl Default for InlineParser {
 impl InlineParser {
     /// Create a new inline parser instance
     pub fn new() -> Self {
-        Self
+        // Create engine with all standard inline types registered
+        let engine = create_standard_engine()
+            .expect("Failed to create standard inline engine - this is a bug");
+
+        Self { engine }
     }
 
     /// Parse inline elements within block AST nodes
@@ -257,9 +262,8 @@ impl InlineParser {
     fn parse_inlines_in_node(&self, node: ElementNode) -> Result<ElementNode, InlineParseError> {
         match node {
             ElementNode::ParagraphBlock(mut block) => {
-                // Use the new declarative pipeline to parse all inline elements
-                let pipeline = create_standard_pipeline();
-                let inlines = pipeline.parse(&block.tokens.tokens)?;
+                // Use the generic inline engine to parse all inline elements
+                let inlines = self.engine.parse(&block.tokens.tokens);
 
                 // Convert to TextTransform for backward compatibility
                 // TODO: Update ParagraphBlock to support Vec<Inline> directly
@@ -269,6 +273,36 @@ impl InlineParser {
             _ => Ok(node),
         }
     }
+}
+
+/// Convert Vec<Inline> to Vec<TextTransform> for backward compatibility
+///
+/// This helper function extracts TextTransform elements from Inline::TextLine variants.
+/// Reference elements are currently converted to plain text since the ParagraphBlock
+/// structure doesn't yet support mixed Inline content.
+///
+/// TODO: Update ParagraphBlock.content to Vec<Inline> to properly support references
+fn inlines_to_text_transforms(inlines: Vec<Inline>) -> Vec<TextTransform> {
+    inlines
+        .into_iter()
+        .map(|inline| match inline {
+            Inline::TextLine(transform) => transform,
+            Inline::Reference(reference) => {
+                // Convert reference to plain text for now
+                // Eventually ParagraphBlock should support Vec<Inline>
+                let text = reference.target.display_text();
+                TextTransform::Identity(Text::simple_with_tokens(&text, reference.tokens))
+            }
+            Inline::Link { target, tokens, .. } => {
+                // Convert link to plain text for now
+                TextTransform::Identity(Text::simple_with_tokens(&target, tokens))
+            }
+            Inline::Custom { name, tokens, .. } => {
+                // Convert custom inline to plain text
+                TextTransform::Identity(Text::simple_with_tokens(&name, tokens))
+            }
+        })
+        .collect()
 }
 
 /// Errors that can occur during inline parsing

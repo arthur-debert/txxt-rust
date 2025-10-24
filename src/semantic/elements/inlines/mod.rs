@@ -163,10 +163,6 @@
 //! - Support progressive complexity (single → multiple → nested)
 
 pub mod engine;
-pub mod level1_matchers;
-pub mod level2_classifiers;
-pub mod level3_processors;
-pub mod pipeline;
 pub mod references;
 
 // Re-export inline parsing functions

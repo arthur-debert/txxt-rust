@@ -159,7 +159,6 @@ fn test_simple_code() {
 }
 
 #[test]
-#[ignore = "Nesting not yet implemented in generic engine - TODO: add recursive processing"]
 fn test_nested_bold_italic() {
     let tokens = vec![
         create_bold_delimiter(0, 1),

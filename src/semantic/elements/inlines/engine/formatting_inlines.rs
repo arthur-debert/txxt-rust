@@ -36,9 +36,8 @@ fn extract_content(tokens: &[ScannerToken]) -> String {
 fn process_bold(data: StageData) -> Result<StageData, StageError> {
     let span = data.downcast::<MatchedSpan>()?;
 
-    // TODO: Recursively process inner content for nested formatting
-    // For now, treat as plain text (will be fixed when all formatting types are registered)
-    let nested_transforms = tokens_to_identity_transforms(&span.inner_tokens);
+    // Recursively process inner content for nested formatting
+    let nested_transforms = parse_nested_content(&span.inner_tokens)?;
 
     let inline = Inline::TextLine(TextTransform::Strong(nested_transforms));
     Ok(StageData::new(inline))
@@ -61,8 +60,8 @@ pub fn build_bold_pipeline() -> Pipeline {
 fn process_italic(data: StageData) -> Result<StageData, StageError> {
     let span = data.downcast::<MatchedSpan>()?;
 
-    // TODO: Recursively process inner content for nested formatting
-    let nested_transforms = tokens_to_identity_transforms(&span.inner_tokens);
+    // Recursively process inner content for nested formatting
+    let nested_transforms = parse_nested_content(&span.inner_tokens)?;
 
     let inline = Inline::TextLine(TextTransform::Emphasis(nested_transforms));
     Ok(StageData::new(inline))
@@ -139,20 +138,43 @@ pub fn build_math_pipeline() -> Pipeline {
 // Helper Functions
 // ============================================================================
 
-/// Convert tokens to plain text transforms (for nested content processing)
+/// Parse nested content by recursively calling the inline engine
 ///
-/// TODO: This is temporary - will be replaced with recursive engine call
-/// once all formatting types are registered.
-fn tokens_to_identity_transforms(tokens: &[ScannerToken]) -> Vec<TextTransform> {
-    tokens
-        .iter()
-        .map(|token| {
-            let token_sequence = ScannerTokenSequence {
-                tokens: vec![token.clone()],
-            };
-            TextTransform::Identity(Text::simple_with_tokens(token.content(), token_sequence))
+/// This enables proper nesting of formatting elements (e.g., bold containing italic).
+/// Creates a fresh engine instance for the recursive call to avoid circular dependencies.
+fn parse_nested_content(tokens: &[ScannerToken]) -> Result<Vec<TextTransform>, StageError> {
+    if tokens.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    // Create engine for recursive parsing
+    let engine = super::registration::create_standard_engine()
+        .map_err(|e| StageError::ProcessingError(format!("Failed to create engine: {}", e)))?;
+
+    // Parse the inner tokens
+    let inlines = engine.parse(tokens);
+
+    // Extract TextTransform variants
+    let transforms = inlines
+        .into_iter()
+        .map(|inline| match inline {
+            Inline::TextLine(transform) => transform,
+            // References and other non-formatting inlines become plain text
+            Inline::Reference(ref_) => {
+                let text = ref_.target.display_text();
+                let token_sequence = ref_.tokens;
+                TextTransform::Identity(Text::simple_with_tokens(&text, token_sequence))
+            }
+            Inline::Link { target, tokens, .. } => {
+                TextTransform::Identity(Text::simple_with_tokens(&target, tokens))
+            }
+            Inline::Custom { name, tokens, .. } => {
+                TextTransform::Identity(Text::simple_with_tokens(&name, tokens))
+            }
         })
-        .collect()
+        .collect();
+
+    Ok(transforms)
 }
 
 #[cfg(test)]

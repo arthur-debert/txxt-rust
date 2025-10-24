@@ -14,13 +14,25 @@
 //!
 //! It will pass through the structural tokens (Indent, Dedent, BlankLine, etc) unchanged.
 //!
-//! It will transform the following tokens:
-//! - **TxxtMarker** → **TxxtMarker** (passed through unchanged, just converted to high-level token format)
-//! - **Identifier** → **Label** (validates label syntax, supports namespacing)
-//! - **Text** → **TextSpan** (basic text content preservation)
-//! - **SequenceMarker** → **SequenceMarker** (classifies numbering style and form)
-//! - **Colon** → **Colon** (preserved as syntactic marker)
-//! - Other tokens will be transformed to text spans.
+//! Then it will:
+//! 1. Combines low-level tokens into more complex structures:
+//!     - Parameters (combines Identifier Equals + (Text | QuotedString) Comma ) → used in annnotations.
+//! 2. Creates AST Element Specific nodes:
+//!     - Annotation (uses tokens: TxxtMarker + Whitespace + Identifier/Text + ... + TxxtMarker + Text?) → Annotation high-level token
+//!     - Definition (uses tokens: Text + Colon + Newline + Indent + content) → Definition high-level token
+//!     - VerbatimBlock (uses tokens: VerbatimBlockStart → VerbatimContentLine* → VerbatimBlockEnd) → VerbatimBlock high-level token
+//! 3. Combines line tokens:
+//!     - PlainTextLine (uses tokens: Text + Whitespace + Text + ... + Newline) → PlainTextLine high-level token
+//!     - SequenceTextLine (uses tokens: SequenceMarker + Whitespace + Text + ... + Newline) → SequenceTextLine high-level token
+//!
+//! The semantic analyzer takes scanner tokens and creates these higher-level structures that are then used by the AST construction phase to build the final semantic elements.
+// Annotation (uses tokens: TxxtMarker + Whitespace + Identifier/Text + ... + TxxtMarker + Text?) → Annotation high-level token
+// Definition (uses tokens: Text + Colon + Newline + Indent + content) → Definition high-level token
+// VerbatimBlock (uses tokens: VerbatimBlockStart → VerbatimContentLine* → VerbatimBlockEnd) → VerbatimBlock high-level token
+// 3. Combines line tokens:
+// PlainTextLine (uses tokens: Text + Whitespace + Text + ... + Newline) → PlainTextLine high-level token
+// SequenceTextLine (uses tokens: SequenceMarker + Whitespace + Text + ... + Newline) → SequenceTextLine high-level token
+// The semantic analyzer takes scanner tokens and creates these higher-level structures that are then used by the AST construction phase to build the final semantic elements.
 
 use crate::cst::high_level_tokens::{
     HighLevelNumberingForm, HighLevelNumberingStyle, HighLevelToken, HighLevelTokenBuilder,
